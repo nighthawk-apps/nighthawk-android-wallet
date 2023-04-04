@@ -60,13 +60,14 @@ internal object Dark {
 internal object Light {
     val backgroundStart = Color(0xFF110E2B)
     val backgroundEnd = Color(0xFFD2E4F3)
+    val primaryPeach = Color(0xFFFE7757)
 
-    val textHeaderOnBackground = Color(0xff2D3747)
-    val textBodyOnBackground = Color(0xFF171717)
+    val textHeaderOnBackground = primaryPeach
+    val textBodyOnBackground = Color.White
     val textNavigationButton = Color(0xFF7B8897)
     val textPrimaryButton = Color(0xFF110E2B)
     val textSecondaryButton = Color(0xFF2E476E)
-    val textTertiaryButton = Color(0xFFFE7757)
+    val textTertiaryButton = primaryPeach
     val textCaption = Color(0xFF2D3747)
     val textChipIndex = Color(0xFFEE8592)
 
@@ -104,7 +105,7 @@ internal object Light {
     val dangerous = Color(0xFFEC0008)
     val onDangerous = Color(0xFFFFFFFF)
 
-    val reference = Color(0xFF10A5FF)
+    val reference = primaryPeach
 }
 
 internal val DarkColorPalette = darkColorScheme(

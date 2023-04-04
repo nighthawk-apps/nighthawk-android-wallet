@@ -8,16 +8,19 @@ import androidx.activity.viewModels
 import androidx.annotation.VisibleForTesting
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.core.content.ContextCompat
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.navigation.NavHostController
+import androidx.navigation.Navigation
 import co.electriccoin.zcash.ui.common.BindCompLocalProvider
 import co.electriccoin.zcash.ui.configuration.RemoteConfig
 import co.electriccoin.zcash.ui.design.component.ConfigurationOverride
@@ -29,6 +32,7 @@ import co.electriccoin.zcash.ui.screen.home.viewmodel.HomeViewModel
 import co.electriccoin.zcash.ui.screen.home.viewmodel.SecretState
 import co.electriccoin.zcash.ui.screen.home.viewmodel.WalletViewModel
 import co.electriccoin.zcash.ui.screen.onboarding.WrapOnboarding
+import co.electriccoin.zcash.ui.screen.onboarding.nighthawk.navigation.Navigate
 import co.electriccoin.zcash.ui.screen.warning.WrapNotEnoughSpace
 import co.electriccoin.zcash.ui.screen.warning.viewmodel.StorageCheckViewModel
 import co.electriccoin.zcash.work.WorkIds
@@ -56,6 +60,8 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        window.statusBarColor = ContextCompat.getColor(this, co.electriccoin.zcash.ui.design.R.color.ns_dark_navy)
+        window.navigationBarColor = ContextCompat.getColor(this, co.electriccoin.zcash.ui.design.R.color.ns_dark_navy)
 
         setupSplashScreen()
 
@@ -87,7 +93,7 @@ class MainActivity : ComponentActivity() {
         setContent {
             Override(configurationOverrideFlow) {
                 ZcashTheme {
-                    GradientSurface(
+                    Surface(
                         Modifier
                             .fillMaxWidth()
                             .fillMaxHeight()
@@ -126,7 +132,8 @@ class MainActivity : ComponentActivity() {
             CompositionLocalProvider(RemoteConfig provides configuration) {
                 when (secretState) {
                     SecretState.None -> {
-                        WrapOnboarding()
+                        // WrapOnboarding()
+                        Navigate()
                     }
                     is SecretState.NeedsBackup -> {
                         WrapNewWallet(
