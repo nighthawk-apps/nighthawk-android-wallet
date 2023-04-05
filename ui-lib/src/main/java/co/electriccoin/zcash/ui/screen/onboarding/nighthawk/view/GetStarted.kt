@@ -5,8 +5,8 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -57,13 +57,13 @@ fun GetStarted(
     ) {
         Spacer(modifier = Modifier.fillMaxSize(0.1f))
         Image(painter = painterResource(id = R.drawable.ic_nighthawk_logo), contentDescription = "logo", contentScale = ContentScale.Inside)
-        Spacer(Modifier.size(dimensionResource(id = R.dimen.top_margin_back_btn)))
+        Spacer(Modifier.height(dimensionResource(id = R.dimen.top_margin_back_btn)))
         TitleLarge(text = stringResource(id = R.string.ns_nighthawk), textAlign = TextAlign.Center)
-        Spacer(modifier = Modifier.size(dimensionResource(id = R.dimen.offset)))
+        Spacer(modifier = Modifier.height(dimensionResource(id = R.dimen.offset)))
         TitleMedium(text = stringResource(id = R.string.ns_get_started), textAlign = TextAlign.Center)
-        Spacer(modifier = Modifier.size(dimensionResource(id = R.dimen.text_margin)))
+        Spacer(modifier = Modifier.height(dimensionResource(id = R.dimen.text_margin)))
         BodyMedium(text = stringResource(id = R.string.ns_landing_text), modifier = Modifier.fillMaxWidth(0.7f), textAlign = TextAlign.Center)
-        Spacer(modifier = Modifier.size(64.dp))
+        Spacer(modifier = Modifier.height(64.dp))
         BodySmall(text = stringResource(id = R.string.ns_landing_footer), modifier = Modifier.fillMaxWidth(0.7f), textAlign = TextAlign.Center)
         Reference(text = stringResource(id = R.string.ns_terms_conditions), style = TextStyle(fontSize = TextUnit(12f, TextUnitType.Sp))) {
             onReference.invoke()
@@ -72,12 +72,12 @@ fun GetStarted(
         PrimaryButton(
             onClick = goSeedBackUp,
             text = stringResource(id = R.string.ns_create_wallet).uppercase(),
-            modifier = Modifier.heightIn(min = dimensionResource(id = R.dimen.button_height))
+            modifier = Modifier.sizeIn(minWidth = dimensionResource(id = R.dimen.button_min_width), minHeight = dimensionResource(id = R.dimen.button_height))
         )
         TertiaryButton(
             onClick = goRestore,
             text = stringResource(id = R.string.ns_restore_from_backup).uppercase()
         )
-        Spacer(modifier = Modifier.size(dimensionResource(id = R.dimen.screen_bottom_margin)))
+        Spacer(modifier = Modifier.height(dimensionResource(id = R.dimen.screen_bottom_margin)))
     }
 }

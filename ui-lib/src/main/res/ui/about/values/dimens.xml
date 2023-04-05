@@ -2,6 +2,7 @@
 <resources>
     <dimen name="top_margin_logo">48dp</dimen>
     <dimen name="button_height">36dp</dimen>
+    <dimen name="button_min_width">152dp</dimen>
     <dimen name="top_margin_back_btn">25dp</dimen>
     <dimen name="home_view_pager_min_height">125dp</dimen>
     <dimen name="pageMargin">20dp</dimen>
@@ -10,6 +11,7 @@
     <dimen name="radio_button_padding_vertical">12dp</dimen>
     <dimen name="text_margin">15dp</dimen>
     <dimen name="screen_bottom_margin">65dp</dimen>
+    <dimen name="screen_standard_margin">25dp</dimen>
 
     <!-- Floats -->
 

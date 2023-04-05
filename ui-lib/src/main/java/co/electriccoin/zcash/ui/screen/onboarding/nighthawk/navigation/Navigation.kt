@@ -14,9 +14,10 @@ import co.electriccoin.zcash.ui.screen.onboarding.nighthawk.navigation.Navigatio
 import co.electriccoin.zcash.ui.screen.onboarding.nighthawk.navigation.NavigationTargets.RESTORE
 import co.electriccoin.zcash.ui.screen.onboarding.nighthawk.navigation.NavigationTargets.SEED_BACKUP
 import co.electriccoin.zcash.ui.screen.onboarding.nighthawk.view.GetStarted
+import co.electriccoin.zcash.ui.screen.onboarding.nighthawk.view.SeedBackup
 
 @Composable
-internal fun MainActivity.Navigate() {
+internal fun MainActivity.NavigateOnboard() {
     val navController = rememberNavController()
 
     NavHost(navController = navController, startDestination = GET_STARTED) {
@@ -25,8 +26,16 @@ internal fun MainActivity.Navigate() {
                 goSeedBackUp = { navController.navigateJustOnce(SEED_BACKUP) },
                 goRestore = { navController.navigateJustOnce(RESTORE) },
                 onReference = {
-                    onLaunchUrl(url = this@Navigate.getString(R.string.ns_privacy_policy_link))
+                    onLaunchUrl(url = this@NavigateOnboard.getString(R.string.ns_privacy_policy_link))
                 }
+            )
+        }
+
+        composable(SEED_BACKUP) {
+            SeedBackup(
+                onBack = {},
+                onExportAsPdf = {},
+                onContinue = {}
             )
         }
     }

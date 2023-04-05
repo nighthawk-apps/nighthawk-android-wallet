@@ -76,7 +76,9 @@ internal val Typography = Typography(
     bodySmall = TextStyle(
         fontFamily = PulpDisplay,
         fontWeight = FontWeight.Normal,
-        fontSize = 12.sp
+        fontSize = 12.sp,
+        letterSpacing = TextUnit(value = 0.3f, TextUnitType.Sp),
+        lineHeight = TextUnit(value = 18f, TextUnitType.Sp)
     ),
     labelLarge = TextStyle(
         fontFamily = PulpDisplay,

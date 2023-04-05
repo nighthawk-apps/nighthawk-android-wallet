@@ -20,19 +20,16 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.navigation.NavHostController
-import androidx.navigation.Navigation
 import co.electriccoin.zcash.ui.common.BindCompLocalProvider
 import co.electriccoin.zcash.ui.configuration.RemoteConfig
 import co.electriccoin.zcash.ui.design.component.ConfigurationOverride
-import co.electriccoin.zcash.ui.design.component.GradientSurface
 import co.electriccoin.zcash.ui.design.component.Override
 import co.electriccoin.zcash.ui.design.theme.ZcashTheme
 import co.electriccoin.zcash.ui.screen.backup.WrapNewWallet
 import co.electriccoin.zcash.ui.screen.home.viewmodel.HomeViewModel
 import co.electriccoin.zcash.ui.screen.home.viewmodel.SecretState
 import co.electriccoin.zcash.ui.screen.home.viewmodel.WalletViewModel
-import co.electriccoin.zcash.ui.screen.onboarding.WrapOnboarding
-import co.electriccoin.zcash.ui.screen.onboarding.nighthawk.navigation.Navigate
+import co.electriccoin.zcash.ui.screen.onboarding.nighthawk.navigation.NavigateOnboard
 import co.electriccoin.zcash.ui.screen.warning.WrapNotEnoughSpace
 import co.electriccoin.zcash.ui.screen.warning.viewmodel.StorageCheckViewModel
 import co.electriccoin.zcash.work.WorkIds
@@ -133,7 +130,7 @@ class MainActivity : ComponentActivity() {
                 when (secretState) {
                     SecretState.None -> {
                         // WrapOnboarding()
-                        Navigate()
+                        NavigateOnboard()
                     }
                     is SecretState.NeedsBackup -> {
                         WrapNewWallet(
