@@ -14,6 +14,7 @@ import co.electriccoin.zcash.ui.screen.onboarding.nighthawk.navigation.Navigatio
 import co.electriccoin.zcash.ui.screen.onboarding.nighthawk.navigation.NavigationTargets.RESTORE
 import co.electriccoin.zcash.ui.screen.onboarding.nighthawk.navigation.NavigationTargets.SEED_BACKUP
 import co.electriccoin.zcash.ui.screen.onboarding.nighthawk.view.GetStarted
+import co.electriccoin.zcash.ui.screen.onboarding.nighthawk.view.Restore
 import co.electriccoin.zcash.ui.screen.onboarding.nighthawk.view.SeedBackup
 
 @Composable
@@ -37,6 +38,10 @@ internal fun MainActivity.NavigateOnboard() {
                 onExportAsPdf = {},
                 onContinue = {}
             )
+        }
+
+        composable(RESTORE) {
+            Restore()
         }
     }
 }
