@@ -38,6 +38,7 @@
     <string name="ns_birthday_height">Birthday Height (optional)</string>
     <string name="ns_your_seed_error">Error - This doesn\'t look like a valid seed phrase.</string>
     <string name="ns_continue">Continue</string>
+    <string name="ns_export_as_pdf">Export as Pdf</string>
     <string name="ns_receive">Receive</string>
     <string name="ns_transaction_history">Transactions History</string>
     <string name="ns_copy">Copy</string>

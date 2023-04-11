@@ -37,8 +37,8 @@ fun ComposablePreview() {
     ZcashTheme(darkTheme = false) {
         Surface {
             GetStarted(
-                goSeedBackUp = {},
-                goRestore = {},
+                onCreateWallet = {},
+                onRestore = {},
                 onReference = {}
             )
         }
@@ -47,8 +47,8 @@ fun ComposablePreview() {
 
 @Composable
 fun GetStarted(
-    goSeedBackUp: () -> Unit,
-    goRestore: () -> Unit,
+    onCreateWallet: () -> Unit,
+    onRestore: () -> Unit,
     onReference: () -> Unit
 ) {
     Column(
@@ -70,12 +70,12 @@ fun GetStarted(
         }
         Spacer(modifier = Modifier.weight(1f))
         PrimaryButton(
-            onClick = goSeedBackUp,
+            onClick = onCreateWallet,
             text = stringResource(id = R.string.ns_create_wallet).uppercase(),
             modifier = Modifier.sizeIn(minWidth = dimensionResource(id = R.dimen.button_min_width), minHeight = dimensionResource(id = R.dimen.button_height))
         )
         TertiaryButton(
-            onClick = goRestore,
+            onClick = onRestore,
             text = stringResource(id = R.string.ns_restore_from_backup).uppercase()
         )
         Spacer(modifier = Modifier.height(dimensionResource(id = R.dimen.screen_bottom_margin)))

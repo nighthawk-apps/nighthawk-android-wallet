@@ -12,6 +12,7 @@
     <dimen name="text_margin">15dp</dimen>
     <dimen name="screen_bottom_margin">65dp</dimen>
     <dimen name="screen_standard_margin">25dp</dimen>
+    <dimen name="back_icon_size">22dp</dimen>
 
     <!-- Floats -->
 

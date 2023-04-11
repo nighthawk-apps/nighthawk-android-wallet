@@ -25,11 +25,11 @@ import co.electriccoin.zcash.ui.configuration.RemoteConfig
 import co.electriccoin.zcash.ui.design.component.ConfigurationOverride
 import co.electriccoin.zcash.ui.design.component.Override
 import co.electriccoin.zcash.ui.design.theme.ZcashTheme
-import co.electriccoin.zcash.ui.screen.backup.WrapNewWallet
 import co.electriccoin.zcash.ui.screen.home.viewmodel.HomeViewModel
 import co.electriccoin.zcash.ui.screen.home.viewmodel.SecretState
 import co.electriccoin.zcash.ui.screen.home.viewmodel.WalletViewModel
-import co.electriccoin.zcash.ui.screen.onboarding.nighthawk.navigation.NavigateOnboard
+import co.electriccoin.zcash.ui.screen.onboarding.nighthawk.WrapOnBoarding
+import co.electriccoin.zcash.ui.screen.onboarding.nighthawk.view.SeedBackup
 import co.electriccoin.zcash.ui.screen.warning.WrapNotEnoughSpace
 import co.electriccoin.zcash.ui.screen.warning.viewmodel.StorageCheckViewModel
 import co.electriccoin.zcash.work.WorkIds
@@ -129,13 +129,13 @@ class MainActivity : ComponentActivity() {
             CompositionLocalProvider(RemoteConfig provides configuration) {
                 when (secretState) {
                     SecretState.None -> {
-                        // WrapOnboarding()
-                        NavigateOnboard()
+                        WrapOnBoarding()
                     }
                     is SecretState.NeedsBackup -> {
-                        WrapNewWallet(
-                            secretState.persistableWallet,
-                            onBackupComplete = { walletViewModel.persistBackupComplete() }
+                        SeedBackup(
+                            persistableWallet = secretState.persistableWallet,
+                            onBackupComplete = { walletViewModel.persistBackupComplete() },
+                            onExportAsPdf = {}
                         )
                     }
                     is SecretState.Ready -> {
