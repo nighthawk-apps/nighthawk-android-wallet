@@ -134,8 +134,7 @@ class MainActivity : ComponentActivity() {
                     is SecretState.NeedsBackup -> {
                         SeedBackup(
                             persistableWallet = secretState.persistableWallet,
-                            onBackupComplete = { walletViewModel.persistBackupComplete() },
-                            onExportAsPdf = {}
+                            onBackupComplete = { walletViewModel.persistBackupComplete() }
                         )
                     }
                     is SecretState.Ready -> {

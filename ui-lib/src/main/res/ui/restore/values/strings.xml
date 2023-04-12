@@ -39,6 +39,9 @@
     <string name="ns_your_seed_error">Error - This doesn\'t look like a valid seed phrase.</string>
     <string name="ns_continue">Continue</string>
     <string name="ns_export_as_pdf">Export as Pdf</string>
+    <string name="ns_pdf_dialog_sub_heading">Export the seed words to a password protected PDF which can be backed up to user secured portable storage devices.</string>
+    <string name="ns_please_enter_password">Please Enter Password</string>
+    <string name="ns_export_pdf">Export PDF</string>
     <string name="ns_receive">Receive</string>
     <string name="ns_transaction_history">Transactions History</string>
     <string name="ns_copy">Copy</string>
@@ -222,5 +225,6 @@
     <string name="ns_shielded">Shielded</string>
     <string name="ns_transparent">Transparent</string>
     <string name="ns_include_reply_to">include reply-to</string>
+    <string name="transaction_history_format_date_time_brief" translatable="false">MM/dd/yy h:mma</string>
 
 </resources>
