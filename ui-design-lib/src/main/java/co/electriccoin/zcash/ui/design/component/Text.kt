@@ -26,7 +26,6 @@ fun Header(
         color = color,
         textAlign = textAlign,
         style = Typography.headlineLarge,
-        color = color,
         modifier = modifier
     )
 }

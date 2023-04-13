@@ -2,20 +2,19 @@ package co.electriccoin.zcash.ui.screen.onboarding.nighthawk.view
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.sizeIn
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.itemsIndexed
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CheckboxDefaults
 import androidx.compose.material3.MaterialTheme
@@ -46,6 +45,7 @@ import co.electriccoin.zcash.ui.design.component.PrimaryButton
 import co.electriccoin.zcash.ui.design.component.TertiaryButton
 import co.electriccoin.zcash.ui.design.theme.ZcashTheme
 import co.electriccoin.zcash.ui.pdf.EncryptedPdfDialog
+import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.toPersistentList
 
 @Preview
@@ -75,10 +75,12 @@ fun SeedBackupContent(
 ) {
     val showEncryptedPdfDialog = remember { mutableStateOf(false) }
     Box(contentAlignment = Alignment.Center) {
+        val scrollState = rememberScrollState()
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(dimensionResource(id = R.dimen.screen_standard_margin))
+                .verticalScroll(scrollState)
         ) {
             val checkedState = remember { mutableStateOf(false) }
 
@@ -93,13 +95,11 @@ fun SeedBackupContent(
             Spacer(modifier = Modifier.height(11.dp))
             BodySmall(text = stringResource(id = R.string.ns_create_wallet_text))
             Spacer(modifier = Modifier.height(25.dp))
-            LazyVerticalGrid(
-                columns = GridCells.Fixed(3),
-                verticalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
-                itemsIndexed(seedPhrase.split.toPersistentList()) { index: Int, word: String ->
-                    SeedItem(seedIndex = index + 1, seedWord = word)
-                }
+            val seedList = seedPhrase.split.toPersistentList()
+            // Add 3 items in a row
+            (0.until(seedList.size) step 3).forEachIndexed { index, i ->
+                println("index is $index and i is $i")
+                SeedItemRow(startingIndex = i, seedItems = seedList.subList(i, i + 3))
             }
             Spacer(modifier = Modifier.height(20.dp))
             BodyMedium(text = stringResource(id = R.string.ns_wallet_birthday, "${birthday?.value ?: ""}"))
@@ -159,8 +159,20 @@ fun SeedBackupContent(
 }
 
 @Composable
-internal fun SeedItem(seedIndex: Int, seedWord: String) {
-    Row {
+internal fun SeedItemRow(startingIndex: Int, seedItems: ImmutableList<String>) {
+    Row(
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        seedItems.forEachIndexed { seedIndex, seedWord ->
+            SeedItem(modifier = Modifier.weight(0.3f), seedIndex = startingIndex + seedIndex + 1, seedWord = seedWord)
+        }
+    }
+    Spacer(modifier = Modifier.height(8.dp))
+}
+
+@Composable
+internal fun SeedItem(modifier: Modifier = Modifier, seedIndex: Int, seedWord: String) {
+    Row(modifier = modifier) {
         BodyMedium(text = "$seedIndex.", color = colorResource(id = co.electriccoin.zcash.ui.design.R.color.ns_parmaviolet))
         BodyMedium(text = " $seedWord")
     }
