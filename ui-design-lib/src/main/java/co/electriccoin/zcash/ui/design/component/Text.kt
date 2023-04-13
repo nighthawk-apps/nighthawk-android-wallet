@@ -23,6 +23,7 @@ fun Header(
 ) {
     Text(
         text = text,
+        color = color,
         textAlign = textAlign,
         style = Typography.headlineLarge,
         color = color,
@@ -131,7 +132,7 @@ fun ListHeader(
     Text(
         text = text,
         style = ZcashTheme.typography.listItem,
-        color = MaterialTheme.colorScheme.onBackground,
+        color = ZcashTheme.colors.onBackgroundHeader,
         modifier = modifier
     )
 }
