@@ -213,7 +213,8 @@ fun BalanceAmountRow(balanceDisplayValues: BalanceDisplayValues) {
             contentDescription = "Fiat balance",
             modifier = Modifier.clickable {
                 Twig.info { "Fiat icon clicked for $balanceDisplayValues" }
-            }
+            },
+            tint = MaterialTheme.colorScheme.primary
         )
     }
 }

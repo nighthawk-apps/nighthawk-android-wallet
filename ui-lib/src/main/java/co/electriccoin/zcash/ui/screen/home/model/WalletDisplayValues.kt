@@ -9,6 +9,7 @@ import cash.z.ecc.android.sdk.model.MonetarySeparators
 import cash.z.ecc.android.sdk.model.PercentDecimal
 import cash.z.ecc.android.sdk.model.toFiatCurrencyState
 import cash.z.ecc.android.sdk.model.toZecString
+import cash.z.ecc.sdk.model.scanProgress
 import co.electriccoin.zcash.ui.R
 import co.electriccoin.zcash.ui.common.toKotlinLocale
 import kotlin.math.roundToInt
@@ -68,10 +69,25 @@ data class WalletDisplayValues(
                     statusText = context.getString(R.string.ns_validating)
                 }
                 Synchronizer.Status.SCANNING -> {
-                    // SDK provides us only one progress, which keeps on 100 in the scanning state
-                    progress = PercentDecimal.ONE_HUNDRED_PERCENT
-                    statusText = context.getString(R.string.ns_finalizing)
-                    statusIconDrawable = R.drawable.ic_icon_preparing
+                    val scanPercent = walletSnapshot.processorInfo.scanProgress
+                    progress = walletSnapshot.processorInfo.scanProgress()
+                    statusText = when (scanPercent) {
+                        0 -> {
+                            statusIconDrawable = R.drawable.ic_icon_preparing
+                            context.getString(R.string.ns_preparing_scan)
+                        }
+                        100 -> {
+                            statusIconDrawable = R.drawable.ic_icon_preparing
+                            context.getString(R.string.ns_finalizing)
+                        }
+                        else -> {
+                            statusIconDrawable = R.drawable.ic_icon_syncing
+                            context.getString(
+                                R.string.ns_scanning,
+                                scanPercent
+                            )
+                        }
+                    }
                 }
                 Synchronizer.Status.SYNCED,
                 Synchronizer.Status.ENHANCING -> {
