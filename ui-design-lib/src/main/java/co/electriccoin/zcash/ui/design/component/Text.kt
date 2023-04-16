@@ -79,6 +79,22 @@ fun BodySmall(
 }
 
 @Composable
+fun BalanceText(
+    text: String,
+    modifier: Modifier = Modifier,
+    textAlign: TextAlign = TextAlign.Start,
+    color: Color = MaterialTheme.colorScheme.onBackground,
+) {
+    Text(
+        text = text,
+        style = Typography.headlineMedium,
+        color = color,
+        modifier = modifier,
+        textAlign = textAlign
+    )
+}
+
+@Composable
 fun TitleMedium(
     text: String,
     modifier: Modifier = Modifier,

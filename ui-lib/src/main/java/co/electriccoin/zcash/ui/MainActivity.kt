@@ -138,7 +138,7 @@ class MainActivity : ComponentActivity() {
                         )
                     }
                     is SecretState.Ready -> {
-                        Navigation()
+                        NavigationMainContent()
                     }
                     else -> {
                         error("Unhandled secret state: $secretState")
