@@ -7,9 +7,11 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import co.electriccoin.zcash.ui.MainActivity
 import co.electriccoin.zcash.ui.configuration.ConfigurationEntries
 import co.electriccoin.zcash.ui.configuration.RemoteConfig
+import co.electriccoin.zcash.ui.screen.home.viewmodel.HomeViewModel
 import co.electriccoin.zcash.ui.screen.home.viewmodel.WalletViewModel
 import co.electriccoin.zcash.ui.screen.settings.viewmodel.SettingsViewModel
 import co.electriccoin.zcash.ui.screen.wallet.view.WalletView
+import co.electriccoin.zcash.ui.screen.wallet.view.isSyncing
 
 @Composable
 internal fun MainActivity.AndroidWallet() {
@@ -18,6 +20,7 @@ internal fun MainActivity.AndroidWallet() {
 
 @Composable
 internal fun WrapWallet(activity: ComponentActivity) {
+    val homeViewModel by activity.viewModels<HomeViewModel>()
     val walletViewModel by activity.viewModels<WalletViewModel>()
     val walletSnapshot = walletViewModel.walletSnapshot.collectAsStateWithLifecycle().value
 
@@ -28,6 +31,7 @@ internal fun WrapWallet(activity: ComponentActivity) {
     if (null == walletSnapshot) {
         // We can show progress bar
     } else {
+        homeViewModel.onTransferTabStateChanged(isSyncing(walletSnapshot.status).not())
         WalletView(walletSnapshot, isKeepScreenOnWhileSyncing, isFiatConversionEnabled)
     }
     activity.reportFullyDrawn()

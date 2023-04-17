@@ -2,6 +2,9 @@ package co.electriccoin.zcash.ui.screen.navigation
 
 import androidx.annotation.DrawableRes
 import androidx.annotation.StringRes
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
@@ -41,36 +44,43 @@ internal fun MainActivity.MainNavigation(navHostController: NavHostController) {
 }
 
 @Composable
-internal fun BottomNavigation(navController: NavController) {
+internal fun BottomNavigation(navController: NavController, showBottomNavBar: Boolean = true, enableTransferTab: Boolean = false) {
     val navItemList = listOf(BottomNavItem.Wallet, BottomNavItem.Transfer, BottomNavItem.Settings)
-    NavigationBar(
-        containerColor = colorResource(id = co.electriccoin.zcash.ui.design.R.color.ns_navy)
+    AnimatedVisibility(
+        visible = showBottomNavBar,
+        enter = slideInVertically { it },
+        exit = slideOutVertically { it }
     ) {
-        val navBackStackEntry by navController.currentBackStackEntryAsState()
-        val currentRoute = navBackStackEntry?.destination?.route
-        navItemList.forEach { bottomNavItem ->
-            NavigationBarItem(
-                selected = bottomNavItem.route == currentRoute,
-                onClick = {
-                    navController.navigate(bottomNavItem.route) {
-                        navController.graph.startDestinationRoute?.let { screen_route ->
-                            popUpTo(screen_route) {
-                                saveState = true
+        NavigationBar(
+            containerColor = colorResource(id = co.electriccoin.zcash.ui.design.R.color.ns_navy)
+        ) {
+            val navBackStackEntry by navController.currentBackStackEntryAsState()
+            val currentRoute = navBackStackEntry?.destination?.route
+            navItemList.forEach { bottomNavItem ->
+                NavigationBarItem(
+                    selected = bottomNavItem.route == currentRoute,
+                    onClick = {
+                        navController.navigate(bottomNavItem.route) {
+                            navController.graph.startDestinationRoute?.let { screen_route ->
+                                popUpTo(screen_route) {
+                                    saveState = true
+                                }
                             }
+                            launchSingleTop = true
+                            restoreState = true
                         }
-                        launchSingleTop = true
-                        restoreState = true
-                    }
-                },
-                icon = { Icon(painter = painterResource(id = bottomNavItem.icon), contentDescription = bottomNavItem.route)},
-                label = { BodySmall(text = stringResource(id = bottomNavItem.title))},
-                alwaysShowLabel = true,
-                colors = NavigationBarItemDefaults.colors(
-                    indicatorColor = MaterialTheme.colorScheme.primary,
-                    unselectedIconColor = Color.White,
-                    unselectedTextColor = Color.White
+                    },
+                    icon = { Icon(painter = painterResource(id = bottomNavItem.icon), contentDescription = bottomNavItem.route)},
+                    enabled = if (BottomNavItem.Transfer.route == bottomNavItem.route) enableTransferTab else true,
+                    label = { BodySmall(text = stringResource(id = bottomNavItem.title))},
+                    alwaysShowLabel = true,
+                    colors = NavigationBarItemDefaults.colors(
+                        indicatorColor = MaterialTheme.colorScheme.primary,
+                        unselectedIconColor = Color.White,
+                        unselectedTextColor = Color.White
+                    )
                 )
-            )
+            }
         }
     }
 }

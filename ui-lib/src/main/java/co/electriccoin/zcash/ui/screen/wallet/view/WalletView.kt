@@ -219,7 +219,7 @@ fun BalanceAmountRow(balanceDisplayValues: BalanceDisplayValues) {
     }
 }
 
-private fun isSyncing(status: Synchronizer.Status): Boolean {
+fun isSyncing(status: Synchronizer.Status): Boolean {
     return status == Synchronizer.Status.DOWNLOADING ||
         status == Synchronizer.Status.VALIDATING ||
         status == Synchronizer.Status.SCANNING ||
