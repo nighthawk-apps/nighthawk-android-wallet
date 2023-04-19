@@ -22,7 +22,6 @@ internal fun MainActivity.NavigationMainContent() {
             BottomNavigation(navController = navController, showBottomNavBar = showBottomNavBar.value, enableTransferTab = enableTransferTab.value)
         }
     ) {
-        MainNavigation(navHostController = navController)
-        println(it)
+        MainNavigation(navHostController = navController, paddingValues = it)
     }
 }

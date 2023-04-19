@@ -32,7 +32,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     /**
      * A flow of whether transfer tab is enabled. We disable the transfer tab in sync state
      */
-    private val _isTransferTabEnabled = MutableStateFlow(true)
+    private val _isTransferTabEnabled = MutableStateFlow(false)
     val isTransferStateEnabled: StateFlow<Boolean> get() = _isTransferTabEnabled
 
     /**

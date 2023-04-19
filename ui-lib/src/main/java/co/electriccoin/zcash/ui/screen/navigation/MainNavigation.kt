@@ -5,6 +5,8 @@ import androidx.annotation.StringRes
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
@@ -12,6 +14,7 @@ import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.painterResource
@@ -29,8 +32,8 @@ import co.electriccoin.zcash.ui.screen.transfer.AndroidTransfer
 import co.electriccoin.zcash.ui.screen.wallet.AndroidWallet
 
 @Composable
-internal fun MainActivity.MainNavigation(navHostController: NavHostController) {
-    NavHost(navController = navHostController, startDestination = BottomNavItem.Wallet.route) {
+internal fun MainActivity.MainNavigation(navHostController: NavHostController, paddingValues: PaddingValues) {
+    NavHost(navController = navHostController, startDestination = BottomNavItem.Wallet.route, modifier = Modifier.padding(paddingValues)) {
         composable(BottomNavItem.Wallet.route) {
             AndroidWallet()
         }
