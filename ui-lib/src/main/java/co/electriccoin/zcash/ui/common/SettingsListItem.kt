@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.width
+import androidx.compose.material3.Divider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
@@ -57,10 +58,10 @@ fun SettingsListItem(@DrawableRes iconRes: Int, title: String, desc: String, mod
             }
         }
         if (showDivider) {
-            Box(modifier = Modifier
-                .fillMaxWidth()
-                .height(1.dp)
-                .background(color = colorResource(id = co.electriccoin.zcash.ui.design.R.color.ns_navy))
+            Divider(
+                modifier = Modifier.fillMaxWidth(),
+                thickness = 1.dp,
+                color = colorResource(id = co.electriccoin.zcash.ui.design.R.color.ns_navy)
             )
         }
     }

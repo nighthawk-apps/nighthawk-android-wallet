@@ -1,6 +1,7 @@
-package co.electriccoin.zcash.ui.screen.transfer
+package co.electriccoin.zcash.ui.screen.transfer.view
 
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -31,13 +32,13 @@ import co.electriccoin.zcash.ui.design.theme.ZcashTheme
 fun WalletPreview() {
     ZcashTheme(darkTheme = false) {
         Surface {
-            TransferMainView()
+            TransferMainView(onReceive = {}, onTopUp = {})
         }
     }
 }
 
 @Composable
-fun TransferMainView() {
+fun TransferMainView(onReceive: () -> Unit, onTopUp: () -> Unit) {
     Column(modifier = Modifier
         .fillMaxSize()
         .verticalScroll(rememberScrollState())
@@ -67,6 +68,9 @@ fun TransferMainView() {
             title = stringResource(id = R.string.ns_receive_money),
             desc = stringResource(id = R.string.ns_receive_money_text),
             modifier = Modifier.heightIn(min = dimensionResource(id = R.dimen.setting_list_item_min_height))
+                .clickable {
+                    onReceive.invoke()
+                }
         )
         Spacer(modifier = Modifier.height(10.dp))
         SettingsListItem(
@@ -74,6 +78,9 @@ fun TransferMainView() {
             title = stringResource(id = R.string.ns_top_up),
             desc = stringResource(id = R.string.ns_top_up_text),
             modifier = Modifier.heightIn(min = dimensionResource(id = R.dimen.setting_list_item_min_height))
+                .clickable {
+                    onTopUp.invoke()
+                }
         )
     }
 }

@@ -6,14 +6,11 @@ import androidx.lifecycle.viewModelScope
 import co.electriccoin.zcash.configuration.AndroidConfigurationFactory
 import co.electriccoin.zcash.configuration.model.map.Configuration
 import co.electriccoin.zcash.ui.common.ANDROID_STATE_FLOW_TIMEOUT
-import co.electriccoin.zcash.ui.common.TRANSFER_TAB_ENABLE_DEBOUNCE_TIMEOUT
 import co.electriccoin.zcash.ui.preference.StandardPreferenceKeys
 import co.electriccoin.zcash.ui.preference.StandardPreferenceSingleton
-import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.stateIn
@@ -36,10 +33,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
      * A flow of whether transfer tab is enabled. We disable the transfer tab in sync state
      */
     private val _isTransferTabEnabled = MutableStateFlow(false)
-    @OptIn(FlowPreview::class)
     val isTransferStateEnabled: StateFlow<Boolean> get() = _isTransferTabEnabled
-        .debounce(TRANSFER_TAB_ENABLE_DEBOUNCE_TIMEOUT.inWholeMilliseconds)
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(ANDROID_STATE_FLOW_TIMEOUT.inWholeMilliseconds), false)
 
     /**
      * A flow of whether bottom nav bar should show
