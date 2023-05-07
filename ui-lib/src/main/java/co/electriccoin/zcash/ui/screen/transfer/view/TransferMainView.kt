@@ -32,13 +32,13 @@ import co.electriccoin.zcash.ui.design.theme.ZcashTheme
 fun WalletPreview() {
     ZcashTheme(darkTheme = false) {
         Surface {
-            TransferMainView(onReceive = {}, onTopUp = {})
+            TransferMainView(onSendMoney = {}, onReceiveMoney = {}, onTopUp = {})
         }
     }
 }
 
 @Composable
-fun TransferMainView(onReceive: () -> Unit, onTopUp: () -> Unit) {
+fun TransferMainView(onSendMoney: () -> Unit, onReceiveMoney: () -> Unit, onTopUp: () -> Unit) {
     Column(modifier = Modifier
         .fillMaxSize()
         .verticalScroll(rememberScrollState())
@@ -59,7 +59,10 @@ fun TransferMainView(onReceive: () -> Unit, onTopUp: () -> Unit) {
             iconRes = R.drawable.ic_arrow_back_black_24dp,
             title = stringResource(id = R.string.ns_send_money),
             desc = stringResource(id = R.string.ns_send_money_text),
-            modifier = Modifier.heightIn(min = dimensionResource(id = R.dimen.setting_list_item_min_height)),
+            modifier = Modifier.heightIn(min = dimensionResource(id = R.dimen.setting_list_item_min_height))
+                .clickable {
+                    onSendMoney.invoke()
+                },
             rotateByDegree = 180f
         )
         Spacer(modifier = Modifier.height(10.dp))
@@ -69,7 +72,7 @@ fun TransferMainView(onReceive: () -> Unit, onTopUp: () -> Unit) {
             desc = stringResource(id = R.string.ns_receive_money_text),
             modifier = Modifier.heightIn(min = dimensionResource(id = R.dimen.setting_list_item_min_height))
                 .clickable {
-                    onReceive.invoke()
+                    onReceiveMoney.invoke()
                 }
         )
         Spacer(modifier = Modifier.height(10.dp))

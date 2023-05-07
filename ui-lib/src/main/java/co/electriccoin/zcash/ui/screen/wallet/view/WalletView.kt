@@ -190,7 +190,7 @@ fun BalanceView(balanceDisplayValues: BalanceDisplayValues) {
         )
         Spacer(Modifier.height(dimensionResource(id = R.dimen.pageMargin)))
         if (balanceDisplayValues.balance.isNotBlank()) {
-            BalanceAmountRow(balanceDisplayValues)
+            BalanceAmountRow(balance = balanceDisplayValues.balance, balanceUnit = balanceDisplayValues.balanceUnit, onFlipClicked = {})
         }
         if (balanceDisplayValues.msg.isNullOrBlank().not()) {
             BodySmall(text = balanceDisplayValues.msg ?: "", textAlign = TextAlign.Center)
@@ -202,17 +202,17 @@ fun BalanceView(balanceDisplayValues: BalanceDisplayValues) {
 }
 
 @Composable
-fun BalanceAmountRow(balanceDisplayValues: BalanceDisplayValues) {
-    Row {
-        BalanceText(text = balanceDisplayValues.balance)
+fun BalanceAmountRow(balance: String, balanceUnit: String, onFlipClicked: () -> Unit, modifier: Modifier = Modifier) {
+    Row(modifier = modifier) {
+        BalanceText(text = balance)
         Spacer(modifier = Modifier.width(4.dp))
-        BalanceText(text = balanceDisplayValues.balanceUnit, color = MaterialTheme.colorScheme.primary)
+        BalanceText(text = balanceUnit, color = MaterialTheme.colorScheme.primary)
         Spacer(modifier = Modifier.width(4.dp))
         Icon(
             painter = painterResource(id = R.drawable.ic_icon_up_down),
             contentDescription = "Fiat balance",
             modifier = Modifier.clickable {
-                Twig.info { "Fiat icon clicked for $balanceDisplayValues" }
+                onFlipClicked.invoke()
             },
             tint = MaterialTheme.colorScheme.primary
         )

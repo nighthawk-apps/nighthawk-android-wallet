@@ -28,9 +28,11 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import co.electriccoin.zcash.ui.MainActivity
 import co.electriccoin.zcash.ui.R
 import co.electriccoin.zcash.ui.design.component.BodySmall
-import co.electriccoin.zcash.ui.screen.navigation.NavigationTargets.RECEIVE
+import co.electriccoin.zcash.ui.screen.navigation.NavigationTargets.RECEIVE_MONEY
+import co.electriccoin.zcash.ui.screen.navigation.NavigationTargets.SEND_MONEY
 import co.electriccoin.zcash.ui.screen.navigation.NavigationTargets.TOP_UP
 import co.electriccoin.zcash.ui.screen.receive.nighthawk.AndroidReceive
+import co.electriccoin.zcash.ui.screen.send.nighthawk.AndroidSend
 import co.electriccoin.zcash.ui.screen.settings.nighthawk.AndroidSettings
 import co.electriccoin.zcash.ui.screen.topup.AndroidTopUp
 import co.electriccoin.zcash.ui.screen.transfer.AndroidTransfer
@@ -44,16 +46,22 @@ internal fun MainActivity.MainNavigation(navHostController: NavHostController, p
         }
         composable(BottomNavItem.Transfer.route) {
             AndroidTransfer(
-                onReceive = { navHostController.navigateJustOnce(RECEIVE) },
+                onSendMoney = { navHostController.navigateJustOnce(SEND_MONEY) },
+                onReceiveMoney = { navHostController.navigateJustOnce(RECEIVE_MONEY) },
                 onTopUp = { navHostController.navigateJustOnce(TOP_UP) }
             )
         }
         composable(BottomNavItem.Settings.route) {
             AndroidSettings()
         }
-        composable(RECEIVE) {
+        composable(SEND_MONEY) {
+            AndroidSend(
+                onBack = { navHostController.popBackStackJustOnce(SEND_MONEY) }
+            )
+        }
+        composable(RECEIVE_MONEY) {
             AndroidReceive(
-                onBack = { navHostController.popBackStackJustOnce(RECEIVE) }
+                onBack = { navHostController.popBackStackJustOnce(RECEIVE_MONEY) }
             )
         }
         composable(TOP_UP) {
@@ -114,14 +122,15 @@ sealed class BottomNavItem(val route: String, @StringRes val title: Int, @Drawab
 
 fun isBottomNavItemSelected(bottomNavItemRoute: String, currentRoute: String?): Boolean {
     return if (bottomNavItemRoute == BottomNavItem.Transfer.route) {
-        bottomNavItemRoute == currentRoute || RECEIVE == currentRoute|| TOP_UP == currentRoute
+        bottomNavItemRoute == currentRoute || RECEIVE_MONEY == currentRoute|| TOP_UP == currentRoute
     } else {
         bottomNavItemRoute == currentRoute
     }
 }
 
 object NavigationTargets {
-    const val RECEIVE = "receive"
+    const val SEND_MONEY = "send_money"
+    const val RECEIVE_MONEY = "receive_money"
     const val TOP_UP = "top_up"
 }
 

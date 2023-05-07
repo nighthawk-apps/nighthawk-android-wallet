@@ -7,12 +7,12 @@ import co.electriccoin.zcash.ui.MainActivity
 import co.electriccoin.zcash.ui.screen.transfer.view.TransferMainView
 
 @Composable
-internal fun MainActivity.AndroidTransfer(onReceive: () -> Unit, onTopUp: () -> Unit) {
-    WrapTransfer(activity = this, onReceive = onReceive, onTopUp = onTopUp)
+internal fun MainActivity.AndroidTransfer(onSendMoney: () -> Unit, onReceiveMoney: () -> Unit, onTopUp: () -> Unit) {
+    WrapTransfer(activity = this, onSendMoney = onSendMoney, onReceiveMoney = onReceiveMoney, onTopUp = onTopUp)
 }
 
 @Composable
-internal fun WrapTransfer(activity: ComponentActivity, onReceive: () -> Unit, onTopUp: () -> Unit) {
+internal fun WrapTransfer(activity: ComponentActivity, onSendMoney: () -> Unit, onReceiveMoney: () -> Unit, onTopUp: () -> Unit) {
     Twig.info { "Just for initial run $activity" }
-    TransferMainView(onReceive = onReceive, onTopUp = onTopUp)
+    TransferMainView(onSendMoney = onSendMoney, onReceiveMoney = onReceiveMoney, onTopUp = onTopUp)
 }

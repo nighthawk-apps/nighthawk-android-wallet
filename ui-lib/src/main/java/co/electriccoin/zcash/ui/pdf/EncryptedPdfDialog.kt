@@ -69,7 +69,7 @@ fun EncryptedPdfDialog(
     onExportPdf: (password: String) -> Unit
 ) {
     Dialog(
-        onDismissRequest = { onDismissRequest.invoke() },
+        onDismissRequest = onDismissRequest,
         properties = DialogProperties(
             dismissOnClickOutside = false,
             securePolicy = SecureFlagPolicy.SecureOn
