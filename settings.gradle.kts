@@ -334,6 +334,7 @@ if (zcashSdkIncludedBuildPath.isNotEmpty()) {
     includeBuild(zcashSdkIncludedBuildPath) {
         dependencySubstitution {
             substitute(module("cash.z.ecc.android:zcash-android-sdk")).using(project(":sdk-lib"))
+            substitute(module("cash.z.ecc.android:zcash-android-sdk-incubator")).using(project(":sdk-incubator-lib"))
         }
     }
 }
