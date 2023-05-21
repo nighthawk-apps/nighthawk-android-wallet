@@ -5,7 +5,6 @@ import androidx.annotation.DrawableRes
 import cash.z.ecc.android.sdk.model.toZecString
 import co.electriccoin.zcash.ui.R
 import co.electriccoin.zcash.ui.screen.home.model.WalletSnapshot
-import co.electriccoin.zcash.ui.screen.home.model.totalBalance
 
 data class BalanceDisplayValues(
     @DrawableRes val iconDrawableRes: Int,
@@ -29,7 +28,7 @@ data class BalanceDisplayValues(
                 }
                 BalanceViewType.TOTAL -> {
                     iconDrawableRes = R.drawable.ic_icon_total
-                    balance = walletSnapshot.totalBalance().toZecString()
+                    balance = walletSnapshot.orchardBalance.total.toZecString()
                     balanceType = context.getString(R.string.ns_total_balance)
                 }
                 BalanceViewType.SHIELDED -> {

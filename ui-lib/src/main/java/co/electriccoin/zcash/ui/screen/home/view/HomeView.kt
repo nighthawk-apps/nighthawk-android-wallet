@@ -347,8 +347,7 @@ private fun HomeMainContent(
 }
 
 private fun isSyncing(status: Synchronizer.Status): Boolean {
-    return status == Synchronizer.Status.SYNCING ||
-        status == Synchronizer.Status.ENHANCING
+    return status == Synchronizer.Status.SYNCING
 }
 
 @Composable

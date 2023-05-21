@@ -9,7 +9,6 @@ import cash.z.ecc.android.sdk.model.MonetarySeparators
 import cash.z.ecc.android.sdk.model.PercentDecimal
 import cash.z.ecc.android.sdk.model.toFiatCurrencyState
 import cash.z.ecc.android.sdk.model.toZecString
-import cash.z.ecc.sdk.model.scanProgress
 import co.electriccoin.zcash.ui.R
 import co.electriccoin.zcash.ui.common.toKotlinLocale
 import kotlin.math.roundToInt
@@ -30,11 +29,10 @@ data class WalletDisplayValues(
             updateAvailable: Boolean
         ): WalletDisplayValues {
             var progress = PercentDecimal.ZERO_PERCENT
-            val zecAmountText = walletSnapshot.totalBalance().toZecString()
             var statusText = context.getString(R.string.ns_connecting)
             // TODO [#578] https://github.com/zcash/zcash-android-wallet-sdk/issues/578
             // We'll ideally provide a "fresh" currencyConversion object here
-            val fiatCurrencyAmountState = walletSnapshot.spendableBalance().toFiatCurrencyState(
+            val fiatCurrencyAmountState = walletSnapshot.saplingBalance.total.toFiatCurrencyState(
                 null,
                 Locale.current.toKotlinLocale(),
                 MonetarySeparators.current()
@@ -43,35 +41,10 @@ data class WalletDisplayValues(
             var statusIconDrawable = R.drawable.ic_icon_connecting
 
             when (walletSnapshot.status) {
-                Synchronizer.Status.PREPARING -> {
-                    statusText = context.getString(R.string.ns_preparing_scan)
-                    statusIconDrawable = R.drawable.ic_icon_connecting
-                }
-                Synchronizer.Status.DOWNLOADING -> {
-                    progress = walletSnapshot.progress
-                    statusIconDrawable = R.drawable.ic_icon_downloading
+                Synchronizer.Status.SYNCING -> {
                     val progressPercent = (walletSnapshot.progress.decimal * 100).roundToInt()
-                    // we add "so far" to the amount
-                    if (fiatCurrencyAmountState != FiatCurrencyConversionRateState.Unavailable) {
-                        fiatCurrencyAmountText = context.getString(
-                            R.string.home_status_syncing_amount_suffix,
-                            fiatCurrencyAmountText
-                        )
-                    }
-                    statusText = if (progressPercent == 0) {
-                        context.getString(R.string.ns_preparing_download)
-                    } else {
-                        context.getString(R.string.ns_downloading_wallet, progressPercent)
-                    }
-                }
-                Synchronizer.Status.VALIDATING -> {
-                    statusIconDrawable = R.drawable.ic_icon_validating
-                    statusText = context.getString(R.string.ns_validating)
-                }
-                Synchronizer.Status.SCANNING -> {
-                    val scanPercent = walletSnapshot.processorInfo.scanProgress
-                    progress = walletSnapshot.processorInfo.scanProgress()
-                    statusText = when (scanPercent) {
+                    progress = walletSnapshot.progress
+                    statusText = when (progressPercent) {
                         0 -> {
                             statusIconDrawable = R.drawable.ic_icon_preparing
                             context.getString(R.string.ns_preparing_scan)
@@ -83,14 +56,13 @@ data class WalletDisplayValues(
                         else -> {
                             statusIconDrawable = R.drawable.ic_icon_syncing
                             context.getString(
-                                R.string.ns_scanning,
-                                scanPercent
+                                R.string.ns_downloading_wallet,
+                                progressPercent
                             )
                         }
                     }
                 }
-                Synchronizer.Status.SYNCED,
-                Synchronizer.Status.ENHANCING -> {
+                Synchronizer.Status.SYNCED -> {
                     statusText = if (updateAvailable) {
                         context.getString(R.string.home_status_update)
                     } else {
@@ -123,7 +95,7 @@ data class WalletDisplayValues(
 
             return WalletDisplayValues(
                 progress = progress,
-                zecAmountText = zecAmountText,
+                zecAmountText = walletSnapshot.saplingBalance.total.toZecString(),
                 statusText = statusText,
                 fiatCurrencyAmountState = fiatCurrencyAmountState,
                 fiatCurrencyAmountText = fiatCurrencyAmountText,

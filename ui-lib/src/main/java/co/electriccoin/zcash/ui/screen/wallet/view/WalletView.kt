@@ -220,8 +220,5 @@ fun BalanceAmountRow(balance: String, balanceUnit: String, onFlipClicked: () -> 
 }
 
 fun isSyncing(status: Synchronizer.Status): Boolean {
-    return status == Synchronizer.Status.DOWNLOADING ||
-        status == Synchronizer.Status.VALIDATING ||
-        status == Synchronizer.Status.SCANNING ||
-        status == Synchronizer.Status.ENHANCING
+    return status == Synchronizer.Status.SYNCING
 }
