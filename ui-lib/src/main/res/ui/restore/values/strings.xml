@@ -218,6 +218,7 @@
     <string name="ns_paste_from_clip_board">Paste from clipboard</string>
     <string name="ns_clipboard_wrong_text_paste_error">Seems last copied value is not a Zcash Address</string>
     <string name="ns_memo">Memo</string>
+    <string name="ns_pool">Pool</string>
     <string name="ns_network">Network</string>
     <string name="ns_recipient">Recipient</string>
     <string name="ns_address">Address</string>

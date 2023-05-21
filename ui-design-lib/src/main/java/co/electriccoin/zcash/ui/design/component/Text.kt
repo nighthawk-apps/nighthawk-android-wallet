@@ -63,6 +63,20 @@ fun BodyMedium(
 }
 
 @Composable
+fun BodyMedium(
+    text: AnnotatedString,
+    modifier: Modifier = Modifier,
+    textAlign: TextAlign = TextAlign.Start,
+) {
+    Text(
+        text = text,
+        style = Typography.bodyMedium,
+        modifier = modifier,
+        textAlign = textAlign
+    )
+}
+
+@Composable
 fun BodySmall(
     text: String,
     modifier: Modifier = Modifier,

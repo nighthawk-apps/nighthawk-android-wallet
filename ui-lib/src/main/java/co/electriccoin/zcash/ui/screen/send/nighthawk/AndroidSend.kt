@@ -9,6 +9,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import co.electriccoin.zcash.spackle.Twig
 import co.electriccoin.zcash.ui.MainActivity
 import co.electriccoin.zcash.ui.screen.home.viewmodel.HomeViewModel
+import co.electriccoin.zcash.ui.screen.send.nighthawk.model.SendAndReviewUiState
 import co.electriccoin.zcash.ui.screen.send.nighthawk.model.SendUIState
 import co.electriccoin.zcash.ui.screen.send.nighthawk.view.EnterMessage
 import co.electriccoin.zcash.ui.screen.send.nighthawk.view.EnterReceiverAddress
@@ -18,11 +19,11 @@ import co.electriccoin.zcash.ui.screen.send.nighthawk.viewmodel.SendViewModel
 
 @Composable
 internal fun MainActivity.AndroidSend(onBack: () -> Unit) {
-    WrapAndroidSend(activity = this, onBack = onBack)
+    WrapAndroidSend(activity = this, onBack = onBack, onViewOnExplorer = {})
 }
 
 @Composable
-internal fun WrapAndroidSend(activity: ComponentActivity, onBack: () -> Unit) {
+internal fun WrapAndroidSend(activity: ComponentActivity, onBack: () -> Unit, onViewOnExplorer: () -> Unit) {
     val homeViewModel by activity.viewModels<HomeViewModel>()
     val sendViewModel by activity.viewModels<SendViewModel>()
     val sendUIState = sendViewModel.currentSendUIState.collectAsStateWithLifecycle()
@@ -64,7 +65,17 @@ internal fun WrapAndroidSend(activity: ComponentActivity, onBack: () -> Unit) {
         }
         SendUIState.REVIEW_AND_SEND -> {
             ReviewAndSend(
+                sendAndReviewUiState = SendAndReviewUiState()
+                    .copy(
+                        amountToSend = "21",
+                        memo = "Send the cool stuff with full privacy",
+                        receiverAddress = "zs1j29m7zdhhyy2eqrz89l4zhk0angqjh368gqkj2vgdyqmeuultteny36n3qsm47zn8du5sw3ts7f",
+                        subTotal = "21",
+                        networkFees = "0.00001",
+                        totalAmount = "21.0001"
+                    ),
                 onBack = sendViewModel::onPreviousSendUiState,
+                onViewOnExplorer = onViewOnExplorer,
                 onSendZCash = sendViewModel::onSendZCash
             )
         }
