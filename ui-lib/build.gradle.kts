@@ -73,6 +73,7 @@ dependencies {
     implementation(libs.zcash.bip39)
     implementation(libs.zxing)
     implementation(libs.pdfbox)
+    implementation(libs.lottie)
 
     implementation(projects.buildInfoLib)
     implementation(projects.configurationApiLib)

@@ -10,11 +10,13 @@ import co.electriccoin.zcash.spackle.Twig
 import co.electriccoin.zcash.ui.MainActivity
 import co.electriccoin.zcash.ui.screen.home.viewmodel.HomeViewModel
 import co.electriccoin.zcash.ui.screen.send.nighthawk.model.SendAndReviewUiState
+import co.electriccoin.zcash.ui.screen.send.nighthawk.model.SendConfirmationState
 import co.electriccoin.zcash.ui.screen.send.nighthawk.model.SendUIState
 import co.electriccoin.zcash.ui.screen.send.nighthawk.view.EnterMessage
 import co.electriccoin.zcash.ui.screen.send.nighthawk.view.EnterReceiverAddress
 import co.electriccoin.zcash.ui.screen.send.nighthawk.view.EnterZec
 import co.electriccoin.zcash.ui.screen.send.nighthawk.view.ReviewAndSend
+import co.electriccoin.zcash.ui.screen.send.nighthawk.view.SendConfirmation
 import co.electriccoin.zcash.ui.screen.send.nighthawk.viewmodel.SendViewModel
 
 @Composable
@@ -79,7 +81,15 @@ internal fun WrapAndroidSend(activity: ComponentActivity, onBack: () -> Unit, on
                 onSendZCash = sendViewModel::onSendZCash
             )
         }
-        SendUIState.SEND_CONFIRMATION -> {}
+        SendUIState.SEND_CONFIRMATION -> {
+            SendConfirmation(
+                sendConfirmationState = SendConfirmationState.Success,
+                onCancel = {},
+                onTryAgain = sendViewModel::onPreviousSendUiState,
+                onDone = {},
+                onMoreDetails = {}
+            )
+        }
         null -> onBack.invoke()
     }
 }

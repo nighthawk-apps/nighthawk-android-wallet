@@ -181,6 +181,7 @@ dependencyResolutionManagement {
             val zcashSdkVersion = extra["ZCASH_SDK_VERSION"].toString()
             val zxingVersion = extra["ZXING_VERSION"].toString()
             val pdfBoxVersion = extra["PDF_BOX_VERSION"].toString()
+            val lottieVersion = extra["LOTTIE_VERSION"].toString()
 
             // Standalone versions
             version("flank", flankVersion)
@@ -236,6 +237,7 @@ dependencyResolutionManagement {
             library("zcash-walletplgns", "cash.z.ecc.android:zcash-android-wallet-plugins:$zcashBip39Version")
             library("zxing", "com.google.zxing:core:$zxingVersion")
             library("pdfbox", "com.tom-roush:pdfbox-android:$pdfBoxVersion")
+            library("lottie", "com.airbnb.android:lottie-compose:$lottieVersion")
 
             // Test libraries
             library("androidx-compose-test-junit", "androidx.compose.ui:ui-test-junit4:$androidxComposeVersion")
