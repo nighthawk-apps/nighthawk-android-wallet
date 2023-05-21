@@ -54,7 +54,6 @@ fun TopUp(onBack: () -> Unit, onLaunchUrl: (String) -> Unit ) {
             .fillMaxSize()
             .padding(dimensionResource(id = R.dimen.screen_standard_margin))
     ) {
-        var showMoonPayDialog by remember { mutableStateOf(false) }
         var showSideShiftDialog by remember { mutableStateOf(false) }
         var showStealthHealthDialog by remember { mutableStateOf(false) }
         IconButton(
@@ -78,17 +77,7 @@ fun TopUp(onBack: () -> Unit, onLaunchUrl: (String) -> Unit ) {
         Spacer(modifier = Modifier.height(40.dp))
         BodyMedium(text = stringResource(id = R.string.ns_receive_money_securely), color = ZcashTheme.colors.surfaceEnd)
         Spacer(modifier = Modifier.height(13.dp))
-        SettingsListItem(
-            iconRes = R.drawable.ic_icon_moon_pay,
-            title = stringResource(id = R.string.ns_buy_moonpay),
-            desc = stringResource(id = R.string.ns_buy_moonpay_text),
-            modifier = Modifier
-                .heightIn(min = dimensionResource(id = R.dimen.setting_list_item_min_height))
-                .clickable {
-                    showMoonPayDialog = true
-                }
-        )
-        Spacer(modifier = Modifier.height(10.dp))
+
         SettingsListItem(
             iconRes = R.drawable.ic_icon_side_shift,
             title = stringResource(id = R.string.ns_swap_sideshift),
@@ -110,22 +99,6 @@ fun TopUp(onBack: () -> Unit, onLaunchUrl: (String) -> Unit ) {
                     showStealthHealthDialog = true
                 }
         )
-
-        if (showMoonPayDialog) {
-            AlertDialog(
-                title = stringResource(id = R.string.buy_zec_dialog_title), 
-                desc = stringResource(id = R.string.buy_zec_dialog_msg),
-                confirmText = stringResource(id = R.string.open_browser),
-                dismissText = stringResource(id = R.string.ns_cancel),
-                onConfirm = {
-                    showMoonPayDialog = false
-                    onLaunchUrl("")
-                },
-                onDismiss = {
-                    showMoonPayDialog = false
-                }
-            )
-        }
 
         if (showSideShiftDialog) {
             AlertDialog(
