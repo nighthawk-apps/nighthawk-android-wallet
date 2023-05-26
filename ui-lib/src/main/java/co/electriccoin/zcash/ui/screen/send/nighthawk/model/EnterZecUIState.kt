@@ -6,6 +6,6 @@ data class EnterZecUIState(
     val spendableBalance: String = "--",
     val convertedAmount: String? = null,
     val isEnoughBalance: Boolean = true,
-    val isScanPaymentCodeOptionAvailable: Boolean = enteredAmount == "0"
+    val isScanPaymentCodeOptionAvailable: Boolean = enteredAmount == "0" && isEnoughBalance
 )
 

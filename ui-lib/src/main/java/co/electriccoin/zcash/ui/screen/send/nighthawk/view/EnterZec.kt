@@ -1,5 +1,6 @@
 package co.electriccoin.zcash.ui.screen.send.nighthawk.view
 
+import android.widget.Toast
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -23,6 +24,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -81,6 +83,8 @@ fun EnterZec(
         .fillMaxSize()
         .padding(dimensionResource(id = R.dimen.screen_standard_margin))
     ) {
+        val context = LocalContext.current
+
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -149,7 +153,13 @@ fun EnterZec(
                 columns = GridCells.Fixed(3)
             ) {
                 items(numberPadKeys) {
-                    TextButton(onClick = { onKeyPressed(it) }) {
+                    TextButton(onClick = {
+                        if (enterZecUIState.isEnoughBalance.not()) {
+                            Toast.makeText(context, context.getString(R.string.insufficient_msg), Toast.LENGTH_SHORT).show()
+                            return@TextButton
+                        }
+                        onKeyPressed(it)
+                    }) {
                         Body(text = it.keyValue, textAlign = TextAlign.Center)
                     }
                 }

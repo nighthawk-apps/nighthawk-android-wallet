@@ -1,6 +1,7 @@
 package co.electriccoin.zcash.ui.screen.send.nighthawk.view
 
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -21,7 +22,6 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -47,13 +47,13 @@ import co.electriccoin.zcash.ui.design.theme.ZcashTheme
 fun EnterReceiverAddressPreview() {
     ZcashTheme(darkTheme = false) {
         Surface {
-            EnterReceiverAddress(onBack = {}, onContinue = {})
+            EnterReceiverAddress(isContinueBtnEnabled = false, onBack = {}, onValueChanged = {}, onContinue = {})
         }
     }
 }
 
 @Composable
-fun EnterReceiverAddress(onBack: () -> Unit, onContinue: (String)    -> Unit) {
+fun EnterReceiverAddress(isContinueBtnEnabled: Boolean, onBack: () -> Unit, onValueChanged: (String) -> Unit, onContinue: (String) -> Unit) {
     Column(modifier = Modifier
         .fillMaxSize()
         .padding(dimensionResource(id = R.dimen.screen_standard_margin))
@@ -62,11 +62,7 @@ fun EnterReceiverAddress(onBack: () -> Unit, onContinue: (String)    -> Unit) {
         val address = remember {
             mutableStateOf("")
         }
-        val isContinueBtnEnabled = remember {
-            derivedStateOf {
-                address.value.isNotBlank()
-            }
-        }
+
         IconButton(onClick = onBack, modifier = Modifier.size(dimensionResource(id = R.dimen.back_icon_size))) {
             Icon(imageVector = Icons.Filled.ArrowBack, contentDescription = stringResource(R.string.receive_back_content_description))
         }
@@ -78,17 +74,23 @@ fun EnterReceiverAddress(onBack: () -> Unit, onContinue: (String)    -> Unit) {
         Spacer(modifier = Modifier.height(45.dp))
         OutlinedTextField(
             value = address.value,
-            onValueChange = { address.value = it },
+            onValueChange = {
+                val trimAddress = it.trim()
+                address.value = trimAddress
+                onValueChanged(trimAddress)
+            },
             modifier = Modifier
                 .fillMaxWidth()
-                .heightIn(min = 55.dp)
-            ,
+                .heightIn(min = 55.dp),
             placeholder = {
                 BodyMedium(text = stringResource(id = R.string.ns_add_address_hint), modifier = Modifier.align(Alignment.CenterHorizontally), color = ZcashTheme.colors.surfaceEnd)
             },
             trailingIcon = {
-                if (isContinueBtnEnabled.value) {
-                    Icon(imageVector = Icons.Default.Close, contentDescription = "", tint = Color.White)
+                if (address.value.isNotBlank()) {
+                    Icon(imageVector = Icons.Default.Close, contentDescription = "", tint = Color.White, modifier = Modifier.clickable {
+                        address.value = ""
+                        onValueChanged("")
+                    })
                 } else {
                     Icon(painter = painterResource(id = R.drawable.ic_icon_scan_qr), contentDescription = "", tint = Color.White)
                 }
@@ -97,7 +99,7 @@ fun EnterReceiverAddress(onBack: () -> Unit, onContinue: (String)    -> Unit) {
             maxLines = 1
         )
         Spacer(modifier = Modifier.height(16.dp))
-        if (isContinueBtnEnabled.value.not()) {
+        if (address.value.isBlank()) {
             DottedBorderTextButton(
                 onClick = {},
                 text = stringResource(id = R.string.ns_paste_from_clip_board),
@@ -113,7 +115,7 @@ fun EnterReceiverAddress(onBack: () -> Unit, onContinue: (String)    -> Unit) {
             modifier = Modifier
                 .align(Alignment.CenterHorizontally)
                 .sizeIn(minWidth = dimensionResource(id = R.dimen.button_min_width), minHeight = dimensionResource(id = R.dimen.button_height)),
-            enabled = isContinueBtnEnabled.value
+            enabled = isContinueBtnEnabled
         )
     }
 }

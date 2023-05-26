@@ -1,5 +1,6 @@
 package co.electriccoin.zcash.ui.screen.send.nighthawk.view
 
+import android.widget.Toast
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -26,12 +27,14 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import cash.z.ecc.android.sdk.model.Memo
 import co.electriccoin.zcash.ui.R
 import co.electriccoin.zcash.ui.common.customColors
 import co.electriccoin.zcash.ui.design.component.BodyMedium
@@ -45,6 +48,7 @@ fun EnterMessagePreview() {
     ZcashTheme(darkTheme = false) {
         Surface {
             EnterMessage(
+                memo = "",
                 onBack = { },
                 onContinue = { }
             )
@@ -54,6 +58,7 @@ fun EnterMessagePreview() {
 
 @Composable
 fun EnterMessage(
+    memo: String,
     onBack: () -> Unit,
     onContinue: (String) -> Unit
 ) {
@@ -62,8 +67,9 @@ fun EnterMessage(
         .padding(dimensionResource(id = R.dimen.screen_standard_margin))
         .verticalScroll(rememberScrollState())
     ) {
+        val context = LocalContext.current
         val message = remember {
-            mutableStateOf("")
+            mutableStateOf(memo)
         }
         val continueBtnText = remember {
             derivedStateOf {
@@ -81,7 +87,13 @@ fun EnterMessage(
         Spacer(modifier = Modifier.height(45.dp))
         OutlinedTextField(
             value = message.value,
-            onValueChange = { message.value = it },
+            onValueChange = {
+                if (Memo.isWithinMaxLength(it)) {
+                    message.value = it
+                } else {
+                    Toast.makeText(context, context.getString(R.string.memo_max_length_msg), Toast.LENGTH_SHORT).show()
+                }
+            },
             modifier = Modifier
                 .fillMaxWidth()
                 .heightIn(min = 105.dp),

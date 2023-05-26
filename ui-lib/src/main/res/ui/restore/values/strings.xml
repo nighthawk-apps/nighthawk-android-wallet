@@ -236,5 +236,6 @@
     <string name="fund_wallet_sideshift_description">Your Z-Address has been copied to the clipboard.\n\nChoose \"Open Browser\" below, select \'Zcash (Shielded)\' as the receiving coin on the SideShift site, and then paste your Z-address.</string>
     <string name="fund_wallet_stealthex_title">Fund wallet with StealthEx.io?</string>
     <string name="fund_wallet_stealthex_description">Your T-Address has been copied to the clipboard.\n\nChoose \"Open Browser\" below, select \'Zcash\' as the receiving coin on the StealthEx site, and then paste your T-address.</string>
-
+    <string name="insufficient_msg">You don\'t have sufficient balance to send</string>
+    <string name="memo_max_length_msg">You have written maximum length to send a message</string>
 </resources>

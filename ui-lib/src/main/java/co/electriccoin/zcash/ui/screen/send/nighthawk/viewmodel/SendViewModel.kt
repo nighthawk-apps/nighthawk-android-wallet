@@ -1,7 +1,13 @@
 package co.electriccoin.zcash.ui.screen.send.nighthawk.viewmodel
 
 import androidx.lifecycle.ViewModel
+import cash.z.ecc.android.sdk.ext.ZcashSdk
+import cash.z.ecc.android.sdk.ext.convertZecToZatoshi
+import cash.z.ecc.android.sdk.ext.toZec
+import cash.z.ecc.android.sdk.model.ZecSend
+import cash.z.ecc.android.sdk.model.toZecString
 import co.electriccoin.zcash.spackle.Twig
+import co.electriccoin.zcash.ui.screen.home.model.WalletSnapshot
 import co.electriccoin.zcash.ui.screen.send.nighthawk.model.EnterZecUIState
 import co.electriccoin.zcash.ui.screen.send.nighthawk.model.NumberPadValueTypes
 import co.electriccoin.zcash.ui.screen.send.nighthawk.model.SendUIState
@@ -16,8 +22,11 @@ class SendViewModel: ViewModel() {
     private val _enterZecUIState = MutableStateFlow(EnterZecUIState())
     val enterZecUIState: StateFlow<EnterZecUIState> get() = _enterZecUIState
 
-    private var userEnteredMemo: String = ""
+    var userEnteredMemo: String = ""
+        private set
     private var receiverAddress: String = ""
+    var zecSend: ZecSend? = null
+        private set
 
     fun onNextSendUiState() {
         _currentSendUiState.getAndUpdate { it?.getNext(it) }
@@ -32,8 +41,9 @@ class SendViewModel: ViewModel() {
         onNextSendUiState()
     }
 
-    fun onEnterReceiverAddressContinue(address: String) {
+    fun onEnterReceiverAddressContinue(address: String, zecSend: ZecSend) {
         receiverAddress = address
+        this.zecSend = zecSend
         onNextSendUiState()
     }
 
@@ -47,6 +57,19 @@ class SendViewModel: ViewModel() {
             is NumberPadValueTypes.BackSpace -> onBackSpaceKeyPressed()
             is NumberPadValueTypes.Number -> onNumberKeyPressed(numberPadValueTypes.value)
             is NumberPadValueTypes.Separator -> onSeparatorKeyPressed(numberPadValueTypes.value)
+        }
+    }
+
+    fun updateEnterZecUiStateWithWalletSnapshot(walletSnapshot: WalletSnapshot) {
+        Twig.info { "SendVieModel walletSnapShot $walletSnapshot" }
+        _enterZecUIState.getAndUpdate {
+            val availableZatoshi = walletSnapshot.saplingBalance.available
+            val isEnoughBalance = ((it.enteredAmount.toDoubleOrNull()?.toZec()?.convertZecToZatoshi()?.value ?: 0L) + ZcashSdk.MINERS_FEE.value) <= availableZatoshi.value
+            it.copy(
+                spendableBalance = availableZatoshi.toZecString(),
+                isEnoughBalance = isEnoughBalance,
+                isScanPaymentCodeOptionAvailable = it.enteredAmount == "0" && isEnoughBalance
+            )
         }
     }
 
