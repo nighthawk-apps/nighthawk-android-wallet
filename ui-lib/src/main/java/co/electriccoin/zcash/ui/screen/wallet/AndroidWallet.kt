@@ -5,6 +5,7 @@ import androidx.activity.viewModels
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import co.electriccoin.zcash.spackle.Twig
 import co.electriccoin.zcash.ui.MainActivity
 import co.electriccoin.zcash.ui.configuration.ConfigurationEntries
 import co.electriccoin.zcash.ui.configuration.RemoteConfig
@@ -36,7 +37,14 @@ internal fun WrapWallet(activity: ComponentActivity) {
         LaunchedEffect(key1 = isSyncing) {
             homeViewModel.onTransferTabStateChanged(enable = isSyncing.not())
         }
-        WalletView(walletSnapshot, isKeepScreenOnWhileSyncing, isFiatConversionEnabled)
+        WalletView(
+            walletSnapshot = walletSnapshot,
+            isKeepScreenOnWhileSyncing = isKeepScreenOnWhileSyncing,
+            isFiatConversionEnabled = isFiatConversionEnabled,
+            onShieldNow = {
+                Twig.info { "ShieldNow clicked" }
+            }
+        )
     }
     activity.reportFullyDrawn()
 }

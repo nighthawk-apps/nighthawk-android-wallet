@@ -62,7 +62,7 @@ import co.electriccoin.zcash.ui.screen.wallet.model.BalanceViewType
 fun WalletPreview() {
     ZcashTheme(darkTheme = false) {
         Surface {
-            WalletView(walletSnapshot = WalletSnapshotFixture.new(), isKeepScreenOnWhileSyncing = true, isFiatConversionEnabled = false)
+            WalletView(walletSnapshot = WalletSnapshotFixture.new(), isKeepScreenOnWhileSyncing = true, isFiatConversionEnabled = false, onShieldNow = {})
         }
     }
 }
@@ -87,7 +87,7 @@ fun BalanceViewPreview() {
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-fun WalletView(walletSnapshot: WalletSnapshot, isKeepScreenOnWhileSyncing: Boolean?, isFiatConversionEnabled: Boolean) {
+fun WalletView(walletSnapshot: WalletSnapshot, isKeepScreenOnWhileSyncing: Boolean?, isFiatConversionEnabled: Boolean, onShieldNow: () -> Unit) {
     Column(modifier = Modifier
         .fillMaxSize()
         .verticalScroll(rememberScrollState())
@@ -121,11 +121,11 @@ fun WalletView(walletSnapshot: WalletSnapshot, isKeepScreenOnWhileSyncing: Boole
             if (balanceViewType != BalanceViewType.SWIPE) {
                 PageIndicator(pageCount = pageCount, pagerState = state)
             }
-            // Show shield now button in last
-            if (balanceViewType == BalanceViewType.TRANSPARENT) {
+            // Show shield now button in last if balanceViewType is Transparent and some transparentBalance is available
+            if (balanceViewType == BalanceViewType.TRANSPARENT && walletSnapshot.transparentBalance.available.value > 0) {
                 Spacer(Modifier.height(dimensionResource(id = R.dimen.pageMargin)))
                 PrimaryButton(
-                    onClick = { Twig.info { "Shield now button clicked" } },
+                    onClick = onShieldNow,
                     text = stringResource(id = R.string.ns_shield_now).uppercase(),
                     modifier = Modifier
                         .align(Alignment.CenterHorizontally)

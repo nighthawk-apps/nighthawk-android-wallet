@@ -10,10 +10,12 @@ import co.electriccoin.zcash.spackle.Twig
 import co.electriccoin.zcash.ui.screen.home.model.WalletSnapshot
 import co.electriccoin.zcash.ui.screen.send.nighthawk.model.EnterZecUIState
 import co.electriccoin.zcash.ui.screen.send.nighthawk.model.NumberPadValueTypes
+import co.electriccoin.zcash.ui.screen.send.nighthawk.model.SendConfirmationState
 import co.electriccoin.zcash.ui.screen.send.nighthawk.model.SendUIState
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.getAndUpdate
+import kotlinx.coroutines.flow.update
 
 class SendViewModel: ViewModel() {
     private val _currentSendUiState = MutableStateFlow<SendUIState?>(SendUIState.ENTER_ZEC)
@@ -21,6 +23,9 @@ class SendViewModel: ViewModel() {
 
     private val _enterZecUIState = MutableStateFlow(EnterZecUIState())
     val enterZecUIState: StateFlow<EnterZecUIState> get() = _enterZecUIState
+
+    private val _sendConfirmationState = MutableStateFlow<SendConfirmationState>(SendConfirmationState.Sending)
+    val sendConfirmationState: StateFlow<SendConfirmationState> get() = _sendConfirmationState
 
     var userEnteredMemo: String = ""
         private set
@@ -60,11 +65,15 @@ class SendViewModel: ViewModel() {
         }
     }
 
+    fun updateSendConfirmationState(sendConfirmationState: SendConfirmationState) {
+        _sendConfirmationState.update { sendConfirmationState }
+    }
+
     fun updateEnterZecUiStateWithWalletSnapshot(walletSnapshot: WalletSnapshot) {
         Twig.info { "SendVieModel walletSnapShot $walletSnapshot" }
         _enterZecUIState.getAndUpdate {
             val availableZatoshi = walletSnapshot.saplingBalance.available
-            val isEnoughBalance = ((it.enteredAmount.toDoubleOrNull()?.toZec()?.convertZecToZatoshi()?.value ?: 0L) + ZcashSdk.MINERS_FEE.value) >= availableZatoshi.value
+            val isEnoughBalance = ((it.enteredAmount.toDoubleOrNull()?.toZec()?.convertZecToZatoshi()?.value ?: 0L) + ZcashSdk.MINERS_FEE.value) <= availableZatoshi.value
             it.copy(
                 spendableBalance = availableZatoshi.toZecString(),
                 isEnoughBalance = isEnoughBalance,

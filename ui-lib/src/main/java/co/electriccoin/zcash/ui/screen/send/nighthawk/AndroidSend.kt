@@ -15,6 +15,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import cash.z.ecc.android.sdk.ext.ZcashSdk
 import cash.z.ecc.android.sdk.model.MonetarySeparators
 import cash.z.ecc.android.sdk.model.ZecSendExt
+import cash.z.ecc.android.sdk.model.send
 import cash.z.ecc.android.sdk.model.toZecString
 import co.electriccoin.zcash.spackle.Twig
 import co.electriccoin.zcash.ui.MainActivity
@@ -119,8 +120,9 @@ internal fun WrapAndroidSend(activity: ComponentActivity, onBack: () -> Unit, on
         }
 
         SendUIState.REVIEW_AND_SEND -> {
-            /* val synchronizer = walletViewModel.synchronizer.collectAsStateWithLifecycle().value
-             val spendingKey = walletViewModel.spendingKey.collectAsStateWithLifecycle().value*/
+            val scope = rememberCoroutineScope()
+            val synchronizer = walletViewModel.synchronizer.collectAsStateWithLifecycle().value
+            val spendingKey = walletViewModel.spendingKey.collectAsStateWithLifecycle().value
             ReviewAndSend(
                 sendAndReviewUiState = SendAndReviewUiState()
                     .copy(
@@ -133,13 +135,44 @@ internal fun WrapAndroidSend(activity: ComponentActivity, onBack: () -> Unit, on
                     ),
                 onBack = sendViewModel::onPreviousSendUiState,
                 onViewOnExplorer = onViewOnExplorer,
-                onSendZCash = sendViewModel::onSendZCash
+                onSendZCash = {
+                    sendViewModel.onSendZCash()
+                    scope.launch {
+                        val zecSend = sendViewModel.zecSend
+                        if (zecSend == null) {
+                            Twig.error { "Sending Zec: Send zec is null" }
+                            sendViewModel.updateSendConfirmationState(SendConfirmationState.Failed)
+                            return@launch
+                        }
+                        if (spendingKey == null) {
+                            Twig.error { "Sending Zec: spending key is null" }
+                            sendViewModel.updateSendConfirmationState(SendConfirmationState.Failed)
+                            return@launch
+                        }
+                        if (synchronizer == null) {
+                            Twig.error { "Sending Zec: synchronizer is null" }
+                            sendViewModel.updateSendConfirmationState(SendConfirmationState.Failed)
+                            return@launch
+                        }
+                        runCatching {
+                            synchronizer.send(spendingKey = spendingKey, send = zecSend)
+                        }
+                            .onSuccess {
+                                Twig.info { "Sending Zec: Sent successfully $it" }
+                                sendViewModel.updateSendConfirmationState(SendConfirmationState.Success)
+                            }
+                            .onFailure {
+                                Twig.error { "Sending Zec: Send fail $it" }
+                                sendViewModel.updateSendConfirmationState(SendConfirmationState.Failed)
+                            }
+                    }
+                }
             )
         }
 
         SendUIState.SEND_CONFIRMATION -> {
             SendConfirmation(
-                sendConfirmationState = SendConfirmationState.Success,
+                sendConfirmationState = sendViewModel.sendConfirmationState.collectAsStateWithLifecycle().value,
                 onCancel = {},
                 onTryAgain = sendViewModel::onPreviousSendUiState,
                 onDone = {},
