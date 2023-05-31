@@ -64,7 +64,7 @@ class SendViewModel: ViewModel() {
         Twig.info { "SendVieModel walletSnapShot $walletSnapshot" }
         _enterZecUIState.getAndUpdate {
             val availableZatoshi = walletSnapshot.saplingBalance.available
-            val isEnoughBalance = ((it.enteredAmount.toDoubleOrNull()?.toZec()?.convertZecToZatoshi()?.value ?: 0L) + ZcashSdk.MINERS_FEE.value) <= availableZatoshi.value
+            val isEnoughBalance = ((it.enteredAmount.toDoubleOrNull()?.toZec()?.convertZecToZatoshi()?.value ?: 0L) + ZcashSdk.MINERS_FEE.value) >= availableZatoshi.value
             it.copy(
                 spendableBalance = availableZatoshi.toZecString(),
                 isEnoughBalance = isEnoughBalance,
@@ -79,9 +79,7 @@ class SendViewModel: ViewModel() {
                 var newEnteredAmount = it.enteredAmount.dropLast(1)
                 newEnteredAmount = newEnteredAmount.ifBlank { "0" }
                 it.copy(
-                    enteredAmount = newEnteredAmount,
-                    isEnoughBalance = newEnteredAmount.toDoubleOrNull()?.let {num -> num < 10 } ?: false,
-                    isScanPaymentCodeOptionAvailable = newEnteredAmount == "0"
+                    enteredAmount = newEnteredAmount
                 )
             } else {
                 it
@@ -97,10 +95,7 @@ class SendViewModel: ViewModel() {
             }
             val newEnteredAmount = previousEnteredAmount + value
             it.copy(
-                enteredAmount = newEnteredAmount,
-                spendableBalance = "10",
-                isEnoughBalance = newEnteredAmount.toDoubleOrNull()?.let {num -> num < 10 } ?: false,
-                isScanPaymentCodeOptionAvailable = false
+                enteredAmount = newEnteredAmount
             )
         }
     }

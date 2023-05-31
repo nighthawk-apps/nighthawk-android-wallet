@@ -154,7 +154,7 @@ fun EnterZec(
             ) {
                 items(numberPadKeys) {
                     TextButton(onClick = {
-                        if (enterZecUIState.isEnoughBalance.not()) {
+                        if ((it is NumberPadValueTypes.BackSpace).not() && enterZecUIState.isEnoughBalance.not()) {
                             Toast.makeText(context, context.getString(R.string.insufficient_msg), Toast.LENGTH_SHORT).show()
                             return@TextButton
                         }
