@@ -1,4 +1,4 @@
-package co.electriccoin.zcash.ui.screen.send.nighthawk.view
+package co.electriccoin.zcash.ui.screen.transactiondetails.view
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
@@ -11,7 +11,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -21,9 +20,11 @@ import androidx.compose.material3.Divider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Surface
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.dimensionResource
@@ -35,31 +36,35 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import cash.z.ecc.android.sdk.fixture.TransactionOverviewFixture
+import cash.z.ecc.android.sdk.model.TransactionOverview
+import cash.z.ecc.android.sdk.model.TransactionState
+import cash.z.ecc.android.sdk.model.toZecString
+import co.electriccoin.zcash.spackle.Twig
 import co.electriccoin.zcash.ui.R
 import co.electriccoin.zcash.ui.design.component.BalanceText
 import co.electriccoin.zcash.ui.design.component.Body
 import co.electriccoin.zcash.ui.design.component.BodyMedium
-import co.electriccoin.zcash.ui.design.component.PrimaryButton
+import co.electriccoin.zcash.ui.design.component.DottedBorderTextButton
 import co.electriccoin.zcash.ui.design.component.TitleLarge
 import co.electriccoin.zcash.ui.design.theme.ZcashTheme
-import co.electriccoin.zcash.ui.screen.send.nighthawk.model.SendAndReviewUiState
+import kotlinx.datetime.Instant
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toLocalDateTime
+import java.nio.charset.Charset
 
-@Composable
 @Preview
-fun ReviewAndSendPreview() {
+@Composable
+fun TransactionDetailsPreview() {
     ZcashTheme(darkTheme = false) {
         Surface {
-            ReviewAndSend(sendAndReviewUiState = SendAndReviewUiState(), onBack = {}, onSendZCash = {})
+            TransactionDetails(transactionOverview = TransactionOverviewFixture.new(), onBack = {})
         }
     }
 }
 
 @Composable
-fun ReviewAndSend(
-    sendAndReviewUiState: SendAndReviewUiState,
-    onBack: () -> Unit,
-    onSendZCash: () -> Unit
-) {
+fun TransactionDetails(transactionOverview: TransactionOverview?, onBack: () -> Unit) {
     Column(modifier = Modifier
         .fillMaxSize()
         .padding(dimensionResource(id = R.dimen.screen_standard_margin))
@@ -72,36 +77,85 @@ fun ReviewAndSend(
         Spacer(Modifier.height(dimensionResource(id = R.dimen.pageMargin)))
         TitleLarge(text = stringResource(id = R.string.ns_nighthawk), textAlign = TextAlign.Center, modifier = Modifier.align(Alignment.CenterHorizontally))
         Spacer(modifier = Modifier.height(dimensionResource(id = R.dimen.pageMargin)))
-        BodyMedium(text = stringResource(id = R.string.ns_review_and_send), textAlign = TextAlign.Center, modifier = Modifier.align(Alignment.CenterHorizontally), color = ZcashTheme.colors.surfaceEnd)
-        Spacer(modifier = Modifier.height(45.dp))
+        BodyMedium(text = stringResource(id = R.string.ns_transaction_details), textAlign = TextAlign.Center, modifier = Modifier.align(Alignment.CenterHorizontally), color = ZcashTheme.colors.surfaceEnd)
+        Spacer(modifier = Modifier.height(38.dp))
+
+        if (transactionOverview == null) {
+            // May be we can show error dialog or loading
+            Twig.info { "Transaction overview is null" }
+            return@Column
+        }
+
+        Icon(
+            painter = painterResource(id = R.drawable.ic_icon_downloading),
+            contentDescription = null,
+            modifier = Modifier
+                .rotate(if (transactionOverview.isSentTransaction) 180f else 0f)
+                .align(Alignment.CenterHorizontally)
+        )
+        Spacer(modifier = Modifier.height(21.dp))
 
         // Amount section
         Row(
             modifier = Modifier.align(Alignment.CenterHorizontally),
         ) {
-            BalanceText(text = sendAndReviewUiState.amountToSend)
+            BalanceText(text = transactionOverview.netValue.toZecString())
             Spacer(modifier = Modifier.width(4.dp))
-            BalanceText(text = sendAndReviewUiState.amountUnit, color = ZcashTheme.colors.surfaceEnd)
+            BalanceText(text = stringResource(id = R.string.ns_zec), color = ZcashTheme.colors.surfaceEnd)
         }
         Spacer(modifier = Modifier.width(12.dp))
-        if (sendAndReviewUiState.convertedAmountWithCurrency.isNotBlank()) {
-            BodyMedium(text = stringResource(id = R.string.ns_around, sendAndReviewUiState.convertedAmountWithCurrency), textAlign = TextAlign.Center, modifier = Modifier.align(Alignment.CenterHorizontally), color = ZcashTheme.colors.surfaceEnd)
-        }
+        BodyMedium(text = stringResource(id = R.string.ns_around, "--"), textAlign = TextAlign.Center, modifier = Modifier.align(Alignment.CenterHorizontally), color = ZcashTheme.colors.surfaceEnd)
         Spacer(
-            modifier = Modifier
-                .weight(1f)
-                .heightIn(min = 40.dp)
+            modifier = Modifier.height(30.dp)
         )
 
-        //Memo
-        if (sendAndReviewUiState.memo.isNotBlank()) {
+        val (transactionStateTextId, transactionStateIconId) = when (transactionOverview.transactionState) {
+            TransactionState.Confirmed -> Pair(R.string.ns_confirmed, R.drawable.ic_icon_confirmed)
+            TransactionState.Pending -> Pair(R.string.ns_pending, R.drawable.ic_icon_preparing)
+            TransactionState.Expired -> Pair(R.string.ns_expired, R.drawable.ic_done_24dp)
+        }
+
+        DottedBorderTextButton(
+            onClick = {},
+            text = stringResource(id = transactionStateTextId),
+            modifier = Modifier
+                .align(Alignment.CenterHorizontally)
+                .height(40.dp),
+            borderColor = ZcashTheme.colors.surfaceEnd,
+            startIcon = transactionStateIconId
+        )
+
+        Spacer(
+            modifier = Modifier.heightIn(min = 50.dp)
+        )
+
+        // Memo
+        if (transactionOverview.memoCount >= 0) { // Todo: change this no check to 1
             BodyMedium(text = stringResource(id = R.string.ns_memo), color = ZcashTheme.colors.surfaceEnd)
             Spacer(modifier = Modifier.height(10.dp))
-            Body(text = sendAndReviewUiState.memo)
+            Body(text = "memo need to get from synchronizer")
             Spacer(modifier = Modifier.height(40.dp))
         }
 
+        // Time
+        Divider(
+            thickness = 1.dp,
+            color = ZcashTheme.colors.surfaceEnd
+        )
+        Spacer(modifier = Modifier.height(10.dp))
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            BodyMedium(text = stringResource(id = R.string.ns_time_utc), color = ZcashTheme.colors.surfaceEnd)
+            BodyMedium(
+                text = Instant.fromEpochSeconds(transactionOverview.blockTimeEpochSeconds).toLocalDateTime(TimeZone.UTC).toString().replace("T", " "),
+                color = ZcashTheme.colors.surfaceEnd
+            )
+        }
+
         // Network
+        Spacer(modifier = Modifier.height(10.dp))
         Divider(
             thickness = 1.dp,
             color = ZcashTheme.colors.surfaceEnd
@@ -112,7 +166,57 @@ fun ReviewAndSend(
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             BodyMedium(text = stringResource(id = R.string.ns_network), color = ZcashTheme.colors.surfaceEnd)
-            BodyMedium(text = sendAndReviewUiState.network, color = ZcashTheme.colors.surfaceEnd)
+            BodyMedium(text = "Orchard", color = ZcashTheme.colors.surfaceEnd)
+        }
+
+        // BlockId
+        Spacer(modifier = Modifier.height(10.dp))
+        Divider(
+            thickness = 1.dp,
+            color = ZcashTheme.colors.surfaceEnd
+        )
+        Spacer(modifier = Modifier.height(10.dp))
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            BodyMedium(text = stringResource(id = R.string.ns_block_id), color = ZcashTheme.colors.surfaceEnd)
+            BodyMedium(text = "--", color = ZcashTheme.colors.surfaceEnd)
+        }
+
+        // Confirmations
+        Spacer(modifier = Modifier.height(10.dp))
+        Divider(
+            thickness = 1.dp,
+            color = ZcashTheme.colors.surfaceEnd
+        )
+        Spacer(modifier = Modifier.height(10.dp))
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            BodyMedium(text = stringResource(id = R.string.ns_confirmations), color = ZcashTheme.colors.surfaceEnd)
+            BodyMedium(text = "--", color = ZcashTheme.colors.surfaceEnd)
+        }
+
+        // TransactionId
+        Spacer(modifier = Modifier.height(10.dp))
+        Divider(
+            thickness = 1.dp,
+            color = ZcashTheme.colors.surfaceEnd
+        )
+        Spacer(modifier = Modifier.height(10.dp))
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            BodyMedium(text = stringResource(id = R.string.ns_transaction_id), color = ZcashTheme.colors.surfaceEnd)
+            Spacer(modifier = Modifier.width(50.dp))
+            BodyMedium(text = transactionOverview.rawId.byteArray.toString(Charset.defaultCharset()), color = ZcashTheme.colors.surfaceEnd, textAlign = TextAlign.End)
+        }
+        TextButton(onClick = {},
+            modifier = Modifier.align(Alignment.End)) {
+            BodyMedium(text = stringResource(id = R.string.ns_view_block_explorer), color = ZcashTheme.colors.onBackgroundHeader, textAlign = TextAlign.End)
         }
 
         // Recipient
@@ -127,7 +231,7 @@ fun ReviewAndSend(
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             BodyMedium(text = stringResource(id = R.string.ns_recipient), color = ZcashTheme.colors.surfaceEnd)
-            BodyMedium(text = sendAndReviewUiState.recipientType, color = ZcashTheme.colors.surfaceEnd)
+            BodyMedium(text = "--", color = ZcashTheme.colors.surfaceEnd)
         }
         Spacer(modifier = Modifier.height(10.dp))
         Row(
@@ -136,7 +240,7 @@ fun ReviewAndSend(
         ) {
             BodyMedium(text = stringResource(id = R.string.ns_address), color = ZcashTheme.colors.surfaceEnd)
             Spacer(modifier = Modifier.width(50.dp))
-            val receiverAddress = sendAndReviewUiState.receiverAddress
+            val receiverAddress = "jhgdajhdkjahsdasdhkjashdjahsdjhasjdhkjahdskjhkashdkaskdhkasdh"
             BodyMedium(
                 text = buildAnnotatedString {
                     if (receiverAddress.length > 20) {
@@ -171,7 +275,7 @@ fun ReviewAndSend(
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             BodyMedium(text = stringResource(id = R.string.ns_subtotal), color = ZcashTheme.colors.surfaceEnd)
-            BodyMedium(text = sendAndReviewUiState.subTotal + " " + sendAndReviewUiState.amountUnit, color = ZcashTheme.colors.surfaceEnd)
+            BodyMedium(text = (transactionOverview.netValue - transactionOverview.feePaid).toZecString() + stringResource(id = R.string.ns_zec), color = ZcashTheme.colors.surfaceEnd)
         }
         Spacer(modifier = Modifier.height(10.dp))
         Row(
@@ -180,7 +284,7 @@ fun ReviewAndSend(
         ) {
             BodyMedium(text = stringResource(id = R.string.ns_network_fee), color = ZcashTheme.colors.surfaceEnd)
             Spacer(modifier = Modifier.width(50.dp))
-            BodyMedium(text = sendAndReviewUiState.networkFees + " " + sendAndReviewUiState.amountUnit, color = ZcashTheme.colors.surfaceEnd, textAlign = TextAlign.End)
+            BodyMedium(text = (transactionOverview.feePaid).toZecString() + stringResource(id = R.string.ns_zec), color = ZcashTheme.colors.surfaceEnd, textAlign = TextAlign.End)
         }
 
         // Total
@@ -195,16 +299,12 @@ fun ReviewAndSend(
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             BodyMedium(text = stringResource(id = R.string.ns_total_amount), color = ZcashTheme.colors.surfaceEnd)
-            BodyMedium(text = sendAndReviewUiState.totalAmount + " " + sendAndReviewUiState.amountUnit, color = ZcashTheme.colors.surfaceEnd)
+            BodyMedium(text = (transactionOverview.netValue).toZecString() + stringResource(id = R.string.ns_zec), color = ZcashTheme.colors.surfaceEnd)
         }
-
-        Spacer(modifier = Modifier.weight(1f))
-        PrimaryButton(
-            onClick = onSendZCash,
-            text = stringResource(id = R.string.ns_continue).uppercase(),
-            modifier = Modifier
-                .align(Alignment.CenterHorizontally)
-                .sizeIn(minWidth = dimensionResource(id = R.dimen.button_min_width), minHeight = dimensionResource(id = R.dimen.button_height)),
+        Spacer(modifier = Modifier.height(10.dp))
+        Divider(
+            thickness = 1.dp,
+            color = ZcashTheme.colors.surfaceEnd
         )
     }
 }

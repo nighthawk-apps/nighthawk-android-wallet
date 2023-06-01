@@ -103,7 +103,7 @@ fun EnterReceiverAddress(isContinueBtnEnabled: Boolean, onBack: () -> Unit, onVa
             DottedBorderTextButton(
                 onClick = {},
                 text = stringResource(id = R.string.ns_paste_from_clip_board),
-                modifier = Modifier.align(Alignment.CenterHorizontally)
+                modifier = Modifier.align(Alignment.CenterHorizontally).height(36.dp)
             )
         } else {
             Spacer(modifier = Modifier.height(40.dp)) // To prevent below UI come upside

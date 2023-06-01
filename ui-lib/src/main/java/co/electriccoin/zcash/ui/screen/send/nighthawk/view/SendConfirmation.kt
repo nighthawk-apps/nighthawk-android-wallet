@@ -28,6 +28,7 @@ import co.electriccoin.zcash.ui.design.theme.ZcashTheme
 import co.electriccoin.zcash.ui.screen.send.nighthawk.model.SendConfirmationState
 import com.airbnb.lottie.compose.LottieAnimation
 import com.airbnb.lottie.compose.LottieCompositionSpec
+import com.airbnb.lottie.compose.LottieConstants
 import com.airbnb.lottie.compose.rememberLottieComposition
 
 @Preview
@@ -64,6 +65,7 @@ fun SendConfirmation(
 
         LottieAnimation(
             composition = composition,
+            iterations = LottieConstants.IterateForever,
             modifier = Modifier
                 .align(Alignment.CenterHorizontally)
                 .height(250.dp)

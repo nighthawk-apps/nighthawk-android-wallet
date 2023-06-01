@@ -112,7 +112,7 @@ fun EnterZec(
                     DottedBorderTextButton(
                         onClick = onScanPaymentCode,
                         text = stringResource(id = R.string.ns_scan_payment_code),
-                        modifier = Modifier.align(Alignment.CenterHorizontally)
+                        modifier = Modifier.align(Alignment.CenterHorizontally).height(36.dp)
                     )
                 }
 

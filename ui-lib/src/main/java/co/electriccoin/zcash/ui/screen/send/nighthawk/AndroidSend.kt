@@ -11,16 +11,20 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import cash.z.ecc.android.sdk.ext.ZcashSdk
+import cash.z.ecc.android.sdk.ext.isShielded
 import cash.z.ecc.android.sdk.model.MonetarySeparators
 import cash.z.ecc.android.sdk.model.ZecSendExt
 import cash.z.ecc.android.sdk.model.send
 import cash.z.ecc.android.sdk.model.toZecString
 import co.electriccoin.zcash.spackle.Twig
 import co.electriccoin.zcash.ui.MainActivity
+import co.electriccoin.zcash.ui.R
 import co.electriccoin.zcash.ui.screen.home.viewmodel.HomeViewModel
 import co.electriccoin.zcash.ui.screen.home.viewmodel.WalletViewModel
+import co.electriccoin.zcash.ui.screen.navigation.BottomNavItem
 import co.electriccoin.zcash.ui.screen.send.ext.ABBREVIATION_INDEX
 import co.electriccoin.zcash.ui.screen.send.nighthawk.model.SendAndReviewUiState
 import co.electriccoin.zcash.ui.screen.send.nighthawk.model.SendConfirmationState
@@ -34,12 +38,12 @@ import co.electriccoin.zcash.ui.screen.send.nighthawk.viewmodel.SendViewModel
 import kotlinx.coroutines.launch
 
 @Composable
-internal fun MainActivity.AndroidSend(onBack: () -> Unit) {
-    WrapAndroidSend(activity = this, onBack = onBack, onViewOnExplorer = {})
+internal fun MainActivity.AndroidSend(onBack: () -> Unit, navigateTo: (String) -> Unit, onMoreDetails: () -> Unit) {
+    WrapAndroidSend(activity = this, onBack = onBack, navigateTo = navigateTo, onMoreDetails = onMoreDetails)
 }
 
 @Composable
-internal fun WrapAndroidSend(activity: ComponentActivity, onBack: () -> Unit, onViewOnExplorer: () -> Unit) {
+internal fun WrapAndroidSend(activity: ComponentActivity, onBack: () -> Unit, navigateTo: (String) -> Unit, onMoreDetails: () -> Unit) {
     val homeViewModel by activity.viewModels<HomeViewModel>()
     val sendViewModel by activity.viewModels<SendViewModel>()
     val walletViewModel by activity.viewModels<WalletViewModel>()
@@ -127,14 +131,17 @@ internal fun WrapAndroidSend(activity: ComponentActivity, onBack: () -> Unit, on
                 sendAndReviewUiState = SendAndReviewUiState()
                     .copy(
                         amountToSend = sendViewModel.zecSend?.amount?.toZecString() ?: "",
+                        convertedAmountWithCurrency = "--",
                         memo = sendViewModel.zecSend?.memo?.value ?: "",
+                        recipientType = if ((sendViewModel.zecSend?.destination?.address
+                                ?: "").isShielded())
+                            stringResource(id = R.string.ns_shielded) else stringResource(id = R.string.ns_transparent),
                         receiverAddress = sendViewModel.zecSend?.destination?.address ?: "",
                         subTotal = sendViewModel.zecSend?.amount?.toZecString() ?: "",
                         networkFees = "${ZcashSdk.MINERS_FEE.value}",
                         totalAmount = "${sendViewModel.zecSend?.amount?.plus(ZcashSdk.MINERS_FEE)?.toZecString()}"
                     ),
                 onBack = sendViewModel::onPreviousSendUiState,
-                onViewOnExplorer = onViewOnExplorer,
                 onSendZCash = {
                     sendViewModel.onSendZCash()
                     scope.launch {
@@ -173,10 +180,17 @@ internal fun WrapAndroidSend(activity: ComponentActivity, onBack: () -> Unit, on
         SendUIState.SEND_CONFIRMATION -> {
             SendConfirmation(
                 sendConfirmationState = sendViewModel.sendConfirmationState.collectAsStateWithLifecycle().value,
-                onCancel = {},
+                onCancel = {
+                    sendViewModel.clearViewModelSavedData()
+                    navigateTo(BottomNavItem.Transfer.route)
+
+                },
                 onTryAgain = sendViewModel::onPreviousSendUiState,
-                onDone = {},
-                onMoreDetails = {}
+                onDone = {
+                    sendViewModel.clearViewModelSavedData()
+                    navigateTo(BottomNavItem.Transfer.route)
+                },
+                onMoreDetails = onMoreDetails
             )
         }
 

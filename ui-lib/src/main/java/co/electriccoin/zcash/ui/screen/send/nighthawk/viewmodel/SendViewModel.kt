@@ -73,7 +73,7 @@ class SendViewModel: ViewModel() {
         Twig.info { "SendVieModel walletSnapShot $walletSnapshot" }
         _enterZecUIState.getAndUpdate {
             val availableZatoshi = walletSnapshot.saplingBalance.available
-            val isEnoughBalance = ((it.enteredAmount.toDoubleOrNull()?.toZec()?.convertZecToZatoshi()?.value ?: 0L) + ZcashSdk.MINERS_FEE.value) <= availableZatoshi.value
+            val isEnoughBalance = ((it.enteredAmount.toDoubleOrNull()?.toZec()?.convertZecToZatoshi()?.value ?: 0L) + ZcashSdk.MINERS_FEE.value) >= availableZatoshi.value
             it.copy(
                 spendableBalance = availableZatoshi.toZecString(),
                 isEnoughBalance = isEnoughBalance,
@@ -120,5 +120,13 @@ class SendViewModel: ViewModel() {
                 )
             }
         }
+    }
+
+    fun clearViewModelSavedData() {
+        _currentSendUiState.value = SendUIState.ENTER_ZEC
+        _enterZecUIState.value = EnterZecUIState()
+        userEnteredMemo = ""
+        zecSend = null
+        receiverAddress = ""
     }
 }

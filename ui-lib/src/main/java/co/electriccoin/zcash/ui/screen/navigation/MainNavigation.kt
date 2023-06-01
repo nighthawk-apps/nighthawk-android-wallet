@@ -22,19 +22,24 @@ import androidx.compose.ui.res.stringResource
 import androidx.navigation.NavController
 import androidx.navigation.NavHostController
 import androidx.navigation.NavOptionsBuilder
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
+import androidx.navigation.navArgument
 import co.electriccoin.zcash.ui.MainActivity
 import co.electriccoin.zcash.ui.R
 import co.electriccoin.zcash.ui.design.component.BodySmall
+import co.electriccoin.zcash.ui.screen.navigation.ArgumentKeys.TRANSACTION_DETAILS_ID
 import co.electriccoin.zcash.ui.screen.navigation.NavigationTargets.RECEIVE_MONEY
 import co.electriccoin.zcash.ui.screen.navigation.NavigationTargets.SEND_MONEY
 import co.electriccoin.zcash.ui.screen.navigation.NavigationTargets.TOP_UP
+import co.electriccoin.zcash.ui.screen.navigation.NavigationTargets.TRANSACTION_DETAILS
 import co.electriccoin.zcash.ui.screen.receive.nighthawk.AndroidReceive
 import co.electriccoin.zcash.ui.screen.send.nighthawk.AndroidSend
 import co.electriccoin.zcash.ui.screen.settings.nighthawk.AndroidSettings
 import co.electriccoin.zcash.ui.screen.topup.AndroidTopUp
+import co.electriccoin.zcash.ui.screen.transactiondetails.AndroidTransactionDetails
 import co.electriccoin.zcash.ui.screen.transfer.AndroidTransfer
 import co.electriccoin.zcash.ui.screen.wallet.AndroidWallet
 
@@ -56,7 +61,9 @@ internal fun MainActivity.MainNavigation(navHostController: NavHostController, p
         }
         composable(SEND_MONEY) {
             AndroidSend(
-                onBack = { navHostController.popBackStackJustOnce(SEND_MONEY) }
+                onBack = { navHostController.popBackStackJustOnce(SEND_MONEY) },
+                navigateTo = { navHostController.popBackStack(it, false) },
+                onMoreDetails = { navHostController.navigateJustOnce(NavigationTargets.navigationRouteTransactionDetails(transactionId = 10)) }
             )
         }
         composable(RECEIVE_MONEY) {
@@ -67,6 +74,20 @@ internal fun MainActivity.MainNavigation(navHostController: NavHostController, p
         composable(TOP_UP) {
             AndroidTopUp(
                 onBack = { navHostController.popBackStackJustOnce(TOP_UP) }
+            )
+        }
+        composable(
+            route = TRANSACTION_DETAILS,
+            arguments = listOf(
+                navArgument(TRANSACTION_DETAILS_ID) {
+                    type = NavType.LongType
+                    nullable = false
+                }
+            )
+        ) {
+            AndroidTransactionDetails(
+                transactionId = it.arguments?.getLong(TRANSACTION_DETAILS_ID, -1) ?: -1,
+                onBack = { navHostController.popBackStack() }
             )
         }
     }
@@ -132,6 +153,14 @@ object NavigationTargets {
     const val SEND_MONEY = "send_money"
     const val RECEIVE_MONEY = "receive_money"
     const val TOP_UP = "top_up"
+    const val TRANSACTION_DETAILS = "transaction_details/{$TRANSACTION_DETAILS_ID}"
+    fun navigationRouteTransactionDetails(transactionId: Long): String {
+        return TRANSACTION_DETAILS.replace("{$TRANSACTION_DETAILS_ID}", "$transactionId")
+    }
+}
+
+object ArgumentKeys {
+    const val TRANSACTION_DETAILS_ID = "transactionId"
 }
 
 private fun NavHostController.navigateJustOnce(
