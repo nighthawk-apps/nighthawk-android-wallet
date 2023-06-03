@@ -36,9 +36,12 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import cash.z.ecc.android.sdk.ext.isShielded
 import cash.z.ecc.android.sdk.fixture.TransactionOverviewFixture
-import cash.z.ecc.android.sdk.model.TransactionOverview
+import cash.z.ecc.android.sdk.model.BlockHeight
+import cash.z.ecc.android.sdk.model.TransactionRecipient
 import cash.z.ecc.android.sdk.model.TransactionState
+import cash.z.ecc.android.sdk.model.ZcashNetwork
 import cash.z.ecc.android.sdk.model.toZecString
 import co.electriccoin.zcash.spackle.Twig
 import co.electriccoin.zcash.ui.R
@@ -48,6 +51,7 @@ import co.electriccoin.zcash.ui.design.component.BodyMedium
 import co.electriccoin.zcash.ui.design.component.DottedBorderTextButton
 import co.electriccoin.zcash.ui.design.component.TitleLarge
 import co.electriccoin.zcash.ui.design.theme.ZcashTheme
+import co.electriccoin.zcash.ui.screen.transactiondetails.model.TransactionDetailsUIModel
 import kotlinx.datetime.Instant
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
@@ -58,13 +62,19 @@ import java.nio.charset.Charset
 fun TransactionDetailsPreview() {
     ZcashTheme(darkTheme = false) {
         Surface {
-            TransactionDetails(transactionOverview = TransactionOverviewFixture.new(), onBack = {})
+            val transactionDetailsUIModel = TransactionDetailsUIModel(
+                transactionOverview = TransactionOverviewFixture.new(),
+                transactionRecipient = TransactionRecipient.Address("jhasdgjhagsdjagsjadjhgasjhdgajshdgjahsgdjasgdjasgdjsad"),
+                network = ZcashNetwork.Mainnet,
+                networkHeight = BlockHeight.new(zcashNetwork = ZcashNetwork.Mainnet, blockHeight = ZcashNetwork.Mainnet.saplingActivationHeight.value + 10)
+            )
+            TransactionDetails(transactionDetailsUIModel = transactionDetailsUIModel, onBack = {})
         }
     }
 }
 
 @Composable
-fun TransactionDetails(transactionOverview: TransactionOverview?, onBack: () -> Unit) {
+fun TransactionDetails(transactionDetailsUIModel: TransactionDetailsUIModel?, onBack: () -> Unit) {
     Column(modifier = Modifier
         .fillMaxSize()
         .padding(dimensionResource(id = R.dimen.screen_standard_margin))
@@ -80,9 +90,9 @@ fun TransactionDetails(transactionOverview: TransactionOverview?, onBack: () -> 
         BodyMedium(text = stringResource(id = R.string.ns_transaction_details), textAlign = TextAlign.Center, modifier = Modifier.align(Alignment.CenterHorizontally), color = ZcashTheme.colors.surfaceEnd)
         Spacer(modifier = Modifier.height(38.dp))
 
-        if (transactionOverview == null) {
+        if (transactionDetailsUIModel == null) {
             // May be we can show error dialog or loading
-            Twig.info { "Transaction overview is null" }
+            Twig.info { "Transaction overview ui model is null" }
             return@Column
         }
 
@@ -90,7 +100,7 @@ fun TransactionDetails(transactionOverview: TransactionOverview?, onBack: () -> 
             painter = painterResource(id = R.drawable.ic_icon_downloading),
             contentDescription = null,
             modifier = Modifier
-                .rotate(if (transactionOverview.isSentTransaction) 180f else 0f)
+                .rotate(if (transactionDetailsUIModel.transactionOverview.isSentTransaction) 180f else 0f)
                 .align(Alignment.CenterHorizontally)
         )
         Spacer(modifier = Modifier.height(21.dp))
@@ -99,7 +109,7 @@ fun TransactionDetails(transactionOverview: TransactionOverview?, onBack: () -> 
         Row(
             modifier = Modifier.align(Alignment.CenterHorizontally),
         ) {
-            BalanceText(text = transactionOverview.netValue.toZecString())
+            BalanceText(text = transactionDetailsUIModel.transactionOverview.netValue.toZecString())
             Spacer(modifier = Modifier.width(4.dp))
             BalanceText(text = stringResource(id = R.string.ns_zec), color = ZcashTheme.colors.surfaceEnd)
         }
@@ -109,7 +119,7 @@ fun TransactionDetails(transactionOverview: TransactionOverview?, onBack: () -> 
             modifier = Modifier.height(30.dp)
         )
 
-        val (transactionStateTextId, transactionStateIconId) = when (transactionOverview.transactionState) {
+        val (transactionStateTextId, transactionStateIconId) = when (transactionDetailsUIModel.transactionOverview.transactionState) {
             TransactionState.Confirmed -> Pair(R.string.ns_confirmed, R.drawable.ic_icon_confirmed)
             TransactionState.Pending -> Pair(R.string.ns_pending, R.drawable.ic_icon_preparing)
             TransactionState.Expired -> Pair(R.string.ns_expired, R.drawable.ic_done_24dp)
@@ -130,10 +140,10 @@ fun TransactionDetails(transactionOverview: TransactionOverview?, onBack: () -> 
         )
 
         // Memo
-        if (transactionOverview.memoCount >= 0) { // Todo: change this no check to 1
+        if (transactionDetailsUIModel.memo.isNotBlank()) {
             BodyMedium(text = stringResource(id = R.string.ns_memo), color = ZcashTheme.colors.surfaceEnd)
             Spacer(modifier = Modifier.height(10.dp))
-            Body(text = "memo need to get from synchronizer")
+            Body(text = transactionDetailsUIModel.memo)
             Spacer(modifier = Modifier.height(40.dp))
         }
 
@@ -149,7 +159,7 @@ fun TransactionDetails(transactionOverview: TransactionOverview?, onBack: () -> 
         ) {
             BodyMedium(text = stringResource(id = R.string.ns_time_utc), color = ZcashTheme.colors.surfaceEnd)
             BodyMedium(
-                text = Instant.fromEpochSeconds(transactionOverview.blockTimeEpochSeconds).toLocalDateTime(TimeZone.UTC).toString().replace("T", " "),
+                text = Instant.fromEpochSeconds(transactionDetailsUIModel.transactionOverview.blockTimeEpochSeconds).toLocalDateTime(TimeZone.UTC).toString().replace("T", " "),
                 color = ZcashTheme.colors.surfaceEnd
             )
         }
@@ -166,7 +176,7 @@ fun TransactionDetails(transactionOverview: TransactionOverview?, onBack: () -> 
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             BodyMedium(text = stringResource(id = R.string.ns_network), color = ZcashTheme.colors.surfaceEnd)
-            BodyMedium(text = "Orchard", color = ZcashTheme.colors.surfaceEnd)
+            BodyMedium(text = transactionDetailsUIModel.network.networkName, color = ZcashTheme.colors.surfaceEnd)
         }
 
         // BlockId
@@ -181,10 +191,11 @@ fun TransactionDetails(transactionOverview: TransactionOverview?, onBack: () -> 
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             BodyMedium(text = stringResource(id = R.string.ns_block_id), color = ZcashTheme.colors.surfaceEnd)
-            BodyMedium(text = "--", color = ZcashTheme.colors.surfaceEnd)
+            BodyMedium(text = "${transactionDetailsUIModel.transactionOverview.minedHeight?.value}", color = ZcashTheme.colors.surfaceEnd)
         }
 
         // Confirmations
+        val countText = getCountText(transactionDetailsUIModel)
         Spacer(modifier = Modifier.height(10.dp))
         Divider(
             thickness = 1.dp,
@@ -196,7 +207,7 @@ fun TransactionDetails(transactionOverview: TransactionOverview?, onBack: () -> 
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             BodyMedium(text = stringResource(id = R.string.ns_confirmations), color = ZcashTheme.colors.surfaceEnd)
-            BodyMedium(text = "--", color = ZcashTheme.colors.surfaceEnd)
+            BodyMedium(text = countText, color = ZcashTheme.colors.surfaceEnd)
         }
 
         // TransactionId
@@ -212,7 +223,7 @@ fun TransactionDetails(transactionOverview: TransactionOverview?, onBack: () -> 
         ) {
             BodyMedium(text = stringResource(id = R.string.ns_transaction_id), color = ZcashTheme.colors.surfaceEnd)
             Spacer(modifier = Modifier.width(50.dp))
-            BodyMedium(text = transactionOverview.rawId.byteArray.toString(Charset.defaultCharset()), color = ZcashTheme.colors.surfaceEnd, textAlign = TextAlign.End)
+            BodyMedium(text = transactionDetailsUIModel.transactionOverview.rawId.byteArray.toString(Charset.defaultCharset()), color = ZcashTheme.colors.surfaceEnd, textAlign = TextAlign.End)
         }
         TextButton(onClick = {},
             modifier = Modifier.align(Alignment.End)) {
@@ -220,47 +231,52 @@ fun TransactionDetails(transactionOverview: TransactionOverview?, onBack: () -> 
         }
 
         // Recipient
-        Spacer(modifier = Modifier.height(10.dp))
-        Divider(
-            thickness = 1.dp,
-            color = ZcashTheme.colors.surfaceEnd
-        )
-        Spacer(modifier = Modifier.height(10.dp))
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            BodyMedium(text = stringResource(id = R.string.ns_recipient), color = ZcashTheme.colors.surfaceEnd)
-            BodyMedium(text = "--", color = ZcashTheme.colors.surfaceEnd)
+        val recipientAddress = when (transactionDetailsUIModel.transactionRecipient) {
+            is TransactionRecipient.Account -> ""
+            is TransactionRecipient.Address -> transactionDetailsUIModel.transactionRecipient.addressValue
         }
-        Spacer(modifier = Modifier.height(10.dp))
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            BodyMedium(text = stringResource(id = R.string.ns_address), color = ZcashTheme.colors.surfaceEnd)
-            Spacer(modifier = Modifier.width(50.dp))
-            val receiverAddress = "jhgdajhdkjahsdasdhkjashdjahsdjhasjdhkjahdskjhkashdkaskdhkasdh"
-            BodyMedium(
-                text = buildAnnotatedString {
-                    if (receiverAddress.length > 20) {
-                        withStyle(style = SpanStyle(color = Color.White)) {
-                            append(receiverAddress.take(10))
-                        }
-                        withStyle(style = SpanStyle(color = ZcashTheme.colors.surfaceEnd)) {
-                            append(receiverAddress.substring(10, receiverAddress.length - 10))
-                        }
-                        withStyle(style = SpanStyle(color = Color.White)) {
-                            append(receiverAddress.takeLast(10))
-                        }
-                    } else {
-                        withStyle(style = SpanStyle(color = ZcashTheme.colors.surfaceEnd)) {
-                            append(receiverAddress)
-                        }
-                    }
-                },
-                textAlign = TextAlign.End
+        if (recipientAddress.isNotBlank()) {
+            Spacer(modifier = Modifier.height(10.dp))
+            Divider(
+                thickness = 1.dp,
+                color = ZcashTheme.colors.surfaceEnd
             )
+            Spacer(modifier = Modifier.height(10.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                BodyMedium(text = stringResource(id = R.string.ns_recipient), color = ZcashTheme.colors.surfaceEnd)
+                BodyMedium(text = if (recipientAddress.isShielded()) stringResource(id = R.string.ns_shielded) else stringResource(id = R.string.ns_transparent), color = ZcashTheme.colors.surfaceEnd)
+            }
+            Spacer(modifier = Modifier.height(10.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                BodyMedium(text = stringResource(id = R.string.ns_address), color = ZcashTheme.colors.surfaceEnd)
+                Spacer(modifier = Modifier.width(50.dp))
+                BodyMedium(
+                    text = buildAnnotatedString {
+                        if (recipientAddress.length > 20) {
+                            withStyle(style = SpanStyle(color = Color.White)) {
+                                append(recipientAddress.take(10))
+                            }
+                            withStyle(style = SpanStyle(color = ZcashTheme.colors.surfaceEnd)) {
+                                append(recipientAddress.substring(10, recipientAddress.length - 10))
+                            }
+                            withStyle(style = SpanStyle(color = Color.White)) {
+                                append(recipientAddress.takeLast(10))
+                            }
+                        } else {
+                            withStyle(style = SpanStyle(color = ZcashTheme.colors.surfaceEnd)) {
+                                append(recipientAddress)
+                            }
+                        }
+                    },
+                    textAlign = TextAlign.End
+                )
+            }
         }
 
         //Sub total
@@ -275,7 +291,7 @@ fun TransactionDetails(transactionOverview: TransactionOverview?, onBack: () -> 
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             BodyMedium(text = stringResource(id = R.string.ns_subtotal), color = ZcashTheme.colors.surfaceEnd)
-            BodyMedium(text = (transactionOverview.netValue - transactionOverview.feePaid).toZecString() + stringResource(id = R.string.ns_zec), color = ZcashTheme.colors.surfaceEnd)
+            BodyMedium(text = (transactionDetailsUIModel.transactionOverview.netValue - transactionDetailsUIModel.transactionOverview.feePaid).toZecString() + stringResource(id = R.string.ns_zec), color = ZcashTheme.colors.surfaceEnd)
         }
         Spacer(modifier = Modifier.height(10.dp))
         Row(
@@ -284,7 +300,7 @@ fun TransactionDetails(transactionOverview: TransactionOverview?, onBack: () -> 
         ) {
             BodyMedium(text = stringResource(id = R.string.ns_network_fee), color = ZcashTheme.colors.surfaceEnd)
             Spacer(modifier = Modifier.width(50.dp))
-            BodyMedium(text = (transactionOverview.feePaid).toZecString() + stringResource(id = R.string.ns_zec), color = ZcashTheme.colors.surfaceEnd, textAlign = TextAlign.End)
+            BodyMedium(text = (transactionDetailsUIModel.transactionOverview.feePaid).toZecString() + stringResource(id = R.string.ns_zec), color = ZcashTheme.colors.surfaceEnd, textAlign = TextAlign.End)
         }
 
         // Total
@@ -299,7 +315,7 @@ fun TransactionDetails(transactionOverview: TransactionOverview?, onBack: () -> 
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             BodyMedium(text = stringResource(id = R.string.ns_total_amount), color = ZcashTheme.colors.surfaceEnd)
-            BodyMedium(text = (transactionOverview.netValue).toZecString() + stringResource(id = R.string.ns_zec), color = ZcashTheme.colors.surfaceEnd)
+            BodyMedium(text = (transactionDetailsUIModel.transactionOverview.netValue).toZecString() + stringResource(id = R.string.ns_zec), color = ZcashTheme.colors.surfaceEnd)
         }
         Spacer(modifier = Modifier.height(10.dp))
         Divider(
@@ -307,4 +323,25 @@ fun TransactionDetails(transactionOverview: TransactionOverview?, onBack: () -> 
             color = ZcashTheme.colors.surfaceEnd
         )
     }
+}
+
+private fun getCountText(transactionDetailsUIModel: TransactionDetailsUIModel): String {
+    val latestBlockHeight = transactionDetailsUIModel.networkHeight
+    val minedHeight = transactionDetailsUIModel.transactionOverview.minedHeight
+     return if (latestBlockHeight == null) {
+        if (isSufficientlyOld(transactionDetailsUIModel)) "Confirmed" else "Transaction Count unavailable"
+    } else if (minedHeight != null) {
+        "${latestBlockHeight.value - minedHeight.value}"
+    } else if ((transactionDetailsUIModel.transactionOverview.expiryHeight?.value ?: Long.MAX_VALUE) < latestBlockHeight.value) {
+        "Pending"
+    } else {
+        "Expired"
+    }
+}
+
+private fun isSufficientlyOld(tx: TransactionDetailsUIModel): Boolean {
+    val threshold = 75 * 1000 * 25 // approx 25 blocks
+    val delta = System.currentTimeMillis() / 1000L - tx.transactionOverview.blockTimeEpochSeconds
+    return (tx.transactionOverview.minedHeight?.value ?: Long.MIN_VALUE) > tx.network.saplingActivationHeight.value &&
+        delta < threshold
 }

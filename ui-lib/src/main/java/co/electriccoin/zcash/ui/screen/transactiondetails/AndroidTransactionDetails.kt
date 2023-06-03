@@ -28,11 +28,9 @@ internal fun WrapAndroidTransactionDetails(activity: ComponentActivity, transact
         }
     }
 
-    val transactionOverview = walletViewModel.transactionSnapshot.collectAsStateWithLifecycle().value.firstOrNull {
-        it.id == transactionId
-    }
-    Twig.info { "TransactionOverview: $transactionOverview" }
+    val transactionDetailsUIModel = walletViewModel.transactionUiModel(transactionId).collectAsStateWithLifecycle().value
+    Twig.info { "TransactionDetailUiModel: $transactionDetailsUIModel" }
 
-    TransactionDetails(transactionOverview = transactionOverview, onBack = onBack)
+    TransactionDetails(transactionDetailsUIModel = transactionDetailsUIModel, onBack = onBack)
 
 }
