@@ -62,7 +62,13 @@ import co.electriccoin.zcash.ui.screen.wallet.model.BalanceViewType
 fun WalletPreview() {
     ZcashTheme(darkTheme = false) {
         Surface {
-            WalletView(walletSnapshot = WalletSnapshotFixture.new(), isKeepScreenOnWhileSyncing = true, isFiatConversionEnabled = false, onShieldNow = {})
+            WalletView(
+                walletSnapshot = WalletSnapshotFixture.new(),
+                isKeepScreenOnWhileSyncing = true,
+                isFiatConversionEnabled = false,
+                onShieldNow = {},
+                onAddressQrCodes = {}
+            )
         }
     }
 }
@@ -87,7 +93,13 @@ fun BalanceViewPreview() {
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-fun WalletView(walletSnapshot: WalletSnapshot, isKeepScreenOnWhileSyncing: Boolean?, isFiatConversionEnabled: Boolean, onShieldNow: () -> Unit) {
+fun WalletView(
+    walletSnapshot: WalletSnapshot,
+    isKeepScreenOnWhileSyncing: Boolean?,
+    isFiatConversionEnabled: Boolean,
+    onShieldNow: () -> Unit,
+    onAddressQrCodes: () -> Unit
+) {
     Column(modifier = Modifier
         .fillMaxSize()
         .verticalScroll(rememberScrollState())
@@ -98,7 +110,8 @@ fun WalletView(walletSnapshot: WalletSnapshot, isKeepScreenOnWhileSyncing: Boole
         Spacer(modifier = Modifier.height(dimensionResource(id = R.dimen.top_margin_back_btn)))
         Image(
             painter = painterResource(id = R.drawable.ic_icon_scan_qr),
-            contentDescription = "logo", contentScale = ContentScale.Inside
+            contentDescription = "logo", contentScale = ContentScale.Inside,
+            modifier = Modifier.clickable { onAddressQrCodes() }
         )
         Image(
             painter = painterResource(id = R.drawable.ic_nighthawk_logo),

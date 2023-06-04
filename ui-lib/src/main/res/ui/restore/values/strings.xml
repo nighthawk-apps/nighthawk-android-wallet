@@ -45,6 +45,7 @@
     <string name="ns_receive">Receive</string>
     <string name="ns_transaction_history">Transactions History</string>
     <string name="ns_copy">Copy</string>
+    <string name="ns_unified_address">Unified address</string>
     <string name="ns_shielded_address">Shielded address</string>
     <string name="ns_transparent_address">Transparent address</string>
 

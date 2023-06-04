@@ -1,0 +1,248 @@
+package co.electriccoin.zcash.ui.screen.receiveqrcodes.view
+
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.Surface
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.colorResource
+import androidx.compose.ui.res.dimensionResource
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
+import cash.z.ecc.android.sdk.fixture.WalletAddressesFixture
+import cash.z.ecc.android.sdk.model.WalletAddresses
+import co.electriccoin.zcash.spackle.Twig
+import co.electriccoin.zcash.ui.R
+import co.electriccoin.zcash.ui.common.BrightenScreen
+import co.electriccoin.zcash.ui.common.DisableScreenTimeout
+import co.electriccoin.zcash.ui.design.component.BodyMedium
+import co.electriccoin.zcash.ui.design.component.BodySmall
+import co.electriccoin.zcash.ui.design.component.PrimaryButton
+import co.electriccoin.zcash.ui.design.component.TitleLarge
+import co.electriccoin.zcash.ui.design.theme.ZcashTheme
+import co.electriccoin.zcash.ui.screen.receive.util.AndroidQrCodeImageGenerator
+import co.electriccoin.zcash.ui.screen.receive.util.JvmQrCodeGenerator
+import co.electriccoin.zcash.ui.screen.receiveqrcodes.QRAddressPagerItem
+import kotlinx.coroutines.runBlocking
+import kotlin.math.roundToInt
+
+@Composable
+@Preview
+fun ReceiveQrCodesPreview() {
+    ZcashTheme(darkTheme = false) {
+        Surface {
+            ReceiveQrCodes(walletAddresses = runBlocking { WalletAddressesFixture.new() }, onBack = {})
+        }
+    }
+}
+
+@Composable
+@Preview
+fun QrAddressCardPreview() {
+    ZcashTheme(darkTheme = false) {
+        Surface {
+            QrAddressCard(
+                QRAddressPagerItem.UNIFIED(
+                    addressType = stringResource(id = R.string.ns_unified_address),
+                    address = "unikasjdkjdjkjsakdjjkajsdkasdkjasdkjsadkjsakjd,aksdjkjdasjkjsjkasjksa",
+                    btnText = stringResource(id = R.string.ns_copy)
+                )
+            )
+        }
+    }
+}
+
+@Composable
+@Preview
+fun TopUpCardPreview() {
+    ZcashTheme(darkTheme = false) {
+        Surface {
+            TopUpCard(
+                QRAddressPagerItem.TOP_UP(
+                    titleText = stringResource(id = R.string.ns_top_up_your_wallet),
+                    bodyText = stringResource(id = R.string.ns_top_up_your_wallet_msg),
+                    btnText = stringResource(id = R.string.ns_see_more)
+                ),
+                onSeeMore = {}
+            )
+        }
+    }
+}
+
+private val DEFAULT_QR_CODE_SIZE = 180.dp
+private const val QR_CARD_HEIGHT_PER = 0.8f
+private val QR_CARD_WIDTH = 224.dp
+
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+fun ReceiveQrCodes(
+    walletAddresses: WalletAddresses,
+    onBack: () -> Unit
+) {
+    Twig.info { "WalletAddresses $walletAddresses" }
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(dimensionResource(id = R.dimen.screen_standard_margin))
+    ) {
+        IconButton(
+            onClick = onBack,
+            modifier = Modifier.size(dimensionResource(id = R.dimen.back_icon_size))
+        ) {
+            Icon(
+                imageVector = Icons.Filled.ArrowBack,
+                contentDescription = stringResource(R.string.receive_back_content_description)
+            )
+        }
+        Image(
+            painter = painterResource(id = R.drawable.ic_nighthawk_logo),
+            contentDescription = "logo", contentScale = ContentScale.Inside,
+            modifier = Modifier.align(Alignment.CenterHorizontally)
+        )
+        Spacer(Modifier.height(dimensionResource(id = R.dimen.pageMargin)))
+        TitleLarge(text = stringResource(id = R.string.ns_nighthawk), textAlign = TextAlign.Center, modifier = Modifier.align(Alignment.CenterHorizontally))
+        Spacer(modifier = Modifier.height(27.dp))
+
+        val state = rememberPagerState()
+        HorizontalPager(pageCount = 4, state = state, pageSpacing = 22.dp) { page ->
+            when (page) {
+                0 -> QrAddressCard(
+                    QRAddressPagerItem.UNIFIED(
+                        addressType = stringResource(id = R.string.ns_unified_address),
+                        address = walletAddresses.unified.address,
+                        btnText = stringResource(id = R.string.ns_copy)
+                    ),
+                    modifier = Modifier
+                        .fillMaxHeight(QR_CARD_HEIGHT_PER)
+                        .widthIn(min = QR_CARD_WIDTH)
+                )
+                1 -> QrAddressCard(
+                    QRAddressPagerItem.SHIELDED(
+                        addressType = stringResource(id = R.string.ns_shielded_address),
+                        address = walletAddresses.sapling.address,
+                        btnText = stringResource(id = R.string.ns_copy)
+                    ),
+                    modifier = Modifier
+                        .fillMaxHeight(QR_CARD_HEIGHT_PER)
+                        .widthIn(min = QR_CARD_WIDTH)
+                )
+                2 -> QrAddressCard(
+                    QRAddressPagerItem.TRANSPARENT(
+                        addressType = stringResource(id = R.string.ns_transparent_address),
+                        address = walletAddresses.transparent.address,
+                        btnText = stringResource(id = R.string.ns_copy)
+                    ),
+                    modifier = Modifier
+                        .fillMaxHeight(QR_CARD_HEIGHT_PER)
+                        .widthIn(min = QR_CARD_WIDTH)
+                )
+                else -> TopUpCard(
+                    QRAddressPagerItem.TOP_UP(
+                        titleText = stringResource(id = R.string.ns_top_up_your_wallet),
+                        bodyText = stringResource(id = R.string.ns_top_up_your_wallet_msg),
+                        btnText = stringResource(id = R.string.ns_see_more)
+                    ),
+                    onSeeMore = {},
+                    modifier = Modifier
+                        .fillMaxHeight(QR_CARD_HEIGHT_PER)
+                        .widthIn(min = QR_CARD_WIDTH)
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun QrAddressCard(qrAddressPagerItem: QRAddressPagerItem, modifier: Modifier = Modifier) {
+    Card(
+        modifier = modifier,
+        shape = RoundedCornerShape(16.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
+        colors = CardDefaults.cardColors(containerColor = colorResource(id = co.electriccoin.zcash.ui.design.R.color.ns_navy))
+    ) {
+        Column(modifier = Modifier
+            .padding(16.dp)
+            .align(Alignment.CenterHorizontally)) {
+            QrCode(data = qrAddressPagerItem.title, DEFAULT_QR_CODE_SIZE, Modifier.align(Alignment.CenterHorizontally))
+            Spacer(modifier = Modifier.height(18.dp))
+            BodyMedium(text = qrAddressPagerItem.title, color = colorResource(id = co.electriccoin.zcash.ui.design.R.color.ns_parmaviolet))
+            Spacer(modifier = Modifier.height(10.dp))
+            BodySmall(text = qrAddressPagerItem.body)
+            Spacer(modifier = Modifier.weight(1f))
+            PrimaryButton(onClick = { }, text = qrAddressPagerItem.buttonText.uppercase(), modifier = Modifier
+                .align(Alignment.CenterHorizontally)
+                .widthIn(min = 111.dp))
+        }
+    }
+}
+
+@Composable
+fun TopUpCard(topUp: QRAddressPagerItem.TOP_UP, onSeeMore: () -> Unit, modifier: Modifier = Modifier) {
+    Card(
+        modifier = modifier,
+        shape = RoundedCornerShape(16.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
+        colors = CardDefaults.cardColors(containerColor = colorResource(id = co.electriccoin.zcash.ui.design.R.color.ns_navy))
+    ) {
+        Column(modifier = Modifier
+            .padding(16.dp)
+            .align(Alignment.CenterHorizontally)) {
+            Icon(painter = painterResource(id = R.drawable.ic_icon_top_up), contentDescription = null, tint = colorResource(id = co.electriccoin.zcash.ui.design.R.color.ns_parmaviolet))
+            Spacer(modifier = Modifier.height(21.dp))
+            BodyMedium(text = topUp.title, color = colorResource(id = co.electriccoin.zcash.ui.design.R.color.ns_parmaviolet))
+            Spacer(modifier = Modifier.height(10.dp))
+            BodySmall(text = topUp.body)
+            Spacer(modifier = Modifier.weight(1f))
+            PrimaryButton(onClick = onSeeMore, text = topUp.buttonText.uppercase(), modifier = Modifier
+                .align(Alignment.CenterHorizontally)
+                .widthIn(min = 111.dp))
+        }
+    }
+}
+
+@Composable
+private fun QrCode(data: String, size: Dp, modifier: Modifier = Modifier) {
+    Column(modifier = modifier) {
+        BrightenScreen()
+        DisableScreenTimeout()
+        val sizePixels = with(LocalDensity.current) { size.toPx() }.roundToInt()
+
+        // In the future, use actual/expect to switch QR code generator implementations for multiplatform
+
+        // Note that our implementation has an extra array copy to BooleanArray, which is a cross-platform
+        // representation.  This should have minimal performance impact since the QR code is relatively
+        // small and we only generate QR codes infrequently.
+
+        val qrCodePixelArray = JvmQrCodeGenerator.generate(data, sizePixels)
+        val qrCodeImage = AndroidQrCodeImageGenerator.generate(qrCodePixelArray, sizePixels)
+
+        Image(
+            bitmap = qrCodeImage,
+            contentDescription = stringResource(R.string.receive_qr_code_content_description)
+        )
+    }
+}

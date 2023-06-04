@@ -16,12 +16,12 @@ import co.electriccoin.zcash.ui.screen.wallet.view.WalletView
 import co.electriccoin.zcash.ui.screen.wallet.view.isSyncing
 
 @Composable
-internal fun MainActivity.AndroidWallet() {
-    WrapWallet(activity = this)
+internal fun MainActivity.AndroidWallet(onAddressQrCodes: () -> Unit) {
+    WrapWallet(activity = this, onAddressQrCodes = onAddressQrCodes)
 }
 
 @Composable
-internal fun WrapWallet(activity: ComponentActivity) {
+internal fun WrapWallet(activity: ComponentActivity, onAddressQrCodes: () -> Unit) {
     val homeViewModel by activity.viewModels<HomeViewModel>()
     val walletViewModel by activity.viewModels<WalletViewModel>()
     val walletSnapshot = walletViewModel.walletSnapshot.collectAsStateWithLifecycle().value
@@ -43,7 +43,8 @@ internal fun WrapWallet(activity: ComponentActivity) {
             isFiatConversionEnabled = isFiatConversionEnabled,
             onShieldNow = {
                 Twig.info { "ShieldNow clicked" }
-            }
+            },
+            onAddressQrCodes = onAddressQrCodes
         )
     }
     activity.reportFullyDrawn()

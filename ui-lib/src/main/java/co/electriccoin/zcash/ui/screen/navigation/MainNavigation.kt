@@ -27,15 +27,21 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.navArgument
+import co.electriccoin.zcash.spackle.Twig
 import co.electriccoin.zcash.ui.MainActivity
+import co.electriccoin.zcash.ui.NavigationArguments
 import co.electriccoin.zcash.ui.R
 import co.electriccoin.zcash.ui.design.component.BodySmall
 import co.electriccoin.zcash.ui.screen.navigation.ArgumentKeys.TRANSACTION_DETAILS_ID
 import co.electriccoin.zcash.ui.screen.navigation.NavigationTargets.RECEIVE_MONEY
+import co.electriccoin.zcash.ui.screen.navigation.NavigationTargets.RECEIVE_QR_CODES
+import co.electriccoin.zcash.ui.screen.navigation.NavigationTargets.SCAN
 import co.electriccoin.zcash.ui.screen.navigation.NavigationTargets.SEND_MONEY
 import co.electriccoin.zcash.ui.screen.navigation.NavigationTargets.TOP_UP
 import co.electriccoin.zcash.ui.screen.navigation.NavigationTargets.TRANSACTION_DETAILS
 import co.electriccoin.zcash.ui.screen.receive.nighthawk.AndroidReceive
+import co.electriccoin.zcash.ui.screen.receiveqrcodes.AndroidReceiveQrCodes
+import co.electriccoin.zcash.ui.screen.scan.WrapScanValidator
 import co.electriccoin.zcash.ui.screen.send.nighthawk.AndroidSend
 import co.electriccoin.zcash.ui.screen.settings.nighthawk.AndroidSettings
 import co.electriccoin.zcash.ui.screen.topup.AndroidTopUp
@@ -47,7 +53,9 @@ import co.electriccoin.zcash.ui.screen.wallet.AndroidWallet
 internal fun MainActivity.MainNavigation(navHostController: NavHostController, paddingValues: PaddingValues) {
     NavHost(navController = navHostController, startDestination = BottomNavItem.Wallet.route, modifier = Modifier.padding(paddingValues)) {
         composable(BottomNavItem.Wallet.route) {
-            AndroidWallet()
+            AndroidWallet(
+                onAddressQrCodes = { navHostController.navigateJustOnce(RECEIVE_QR_CODES) }
+            )
         }
         composable(BottomNavItem.Transfer.route) {
             AndroidTransfer(
@@ -88,6 +96,26 @@ internal fun MainActivity.MainNavigation(navHostController: NavHostController, p
             AndroidTransactionDetails(
                 transactionId = it.arguments?.getLong(TRANSACTION_DETAILS_ID, -1) ?: -1,
                 onBack = { navHostController.popBackStack() }
+            )
+        }
+        composable(RECEIVE_QR_CODES) {
+            AndroidReceiveQrCodes(
+                onBack = { navHostController.popBackStackJustOnce(RECEIVE_QR_CODES) }
+            )
+        }
+        composable(SCAN) {
+            WrapScanValidator(
+                onScanValid = { result ->
+                    Twig.info { "OnScanValid: $result" }
+                    // At this point we only pass recipient address
+                    navHostController.previousBackStackEntry?.savedStateHandle?.apply {
+                        set(NavigationArguments.SEND_RECIPIENT_ADDRESS, result)
+                        set(NavigationArguments.SEND_AMOUNT, null)
+                        set(NavigationArguments.SEND_MEMO, null)
+                    }
+                    navHostController.popBackStackJustOnce(SCAN)
+                },
+                goBack = { navHostController.popBackStackJustOnce(SCAN) }
             )
         }
     }
@@ -142,10 +170,16 @@ sealed class BottomNavItem(val route: String, @StringRes val title: Int, @Drawab
 }
 
 fun isBottomNavItemSelected(bottomNavItemRoute: String, currentRoute: String?): Boolean {
-    return if (bottomNavItemRoute == BottomNavItem.Transfer.route) {
-        bottomNavItemRoute == currentRoute || RECEIVE_MONEY == currentRoute|| TOP_UP == currentRoute
-    } else {
-        bottomNavItemRoute == currentRoute
+    return when (bottomNavItemRoute) {
+        BottomNavItem.Wallet.route -> {
+            currentRoute == bottomNavItemRoute || RECEIVE_QR_CODES == currentRoute
+        }
+        BottomNavItem.Transfer.route -> {
+            currentRoute == bottomNavItemRoute || RECEIVE_MONEY == currentRoute || TOP_UP == currentRoute
+        }
+        else -> {
+            currentRoute == bottomNavItemRoute
+        }
     }
 }
 
@@ -153,6 +187,8 @@ object NavigationTargets {
     const val SEND_MONEY = "send_money"
     const val RECEIVE_MONEY = "receive_money"
     const val TOP_UP = "top_up"
+    const val SCAN = "scan"
+    const val RECEIVE_QR_CODES = "receive_qr_codes"
     const val TRANSACTION_DETAILS = "transaction_details/{$TRANSACTION_DETAILS_ID}"
     fun navigationRouteTransactionDetails(transactionId: Long): String {
         return TRANSACTION_DETAILS.replace("{$TRANSACTION_DETAILS_ID}", "$transactionId")
