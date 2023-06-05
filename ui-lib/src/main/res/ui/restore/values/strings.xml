@@ -123,6 +123,7 @@
     <string name="ns_top_up_your_wallet">Top up your wallet</string>
     <string name="ns_top_up_your_wallet_msg">Buy or trade Zcash through our specially selected partners.</string>
     <string name="ns_see_more">See More</string>
+    <string name="ns_copied">Copied</string>
 
     <!-- Settings Screen -->
     <string name="ns_settings">Settings</string>

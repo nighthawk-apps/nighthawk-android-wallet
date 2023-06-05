@@ -28,6 +28,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -62,6 +63,7 @@ fun EnterReceiverAddress(isContinueBtnEnabled: Boolean, onBack: () -> Unit, onVa
         val address = remember {
             mutableStateOf("")
         }
+        val clipboardManager = LocalClipboardManager.current
 
         IconButton(onClick = onBack, modifier = Modifier.size(dimensionResource(id = R.dimen.back_icon_size))) {
             Icon(imageVector = Icons.Filled.ArrowBack, contentDescription = stringResource(R.string.receive_back_content_description))
@@ -101,9 +103,15 @@ fun EnterReceiverAddress(isContinueBtnEnabled: Boolean, onBack: () -> Unit, onVa
         Spacer(modifier = Modifier.height(16.dp))
         if (address.value.isBlank()) {
             DottedBorderTextButton(
-                onClick = {},
+                onClick = {
+                    clipboardManager.getText()?.let {
+                        address.value = it.text
+                    }
+                },
                 text = stringResource(id = R.string.ns_paste_from_clip_board),
-                modifier = Modifier.align(Alignment.CenterHorizontally).height(36.dp)
+                modifier = Modifier
+                    .align(Alignment.CenterHorizontally)
+                    .height(36.dp)
             )
         } else {
             Spacer(modifier = Modifier.height(40.dp)) // To prevent below UI come upside

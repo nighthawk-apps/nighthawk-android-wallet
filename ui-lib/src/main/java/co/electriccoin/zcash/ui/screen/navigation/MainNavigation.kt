@@ -100,7 +100,8 @@ internal fun MainActivity.MainNavigation(navHostController: NavHostController, p
         }
         composable(RECEIVE_QR_CODES) {
             AndroidReceiveQrCodes(
-                onBack = { navHostController.popBackStackJustOnce(RECEIVE_QR_CODES) }
+                onBack = { navHostController.popBackStackJustOnce(RECEIVE_QR_CODES) },
+                onSeeMoreTopUpOption = { navHostController.navigateJustOnce(TOP_UP) }
             )
         }
         composable(SCAN) {

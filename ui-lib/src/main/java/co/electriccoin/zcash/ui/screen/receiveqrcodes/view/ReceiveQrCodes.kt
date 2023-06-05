@@ -1,5 +1,6 @@
 package co.electriccoin.zcash.ui.screen.receiveqrcodes.view
 
+import android.widget.Toast
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Column
@@ -25,11 +26,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
@@ -59,7 +63,7 @@ import kotlin.math.roundToInt
 fun ReceiveQrCodesPreview() {
     ZcashTheme(darkTheme = false) {
         Surface {
-            ReceiveQrCodes(walletAddresses = runBlocking { WalletAddressesFixture.new() }, onBack = {})
+            ReceiveQrCodes(walletAddresses = runBlocking { WalletAddressesFixture.new() }, onBack = {}, onSeeMoreTopUpOption = {})
         }
     }
 }
@@ -74,7 +78,8 @@ fun QrAddressCardPreview() {
                     addressType = stringResource(id = R.string.ns_unified_address),
                     address = "unikasjdkjdjkjsakdjjkajsdkasdkjasdkjsadkjsakjd,aksdjkjdasjkjsjkasjksa",
                     btnText = stringResource(id = R.string.ns_copy)
-                )
+                ),
+                onCopyAddress = {}
             )
         }
     }
@@ -104,9 +109,12 @@ private const val QR_CARD_HEIGHT_PER = 0.8f
 @Composable
 fun ReceiveQrCodes(
     walletAddresses: WalletAddresses,
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    onSeeMoreTopUpOption: () -> Unit
 ) {
     Twig.info { "WalletAddresses $walletAddresses" }
+    val clipboardManager = LocalClipboardManager.current
+    val context = LocalContext.current
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -154,9 +162,15 @@ fun ReceiveQrCodes(
             ) {
                 val qrAddressPagerItem = getQRAddressPagerItem(page = page, walletAddresses = walletAddresses)
                 if (qrAddressPagerItem is QRAddressPagerItem.TOP_UP) {
-                    TopUpCardUi(topUp = qrAddressPagerItem, onSeeMore = {})
+                    TopUpCardUi(topUp = qrAddressPagerItem, onSeeMore = onSeeMoreTopUpOption)
                 } else {
-                    QrAddressCardUi(qrAddressPagerItem = qrAddressPagerItem)
+                    QrAddressCardUi(
+                        qrAddressPagerItem = qrAddressPagerItem,
+                        onCopyAddress = {
+                            clipboardManager.setText(AnnotatedString(it))
+                            Toast.makeText(context, context.getString(R.string.ns_copied), Toast.LENGTH_SHORT).show()
+                        }
+                    )
                 }
             }
         }
@@ -167,7 +181,7 @@ fun ReceiveQrCodes(
 }
 
 @Composable
-fun QrAddressCardUi(qrAddressPagerItem: QRAddressPagerItem) {
+fun QrAddressCardUi(qrAddressPagerItem: QRAddressPagerItem, onCopyAddress: (String) -> Unit) {
     Column(
         modifier = Modifier
             .padding(16.dp)
@@ -179,9 +193,13 @@ fun QrAddressCardUi(qrAddressPagerItem: QRAddressPagerItem) {
         Spacer(modifier = Modifier.height(10.dp))
         BodySmall(text = qrAddressPagerItem.body)
         Spacer(modifier = Modifier.weight(1f))
-        PrimaryButton(onClick = { }, text = qrAddressPagerItem.buttonText.uppercase(), modifier = Modifier
-            .align(Alignment.CenterHorizontally)
-            .widthIn(min = 111.dp))
+        PrimaryButton(
+            onClick = { onCopyAddress(qrAddressPagerItem.body) },
+            text = qrAddressPagerItem.buttonText.uppercase(),
+            modifier = Modifier
+                .align(Alignment.CenterHorizontally)
+                .widthIn(min = 111.dp)
+        )
     }
 }
 
