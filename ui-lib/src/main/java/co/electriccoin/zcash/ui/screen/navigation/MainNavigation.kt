@@ -71,7 +71,8 @@ internal fun MainActivity.MainNavigation(navHostController: NavHostController, p
             AndroidSend(
                 onBack = { navHostController.popBackStackJustOnce(SEND_MONEY) },
                 navigateTo = { navHostController.popBackStack(it, false) },
-                onMoreDetails = { navHostController.navigateJustOnce(NavigationTargets.navigationRouteTransactionDetails(transactionId = 10)) }
+                onMoreDetails = { navHostController.navigateJustOnce(NavigationTargets.navigationRouteTransactionDetails(transactionId = 10)) },
+                onScan = { navHostController.navigateJustOnce(SCAN) }
             )
         }
         composable(RECEIVE_MONEY) {

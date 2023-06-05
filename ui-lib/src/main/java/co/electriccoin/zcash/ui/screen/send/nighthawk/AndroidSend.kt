@@ -6,6 +6,7 @@ import androidx.activity.compose.BackHandler
 import androidx.activity.viewModels
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -38,15 +39,19 @@ import co.electriccoin.zcash.ui.screen.send.nighthawk.viewmodel.SendViewModel
 import kotlinx.coroutines.launch
 
 @Composable
-internal fun MainActivity.AndroidSend(onBack: () -> Unit, navigateTo: (String) -> Unit, onMoreDetails: () -> Unit) {
-    WrapAndroidSend(activity = this, onBack = onBack, navigateTo = navigateTo, onMoreDetails = onMoreDetails)
+internal fun MainActivity.AndroidSend(onBack: () -> Unit, navigateTo: (String) -> Unit, onMoreDetails: () -> Unit, onScan: () -> Unit) {
+    WrapAndroidSend(activity = this, onBack = onBack, navigateTo = navigateTo, onMoreDetails = onMoreDetails, onScan = onScan)
 }
 
 @Composable
-internal fun WrapAndroidSend(activity: ComponentActivity, onBack: () -> Unit, navigateTo: (String) -> Unit, onMoreDetails: () -> Unit) {
+internal fun WrapAndroidSend(activity: ComponentActivity, onBack: () -> Unit, navigateTo: (String) -> Unit, onMoreDetails: () -> Unit, onScan: () -> Unit) {
     val homeViewModel by activity.viewModels<HomeViewModel>()
     val sendViewModel by activity.viewModels<SendViewModel>()
     val walletViewModel by activity.viewModels<WalletViewModel>()
+
+    val showBottomBarOnDispose = remember {
+        mutableStateOf(true)
+    }
 
     val sendUIState = sendViewModel.currentSendUIState.collectAsStateWithLifecycle()
     BackHandler(enabled = sendUIState.value != SendUIState.ENTER_ZEC) {
@@ -54,9 +59,10 @@ internal fun WrapAndroidSend(activity: ComponentActivity, onBack: () -> Unit, na
     }
     DisposableEffect(key1 = Unit) {
         homeViewModel.onBottomNavBarVisibilityChanged(show = false)
+        showBottomBarOnDispose.value = true
         onDispose {
             Twig.info { "WrapAndroidSend: onDispose $sendUIState" }
-            homeViewModel.onBottomNavBarVisibilityChanged(show = true)
+            homeViewModel.onBottomNavBarVisibilityChanged(show = showBottomBarOnDispose.value)
         }
     }
 
@@ -67,7 +73,10 @@ internal fun WrapAndroidSend(activity: ComponentActivity, onBack: () -> Unit, na
             EnterZec(
                 enterZecUIState = enterZecUIState.value,
                 onBack = onBack,
-                onScanPaymentCode = {},
+                onScanPaymentCode = {
+                    showBottomBarOnDispose.value = false
+                    onScan.invoke()
+                },
                 onContinue = sendViewModel::onNextSendUiState,
                 onTopUpWallet = {},
                 onNotEnoughZCash = {},
@@ -89,7 +98,17 @@ internal fun WrapAndroidSend(activity: ComponentActivity, onBack: () -> Unit, na
             var isContinueEnabled by remember {
                 mutableStateOf(false)
             }
+
+            LaunchedEffect(key1 = Unit) {
+                scope.launch {
+                    synchronizer?.let {
+                        isContinueEnabled = it.validateAddress(sendViewModel.receiverAddress).isNotValid.not()
+                    }
+                }
+            }
+
             EnterReceiverAddress(
+                receiverAddress = sendViewModel.receiverAddress,
                 isContinueBtnEnabled = isContinueEnabled,
                 onBack = sendViewModel::onPreviousSendUiState,
                 onValueChanged = { address ->

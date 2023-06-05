@@ -29,7 +29,8 @@ class SendViewModel: ViewModel() {
 
     var userEnteredMemo: String = ""
         private set
-    private var receiverAddress: String = ""
+    var receiverAddress: String = ""
+        private set
     var zecSend: ZecSend? = null
         private set
 
@@ -42,18 +43,30 @@ class SendViewModel: ViewModel() {
     }
 
     fun onEnterMessageContinue(message: String) {
-        userEnteredMemo = message
+        updateMemo(message)
         onNextSendUiState()
     }
 
     fun onEnterReceiverAddressContinue(address: String, zecSend: ZecSend) {
-        receiverAddress = address
+        updateReceiverAddress(address)
         this.zecSend = zecSend
         onNextSendUiState()
     }
 
     fun onSendZCash() {
         onNextSendUiState()
+    }
+
+    fun updateReceiverAddress(address: String) {
+        receiverAddress = address
+    }
+
+    fun updateMemo(memo: String) {
+        userEnteredMemo = memo
+    }
+
+    fun enteredZecFromDeepLink(zec: String) {
+        _enterZecUIState.update { it.copy(enteredAmount = zec) }
     }
 
     fun onKeyPressed(numberPadValueTypes: NumberPadValueTypes) {
@@ -125,8 +138,8 @@ class SendViewModel: ViewModel() {
     fun clearViewModelSavedData() {
         _currentSendUiState.value = SendUIState.ENTER_ZEC
         _enterZecUIState.value = EnterZecUIState()
-        userEnteredMemo = ""
         zecSend = null
-        receiverAddress = ""
+        updateMemo("")
+        updateReceiverAddress("")
     }
 }

@@ -48,20 +48,20 @@ import co.electriccoin.zcash.ui.design.theme.ZcashTheme
 fun EnterReceiverAddressPreview() {
     ZcashTheme(darkTheme = false) {
         Surface {
-            EnterReceiverAddress(isContinueBtnEnabled = false, onBack = {}, onValueChanged = {}, onContinue = {})
+            EnterReceiverAddress(receiverAddress = "", isContinueBtnEnabled = false, onBack = {}, onValueChanged = {}, onContinue = {})
         }
     }
 }
 
 @Composable
-fun EnterReceiverAddress(isContinueBtnEnabled: Boolean, onBack: () -> Unit, onValueChanged: (String) -> Unit, onContinue: (String) -> Unit) {
+fun EnterReceiverAddress(receiverAddress: String, isContinueBtnEnabled: Boolean, onBack: () -> Unit, onValueChanged: (String) -> Unit, onContinue: (String) -> Unit) {
     Column(modifier = Modifier
         .fillMaxSize()
         .padding(dimensionResource(id = R.dimen.screen_standard_margin))
         .verticalScroll(rememberScrollState())
     ) {
         val address = remember {
-            mutableStateOf("")
+            mutableStateOf(receiverAddress)
         }
         val clipboardManager = LocalClipboardManager.current
 
