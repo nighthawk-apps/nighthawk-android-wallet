@@ -203,6 +203,7 @@ dependencyResolutionManagement {
             library("androidx-compose-material-icons-extended", "androidx.compose.material:material-icons-extended:$androidxComposeMaterialIconsVersion")
             library("androidx-compose-tooling", "androidx.compose.ui:ui-tooling:$androidxComposeVersion")
             library("androidx-compose-ui", "androidx.compose.ui:ui:$androidxComposeVersion")
+            library("androidx-compose-ui", "androidx.compose.ui:ui-util:$androidxComposeVersion")
             library("androidx-compose-ui-fonts", "androidx.compose.ui:ui-text-google-fonts:$androidxComposeVersion")
             library("androidx-compose-compiler", "androidx.compose.compiler:compiler:$androidxComposeCompilerVersion")
             library("androidx-core", "androidx.core:core-ktx:$androidxCoreVersion")
