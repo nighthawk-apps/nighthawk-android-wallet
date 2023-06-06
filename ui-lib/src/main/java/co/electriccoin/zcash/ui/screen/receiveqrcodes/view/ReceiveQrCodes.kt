@@ -4,7 +4,9 @@ import android.widget.Toast
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -138,21 +140,22 @@ fun ReceiveQrCodes(
         TitleLarge(text = stringResource(id = R.string.ns_nighthawk), textAlign = TextAlign.Center, modifier = Modifier.align(Alignment.CenterHorizontally))
         Spacer(modifier = Modifier.height(27.dp))
 
-        val state = rememberPagerState()
-        HorizontalPager(pageCount = 4, state = state) { page ->
+        val state = rememberPagerState(initialPage = 1)
+        val totalCards = 4
+        HorizontalPager(pageCount = totalCards, state = state, pageSpacing = 16.dp, contentPadding = PaddingValues(horizontal = 55.dp)) { page ->
             Card(
                 modifier = Modifier
-                    .fillMaxSize(QR_CARD_HEIGHT_PER)
+                    .fillMaxWidth()
+                    .fillMaxHeight(QR_CARD_HEIGHT_PER)
                     .align(Alignment.CenterHorizontally)
                     .graphicsLayer {
                         val pageOffset = ((state.currentPage - page) + state.currentPageOffsetFraction).absoluteValue
                         // We animate the alpha, between 50% and 100%
                         val animOffset = lerp(
-                            start = 0.5f,
+                            start = 0.8f,
                             stop = 1f,
                             fraction = 1f - pageOffset.coerceIn(0f, 1f)
                         )
-                        scaleX = animOffset
                         scaleY = animOffset
                         alpha = animOffset
                     },
@@ -176,7 +179,7 @@ fun ReceiveQrCodes(
         }
 
         Spacer(modifier = Modifier.height(27.dp))
-        PageIndicator(pageCount = 4, pagerState = state)
+        PageIndicator(pageCount = totalCards, pagerState = state)
     }
 }
 
@@ -248,19 +251,19 @@ private fun QrCode(data: String, size: Dp, modifier: Modifier = Modifier) {
 @Composable
 private fun getQRAddressPagerItem(page: Int, walletAddresses: WalletAddresses): QRAddressPagerItem {
     return when (page) {
-        0 -> QRAddressPagerItem.UNIFIED(
+        1 -> QRAddressPagerItem.UNIFIED(
             addressType = stringResource(id = R.string.ns_unified_address),
             address = walletAddresses.unified.address,
             btnText = stringResource(id = R.string.ns_copy)
         )
 
-        1 -> QRAddressPagerItem.SHIELDED(
+        2 -> QRAddressPagerItem.SHIELDED(
             addressType = stringResource(id = R.string.ns_shielded_address),
             address = walletAddresses.sapling.address,
             btnText = stringResource(id = R.string.ns_copy)
         )
 
-        2 -> QRAddressPagerItem.TRANSPARENT(
+        3 -> QRAddressPagerItem.TRANSPARENT(
             addressType = stringResource(id = R.string.ns_transparent_address),
             address = walletAddresses.transparent.address,
             btnText = stringResource(id = R.string.ns_copy)
