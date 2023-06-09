@@ -74,6 +74,10 @@ internal fun MainActivity.MainNavigation(navHostController: NavHostController, p
         composable(SEND_MONEY) {
             AndroidSend(
                 onBack = { navHostController.popBackStackJustOnce(SEND_MONEY) },
+                onTopUpWallet = {
+                    navHostController.popBackStackJustOnce(SEND_MONEY)
+                    navHostController.navigateJustOnce(TOP_UP)
+                },
                 navigateTo = { navHostController.popBackStack(it, false) },
                 onMoreDetails = {
                     navHostController.popBackStack(BottomNavItem.Transfer.route, false)
