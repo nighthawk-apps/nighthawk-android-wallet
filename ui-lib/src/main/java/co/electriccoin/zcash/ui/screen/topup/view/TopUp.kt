@@ -22,12 +22,15 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import cash.z.ecc.android.sdk.model.WalletAddresses
 import co.electriccoin.zcash.ui.R
 import co.electriccoin.zcash.ui.common.AlertDialog
 import co.electriccoin.zcash.ui.common.SIDE_SHIFT_AFFILIATE_LINK
@@ -42,18 +45,19 @@ import co.electriccoin.zcash.ui.design.theme.ZcashTheme
 fun TopUpPreview() {
     ZcashTheme(darkTheme = false) {
         Surface {
-            TopUp(onBack = {}, onLaunchUrl = {})
+            TopUp(onBack = {}, onLaunchUrl = {}, walletAddress = null)
         }
     }
 }
 
 @Composable
-fun TopUp(onBack: () -> Unit, onLaunchUrl: (String) -> Unit ) {
+fun TopUp(walletAddress: WalletAddresses?, onBack: () -> Unit, onLaunchUrl: (String) -> Unit) {
     Column(
         modifier = Modifier
             .fillMaxSize()
             .padding(dimensionResource(id = R.dimen.screen_standard_margin))
     ) {
+        val clipboardManager = LocalClipboardManager.current
         var showSideShiftDialog by remember { mutableStateOf(false) }
         var showStealthHealthDialog by remember { mutableStateOf(false) }
         IconButton(
@@ -85,6 +89,9 @@ fun TopUp(onBack: () -> Unit, onLaunchUrl: (String) -> Unit ) {
             modifier = Modifier
                 .heightIn(min = dimensionResource(id = R.dimen.setting_list_item_min_height))
                 .clickable {
+                    walletAddress?.sapling?.address?.let {
+                        clipboardManager.setText(AnnotatedString(it))
+                    }
                     showSideShiftDialog = true
                 }
         )
@@ -96,6 +103,9 @@ fun TopUp(onBack: () -> Unit, onLaunchUrl: (String) -> Unit ) {
             modifier = Modifier
                 .heightIn(min = dimensionResource(id = R.dimen.setting_list_item_min_height))
                 .clickable {
+                    walletAddress?.sapling?.address?.let {
+                        clipboardManager.setText(AnnotatedString(it))
+                    }
                     showStealthHealthDialog = true
                 }
         )
