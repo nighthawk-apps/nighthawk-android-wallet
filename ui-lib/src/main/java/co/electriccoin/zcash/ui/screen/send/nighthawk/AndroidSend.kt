@@ -39,12 +39,12 @@ import co.electriccoin.zcash.ui.screen.send.nighthawk.viewmodel.SendViewModel
 import kotlinx.coroutines.launch
 
 @Composable
-internal fun MainActivity.AndroidSend(onBack: () -> Unit, navigateTo: (String) -> Unit, onMoreDetails: () -> Unit, onScan: () -> Unit) {
+internal fun MainActivity.AndroidSend(onBack: () -> Unit, navigateTo: (String) -> Unit, onMoreDetails: (Long) -> Unit, onScan: () -> Unit) {
     WrapAndroidSend(activity = this, onBack = onBack, navigateTo = navigateTo, onMoreDetails = onMoreDetails, onScan = onScan)
 }
 
 @Composable
-internal fun WrapAndroidSend(activity: ComponentActivity, onBack: () -> Unit, navigateTo: (String) -> Unit, onMoreDetails: () -> Unit, onScan: () -> Unit) {
+internal fun WrapAndroidSend(activity: ComponentActivity, onBack: () -> Unit, navigateTo: (String) -> Unit, onMoreDetails: (Long) -> Unit, onScan: () -> Unit) {
     val homeViewModel by activity.viewModels<HomeViewModel>()
     val sendViewModel by activity.viewModels<SendViewModel>()
     val walletViewModel by activity.viewModels<WalletViewModel>()
@@ -185,7 +185,7 @@ internal fun WrapAndroidSend(activity: ComponentActivity, onBack: () -> Unit, na
                         }
                             .onSuccess {
                                 Twig.info { "Sending Zec: Sent successfully $it" }
-                                sendViewModel.updateSendConfirmationState(SendConfirmationState.Success)
+                                sendViewModel.updateSendConfirmationState(SendConfirmationState.Success(it))
                             }
                             .onFailure {
                                 Twig.error { "Sending Zec: Send fail $it" }
@@ -209,7 +209,10 @@ internal fun WrapAndroidSend(activity: ComponentActivity, onBack: () -> Unit, na
                     sendViewModel.clearViewModelSavedData()
                     navigateTo(BottomNavItem.Transfer.route)
                 },
-                onMoreDetails = onMoreDetails
+                onMoreDetails = {
+                    sendViewModel.clearViewModelSavedData()
+                    onMoreDetails(it)
+                }
             )
         }
 

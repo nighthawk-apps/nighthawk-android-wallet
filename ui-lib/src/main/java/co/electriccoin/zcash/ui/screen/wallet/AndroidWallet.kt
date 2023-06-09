@@ -16,15 +16,16 @@ import co.electriccoin.zcash.ui.screen.wallet.view.WalletView
 import co.electriccoin.zcash.ui.screen.wallet.view.isSyncing
 
 @Composable
-internal fun MainActivity.AndroidWallet(onAddressQrCodes: () -> Unit) {
-    WrapWallet(activity = this, onAddressQrCodes = onAddressQrCodes)
+internal fun MainActivity.AndroidWallet(onAddressQrCodes: () -> Unit, onTransactionDetail: (Long) -> Unit, onViewTransactionHistory: () -> Unit) {
+    WrapWallet(activity = this, onAddressQrCodes = onAddressQrCodes, onTransactionDetail = onTransactionDetail, onViewTransactionHistory = onViewTransactionHistory)
 }
 
 @Composable
-internal fun WrapWallet(activity: ComponentActivity, onAddressQrCodes: () -> Unit) {
+internal fun WrapWallet(activity: ComponentActivity, onAddressQrCodes: () -> Unit, onTransactionDetail: (Long) -> Unit, onViewTransactionHistory: () -> Unit) {
     val homeViewModel by activity.viewModels<HomeViewModel>()
     val walletViewModel by activity.viewModels<WalletViewModel>()
     val walletSnapshot = walletViewModel.walletSnapshot.collectAsStateWithLifecycle().value
+    val transactionSnapshot = walletViewModel.transactionSnapshot.collectAsStateWithLifecycle().value
 
     val settingsViewModel by activity.viewModels<SettingsViewModel>()
     val isKeepScreenOnWhileSyncing = settingsViewModel.isKeepScreenOnWhileSyncing.collectAsStateWithLifecycle().value
@@ -39,12 +40,15 @@ internal fun WrapWallet(activity: ComponentActivity, onAddressQrCodes: () -> Uni
         }
         WalletView(
             walletSnapshot = walletSnapshot,
+            transactionSnapshot = transactionSnapshot,
             isKeepScreenOnWhileSyncing = isKeepScreenOnWhileSyncing,
             isFiatConversionEnabled = isFiatConversionEnabled,
             onShieldNow = {
                 Twig.info { "ShieldNow clicked" }
             },
-            onAddressQrCodes = onAddressQrCodes
+            onAddressQrCodes = onAddressQrCodes,
+            onTransactionDetail = onTransactionDetail,
+            onViewTransactionHistory = onViewTransactionHistory
         )
     }
     activity.reportFullyDrawn()

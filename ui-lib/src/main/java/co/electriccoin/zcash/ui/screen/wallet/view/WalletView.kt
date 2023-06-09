@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.sizeIn
@@ -35,6 +36,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -44,9 +46,11 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import cash.z.ecc.android.sdk.Synchronizer
 import cash.z.ecc.android.sdk.internal.Twig
+import cash.z.ecc.android.sdk.model.TransactionOverview
 import co.electriccoin.zcash.ui.R
 import co.electriccoin.zcash.ui.common.DisableScreenTimeout
 import co.electriccoin.zcash.ui.design.component.BalanceText
+import co.electriccoin.zcash.ui.design.component.BodyMedium
 import co.electriccoin.zcash.ui.design.component.BodySmall
 import co.electriccoin.zcash.ui.design.component.PrimaryButton
 import co.electriccoin.zcash.ui.design.component.TitleLarge
@@ -54,8 +58,12 @@ import co.electriccoin.zcash.ui.design.theme.ZcashTheme
 import co.electriccoin.zcash.ui.fixture.WalletSnapshotFixture
 import co.electriccoin.zcash.ui.screen.home.model.WalletDisplayValues
 import co.electriccoin.zcash.ui.screen.home.model.WalletSnapshot
+import co.electriccoin.zcash.ui.screen.transactionhistory.view.TransactionOverviewHistoryRow
 import co.electriccoin.zcash.ui.screen.wallet.model.BalanceDisplayValues
 import co.electriccoin.zcash.ui.screen.wallet.model.BalanceViewType
+import kotlinx.collections.immutable.ImmutableList
+import kotlinx.collections.immutable.persistentListOf
+import kotlinx.collections.immutable.toImmutableList
 
 @Preview
 @Composable
@@ -64,10 +72,13 @@ fun WalletPreview() {
         Surface {
             WalletView(
                 walletSnapshot = WalletSnapshotFixture.new(),
+                transactionSnapshot = persistentListOf(),
                 isKeepScreenOnWhileSyncing = true,
                 isFiatConversionEnabled = false,
                 onShieldNow = {},
-                onAddressQrCodes = {}
+                onAddressQrCodes = {},
+                onTransactionDetail = {},
+                onViewTransactionHistory = {}
             )
         }
     }
@@ -95,15 +106,18 @@ fun BalanceViewPreview() {
 @Composable
 fun WalletView(
     walletSnapshot: WalletSnapshot,
+    transactionSnapshot: ImmutableList<TransactionOverview>,
     isKeepScreenOnWhileSyncing: Boolean?,
     isFiatConversionEnabled: Boolean,
     onShieldNow: () -> Unit,
-    onAddressQrCodes: () -> Unit
+    onAddressQrCodes: () -> Unit,
+    onTransactionDetail: (Long) -> Unit,
+    onViewTransactionHistory: () -> Unit
 ) {
     Column(modifier = Modifier
         .fillMaxSize()
         .verticalScroll(rememberScrollState())
-        .padding(start = dimensionResource(id = R.dimen.screen_standard_margin), end = dimensionResource(id = R.dimen.screen_standard_margin))
+        .padding(start = dimensionResource(id = R.dimen.screen_standard_margin), end = dimensionResource(id = R.dimen.screen_standard_margin), bottom = 10.dp)
     ) {
         val showShieldNow by remember { mutableStateOf(false) }
         Twig.info { "walletSnapshot $walletSnapshot and is fiat currency enabled $isFiatConversionEnabled and showShieldNoe $showShieldNow" }
@@ -160,6 +174,28 @@ fun WalletView(
             BodySmall(text = walletDisplayValues.statusText, textAlign = TextAlign.Center, modifier = Modifier.align(Alignment.CenterHorizontally))
         }
 
+        // Bottom Transactions View
+        if (transactionSnapshot.isNotEmpty()) {
+            Spacer(modifier = Modifier.weight(1f))
+            BodyMedium(text = stringResource(id = R.string.ns_recent_activity), color = colorResource(id = co.electriccoin.zcash.ui.design.R.color.ns_parmaviolet))
+            Spacer(modifier = Modifier.height(4.dp))
+            transactionSnapshot.take(2).toImmutableList().forEach { transactionOverview ->
+                TransactionOverviewHistoryRow(transactionOverview = transactionOverview, onItemClick = { onTransactionDetail(it.id)})
+            }
+            Spacer(modifier = Modifier.height(10.dp))
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = 40.dp)
+                    .clickable { onViewTransactionHistory() },
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                TitleLarge(text = stringResource(id = R.string.ns_view_all_transactions))
+                Icon(painter = painterResource(id = R.drawable.ic_arrow_right), contentDescription = null)
+            }
+        }
+
         if (isKeepScreenOnWhileSyncing == true && isSyncing(walletSnapshot.status)) {
             DisableScreenTimeout()
         }
@@ -206,10 +242,10 @@ fun BalanceView(balanceDisplayValues: BalanceDisplayValues) {
             BalanceAmountRow(balance = balanceDisplayValues.balance, balanceUnit = balanceDisplayValues.balanceUnit, onFlipClicked = {})
         }
         if (balanceDisplayValues.msg.isNullOrBlank().not()) {
-            BodySmall(text = balanceDisplayValues.msg ?: "", textAlign = TextAlign.Center)
+            BodySmall(text = balanceDisplayValues.msg ?: "", textAlign = TextAlign.Center, color = colorResource(id = co.electriccoin.zcash.ui.design.R.color.ns_parmaviolet))
         }
         if (balanceDisplayValues.balanceType.isNotBlank()) {
-            BodySmall(text = balanceDisplayValues.balanceType, textAlign = TextAlign.Center)
+            BodySmall(text = balanceDisplayValues.balanceType, textAlign = TextAlign.Center, color = colorResource(id = co.electriccoin.zcash.ui.design.R.color.ns_parmaviolet))
         }
     }
 }

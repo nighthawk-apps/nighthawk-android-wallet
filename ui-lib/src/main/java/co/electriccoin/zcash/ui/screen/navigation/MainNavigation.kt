@@ -39,6 +39,7 @@ import co.electriccoin.zcash.ui.screen.navigation.NavigationTargets.SCAN
 import co.electriccoin.zcash.ui.screen.navigation.NavigationTargets.SEND_MONEY
 import co.electriccoin.zcash.ui.screen.navigation.NavigationTargets.TOP_UP
 import co.electriccoin.zcash.ui.screen.navigation.NavigationTargets.TRANSACTION_DETAILS
+import co.electriccoin.zcash.ui.screen.navigation.NavigationTargets.TRANSACTION_HISTORY
 import co.electriccoin.zcash.ui.screen.receive.nighthawk.AndroidReceive
 import co.electriccoin.zcash.ui.screen.receiveqrcodes.AndroidReceiveQrCodes
 import co.electriccoin.zcash.ui.screen.scan.WrapScanValidator
@@ -46,6 +47,7 @@ import co.electriccoin.zcash.ui.screen.send.nighthawk.AndroidSend
 import co.electriccoin.zcash.ui.screen.settings.nighthawk.AndroidSettings
 import co.electriccoin.zcash.ui.screen.topup.AndroidTopUp
 import co.electriccoin.zcash.ui.screen.transactiondetails.AndroidTransactionDetails
+import co.electriccoin.zcash.ui.screen.transactionhistory.AndroidTransactionHistory
 import co.electriccoin.zcash.ui.screen.transfer.AndroidTransfer
 import co.electriccoin.zcash.ui.screen.wallet.AndroidWallet
 
@@ -54,7 +56,9 @@ internal fun MainActivity.MainNavigation(navHostController: NavHostController, p
     NavHost(navController = navHostController, startDestination = BottomNavItem.Wallet.route, modifier = Modifier.padding(paddingValues)) {
         composable(BottomNavItem.Wallet.route) {
             AndroidWallet(
-                onAddressQrCodes = { navHostController.navigateJustOnce(RECEIVE_QR_CODES) }
+                onAddressQrCodes = { navHostController.navigateJustOnce(RECEIVE_QR_CODES) },
+                onTransactionDetail = { navHostController.navigateJustOnce(NavigationTargets.navigationRouteTransactionDetails(transactionId = it)) },
+                onViewTransactionHistory = { navHostController.navigateJustOnce(TRANSACTION_HISTORY) }
             )
         }
         composable(BottomNavItem.Transfer.route) {
@@ -71,7 +75,10 @@ internal fun MainActivity.MainNavigation(navHostController: NavHostController, p
             AndroidSend(
                 onBack = { navHostController.popBackStackJustOnce(SEND_MONEY) },
                 navigateTo = { navHostController.popBackStack(it, false) },
-                onMoreDetails = { navHostController.navigateJustOnce(NavigationTargets.navigationRouteTransactionDetails(transactionId = 10)) },
+                onMoreDetails = {
+                    navHostController.popBackStack(BottomNavItem.Transfer.route, false)
+                    navHostController.navigateJustOnce(NavigationTargets.navigationRouteTransactionDetails(transactionId = it))
+                },
                 onScan = { navHostController.navigateJustOnce(SCAN) }
             )
         }
@@ -118,6 +125,12 @@ internal fun MainActivity.MainNavigation(navHostController: NavHostController, p
                     navHostController.popBackStackJustOnce(SCAN)
                 },
                 goBack = { navHostController.popBackStackJustOnce(SCAN) }
+            )
+        }
+        composable(TRANSACTION_HISTORY) {
+            AndroidTransactionHistory(
+                onBack = { navHostController.popBackStackJustOnce(TRANSACTION_HISTORY) },
+                onTransactionDetail = { navHostController.navigateJustOnce(NavigationTargets.navigationRouteTransactionDetails(transactionId = it)) }
             )
         }
     }
@@ -176,9 +189,11 @@ fun isBottomNavItemSelected(bottomNavItemRoute: String, currentRoute: String?): 
         BottomNavItem.Wallet.route -> {
             currentRoute == bottomNavItemRoute || RECEIVE_QR_CODES == currentRoute
         }
+
         BottomNavItem.Transfer.route -> {
             currentRoute == bottomNavItemRoute || RECEIVE_MONEY == currentRoute || TOP_UP == currentRoute
         }
+
         else -> {
             currentRoute == bottomNavItemRoute
         }
@@ -191,6 +206,7 @@ object NavigationTargets {
     const val TOP_UP = "top_up"
     const val SCAN = "scan"
     const val RECEIVE_QR_CODES = "receive_qr_codes"
+    const val TRANSACTION_HISTORY = "transaction_history"
     const val TRANSACTION_DETAILS = "transaction_details/{$TRANSACTION_DETAILS_ID}"
     fun navigationRouteTransactionDetails(transactionId: Long): String {
         return TRANSACTION_DETAILS.replace("{$TRANSACTION_DETAILS_ID}", "$transactionId")
