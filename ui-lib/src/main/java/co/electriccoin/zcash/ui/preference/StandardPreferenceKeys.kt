@@ -2,6 +2,7 @@ package co.electriccoin.zcash.ui.preference
 
 import co.electriccoin.zcash.preference.model.entry.BooleanPreferenceDefault
 import co.electriccoin.zcash.preference.model.entry.PreferenceKey
+import co.electriccoin.zcash.preference.model.entry.StringPreferenceDefault
 
 object StandardPreferenceKeys {
 
@@ -16,6 +17,10 @@ object StandardPreferenceKeys {
     val IS_BACKGROUND_SYNC_ENABLED = BooleanPreferenceDefault(PreferenceKey("is_background_sync_enabled"), true)
 
     val IS_KEEP_SCREEN_ON_DURING_SYNC = BooleanPreferenceDefault(PreferenceKey("is_keep_screen_on_during_sync"), true)
+
+    val IS_AUTOSHIELDING_INFO_ACKNOWLEDGED = BooleanPreferenceDefault(PreferenceKey("is_autoshielding_info_acknowledged"), false)
+
+    val LAST_AUTOSHIELDING_PROMPT_EPOCH_MILLIS_STRING = StringPreferenceDefault(PreferenceKey("last_autoshielding_epoch_millis"), "0")
 
     /**
      * The fiat currency that the user prefers.

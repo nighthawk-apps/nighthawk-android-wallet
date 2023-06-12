@@ -148,8 +148,8 @@ fun WalletView(
             if (balanceViewType != BalanceViewType.SWIPE) {
                 PageIndicator(pageCount = pageCount, pagerState = state)
             }
-            // Show shield now button in last if balanceViewType is Transparent and some transparentBalance is available
-            if (balanceViewType == BalanceViewType.TRANSPARENT && walletSnapshot.transparentBalance.available.value > 0) {
+            // Show shield now button in last if balanceViewType is Transparent and some transparentBalance is available 0.01 ZEC
+            if (balanceViewType == BalanceViewType.TRANSPARENT && walletSnapshot.transparentBalance.available.value > 1000000L) {
                 Spacer(Modifier.height(dimensionResource(id = R.dimen.pageMargin)))
                 PrimaryButton(
                     onClick = onShieldNow,

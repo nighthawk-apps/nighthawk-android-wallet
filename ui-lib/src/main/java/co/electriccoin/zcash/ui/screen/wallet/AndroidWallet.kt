@@ -5,7 +5,6 @@ import androidx.activity.viewModels
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import co.electriccoin.zcash.spackle.Twig
 import co.electriccoin.zcash.ui.MainActivity
 import co.electriccoin.zcash.ui.configuration.ConfigurationEntries
 import co.electriccoin.zcash.ui.configuration.RemoteConfig
@@ -16,12 +15,12 @@ import co.electriccoin.zcash.ui.screen.wallet.view.WalletView
 import co.electriccoin.zcash.ui.screen.wallet.view.isSyncing
 
 @Composable
-internal fun MainActivity.AndroidWallet(onAddressQrCodes: () -> Unit, onTransactionDetail: (Long) -> Unit, onViewTransactionHistory: () -> Unit) {
-    WrapWallet(activity = this, onAddressQrCodes = onAddressQrCodes, onTransactionDetail = onTransactionDetail, onViewTransactionHistory = onViewTransactionHistory)
+internal fun MainActivity.AndroidWallet(onAddressQrCodes: () -> Unit, onShieldNow: () -> Unit, onTransactionDetail: (Long) -> Unit, onViewTransactionHistory: () -> Unit) {
+    WrapWallet(activity = this, onAddressQrCodes = onAddressQrCodes, onShieldNow = onShieldNow, onTransactionDetail = onTransactionDetail, onViewTransactionHistory = onViewTransactionHistory)
 }
 
 @Composable
-internal fun WrapWallet(activity: ComponentActivity, onAddressQrCodes: () -> Unit, onTransactionDetail: (Long) -> Unit, onViewTransactionHistory: () -> Unit) {
+internal fun WrapWallet(activity: ComponentActivity, onAddressQrCodes: () -> Unit, onShieldNow: () -> Unit, onTransactionDetail: (Long) -> Unit, onViewTransactionHistory: () -> Unit) {
     val homeViewModel by activity.viewModels<HomeViewModel>()
     val walletViewModel by activity.viewModels<WalletViewModel>()
     val walletSnapshot = walletViewModel.walletSnapshot.collectAsStateWithLifecycle().value
@@ -43,9 +42,7 @@ internal fun WrapWallet(activity: ComponentActivity, onAddressQrCodes: () -> Uni
             transactionSnapshot = transactionSnapshot,
             isKeepScreenOnWhileSyncing = isKeepScreenOnWhileSyncing,
             isFiatConversionEnabled = isFiatConversionEnabled,
-            onShieldNow = {
-                Twig.info { "ShieldNow clicked" }
-            },
+            onShieldNow = onShieldNow,
             onAddressQrCodes = onAddressQrCodes,
             onTransactionDetail = onTransactionDetail,
             onViewTransactionHistory = onViewTransactionHistory

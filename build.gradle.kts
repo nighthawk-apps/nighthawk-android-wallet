@@ -59,7 +59,7 @@ plugins {
     id("com.osacky.fulladle")
     id("secant.detekt-conventions")
     id("secant.ktlint-conventions")
-    id("secant.rosetta-conventions")
+    // id("secant.rosetta-conventions")
 }
 
 val uiIntegrationModuleName: String = projects.uiIntegrationTest.name

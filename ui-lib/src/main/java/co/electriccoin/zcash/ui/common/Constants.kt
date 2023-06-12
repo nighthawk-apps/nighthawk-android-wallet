@@ -10,3 +10,4 @@ const val ZCASH_LEARN_MORE_LINK = "https://z.cash/the-basics/"
 const val ZEC_MAX_AMOUNT = 21000000
 const val AMOUNT_QUERY = "amount"
 const val MEMO_QUERY = "memo"
+const val LEARN_UNIFIED_ADDRESSES = "https://electriccoin.co/blog/unified-addresses-in-zcash-explained/"

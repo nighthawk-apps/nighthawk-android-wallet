@@ -37,6 +37,7 @@ import co.electriccoin.zcash.ui.screen.navigation.NavigationTargets.RECEIVE_MONE
 import co.electriccoin.zcash.ui.screen.navigation.NavigationTargets.RECEIVE_QR_CODES
 import co.electriccoin.zcash.ui.screen.navigation.NavigationTargets.SCAN
 import co.electriccoin.zcash.ui.screen.navigation.NavigationTargets.SEND_MONEY
+import co.electriccoin.zcash.ui.screen.navigation.NavigationTargets.SHIELD
 import co.electriccoin.zcash.ui.screen.navigation.NavigationTargets.TOP_UP
 import co.electriccoin.zcash.ui.screen.navigation.NavigationTargets.TRANSACTION_DETAILS
 import co.electriccoin.zcash.ui.screen.navigation.NavigationTargets.TRANSACTION_HISTORY
@@ -45,6 +46,7 @@ import co.electriccoin.zcash.ui.screen.receiveqrcodes.AndroidReceiveQrCodes
 import co.electriccoin.zcash.ui.screen.scan.WrapScanValidator
 import co.electriccoin.zcash.ui.screen.send.nighthawk.AndroidSend
 import co.electriccoin.zcash.ui.screen.settings.nighthawk.AndroidSettings
+import co.electriccoin.zcash.ui.screen.shield.AndroidShield
 import co.electriccoin.zcash.ui.screen.topup.AndroidTopUp
 import co.electriccoin.zcash.ui.screen.transactiondetails.AndroidTransactionDetails
 import co.electriccoin.zcash.ui.screen.transactionhistory.AndroidTransactionHistory
@@ -57,6 +59,7 @@ internal fun MainActivity.MainNavigation(navHostController: NavHostController, p
         composable(BottomNavItem.Wallet.route) {
             AndroidWallet(
                 onAddressQrCodes = { navHostController.navigateJustOnce(RECEIVE_QR_CODES) },
+                onShieldNow = { navHostController.navigateJustOnce(SHIELD) },
                 onTransactionDetail = { navHostController.navigateJustOnce(NavigationTargets.navigationRouteTransactionDetails(transactionId = it)) },
                 onViewTransactionHistory = { navHostController.navigateJustOnce(TRANSACTION_HISTORY) }
             )
@@ -137,6 +140,11 @@ internal fun MainActivity.MainNavigation(navHostController: NavHostController, p
                 onTransactionDetail = { navHostController.navigateJustOnce(NavigationTargets.navigationRouteTransactionDetails(transactionId = it)) }
             )
         }
+        composable(SHIELD) {
+            AndroidShield(
+                onBack = { navHostController.popBackStackJustOnce(SHIELD) }
+            )
+        }
     }
 }
 
@@ -210,6 +218,7 @@ object NavigationTargets {
     const val TOP_UP = "top_up"
     const val SCAN = "scan"
     const val RECEIVE_QR_CODES = "receive_qr_codes"
+    const val SHIELD = "shield"
     const val TRANSACTION_HISTORY = "transaction_history"
     const val TRANSACTION_DETAILS = "transaction_details/{$TRANSACTION_DETAILS_ID}"
     fun navigationRouteTransactionDetails(transactionId: Long): String {

@@ -240,4 +240,12 @@
     <string name="fund_wallet_stealthex_description">Your T-Address has been copied to the clipboard.\n\nChoose \"Open Browser\" below, select \'Zcash\' as the receiving coin on the StealthEx site, and then paste your T-address.</string>
     <string name="insufficient_msg">You don\'t have sufficient balance to send</string>
     <string name="memo_max_length_msg">You have written maximum length to send a message</string>
+
+    <string name="autoshielding_title_text">Nighthawk is now <b>Shielded by Default</b>. This is to ensure maximum privacy.</string>
+    <string name="autoshielding_body_text"><b>Autoshielding</b> means any funds coming into your transparent address will automatically be moved to your shielded wallet.\n\nWe’ll always update you on the latest privacy-preserving best practices and recommendations.</string>
+    <string name="autoshielding_button_positive">Great!</string>
+    <string name="autoshielding_button_neutral">Learn more</string>
+    <string name="link_to_ecc_title">Redirecting to ElectricCoin.co</string>
+    <string name="link_to_ecc_description">Please confirm opening your device browser to learn more about Unified Addresses.</string>
+    <string name="shielding">Shielding…</string>
 </resources>
