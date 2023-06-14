@@ -11,3 +11,6 @@ const val ZEC_MAX_AMOUNT = 21000000
 const val AMOUNT_QUERY = "amount"
 const val MEMO_QUERY = "memo"
 const val LEARN_UNIFIED_ADDRESSES = "https://electriccoin.co/blog/unified-addresses-in-zcash-explained/"
+const val WALLET_PASSWORD_LENGTH = 6
+val SUCCESS_VIBRATION_PATTERN = arrayOf(0L, 200L, 100L, 100L, 800L).toLongArray()
+val WRONG_VIBRATION_PATTERN = arrayOf(0L, 50L, 100L, 50L, 100L).toLongArray()

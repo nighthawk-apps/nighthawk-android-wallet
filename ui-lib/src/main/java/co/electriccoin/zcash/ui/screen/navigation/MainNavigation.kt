@@ -32,7 +32,9 @@ import co.electriccoin.zcash.ui.MainActivity
 import co.electriccoin.zcash.ui.NavigationArguments
 import co.electriccoin.zcash.ui.R
 import co.electriccoin.zcash.ui.design.component.BodySmall
+import co.electriccoin.zcash.ui.screen.navigation.ArgumentKeys.IS_PIN_SETUP
 import co.electriccoin.zcash.ui.screen.navigation.ArgumentKeys.TRANSACTION_DETAILS_ID
+import co.electriccoin.zcash.ui.screen.navigation.NavigationTargets.PIN
 import co.electriccoin.zcash.ui.screen.navigation.NavigationTargets.RECEIVE_MONEY
 import co.electriccoin.zcash.ui.screen.navigation.NavigationTargets.RECEIVE_QR_CODES
 import co.electriccoin.zcash.ui.screen.navigation.NavigationTargets.SCAN
@@ -41,6 +43,7 @@ import co.electriccoin.zcash.ui.screen.navigation.NavigationTargets.SHIELD
 import co.electriccoin.zcash.ui.screen.navigation.NavigationTargets.TOP_UP
 import co.electriccoin.zcash.ui.screen.navigation.NavigationTargets.TRANSACTION_DETAILS
 import co.electriccoin.zcash.ui.screen.navigation.NavigationTargets.TRANSACTION_HISTORY
+import co.electriccoin.zcash.ui.screen.pin.AndroidPin
 import co.electriccoin.zcash.ui.screen.receive.nighthawk.AndroidReceive
 import co.electriccoin.zcash.ui.screen.receiveqrcodes.AndroidReceiveQrCodes
 import co.electriccoin.zcash.ui.screen.scan.WrapScanValidator
@@ -145,6 +148,20 @@ internal fun MainActivity.MainNavigation(navHostController: NavHostController, p
                 onBack = { navHostController.popBackStackJustOnce(SHIELD) }
             )
         }
+        composable(
+            route = PIN,
+            arguments = listOf(
+                navArgument(IS_PIN_SETUP) {
+                    type = NavType.BoolType
+                    defaultValue = false
+                }
+            )
+        ) {
+            AndroidPin(
+                isPinSetup = it.arguments?.getBoolean(IS_PIN_SETUP, false) ?: false,
+                onBack = { navHostController.popBackStackJustOnce(PIN) }
+            )
+        }
     }
 }
 
@@ -221,13 +238,18 @@ object NavigationTargets {
     const val SHIELD = "shield"
     const val TRANSACTION_HISTORY = "transaction_history"
     const val TRANSACTION_DETAILS = "transaction_details/{$TRANSACTION_DETAILS_ID}"
+    const val PIN = "pin?$IS_PIN_SETUP={$IS_PIN_SETUP}"
     fun navigationRouteTransactionDetails(transactionId: Long): String {
         return TRANSACTION_DETAILS.replace("{$TRANSACTION_DETAILS_ID}", "$transactionId")
+    }
+    fun navigateToPinScreen(isPinSetUp: Boolean = false): String {
+        return PIN.replace("{$IS_PIN_SETUP}", "$isPinSetUp")
     }
 }
 
 object ArgumentKeys {
     const val TRANSACTION_DETAILS_ID = "transactionId"
+    const val IS_PIN_SETUP = "is_pin_setup"
 }
 
 private fun NavHostController.navigateJustOnce(

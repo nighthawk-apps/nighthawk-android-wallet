@@ -22,6 +22,8 @@ object StandardPreferenceKeys {
 
     val LAST_AUTOSHIELDING_PROMPT_EPOCH_MILLIS_STRING = StringPreferenceDefault(PreferenceKey("last_autoshielding_epoch_millis"), "0")
 
+    val LAST_ENTERED_PIN = StringPreferenceDefault(PreferenceKey("last_entered_pin"), "")
+
     /**
      * The fiat currency that the user prefers.
      */

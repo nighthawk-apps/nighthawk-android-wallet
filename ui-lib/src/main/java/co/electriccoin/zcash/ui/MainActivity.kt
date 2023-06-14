@@ -30,6 +30,7 @@ import co.electriccoin.zcash.ui.screen.home.viewmodel.SecretState
 import co.electriccoin.zcash.ui.screen.home.viewmodel.WalletViewModel
 import co.electriccoin.zcash.ui.screen.onboarding.nighthawk.WrapOnBoarding
 import co.electriccoin.zcash.ui.screen.onboarding.nighthawk.view.SeedBackup
+import co.electriccoin.zcash.ui.screen.pin.AndroidPin
 import co.electriccoin.zcash.ui.screen.warning.WrapNotEnoughSpace
 import co.electriccoin.zcash.ui.screen.warning.viewmodel.StorageCheckViewModel
 import co.electriccoin.zcash.work.WorkIds
@@ -128,6 +129,9 @@ class MainActivity : ComponentActivity() {
             // to the "platform" layer, which is where the arguments will be derived from.
             CompositionLocalProvider(RemoteConfig provides configuration) {
                 when (secretState) {
+                    SecretState.NeedAuthentication -> {
+                        AndroidPin(onBack = { this.finish() } )
+                    }
                     SecretState.None -> {
                         WrapOnBoarding()
                     }
