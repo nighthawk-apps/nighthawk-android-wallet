@@ -38,6 +38,7 @@ import co.electriccoin.zcash.ui.screen.navigation.NavigationTargets.PIN
 import co.electriccoin.zcash.ui.screen.navigation.NavigationTargets.RECEIVE_MONEY
 import co.electriccoin.zcash.ui.screen.navigation.NavigationTargets.RECEIVE_QR_CODES
 import co.electriccoin.zcash.ui.screen.navigation.NavigationTargets.SCAN
+import co.electriccoin.zcash.ui.screen.navigation.NavigationTargets.SECURITY
 import co.electriccoin.zcash.ui.screen.navigation.NavigationTargets.SEND_MONEY
 import co.electriccoin.zcash.ui.screen.navigation.NavigationTargets.SHIELD
 import co.electriccoin.zcash.ui.screen.navigation.NavigationTargets.TOP_UP
@@ -47,6 +48,7 @@ import co.electriccoin.zcash.ui.screen.pin.AndroidPin
 import co.electriccoin.zcash.ui.screen.receive.nighthawk.AndroidReceive
 import co.electriccoin.zcash.ui.screen.receiveqrcodes.AndroidReceiveQrCodes
 import co.electriccoin.zcash.ui.screen.scan.WrapScanValidator
+import co.electriccoin.zcash.ui.screen.security.AndroidSecurity
 import co.electriccoin.zcash.ui.screen.send.nighthawk.AndroidSend
 import co.electriccoin.zcash.ui.screen.settings.nighthawk.AndroidSettings
 import co.electriccoin.zcash.ui.screen.shield.AndroidShield
@@ -75,7 +77,16 @@ internal fun MainActivity.MainNavigation(navHostController: NavHostController, p
             )
         }
         composable(BottomNavItem.Settings.route) {
-            AndroidSettings()
+            AndroidSettings(
+                onSyncNotifications = {},
+                onFiatCurrency = {},
+                onSecurity = { navHostController.navigateJustOnce(SECURITY) },
+                onBackupWallet = {},
+                onRescan = {},
+                onChangeServer = {},
+                onExternalServices = {},
+                onAbout = {}
+            )
         }
         composable(SEND_MONEY) {
             AndroidSend(
@@ -162,6 +173,12 @@ internal fun MainActivity.MainNavigation(navHostController: NavHostController, p
                 onBack = { navHostController.popBackStackJustOnce(PIN) }
             )
         }
+        composable(SECURITY) {
+            AndroidSecurity(
+                onBack = { navHostController.popBackStackJustOnce(SECURITY) },
+                onSetPin = { navHostController.navigateJustOnce(NavigationTargets.navigateToPinScreen(isPinSetUp = true)) }
+            )
+        }
     }
 }
 
@@ -236,6 +253,7 @@ object NavigationTargets {
     const val SCAN = "scan"
     const val RECEIVE_QR_CODES = "receive_qr_codes"
     const val SHIELD = "shield"
+    const val SECURITY = "security"
     const val TRANSACTION_HISTORY = "transaction_history"
     const val TRANSACTION_DETAILS = "transaction_details/{$TRANSACTION_DETAILS_ID}"
     const val PIN = "pin?$IS_PIN_SETUP={$IS_PIN_SETUP}"

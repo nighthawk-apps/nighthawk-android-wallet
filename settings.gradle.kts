@@ -182,6 +182,7 @@ dependencyResolutionManagement {
             val zxingVersion = extra["ZXING_VERSION"].toString()
             val pdfBoxVersion = extra["PDF_BOX_VERSION"].toString()
             val lottieVersion = extra["LOTTIE_VERSION"].toString()
+            val bioMetricVersion = extra["BIO_METRIC_VERSION"].toString()
 
             // Standalone versions
             version("flank", flankVersion)
@@ -239,6 +240,7 @@ dependencyResolutionManagement {
             library("zxing", "com.google.zxing:core:$zxingVersion")
             library("pdfbox", "com.tom-roush:pdfbox-android:$pdfBoxVersion")
             library("lottie", "com.airbnb.android:lottie-compose:$lottieVersion")
+            library("androidx.biometric", "androidx.biometric:biometric-ktx:$bioMetricVersion")
 
             // Test libraries
             library("androidx-compose-test-junit", "androidx.compose.ui:ui-test-junit4:$androidxComposeVersion")

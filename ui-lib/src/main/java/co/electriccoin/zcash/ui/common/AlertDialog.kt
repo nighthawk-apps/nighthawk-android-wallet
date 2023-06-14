@@ -36,10 +36,12 @@ fun AlertDialog(title: String, desc: String, confirmText: String, dismissText: S
             }
         },
         dismissButton = {
-            TextButton(
-                onClick = onDismiss
-            ) {
-                Text(dismissText)
+            if (dismissText.isNotBlank()) {
+                TextButton(
+                    onClick = onDismiss
+                ) {
+                    Text(dismissText)
+                }
             }
         },
         text = {

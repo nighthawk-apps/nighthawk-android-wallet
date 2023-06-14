@@ -4,6 +4,7 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import co.electriccoin.zcash.ui.common.ANDROID_STATE_FLOW_TIMEOUT
+import co.electriccoin.zcash.ui.common.isBioMetricEnabledOnMobile
 import co.electriccoin.zcash.ui.preference.StandardPreferenceKeys
 import co.electriccoin.zcash.ui.preference.StandardPreferenceSingleton
 import kotlinx.coroutines.flow.SharingStarted
@@ -29,5 +30,16 @@ class PinViewModel(val context: Application): AndroidViewModel(application = con
         SharingStarted.WhileSubscribed(ANDROID_STATE_FLOW_TIMEOUT),
         null
     )
+
+    val isTouchIdOrFaceIdEnabled = flow {
+        val preferenceProvider = StandardPreferenceSingleton.getInstance(context)
+        emit(StandardPreferenceKeys.IS_TOUCH_ID_OR_FACE_ID_ENABLED.getValue(preferenceProvider))
+    }.stateIn(
+        viewModelScope,
+        SharingStarted.WhileSubscribed(ANDROID_STATE_FLOW_TIMEOUT),
+        null
+    )
+
+    fun isBioMetricEnabledOnMobile() = context.isBioMetricEnabledOnMobile()
 
 }

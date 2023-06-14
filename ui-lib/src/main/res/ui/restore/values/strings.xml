@@ -161,6 +161,11 @@
     <string name="settings_toast_face_touch_id_disabled">Face/Touch ID disabled.</string>
     <string name="wrong_pin_code_message">Your pin code didn\'t match with the previous pin code.</string>
     <string name="ns_security_text">Set/Change Pin Code &amp; Biometric</string>
+    <string name="set_change_pin_code">Set/Change Nighthawk Pin Code</string>
+    <string name="biometric_backup_phrase_title">Authenticate to proceed</string>
+    <string name="enable_face_id_touch_id">Enable Face ID/Touch ID</string>
+    <string name="dialog_bio_metric_not_enabled_title">Face ID Touch ID Error</string>
+    <string name="dialog_bio_metric_not_enabled_message">Couldn\'t enable this option. It seems that Face ID or Touch ID is not enabled in your mobile device.</string>
     <string name="ns_security_choose">Choose PIN code</string>
     <string name="ns_security_try_again">Please try again</string>
     <string name="ns_about">About</string>

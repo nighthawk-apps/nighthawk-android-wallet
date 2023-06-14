@@ -75,6 +75,7 @@ dependencies {
     implementation(libs.zxing)
     implementation(libs.pdfbox)
     implementation(libs.lottie)
+    implementation(libs.androidx.biometric)
 
     implementation(projects.buildInfoLib)
     implementation(projects.configurationApiLib)
