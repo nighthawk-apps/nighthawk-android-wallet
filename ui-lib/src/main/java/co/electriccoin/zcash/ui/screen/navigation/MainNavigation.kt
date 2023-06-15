@@ -41,6 +41,7 @@ import co.electriccoin.zcash.ui.screen.navigation.NavigationTargets.SCAN
 import co.electriccoin.zcash.ui.screen.navigation.NavigationTargets.SECURITY
 import co.electriccoin.zcash.ui.screen.navigation.NavigationTargets.SEND_MONEY
 import co.electriccoin.zcash.ui.screen.navigation.NavigationTargets.SHIELD
+import co.electriccoin.zcash.ui.screen.navigation.NavigationTargets.SYNC_NOTIFICATION
 import co.electriccoin.zcash.ui.screen.navigation.NavigationTargets.TOP_UP
 import co.electriccoin.zcash.ui.screen.navigation.NavigationTargets.TRANSACTION_DETAILS
 import co.electriccoin.zcash.ui.screen.navigation.NavigationTargets.TRANSACTION_HISTORY
@@ -52,6 +53,7 @@ import co.electriccoin.zcash.ui.screen.security.AndroidSecurity
 import co.electriccoin.zcash.ui.screen.send.nighthawk.AndroidSend
 import co.electriccoin.zcash.ui.screen.settings.nighthawk.AndroidSettings
 import co.electriccoin.zcash.ui.screen.shield.AndroidShield
+import co.electriccoin.zcash.ui.screen.syncnotification.AndroidSyncNotification
 import co.electriccoin.zcash.ui.screen.topup.AndroidTopUp
 import co.electriccoin.zcash.ui.screen.transactiondetails.AndroidTransactionDetails
 import co.electriccoin.zcash.ui.screen.transactionhistory.AndroidTransactionHistory
@@ -78,7 +80,7 @@ internal fun MainActivity.MainNavigation(navHostController: NavHostController, p
         }
         composable(BottomNavItem.Settings.route) {
             AndroidSettings(
-                onSyncNotifications = {},
+                onSyncNotifications = { navHostController.navigateJustOnce(SYNC_NOTIFICATION) },
                 onFiatCurrency = {},
                 onSecurity = { navHostController.navigateJustOnce(SECURITY) },
                 onBackupWallet = {},
@@ -173,6 +175,11 @@ internal fun MainActivity.MainNavigation(navHostController: NavHostController, p
                 onBack = { navHostController.popBackStackJustOnce(PIN) }
             )
         }
+        composable(SYNC_NOTIFICATION) {
+            AndroidSyncNotification(
+                onBack = { navHostController.popBackStackJustOnce(SYNC_NOTIFICATION) }
+            )
+        }
         composable(SECURITY) {
             AndroidSecurity(
                 onBack = { navHostController.popBackStackJustOnce(SECURITY) },
@@ -253,6 +260,7 @@ object NavigationTargets {
     const val SCAN = "scan"
     const val RECEIVE_QR_CODES = "receive_qr_codes"
     const val SHIELD = "shield"
+    const val SYNC_NOTIFICATION = "sync_notification"
     const val SECURITY = "security"
     const val TRANSACTION_HISTORY = "transaction_history"
     const val TRANSACTION_DETAILS = "transaction_details/{$TRANSACTION_DETAILS_ID}"
