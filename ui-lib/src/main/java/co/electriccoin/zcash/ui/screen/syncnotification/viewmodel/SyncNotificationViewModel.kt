@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import co.electriccoin.zcash.ui.common.ANDROID_STATE_FLOW_TIMEOUT
 import co.electriccoin.zcash.ui.preference.EncryptedPreferenceKeys.SYNC_INTERVAL_OPTION
 import co.electriccoin.zcash.ui.preference.StandardPreferenceSingleton
+import co.electriccoin.zcash.work.WorkIds
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.WhileSubscribed
@@ -29,6 +30,7 @@ class SyncNotificationViewModel(val context: Application) : AndroidViewModel(app
 
     fun updateSyncIntervalOption(syncIntervalOption: SyncIntervalOption) {
         viewModelScope.launch {
+            WorkIds.cancelSyncAppNotificationAndReRegister(syncIntervalOption, context)
             val preferenceProvider = StandardPreferenceSingleton.getInstance(context)
             SYNC_INTERVAL_OPTION.putValue(preferenceProvider, syncIntervalOption)
         }

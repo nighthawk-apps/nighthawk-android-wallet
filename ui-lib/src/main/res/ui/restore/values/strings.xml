@@ -264,4 +264,7 @@
     <string name="link_to_ecc_title">Redirecting to ElectricCoin.co</string>
     <string name="link_to_ecc_description">Please confirm opening your device browser to learn more about Unified Addresses.</string>
     <string name="shielding">Shielding…</string>
+    <string name="open_settings">Open Settings</string>
+    <string name="notification_permission_dialog_title">Alert</string>
+    <string name="notification_permission_dialog_desc">To post any notification we need to provide Notifications permission.\nFrom Settings please allow Notifications permission</string>
 </resources>
