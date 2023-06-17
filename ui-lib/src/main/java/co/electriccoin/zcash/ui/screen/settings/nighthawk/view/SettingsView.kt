@@ -12,6 +12,8 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
@@ -22,6 +24,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import co.electriccoin.zcash.ui.R
+import co.electriccoin.zcash.ui.common.AlertDialog
 import co.electriccoin.zcash.ui.common.SettingsListItem
 import co.electriccoin.zcash.ui.design.component.BodyMedium
 import co.electriccoin.zcash.ui.design.component.TitleLarge
@@ -66,6 +69,9 @@ fun SettingsView(
         .verticalScroll(rememberScrollState())
         .padding(dimensionResource(id = R.dimen.screen_standard_margin))
     ) {
+        val showSeedBackUpConfirmationDialog = remember {
+            mutableStateOf(false)
+        }
         Spacer(modifier = Modifier.height(dimensionResource(id = R.dimen.back_icon_size)))
         Image(
             painter = painterResource(id = R.drawable.ic_nighthawk_logo),
@@ -106,7 +112,7 @@ fun SettingsView(
             title = stringResource(id = R.string.ns_backup_wallet),
             desc = stringResource(id = R.string.ns_backup_wallet_text),
             modifier = Modifier.heightIn(min = dimensionResource(id = R.dimen.setting_list_item_min_height))
-                .clickable { onBackupWallet() }
+                .clickable { showSeedBackUpConfirmationDialog.value = true }
         )
         Spacer(modifier = Modifier.height(10.dp))
         SettingsListItem(
@@ -141,5 +147,21 @@ fun SettingsView(
                 .clickable { onAbout() }
         )
         Spacer(modifier = Modifier.height(10.dp))
+
+        if (showSeedBackUpConfirmationDialog.value) {
+            AlertDialog(
+                title = stringResource(id = R.string.ns_back_up_seed_dialog_title),
+                desc = stringResource(id = R.string.ns_back_up_seed_dialog_body),
+                confirmText = stringResource(id = R.string.ns_back_up_seed_dialog_positive),
+                dismissText = stringResource(id = R.string.ns_cancel),
+                onConfirm = {
+                    showSeedBackUpConfirmationDialog.value = false
+                    onBackupWallet()
+                },
+                onDismiss = {
+                    showSeedBackUpConfirmationDialog.value = false
+                }
+            )
+        }
     }
 }

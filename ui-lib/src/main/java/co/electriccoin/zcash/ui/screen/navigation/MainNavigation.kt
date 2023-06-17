@@ -40,6 +40,7 @@ import co.electriccoin.zcash.ui.screen.navigation.NavigationTargets.RECEIVE_QR_C
 import co.electriccoin.zcash.ui.screen.navigation.NavigationTargets.SCAN
 import co.electriccoin.zcash.ui.screen.navigation.NavigationTargets.SECURITY
 import co.electriccoin.zcash.ui.screen.navigation.NavigationTargets.SEND_MONEY
+import co.electriccoin.zcash.ui.screen.navigation.NavigationTargets.SETTING_BACK_UP_WALLET
 import co.electriccoin.zcash.ui.screen.navigation.NavigationTargets.SHIELD
 import co.electriccoin.zcash.ui.screen.navigation.NavigationTargets.SYNC_NOTIFICATION
 import co.electriccoin.zcash.ui.screen.navigation.NavigationTargets.TOP_UP
@@ -59,6 +60,7 @@ import co.electriccoin.zcash.ui.screen.transactiondetails.AndroidTransactionDeta
 import co.electriccoin.zcash.ui.screen.transactionhistory.AndroidTransactionHistory
 import co.electriccoin.zcash.ui.screen.transfer.AndroidTransfer
 import co.electriccoin.zcash.ui.screen.wallet.AndroidWallet
+import co.electriccoin.zcash.ui.settingbackupwallet.AndroidSettingBackUpWallet
 
 @Composable
 internal fun MainActivity.MainNavigation(navHostController: NavHostController, paddingValues: PaddingValues) {
@@ -83,7 +85,7 @@ internal fun MainActivity.MainNavigation(navHostController: NavHostController, p
                 onSyncNotifications = { navHostController.navigateJustOnce(SYNC_NOTIFICATION) },
                 onFiatCurrency = {},
                 onSecurity = { navHostController.navigateJustOnce(SECURITY) },
-                onBackupWallet = {},
+                onBackupWallet = { navHostController.navigateJustOnce(SETTING_BACK_UP_WALLET) },
                 onRescan = {},
                 onChangeServer = {},
                 onExternalServices = {},
@@ -186,6 +188,11 @@ internal fun MainActivity.MainNavigation(navHostController: NavHostController, p
                 onSetPin = { navHostController.navigateJustOnce(NavigationTargets.navigateToPinScreen(isPinSetUp = true)) }
             )
         }
+        composable(SETTING_BACK_UP_WALLET) {
+            AndroidSettingBackUpWallet(
+                onBack = { navHostController.popBackStackJustOnce(SETTING_BACK_UP_WALLET) }
+            )
+        }
     }
 }
 
@@ -262,6 +269,7 @@ object NavigationTargets {
     const val SHIELD = "shield"
     const val SYNC_NOTIFICATION = "sync_notification"
     const val SECURITY = "security"
+    const val SETTING_BACK_UP_WALLET = "setting_back_up_wallet"
     const val TRANSACTION_HISTORY = "transaction_history"
     const val TRANSACTION_DETAILS = "transaction_details/{$TRANSACTION_DETAILS_ID}"
     const val PIN = "pin?$IS_PIN_SETUP={$IS_PIN_SETUP}"
