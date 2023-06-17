@@ -86,7 +86,6 @@ internal fun MainActivity.MainNavigation(navHostController: NavHostController, p
                 onFiatCurrency = {},
                 onSecurity = { navHostController.navigateJustOnce(SECURITY) },
                 onBackupWallet = { navHostController.navigateJustOnce(SETTING_BACK_UP_WALLET) },
-                onRescan = {},
                 onChangeServer = {},
                 onExternalServices = {},
                 onAbout = {}

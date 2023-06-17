@@ -31,6 +31,7 @@ import co.electriccoin.zcash.ui.design.component.TitleLarge
 import co.electriccoin.zcash.ui.design.theme.ZcashTheme
 import co.electriccoin.zcash.ui.fixture.VersionInfoFixture
 import co.electriccoin.zcash.ui.screen.about.model.VersionInfo
+import co.electriccoin.zcash.ui.screen.settings.nighthawk.model.ReScanType
 
 @Preview
 @Composable
@@ -59,7 +60,7 @@ fun SettingsView(
     onFiatCurrency: () -> Unit,
     onSecurity: () -> Unit,
     onBackupWallet: () -> Unit,
-    onRescan: () -> Unit,
+    onRescan: (ReScanType) -> Unit,
     onChangeServer: () -> Unit,
     onExternalServices: () -> Unit,
     onAbout: () -> Unit
@@ -69,7 +70,10 @@ fun SettingsView(
         .verticalScroll(rememberScrollState())
         .padding(dimensionResource(id = R.dimen.screen_standard_margin))
     ) {
-        val showSeedBackUpConfirmationDialog = remember {
+        val showSeedBackUpDialog = remember {
+            mutableStateOf(false)
+        }
+        val showReScanDialog = remember {
             mutableStateOf(false)
         }
         Spacer(modifier = Modifier.height(dimensionResource(id = R.dimen.back_icon_size)))
@@ -112,7 +116,7 @@ fun SettingsView(
             title = stringResource(id = R.string.ns_backup_wallet),
             desc = stringResource(id = R.string.ns_backup_wallet_text),
             modifier = Modifier.heightIn(min = dimensionResource(id = R.dimen.setting_list_item_min_height))
-                .clickable { showSeedBackUpConfirmationDialog.value = true }
+                .clickable { showSeedBackUpDialog.value = true }
         )
         Spacer(modifier = Modifier.height(10.dp))
         SettingsListItem(
@@ -120,7 +124,7 @@ fun SettingsView(
             title = stringResource(id = R.string.ns_rescan_wallet),
             desc = stringResource(id = R.string.ns_rescan_wallet_text),
             modifier = Modifier.heightIn(min = dimensionResource(id = R.dimen.setting_list_item_min_height))
-                .clickable { onRescan() }
+                .clickable { showReScanDialog.value = true }
         )
         Spacer(modifier = Modifier.height(10.dp))
         SettingsListItem(
@@ -148,18 +152,35 @@ fun SettingsView(
         )
         Spacer(modifier = Modifier.height(10.dp))
 
-        if (showSeedBackUpConfirmationDialog.value) {
+        if (showSeedBackUpDialog.value) {
             AlertDialog(
                 title = stringResource(id = R.string.ns_back_up_seed_dialog_title),
                 desc = stringResource(id = R.string.ns_back_up_seed_dialog_body),
                 confirmText = stringResource(id = R.string.ns_back_up_seed_dialog_positive),
                 dismissText = stringResource(id = R.string.ns_cancel),
                 onConfirm = {
-                    showSeedBackUpConfirmationDialog.value = false
+                    showSeedBackUpDialog.value = false
                     onBackupWallet()
                 },
                 onDismiss = {
-                    showSeedBackUpConfirmationDialog.value = false
+                    showSeedBackUpDialog.value = false
+                }
+            )
+        }
+
+        if (showReScanDialog.value) {
+            AlertDialog(
+                title = stringResource(id = R.string.dialog_rescan_wallet_title),
+                desc = stringResource(id = R.string.dialog_rescan_wallet_message),
+                confirmText = stringResource(id = R.string.dialog_rescan_wallet_button_negative).uppercase(),
+                dismissText = stringResource(id = R.string.dialog_rescan_wallet_button_neutral).uppercase(),
+                onConfirm = {
+                    showReScanDialog.value = false
+                    onRescan(ReScanType.FULL_SCAN)
+                },
+                onDismiss = {
+                    showReScanDialog.value = false
+                    onRescan(ReScanType.WIPE)
                 }
             )
         }

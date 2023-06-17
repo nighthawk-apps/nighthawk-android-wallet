@@ -1,10 +1,15 @@
 package co.electriccoin.zcash.ui.screen.settings.nighthawk
 
+import androidx.activity.ComponentActivity
+import androidx.activity.viewModels
 import androidx.compose.runtime.Composable
-import androidx.core.app.ComponentActivity
 import co.electriccoin.zcash.spackle.getPackageInfoCompat
 import co.electriccoin.zcash.ui.MainActivity
+import co.electriccoin.zcash.ui.R
+import co.electriccoin.zcash.ui.common.showMessage
 import co.electriccoin.zcash.ui.screen.about.model.VersionInfo
+import co.electriccoin.zcash.ui.screen.home.viewmodel.WalletViewModel
+import co.electriccoin.zcash.ui.screen.settings.nighthawk.model.ReScanType
 import co.electriccoin.zcash.ui.screen.settings.nighthawk.view.SettingsView
 
 @Composable
@@ -13,7 +18,6 @@ internal fun MainActivity.AndroidSettings(
     onFiatCurrency: () -> Unit,
     onSecurity: () -> Unit,
     onBackupWallet: () -> Unit,
-    onRescan: () -> Unit,
     onChangeServer: () -> Unit,
     onExternalServices: () -> Unit,
     onAbout: () -> Unit
@@ -24,7 +28,6 @@ internal fun MainActivity.AndroidSettings(
         onFiatCurrency = onFiatCurrency,
         onSecurity = onSecurity,
         onBackupWallet = onBackupWallet,
-        onRescan = onRescan,
         onChangeServer = onChangeServer,
         onExternalServices = onExternalServices,
         onAbout = onAbout
@@ -38,19 +41,33 @@ internal fun WrapSettings(
     onFiatCurrency: () -> Unit,
     onSecurity: () -> Unit,
     onBackupWallet: () -> Unit,
-    onRescan: () -> Unit,
     onChangeServer: () -> Unit,
     onExternalServices: () -> Unit,
     onAbout: () -> Unit
 ) {
     val packageInfo = activity.packageManager.getPackageInfoCompat(activity.packageName, 0L)
+    val walletViewModel by activity.viewModels<WalletViewModel>()
+
+    val onReScan: (ReScanType) -> Unit = {
+        when (it) {
+            ReScanType.FULL_SCAN -> {
+                walletViewModel.rescanBlockchain()
+                activity.showMessage(activity.getString(R.string.dialog_rescan_initiated_title))
+            }
+            ReScanType.WIPE -> {
+                walletViewModel.resetSdk()
+                activity.showMessage(activity.getString(R.string.rescan_wallet_wipe_success))
+            }
+        }
+    }
+
     SettingsView(
         versionInfo = VersionInfo.new(packageInfo),
         onSyncNotifications = onSyncNotifications,
         onFiatCurrency = onFiatCurrency,
         onSecurity = onSecurity,
         onBackupWallet = onBackupWallet,
-        onRescan = onRescan,
+        onRescan = onReScan,
         onChangeServer = onChangeServer,
         onExternalServices = onExternalServices,
         onAbout = onAbout
