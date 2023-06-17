@@ -63,6 +63,7 @@ pluginManagement {
         id("com.osacky.fulladle") version (extra["FULLADLE_VERSION"].toString()) apply (false)
         id("org.jetbrains.kotlinx.kover") version (extra["KOVER_VERSION"].toString()) apply (false)
         id("wtf.emulator.gradle") version (extra["EMULATOR_WTF_GRADLE_PLUGIN_VERSION"].toString()) apply (false)
+        id("com.mikepenz.aboutlibraries.plugin") version (extra["ABOUT_LIBRARIES_VERSION"].toString()) apply (false)
         kotlin("android") version (kotlinVersion) apply (false)
         kotlin("jvm") version (kotlinVersion)
         kotlin("multiplatform") version (kotlinVersion)
@@ -183,6 +184,7 @@ dependencyResolutionManagement {
             val pdfBoxVersion = extra["PDF_BOX_VERSION"].toString()
             val lottieVersion = extra["LOTTIE_VERSION"].toString()
             val bioMetricVersion = extra["BIO_METRIC_VERSION"].toString()
+            val aboutLibrariesVersion = extra["ABOUT_LIBRARIES_VERSION"].toString()
 
             // Standalone versions
             version("flank", flankVersion)
@@ -241,6 +243,7 @@ dependencyResolutionManagement {
             library("pdfbox", "com.tom-roush:pdfbox-android:$pdfBoxVersion")
             library("lottie", "com.airbnb.android:lottie-compose:$lottieVersion")
             library("androidx.biometric", "androidx.biometric:biometric-ktx:$bioMetricVersion")
+            library("about-libraries", "com.mikepenz:aboutlibraries-compose:$aboutLibrariesVersion")
 
             // Test libraries
             library("androidx-compose-test-junit", "androidx.compose.ui:ui-test-junit4:$androidxComposeVersion")

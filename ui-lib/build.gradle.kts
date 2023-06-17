@@ -5,6 +5,7 @@ plugins {
     id("wtf.emulator.gradle")
     id("secant.emulator-wtf-conventions")
     id("secant.jacoco-conventions")
+    id("com.mikepenz.aboutlibraries.plugin")
 }
 
 android {
@@ -76,6 +77,7 @@ dependencies {
     implementation(libs.pdfbox)
     implementation(libs.lottie)
     implementation(libs.androidx.biometric)
+    implementation(libs.about.libraries)
 
     implementation(projects.buildInfoLib)
     implementation(projects.configurationApiLib)

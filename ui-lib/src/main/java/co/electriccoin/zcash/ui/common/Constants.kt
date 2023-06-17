@@ -16,3 +16,5 @@ val SUCCESS_VIBRATION_PATTERN = arrayOf(0L, 200L, 100L, 100L, 800L).toLongArray(
 val WRONG_VIBRATION_PATTERN = arrayOf(0L, 50L, 100L, 50L, 100L).toLongArray()
 const val KEY_SYNC_NOTIFICATION = "constants.key_sync_notification"
 const val WORKER_TAG_SYNC_NOTIFICATION = "constants.tag_sync_notification"
+const val VIEW_SOURCE_URL = "https://github.com/nighthawk-apps/nighthawk-wallet-android"
+const val PRIVACY_POLICY_LINK = "https://nighthawkwallet.com/privacypolicy/"
