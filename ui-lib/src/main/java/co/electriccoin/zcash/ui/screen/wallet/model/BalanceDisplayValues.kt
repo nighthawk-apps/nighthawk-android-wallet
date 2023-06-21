@@ -28,7 +28,7 @@ data class BalanceDisplayValues(
                 }
                 BalanceViewType.TOTAL -> {
                     iconDrawableRes = R.drawable.ic_icon_total
-                    balance = walletSnapshot.orchardBalance.total.toZecString()
+                    balance = walletSnapshot.saplingBalance.total.plus(walletSnapshot.transparentBalance.total).toZecString()
                     balanceType = context.getString(R.string.ns_total_balance)
                 }
                 BalanceViewType.SHIELDED -> {
