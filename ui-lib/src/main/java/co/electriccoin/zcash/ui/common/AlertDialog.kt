@@ -22,9 +22,9 @@ fun AlertDialogPreview() {
 }
 
 @Composable
-fun AlertDialog(title: String, desc: String, confirmText: String, dismissText: String, onConfirm: () -> Unit = {}, onDismiss : () -> Unit = {}) {
+fun AlertDialog(title: String, desc: String, confirmText: String, dismissText: String, onConfirm: () -> Unit = {}, onDismiss : () -> Unit = {}, onDismissRequest : () -> Unit = {}) {
     AlertDialog(
-        onDismissRequest = onDismiss,
+        onDismissRequest = onDismissRequest,
         title = {
             Body(text = title, color = ZcashTheme.colors.surfaceEnd)
         },

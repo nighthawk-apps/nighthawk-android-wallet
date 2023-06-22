@@ -45,6 +45,7 @@ import cash.z.ecc.android.sdk.model.ZcashNetwork
 import cash.z.ecc.android.sdk.model.toZecString
 import co.electriccoin.zcash.spackle.Twig
 import co.electriccoin.zcash.ui.R
+import co.electriccoin.zcash.ui.common.blockExplorerUrl
 import co.electriccoin.zcash.ui.design.component.BalanceText
 import co.electriccoin.zcash.ui.design.component.Body
 import co.electriccoin.zcash.ui.design.component.BodyMedium
@@ -68,13 +69,13 @@ fun TransactionDetailsPreview() {
                 network = ZcashNetwork.Mainnet,
                 networkHeight = BlockHeight.new(zcashNetwork = ZcashNetwork.Mainnet, blockHeight = ZcashNetwork.Mainnet.saplingActivationHeight.value + 10)
             )
-            TransactionDetails(transactionDetailsUIModel = transactionDetailsUIModel, onBack = {})
+            TransactionDetails(transactionDetailsUIModel = transactionDetailsUIModel, onBack = {}, viewOnBlockExplorer = {})
         }
     }
 }
 
 @Composable
-fun TransactionDetails(transactionDetailsUIModel: TransactionDetailsUIModel?, onBack: () -> Unit) {
+fun TransactionDetails(transactionDetailsUIModel: TransactionDetailsUIModel?, onBack: () -> Unit, viewOnBlockExplorer: (String) -> Unit) {
     Column(modifier = Modifier
         .fillMaxSize()
         .padding(dimensionResource(id = R.dimen.screen_standard_margin))
@@ -212,6 +213,7 @@ fun TransactionDetails(transactionDetailsUIModel: TransactionDetailsUIModel?, on
 
         // TransactionId
         Spacer(modifier = Modifier.height(10.dp))
+        val transactionId = transactionDetailsUIModel.transactionOverview.rawId.byteArray.toString(Charset.defaultCharset())
         Divider(
             thickness = 1.dp,
             color = ZcashTheme.colors.surfaceEnd
@@ -223,59 +225,61 @@ fun TransactionDetails(transactionDetailsUIModel: TransactionDetailsUIModel?, on
         ) {
             BodyMedium(text = stringResource(id = R.string.ns_transaction_id), color = ZcashTheme.colors.surfaceEnd)
             Spacer(modifier = Modifier.width(50.dp))
-            BodyMedium(text = transactionDetailsUIModel.transactionOverview.rawId.byteArray.toString(Charset.defaultCharset()), color = ZcashTheme.colors.surfaceEnd, textAlign = TextAlign.End)
+            BodyMedium(text = transactionId, color = ZcashTheme.colors.surfaceEnd, textAlign = TextAlign.End)
         }
-        TextButton(onClick = {},
+        TextButton(onClick = { viewOnBlockExplorer(transactionDetailsUIModel.network.blockExplorerUrl(transactionId)) },
             modifier = Modifier.align(Alignment.End)) {
             BodyMedium(text = stringResource(id = R.string.ns_view_block_explorer), color = ZcashTheme.colors.onBackgroundHeader, textAlign = TextAlign.End)
         }
 
         // Recipient
-        val recipientAddress = when (transactionDetailsUIModel.transactionRecipient) {
-            is TransactionRecipient.Account -> ""
-            is TransactionRecipient.Address -> transactionDetailsUIModel.transactionRecipient.addressValue
-        }
-        if (recipientAddress.isNotBlank()) {
-            Spacer(modifier = Modifier.height(10.dp))
-            Divider(
-                thickness = 1.dp,
-                color = ZcashTheme.colors.surfaceEnd
-            )
-            Spacer(modifier = Modifier.height(10.dp))
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                BodyMedium(text = stringResource(id = R.string.ns_recipient), color = ZcashTheme.colors.surfaceEnd)
-                BodyMedium(text = if (recipientAddress.isShielded()) stringResource(id = R.string.ns_shielded) else stringResource(id = R.string.ns_transparent), color = ZcashTheme.colors.surfaceEnd)
+        if (transactionDetailsUIModel.transactionOverview.isSentTransaction) {
+            val recipientAddress = when (transactionDetailsUIModel.transactionRecipient) {
+                is TransactionRecipient.Account -> ""
+                is TransactionRecipient.Address -> transactionDetailsUIModel.transactionRecipient.addressValue
             }
-            Spacer(modifier = Modifier.height(10.dp))
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                BodyMedium(text = stringResource(id = R.string.ns_address), color = ZcashTheme.colors.surfaceEnd)
-                Spacer(modifier = Modifier.width(50.dp))
-                BodyMedium(
-                    text = buildAnnotatedString {
-                        if (recipientAddress.length > 20) {
-                            withStyle(style = SpanStyle(color = Color.White)) {
-                                append(recipientAddress.take(10))
-                            }
-                            withStyle(style = SpanStyle(color = ZcashTheme.colors.surfaceEnd)) {
-                                append(recipientAddress.substring(10, recipientAddress.length - 10))
-                            }
-                            withStyle(style = SpanStyle(color = Color.White)) {
-                                append(recipientAddress.takeLast(10))
-                            }
-                        } else {
-                            withStyle(style = SpanStyle(color = ZcashTheme.colors.surfaceEnd)) {
-                                append(recipientAddress)
-                            }
-                        }
-                    },
-                    textAlign = TextAlign.End
+            if (recipientAddress.isNotBlank()) {
+                Spacer(modifier = Modifier.height(10.dp))
+                Divider(
+                    thickness = 1.dp,
+                    color = ZcashTheme.colors.surfaceEnd
                 )
+                Spacer(modifier = Modifier.height(10.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    BodyMedium(text = stringResource(id = R.string.ns_recipient), color = ZcashTheme.colors.surfaceEnd)
+                    BodyMedium(text = if (recipientAddress.isShielded()) stringResource(id = R.string.ns_shielded) else stringResource(id = R.string.ns_transparent), color = ZcashTheme.colors.surfaceEnd)
+                }
+                Spacer(modifier = Modifier.height(10.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    BodyMedium(text = stringResource(id = R.string.ns_address), color = ZcashTheme.colors.surfaceEnd)
+                    Spacer(modifier = Modifier.width(50.dp))
+                    BodyMedium(
+                        text = buildAnnotatedString {
+                            if (recipientAddress.length > 20) {
+                                withStyle(style = SpanStyle(color = Color.White)) {
+                                    append(recipientAddress.take(10))
+                                }
+                                withStyle(style = SpanStyle(color = ZcashTheme.colors.surfaceEnd)) {
+                                    append(recipientAddress.substring(10, recipientAddress.length - 10))
+                                }
+                                withStyle(style = SpanStyle(color = Color.White)) {
+                                    append(recipientAddress.takeLast(10))
+                                }
+                            } else {
+                                withStyle(style = SpanStyle(color = ZcashTheme.colors.surfaceEnd)) {
+                                    append(recipientAddress)
+                                }
+                            }
+                        },
+                        textAlign = TextAlign.End
+                    )
+                }
             }
         }
 

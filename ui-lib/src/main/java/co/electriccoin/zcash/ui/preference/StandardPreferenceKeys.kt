@@ -26,6 +26,8 @@ object StandardPreferenceKeys {
 
     val IS_TOUCH_ID_OR_FACE_ID_ENABLED = BooleanPreferenceDefault(PreferenceKey("is_touch_id_face_id_enabled"), false)
 
+    val IS_UNSTOPPABLE_SERVICE_ENABLED = BooleanPreferenceDefault(PreferenceKey("is_unstoppable_service_enabled"), false)
+
     /**
      * The fiat currency that the user prefers.
      */

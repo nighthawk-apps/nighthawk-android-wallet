@@ -185,6 +185,8 @@ dependencyResolutionManagement {
             val lottieVersion = extra["LOTTIE_VERSION"].toString()
             val bioMetricVersion = extra["BIO_METRIC_VERSION"].toString()
             val aboutLibrariesVersion = extra["ABOUT_LIBRARIES_VERSION"].toString()
+            val retrofitVersion = extra["RETROFIT_VERSION"].toString()
+            val okHttpVersion = extra["OKHTTP_VERSION"].toString()
 
             // Standalone versions
             version("flank", flankVersion)
@@ -244,6 +246,10 @@ dependencyResolutionManagement {
             library("lottie", "com.airbnb.android:lottie-compose:$lottieVersion")
             library("androidx.biometric", "androidx.biometric:biometric-ktx:$bioMetricVersion")
             library("about-libraries", "com.mikepenz:aboutlibraries-compose:$aboutLibrariesVersion")
+            library("square-retrofit", "com.squareup.retrofit2:retrofit:$retrofitVersion")
+            library("square-retrofit-gson", "com.squareup.retrofit2:converter-gson:$retrofitVersion")
+            library("square-okhttp", "com.squareup.okhttp3:okhttp:$okHttpVersion")
+            library("square-okhttp-logging-interceptor", "com.squareup.okhttp3:logging-interceptor:$okHttpVersion")
 
             // Test libraries
             library("androidx-compose-test-junit", "androidx.compose.ui:ui-test-junit4:$androidxComposeVersion")

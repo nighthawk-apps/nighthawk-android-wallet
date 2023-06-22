@@ -33,9 +33,11 @@ import co.electriccoin.zcash.ui.NavigationArguments
 import co.electriccoin.zcash.ui.R
 import co.electriccoin.zcash.ui.design.component.BodySmall
 import co.electriccoin.zcash.ui.screen.about.nighthawk.AndroidAboutView
+import co.electriccoin.zcash.ui.screen.externalservices.AndroidExternalServicesView
 import co.electriccoin.zcash.ui.screen.navigation.ArgumentKeys.IS_PIN_SETUP
 import co.electriccoin.zcash.ui.screen.navigation.ArgumentKeys.TRANSACTION_DETAILS_ID
 import co.electriccoin.zcash.ui.screen.navigation.NavigationTargets.ABOUT
+import co.electriccoin.zcash.ui.screen.navigation.NavigationTargets.EXTERNAL_SERVICES
 import co.electriccoin.zcash.ui.screen.navigation.NavigationTargets.PIN
 import co.electriccoin.zcash.ui.screen.navigation.NavigationTargets.RECEIVE_MONEY
 import co.electriccoin.zcash.ui.screen.navigation.NavigationTargets.RECEIVE_QR_CODES
@@ -89,7 +91,7 @@ internal fun MainActivity.MainNavigation(navHostController: NavHostController, p
                 onSecurity = { navHostController.navigateJustOnce(SECURITY) },
                 onBackupWallet = { navHostController.navigateJustOnce(SETTING_BACK_UP_WALLET) },
                 onChangeServer = {},
-                onExternalServices = {},
+                onExternalServices = { navHostController.navigateJustOnce(EXTERNAL_SERVICES) },
                 onAbout = { navHostController.navigateJustOnce(ABOUT) }
             )
         }
@@ -199,6 +201,11 @@ internal fun MainActivity.MainNavigation(navHostController: NavHostController, p
                 onBack = { navHostController.popBackStackJustOnce(ABOUT) }
             )
         }
+        composable(EXTERNAL_SERVICES) {
+            AndroidExternalServicesView(
+                onBack = { navHostController.popBackStackJustOnce(EXTERNAL_SERVICES) }
+            )
+        }
     }
 }
 
@@ -276,6 +283,7 @@ object NavigationTargets {
     const val SYNC_NOTIFICATION = "sync_notification"
     const val SECURITY = "security"
     const val SETTING_BACK_UP_WALLET = "setting_back_up_wallet"
+    const val EXTERNAL_SERVICES = "external_services"
     const val ABOUT = "about"
     const val TRANSACTION_HISTORY = "transaction_history"
     const val TRANSACTION_DETAILS = "transaction_details/{$TRANSACTION_DETAILS_ID}"

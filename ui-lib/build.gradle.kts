@@ -78,6 +78,10 @@ dependencies {
     implementation(libs.lottie)
     implementation(libs.androidx.biometric)
     implementation(libs.about.libraries)
+    implementation(libs.square.retrofit)
+    implementation(libs.square.retrofit.gson)
+    implementation(libs.square.okhttp)
+    implementation(libs.square.okhttp.logging.interceptor)
 
     implementation(projects.buildInfoLib)
     implementation(projects.configurationApiLib)

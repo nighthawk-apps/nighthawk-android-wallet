@@ -181,7 +181,7 @@
     <string name="ns_disable_pin_message">Pin disabled</string>
     <string name="ns_view_licences">View Licences</string>
     <string name="dialog_rescan_wallet_title">Rescan This Wallet?</string>
-    <string name="dialog_rescan_wallet_message"><![CDATA[This fix may take a while!<br/><br/>A <b>FULL</b> scan will rewind %1$s blocks to this wallet\'s birthday and take around %2$s.<br/><br/>A <b>WIPE</b> is like a full scan but it first deletes all data then restores it from your backup seed words.]]></string>
+    <string name="dialog_rescan_wallet_message">Rescanning may take up to 10hrs depending on the length of history of your wallet’s transactions. Would you like to start a rescan?</string>
     <string name="dialog_rescan_wallet_button_positive">Quick</string>
     <string name="dialog_rescan_wallet_button_negative">Full</string>
     <string name="dialog_rescan_wallet_button_neutral">Wipe</string>

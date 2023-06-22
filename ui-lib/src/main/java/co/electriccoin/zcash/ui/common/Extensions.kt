@@ -13,6 +13,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.FragmentActivity
+import cash.z.ecc.android.sdk.model.ZcashNetwork
 
 internal fun ComponentActivity.onLaunchUrl(url: String) {
     try {
@@ -84,5 +85,12 @@ internal fun FragmentActivity.authenticate(description: String, title: String, b
                 .setAllowedAuthenticators(BiometricManager.Authenticators.BIOMETRIC_STRONG or BiometricManager.Authenticators.BIOMETRIC_WEAK or BiometricManager.Authenticators.DEVICE_CREDENTIAL)
                 .build()
         )
+    }
+}
+
+internal fun ZcashNetwork.blockExplorerUrl(transactionId: String): String {
+    return when (this) {
+        ZcashNetwork.Mainnet -> BLOCK_EXPLORER_URL_MAIN_NET + transactionId
+        else -> BLOCK_EXPLORER_URL_TESTNET + transactionId
     }
 }

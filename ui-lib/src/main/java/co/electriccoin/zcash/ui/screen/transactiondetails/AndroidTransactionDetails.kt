@@ -8,6 +8,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import co.electriccoin.zcash.spackle.Twig
 import co.electriccoin.zcash.ui.MainActivity
+import co.electriccoin.zcash.ui.common.onLaunchUrl
 import co.electriccoin.zcash.ui.screen.home.viewmodel.HomeViewModel
 import co.electriccoin.zcash.ui.screen.home.viewmodel.WalletViewModel
 import co.electriccoin.zcash.ui.screen.transactiondetails.view.TransactionDetails
@@ -41,6 +42,6 @@ internal fun WrapAndroidTransactionDetails(activity: ComponentActivity, transact
     val transactionDetailsUIModel = walletViewModel.transactionUiModel(transactionId).collectAsStateWithLifecycle().value
     Twig.info { "TransactionDetailUiModel: $transactionDetailsUIModel" }
 
-    TransactionDetails(transactionDetailsUIModel = transactionDetailsUIModel, onBack = onBack)
+    TransactionDetails(transactionDetailsUIModel = transactionDetailsUIModel, onBack = onBack, viewOnBlockExplorer = { activity.onLaunchUrl(it) })
 
 }

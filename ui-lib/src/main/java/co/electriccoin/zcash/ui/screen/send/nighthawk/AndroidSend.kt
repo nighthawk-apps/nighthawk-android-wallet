@@ -36,6 +36,8 @@ import co.electriccoin.zcash.ui.screen.send.nighthawk.view.EnterZec
 import co.electriccoin.zcash.ui.screen.send.nighthawk.view.ReviewAndSend
 import co.electriccoin.zcash.ui.screen.send.nighthawk.view.SendConfirmation
 import co.electriccoin.zcash.ui.screen.send.nighthawk.viewmodel.SendViewModel
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 
 @Composable
@@ -101,13 +103,23 @@ internal fun WrapAndroidSend(activity: ComponentActivity, onBack: () -> Unit, on
             var isContinueEnabled by remember {
                 mutableStateOf(false)
             }
+            var validateAddressJob: Job? = null
 
-            LaunchedEffect(key1 = Unit) {
-                scope.launch {
-                    synchronizer?.let {
-                        isContinueEnabled = it.validateAddress(sendViewModel.receiverAddress).isNotValid.not()
+            fun validateAddress(address: String) {
+                validateAddressJob?.let {
+                    if (it.isCompleted.not() && it.isCancelled.not()) {
+                        it.cancel()
                     }
                 }
+                validateAddressJob = scope.launch(Dispatchers.IO) {
+                    synchronizer?.let {
+                        isContinueEnabled = sendViewModel.validateAddress(address, it).isNotValid.not()
+                    }
+                }
+            }
+
+            LaunchedEffect(key1 = Unit) {
+                validateAddress(sendViewModel.receiverAddress)
             }
 
             EnterReceiverAddress(
@@ -119,11 +131,7 @@ internal fun WrapAndroidSend(activity: ComponentActivity, onBack: () -> Unit, on
                         isContinueEnabled = false
                         return@EnterReceiverAddress
                     }
-                    scope.launch {
-                        synchronizer?.let {
-                            isContinueEnabled = it.validateAddress(address).isNotValid.not()
-                        }
-                    }
+                    validateAddress(address)
                 },
                 onContinue = {
                     val zecSendValidation = ZecSendExt.new(

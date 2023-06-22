@@ -18,3 +18,5 @@ const val KEY_SYNC_NOTIFICATION = "constants.key_sync_notification"
 const val WORKER_TAG_SYNC_NOTIFICATION = "constants.tag_sync_notification"
 const val VIEW_SOURCE_URL = "https://github.com/nighthawk-apps/nighthawk-wallet-android"
 const val PRIVACY_POLICY_LINK = "https://nighthawkwallet.com/privacypolicy/"
+const val BLOCK_EXPLORER_URL_TESTNET = "https://explorer.testnet.z.cash/tx/" // append transaction id in the end
+const val BLOCK_EXPLORER_URL_MAIN_NET = "https://zcashblockexplorer.com/transactions/" // append transaction id in the end

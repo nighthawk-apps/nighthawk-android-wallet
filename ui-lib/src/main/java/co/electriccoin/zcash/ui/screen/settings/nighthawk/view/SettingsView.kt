@@ -181,6 +181,9 @@ fun SettingsView(
                 onDismiss = {
                     showReScanDialog.value = false
                     onRescan(ReScanType.WIPE)
+                },
+                onDismissRequest = {
+                    showReScanDialog.value = false
                 }
             )
         }

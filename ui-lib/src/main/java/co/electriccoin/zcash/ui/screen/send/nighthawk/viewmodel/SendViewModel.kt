@@ -1,12 +1,19 @@
 package co.electriccoin.zcash.ui.screen.send.nighthawk.viewmodel
 
-import androidx.lifecycle.ViewModel
+import android.app.Application
+import androidx.lifecycle.AndroidViewModel
+import cash.z.ecc.android.sdk.Synchronizer
 import cash.z.ecc.android.sdk.ext.ZcashSdk
 import cash.z.ecc.android.sdk.ext.convertZecToZatoshi
 import cash.z.ecc.android.sdk.ext.toZec
 import cash.z.ecc.android.sdk.model.ZecSend
 import cash.z.ecc.android.sdk.model.toZecString
+import cash.z.ecc.android.sdk.type.AddressType
+import co.electriccoin.zcash.preference.api.PreferenceProvider
 import co.electriccoin.zcash.spackle.Twig
+import co.electriccoin.zcash.ui.common.UnsUtil
+import co.electriccoin.zcash.ui.preference.StandardPreferenceKeys
+import co.electriccoin.zcash.ui.preference.StandardPreferenceSingleton
 import co.electriccoin.zcash.ui.screen.home.model.WalletSnapshot
 import co.electriccoin.zcash.ui.screen.send.nighthawk.model.EnterZecUIState
 import co.electriccoin.zcash.ui.screen.send.nighthawk.model.NumberPadValueTypes
@@ -17,7 +24,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.getAndUpdate
 import kotlinx.coroutines.flow.update
 
-class SendViewModel: ViewModel() {
+class SendViewModel(val context: Application): AndroidViewModel(application = context) {
     private val _currentSendUiState = MutableStateFlow<SendUIState?>(SendUIState.ENTER_ZEC)
     val currentSendUIState: StateFlow<SendUIState?> get() = _currentSendUiState
 
@@ -33,6 +40,9 @@ class SendViewModel: ViewModel() {
         private set
     var zecSend: ZecSend? = null
         private set
+
+    private val uns by lazy { UnsUtil() }
+    private var prefProvider: PreferenceProvider? = null
 
     fun onNextSendUiState() {
         _currentSendUiState.getAndUpdate { it?.getNext(it) }
@@ -141,5 +151,30 @@ class SendViewModel: ViewModel() {
         zecSend = null
         updateMemo("")
         updateReceiverAddress("")
+    }
+
+    private suspend fun getSharedPrefProvider(): PreferenceProvider {
+        if (prefProvider == null) {
+            prefProvider = StandardPreferenceSingleton.getInstance(context)
+        }
+        return prefProvider as PreferenceProvider
+    }
+    suspend fun validateAddress(address: String, synchronizer: Synchronizer): AddressType {
+        var addressType = synchronizer.validateAddress(address)
+        if (addressType.isNotValid) {
+            if (StandardPreferenceKeys.IS_UNSTOPPABLE_SERVICE_ENABLED.getValue(getSharedPrefProvider())) {
+                runCatching {
+                    uns.isValidUNSAddress(address)
+                }.onSuccess {unsAddress ->
+                    if (unsAddress != null) {
+                        receiverAddress = unsAddress
+                        addressType = synchronizer.validateAddress(unsAddress)
+                    }
+                }.onFailure {
+                    Twig.info { "Error in validating unstoppable address $it" }
+                }
+            }
+        }
+        return addressType
     }
 }

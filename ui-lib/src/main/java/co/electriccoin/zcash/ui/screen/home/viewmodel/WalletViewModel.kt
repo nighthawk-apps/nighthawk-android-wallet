@@ -199,10 +199,11 @@ class WalletViewModel(application: Application) : AndroidViewModel(application) 
                     ?: return@flatMapLatest emptyFlow()
                 val synchronizer = synchronizer.value ?: return@flatMapLatest emptyFlow()
                 combine(
-                    synchronizer.getRecipients(transactionOverview),
+                    if (transactionOverview.isSentTransaction) synchronizer.getRecipients(transactionOverview) else emptyFlow(),
                     synchronizer.getMemos(transactionOverview),
-                    synchronizer.networkHeight) { transactionRecipient, memo, networkHeight ->
-                    return@combine TransactionDetailsUIModel(transactionOverview, transactionRecipient, synchronizer.network, networkHeight, memo)
+                    synchronizer.networkHeight
+                ) { transactionRecipient, memo, networkHeight ->
+                    TransactionDetailsUIModel(transactionOverview, transactionRecipient, synchronizer.network, networkHeight, memo)
                 }
             }.stateIn(
                 viewModelScope,
