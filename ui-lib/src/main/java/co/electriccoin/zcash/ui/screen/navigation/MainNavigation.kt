@@ -87,10 +87,8 @@ internal fun MainActivity.MainNavigation(navHostController: NavHostController, p
         composable(BottomNavItem.Settings.route) {
             AndroidSettings(
                 onSyncNotifications = { navHostController.navigateJustOnce(SYNC_NOTIFICATION) },
-                onFiatCurrency = {},
                 onSecurity = { navHostController.navigateJustOnce(SECURITY) },
                 onBackupWallet = { navHostController.navigateJustOnce(SETTING_BACK_UP_WALLET) },
-                onChangeServer = {},
                 onExternalServices = { navHostController.navigateJustOnce(EXTERNAL_SERVICES) },
                 onAbout = { navHostController.navigateJustOnce(ABOUT) }
             )

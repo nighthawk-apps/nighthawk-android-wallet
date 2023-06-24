@@ -23,6 +23,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import co.electriccoin.zcash.spackle.Twig
 import co.electriccoin.zcash.ui.R
 import co.electriccoin.zcash.ui.common.AlertDialog
 import co.electriccoin.zcash.ui.common.SettingsListItem
@@ -41,11 +42,9 @@ fun SettingsPreview() {
             SettingsView(
                 versionInfo = VersionInfoFixture.new(),
                 onSyncNotifications = {},
-                onFiatCurrency = {},
                 onSecurity = {},
                 onBackupWallet = {},
                 onRescan = {},
-                onChangeServer = {},
                 onExternalServices = {},
                 onAbout = {}
             )
@@ -57,11 +56,9 @@ fun SettingsPreview() {
 fun SettingsView(
     versionInfo: VersionInfo,
     onSyncNotifications: () -> Unit,
-    onFiatCurrency: () -> Unit,
     onSecurity: () -> Unit,
     onBackupWallet: () -> Unit,
     onRescan: (ReScanType) -> Unit,
-    onChangeServer: () -> Unit,
     onExternalServices: () -> Unit,
     onAbout: () -> Unit
 ) {
@@ -95,13 +92,13 @@ fun SettingsView(
                 .clickable { onSyncNotifications() }
         )
         Spacer(modifier = Modifier.height(10.dp))
-        SettingsListItem(
+        /*SettingsListItem(
             iconRes = R.drawable.ic_icon_fiat_currency,
             title = stringResource(id = R.string.ns_fiat_currency),
             desc = stringResource(id = R.string.ns_fiat_currency_text),
             modifier = Modifier.heightIn(min = dimensionResource(id = R.dimen.setting_list_item_min_height))
                 .clickable { onFiatCurrency() }
-        )
+        )*/
         Spacer(modifier = Modifier.height(10.dp))
         SettingsListItem(
             iconRes = R.drawable.ic_icon_security,
@@ -127,13 +124,14 @@ fun SettingsView(
                 .clickable { showReScanDialog.value = true }
         )
         Spacer(modifier = Modifier.height(10.dp))
-        SettingsListItem(
+
+        /*SettingsListItem(
             iconRes = R.drawable.ic_icon_change_server,
             title = stringResource(id = R.string.ns_change_server),
             desc = stringResource(id = R.string.ns_change_server_text),
             modifier = Modifier.heightIn(min = dimensionResource(id = R.dimen.setting_list_item_min_height))
                 .clickable { onChangeServer() }
-        )
+        )*/
         Spacer(modifier = Modifier.height(10.dp))
         SettingsListItem(
             iconRes = R.drawable.ic_icon_external_services,
