@@ -14,6 +14,7 @@ import cash.z.ecc.android.sdk.model.FiatCurrency
 import cash.z.ecc.android.sdk.model.PercentDecimal
 import cash.z.ecc.android.sdk.model.PersistableWallet
 import cash.z.ecc.android.sdk.model.TransactionOverview
+import cash.z.ecc.android.sdk.model.TransactionRecipient
 import cash.z.ecc.android.sdk.model.WalletAddresses
 import cash.z.ecc.android.sdk.model.WalletBalance
 import cash.z.ecc.android.sdk.model.Zatoshi
@@ -43,6 +44,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.WhileSubscribed
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.filterIsInstance
@@ -188,18 +190,14 @@ class WalletViewModel(application: Application) : AndroidViewModel(application) 
         )
 
     @OptIn(ExperimentalCoroutinesApi::class)
-    fun transactionUiModel(transactionId: Long): StateFlow<TransactionDetailsUIModel?> {
-        return synchronizer
-            .filterNotNull()
-            .flatMapLatest { synchronizer ->
-                synchronizer.transactions
-            }
+    fun transactionUiModel(transactionId: Long, synchronizer: Synchronizer): StateFlow<TransactionDetailsUIModel?> {
+        return synchronizer.transactions
+            .distinctUntilChanged()
             .flatMapLatest { transactionSnapshotList ->
                 val transactionOverview = transactionSnapshotList.find { it.id == transactionId }
                     ?: return@flatMapLatest emptyFlow()
-                val synchronizer = synchronizer.value ?: return@flatMapLatest emptyFlow()
                 combine(
-                    if (transactionOverview.isSentTransaction) synchronizer.getRecipients(transactionOverview) else emptyFlow(),
+                    if (transactionOverview.isSentTransaction) synchronizer.getRecipients(transactionOverview) else flowOf(TransactionRecipient.Account(Account.DEFAULT)),
                     synchronizer.getMemos(transactionOverview),
                     synchronizer.networkHeight
                 ) { transactionRecipient, memo, networkHeight ->

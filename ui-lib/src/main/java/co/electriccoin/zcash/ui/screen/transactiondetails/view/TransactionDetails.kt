@@ -47,7 +47,6 @@ import co.electriccoin.zcash.spackle.Twig
 import co.electriccoin.zcash.ui.R
 import co.electriccoin.zcash.ui.common.blockExplorerUrl
 import co.electriccoin.zcash.ui.design.component.BalanceText
-import co.electriccoin.zcash.ui.design.component.Body
 import co.electriccoin.zcash.ui.design.component.BodyMedium
 import co.electriccoin.zcash.ui.design.component.DottedBorderTextButton
 import co.electriccoin.zcash.ui.design.component.TitleLarge
@@ -56,7 +55,6 @@ import co.electriccoin.zcash.ui.screen.transactiondetails.model.TransactionDetai
 import kotlinx.datetime.Instant
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
-import java.nio.charset.Charset
 
 @Preview
 @Composable
@@ -144,7 +142,7 @@ fun TransactionDetails(transactionDetailsUIModel: TransactionDetailsUIModel?, on
         if (transactionDetailsUIModel.memo.isNotBlank()) {
             BodyMedium(text = stringResource(id = R.string.ns_memo), color = ZcashTheme.colors.surfaceEnd)
             Spacer(modifier = Modifier.height(10.dp))
-            Body(text = transactionDetailsUIModel.memo)
+            BodyMedium(text = transactionDetailsUIModel.memo)
             Spacer(modifier = Modifier.height(40.dp))
         }
 
@@ -213,7 +211,7 @@ fun TransactionDetails(transactionDetailsUIModel: TransactionDetailsUIModel?, on
 
         // TransactionId
         Spacer(modifier = Modifier.height(10.dp))
-        val transactionId = transactionDetailsUIModel.transactionOverview.rawId.byteArray.toString(Charset.defaultCharset())
+        val transactionId = toTxId(transactionDetailsUIModel.transactionOverview.rawId.byteArray)
         Divider(
             thickness = 1.dp,
             color = ZcashTheme.colors.surfaceEnd
@@ -348,4 +346,12 @@ private fun isSufficientlyOld(tx: TransactionDetailsUIModel): Boolean {
     val delta = System.currentTimeMillis() / 1000L - tx.transactionOverview.blockTimeEpochSeconds
     return (tx.transactionOverview.minedHeight?.value ?: Long.MIN_VALUE) > tx.network.saplingActivationHeight.value &&
         delta < threshold
+}
+
+private fun toTxId(tx: ByteArray): String {
+    val sb = StringBuilder(tx.size * 2)
+    for (i in (tx.size - 1) downTo 0) {
+        sb.append(String.format("%02x", tx[i]))
+    }
+    return sb.toString()
 }

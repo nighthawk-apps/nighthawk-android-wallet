@@ -54,6 +54,7 @@ import co.electriccoin.zcash.ui.design.component.BodyMedium
 import co.electriccoin.zcash.ui.design.component.BodySmall
 import co.electriccoin.zcash.ui.design.component.PrimaryButton
 import co.electriccoin.zcash.ui.design.component.TitleLarge
+import co.electriccoin.zcash.ui.design.component.TitleMedium
 import co.electriccoin.zcash.ui.design.theme.ZcashTheme
 import co.electriccoin.zcash.ui.fixture.WalletSnapshotFixture
 import co.electriccoin.zcash.ui.screen.home.model.WalletDisplayValues
@@ -191,7 +192,7 @@ fun WalletView(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                TitleLarge(text = stringResource(id = R.string.ns_view_all_transactions))
+                TitleMedium(text = stringResource(id = R.string.ns_view_all_transactions))
                 Icon(painter = painterResource(id = R.drawable.ic_arrow_right), contentDescription = null)
             }
         }

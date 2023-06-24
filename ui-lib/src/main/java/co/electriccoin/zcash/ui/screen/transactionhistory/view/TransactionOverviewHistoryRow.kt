@@ -27,7 +27,7 @@ import cash.z.ecc.android.sdk.model.TransactionOverview
 import co.electriccoin.zcash.ui.R
 import co.electriccoin.zcash.ui.design.component.Body
 import co.electriccoin.zcash.ui.design.component.BodySmall
-import co.electriccoin.zcash.ui.design.component.TitleLarge
+import co.electriccoin.zcash.ui.design.component.TitleMedium
 import co.electriccoin.zcash.ui.design.theme.ZcashTheme
 import kotlinx.datetime.Instant
 import kotlinx.datetime.TimeZone
@@ -57,7 +57,7 @@ fun TransactionOverviewHistoryRow(transactionOverview: TransactionOverview, onIt
             Icon(painter = painterResource(id = R.drawable.ic_icon_downloading), contentDescription = null, modifier = Modifier.rotate(if (transactionOverview.isSentTransaction) 180f else 0f))
             Spacer(modifier = Modifier.width(14.dp))
             Column {
-                TitleLarge(text = stringResource(id = if (transactionOverview.isSentTransaction) R.string.ns_sent else R.string.ns_received), textAlign = TextAlign.Center)
+                TitleMedium(text = stringResource(id = if (transactionOverview.isSentTransaction) R.string.ns_sent else R.string.ns_received), textAlign = TextAlign.Center)
                 Spacer(modifier = Modifier.height(4.dp))
                 BodySmall(text = Instant.fromEpochSeconds(transactionOverview.blockTimeEpochSeconds).toLocalDateTime(TimeZone.UTC).toJavaLocalDateTime().format(DateTimeFormatter.ofLocalizedDate(FormatStyle.SHORT)))
             }
