@@ -59,7 +59,7 @@ fun TransactionOverviewHistoryRow(transactionOverview: TransactionOverview, onIt
             Column {
                 TitleLarge(text = stringResource(id = if (transactionOverview.isSentTransaction) R.string.ns_sent else R.string.ns_received), textAlign = TextAlign.Center)
                 Spacer(modifier = Modifier.height(4.dp))
-                BodySmall(text = Instant.fromEpochMilliseconds(transactionOverview.blockTimeEpochSeconds).toLocalDateTime(TimeZone.UTC).toJavaLocalDateTime().format(DateTimeFormatter.ofLocalizedDate(FormatStyle.SHORT)))
+                BodySmall(text = Instant.fromEpochSeconds(transactionOverview.blockTimeEpochSeconds).toLocalDateTime(TimeZone.UTC).toJavaLocalDateTime().format(DateTimeFormatter.ofLocalizedDate(FormatStyle.SHORT)))
             }
             Spacer(modifier = Modifier.width(4.dp))
             if (transactionOverview.memoCount > 0) {
