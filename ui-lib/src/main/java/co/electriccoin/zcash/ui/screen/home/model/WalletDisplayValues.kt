@@ -56,7 +56,7 @@ data class WalletDisplayValues(
                         else -> {
                             statusIconDrawable = R.drawable.ic_icon_syncing
                             context.getString(
-                                R.string.ns_downloading_wallet,
+                                R.string.ns_syncing_wallet,
                                 progressPercent
                             )
                         }
