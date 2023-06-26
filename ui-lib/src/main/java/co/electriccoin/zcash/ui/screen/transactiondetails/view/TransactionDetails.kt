@@ -27,6 +27,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -45,7 +46,7 @@ import cash.z.ecc.android.sdk.model.ZcashNetwork
 import cash.z.ecc.android.sdk.model.toZecString
 import co.electriccoin.zcash.spackle.Twig
 import co.electriccoin.zcash.ui.R
-import co.electriccoin.zcash.ui.common.blockExplorerUrl
+import co.electriccoin.zcash.ui.common.blockExplorerUrlStringId
 import co.electriccoin.zcash.ui.design.component.BalanceText
 import co.electriccoin.zcash.ui.design.component.BodyMedium
 import co.electriccoin.zcash.ui.design.component.DottedBorderTextButton
@@ -79,6 +80,7 @@ fun TransactionDetails(transactionDetailsUIModel: TransactionDetailsUIModel?, on
         .padding(dimensionResource(id = R.dimen.screen_standard_margin))
         .verticalScroll(rememberScrollState())
     ) {
+        val context = LocalContext.current
         IconButton(onClick = onBack, modifier = Modifier.size(dimensionResource(id = R.dimen.back_icon_size))) {
             Icon(imageVector = Icons.Filled.ArrowBack, contentDescription = stringResource(R.string.receive_back_content_description))
         }
@@ -225,7 +227,10 @@ fun TransactionDetails(transactionDetailsUIModel: TransactionDetailsUIModel?, on
             Spacer(modifier = Modifier.width(50.dp))
             BodyMedium(text = transactionId, color = ZcashTheme.colors.surfaceEnd, textAlign = TextAlign.End)
         }
-        TextButton(onClick = { viewOnBlockExplorer(transactionDetailsUIModel.network.blockExplorerUrl(transactionId)) },
+        TextButton(
+            onClick = {
+                viewOnBlockExplorer(context.getString(transactionDetailsUIModel.network.blockExplorerUrlStringId(), transactionId))
+            },
             modifier = Modifier.align(Alignment.End)) {
             BodyMedium(text = stringResource(id = R.string.ns_view_block_explorer), color = ZcashTheme.colors.onBackgroundHeader, textAlign = TextAlign.End)
         }
@@ -330,11 +335,12 @@ fun TransactionDetails(transactionDetailsUIModel: TransactionDetailsUIModel?, on
 private fun getCountText(transactionDetailsUIModel: TransactionDetailsUIModel): String {
     val latestBlockHeight = transactionDetailsUIModel.networkHeight
     val minedHeight = transactionDetailsUIModel.transactionOverview.minedHeight
-     return if (latestBlockHeight == null) {
+    return if (latestBlockHeight == null) {
         if (isSufficientlyOld(transactionDetailsUIModel)) "Confirmed" else "Transaction Count unavailable"
     } else if (minedHeight != null) {
         "${latestBlockHeight.value - minedHeight.value}"
-    } else if ((transactionDetailsUIModel.transactionOverview.expiryHeight?.value ?: Long.MAX_VALUE) < latestBlockHeight.value) {
+    } else if ((transactionDetailsUIModel.transactionOverview.expiryHeight?.value
+            ?: Long.MAX_VALUE) < latestBlockHeight.value) {
         "Pending"
     } else {
         "Expired"

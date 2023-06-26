@@ -5,7 +5,7 @@ import androidx.activity.viewModels
 import androidx.compose.runtime.Composable
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import co.electriccoin.zcash.ui.MainActivity
-import co.electriccoin.zcash.ui.common.PRIVACY_POLICY_LINK
+import co.electriccoin.zcash.ui.R
 import co.electriccoin.zcash.ui.common.onLaunchUrl
 import co.electriccoin.zcash.ui.screen.home.viewmodel.WalletViewModel
 import co.electriccoin.zcash.ui.screen.onboarding.nighthawk.view.GetStarted
@@ -34,7 +34,7 @@ internal fun WrapOnBoarding(activity: ComponentActivity) {
             onCreateWallet = onCreateWallet,
             onRestore = onRestore,
             onReference = {
-                activity.onLaunchUrl(url = PRIVACY_POLICY_LINK)
+                activity.onLaunchUrl(url = activity.getString(R.string.ns_privacy_policy_link))
             }
         )
     } else {

@@ -8,8 +8,7 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import co.electriccoin.zcash.ui.MainActivity
-import co.electriccoin.zcash.ui.common.PRIVACY_POLICY_LINK
-import co.electriccoin.zcash.ui.common.VIEW_SOURCE_URL
+import co.electriccoin.zcash.ui.R
 import co.electriccoin.zcash.ui.common.onLaunchUrl
 import co.electriccoin.zcash.ui.screen.about.nighthawk.view.AboutView
 import co.electriccoin.zcash.ui.screen.about.nighthawk.view.LicencesView
@@ -47,10 +46,10 @@ internal fun WrapAboutView(activity: ComponentActivity, onBack: () -> Unit) {
             }
         },
         onViewSource = {
-            activity.onLaunchUrl(VIEW_SOURCE_URL)
+            activity.onLaunchUrl(activity.getString(R.string.ns_view_source))
         },
         onTermAndCondition = {
-            activity.onLaunchUrl(PRIVACY_POLICY_LINK)
+            activity.onLaunchUrl(activity.getString(R.string.ns_privacy_policy_link))
         },
         onViewLicence = {
             onViewLicences.value = true

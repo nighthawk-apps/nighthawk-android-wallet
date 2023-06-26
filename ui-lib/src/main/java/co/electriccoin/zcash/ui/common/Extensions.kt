@@ -14,6 +14,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.FragmentActivity
 import cash.z.ecc.android.sdk.model.ZcashNetwork
+import co.electriccoin.zcash.ui.R
 
 internal fun ComponentActivity.onLaunchUrl(url: String) {
     try {
@@ -88,9 +89,9 @@ internal fun FragmentActivity.authenticate(description: String, title: String, b
     }
 }
 
-internal fun ZcashNetwork.blockExplorerUrl(transactionId: String): String {
+internal fun ZcashNetwork.blockExplorerUrlStringId(): Int {
     return when (this) {
-        ZcashNetwork.Mainnet -> BLOCK_EXPLORER_URL_MAIN_NET + transactionId
-        else -> BLOCK_EXPLORER_URL_TESTNET + transactionId
+        ZcashNetwork.Mainnet -> R.string.ns_block_explorer_url_main_net
+        else -> R.string.ns_block_explorer_url_testnet
     }
 }
