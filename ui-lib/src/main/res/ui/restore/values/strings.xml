@@ -137,7 +137,7 @@
     <string name="ns_backup_wallet_pdf">Save as PDF</string>
     <string name="ns_rescan_wallet">Rescan wallet</string>
     <string name="ns_rescan_wallet_text">Rescan wallet balances to troubleshoot issues.</string>
-    <string name="ns_rescan_wallet_body">![CDATA[This fix may take a while!<br/><br/>A <b>FULL</b> scan will rewind %1$s blocks to this wallet\'s birthday and take around %2$s.<br/><br/>A <b>WIPE</b> is like a full scan but it first deletes all data then restores it from your backup seed words.]]</string>
+    <string name="ns_rescan_wallet_body">![CDATA[This fix may take a while!<br /><br />A <b>FULL</b> scan will rewind %1$s blocks to this wallet\'s birthday and take around %2$s.<br /><br />A <b>WIPE</b> is like a full scan but it first deletes all data then restores it from your backup seed words.]]</string>
     <string name="ns_rescan_wallet_full">Full rescan</string>
     <string name="ns_rescan_wallet_wipe">Wipe &amp; restart</string>
     <string name="ns_fiat_currency">Fiat Currency</string>
@@ -257,6 +257,9 @@
     <string name="ns_transparent">Transparent</string>
     <string name="ns_include_reply_to">include reply-to</string>
     <string name="transaction_history_format_date_time_brief" translatable="false">MM/dd/yy h:mma</string>
+    <string name="ns_migration_app_title">Migrating form Old App version</string>
+    <string name="ns_migration_app_error">Error encountered while importing the data from old storage, we recommend to uninstall app or clear the data and then manually enter the seed words for backup</string>
+    <string name="ns_migration_app_info">We have a new secured way to store data locally so we need to migrate your seed words to restore wallet. If you don\'t want to migrate automatically then you have to uninstall app or clear data of app and then restore by adding the seed words manually.\n\nWould you like to proceed automatically?</string>
 
     <string name="buy_zec_dialog_title">Buy ZEC from MoonPay</string>
     <string name="buy_zec_dialog_msg">Customers that are not US residents can purchase Zcash (ZEC) by registering with MoonPay.\n\nYour Zcash T-Address has been copied to the clipboard.\nChoose \"Open Browser\" below, Select \'Zcash (ZEC)\' as the receiving coin once MoonPay loads, and then paste your T-address.</string>
