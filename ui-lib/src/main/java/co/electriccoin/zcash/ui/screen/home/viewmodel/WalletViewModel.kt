@@ -32,6 +32,7 @@ import co.electriccoin.zcash.ui.preference.EncryptedPreferenceKeys
 import co.electriccoin.zcash.ui.preference.EncryptedPreferenceSingleton
 import co.electriccoin.zcash.ui.preference.StandardPreferenceKeys
 import co.electriccoin.zcash.ui.preference.StandardPreferenceSingleton
+import co.electriccoin.zcash.ui.screen.history.state.TransactionHistorySyncState
 import co.electriccoin.zcash.ui.screen.home.model.WalletSnapshot
 import co.electriccoin.zcash.ui.screen.transactiondetails.model.TransactionDetailsUIModel
 import kotlinx.collections.immutable.ImmutableList
@@ -249,6 +250,25 @@ class WalletViewModel(application: Application) : AndroidViewModel(application) 
             null
         )
 
+    @OptIn(ExperimentalCoroutinesApi::class)
+    val transactionHistoryState = synchronizer
+        .filterNotNull()
+        .flatMapLatest {
+            it.transactions
+                .combine(it.status) { transactions: List<TransactionOverview>, status: Synchronizer.Status ->
+                    if (status.isSyncing()) {
+                        TransactionHistorySyncState.Syncing(transactions.toPersistentList())
+                    } else {
+                        TransactionHistorySyncState.Done(transactions.toPersistentList())
+                    }
+                }
+        }
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(ANDROID_STATE_FLOW_TIMEOUT),
+            initialValue = TransactionHistorySyncState.Loading
+        )
+
     /**
      * Creates a wallet asynchronously and then persists it.  Clients observe
      * [secretState] to see the side effects.  This would be used for a user creating a new wallet.
@@ -432,3 +452,5 @@ private fun Synchronizer.toWalletSnapshot() =
             flows[6] as SynchronizerError?
         )
     }
+
+private fun Synchronizer.Status.isSyncing() = this == Synchronizer.Status.SYNCING
