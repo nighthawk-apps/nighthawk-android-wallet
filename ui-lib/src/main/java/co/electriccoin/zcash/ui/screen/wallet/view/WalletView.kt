@@ -45,10 +45,12 @@ import androidx.compose.ui.tooling.preview.Devices
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import cash.z.ecc.android.sdk.Synchronizer
+import cash.z.ecc.android.sdk.ext.convertZecToZatoshi
 import cash.z.ecc.android.sdk.internal.Twig
 import cash.z.ecc.android.sdk.model.TransactionOverview
 import co.electriccoin.zcash.ui.R
 import co.electriccoin.zcash.ui.common.DisableScreenTimeout
+import co.electriccoin.zcash.ui.common.MIN_ZEC_FOR_SHIELDING
 import co.electriccoin.zcash.ui.design.component.BalanceText
 import co.electriccoin.zcash.ui.design.component.BodyMedium
 import co.electriccoin.zcash.ui.design.component.BodySmall
@@ -150,7 +152,7 @@ fun WalletView(
                 PageIndicator(pageCount = pageCount, pagerState = state)
             }
             // Show shield now button in last if balanceViewType is Transparent and some transparentBalance is available 0.01 ZEC
-            if (balanceViewType == BalanceViewType.TRANSPARENT && walletSnapshot.transparentBalance.available.value > 1000000L) {
+            if (balanceViewType == BalanceViewType.TRANSPARENT && walletSnapshot.transparentBalance.available > MIN_ZEC_FOR_SHIELDING.convertZecToZatoshi()) {
                 Spacer(Modifier.height(dimensionResource(id = R.dimen.pageMargin)))
                 PrimaryButton(
                     onClick = onShieldNow,

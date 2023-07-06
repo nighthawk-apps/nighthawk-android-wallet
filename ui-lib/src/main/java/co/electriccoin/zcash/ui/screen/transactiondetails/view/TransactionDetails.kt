@@ -16,7 +16,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Divider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -94,11 +93,6 @@ fun TransactionDetails(transactionDetailsUIModel: TransactionDetailsUIModel?, on
 
         if (transactionDetailsUIModel == null) {
             Twig.info { "Transaction overview ui model is null" }
-            CircularProgressIndicator(
-                modifier = Modifier
-                    .align(Alignment.CenterHorizontally)
-                    .size(100.dp)
-            )
             return@Column
         }
 
