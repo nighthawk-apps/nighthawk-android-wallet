@@ -181,7 +181,7 @@ fun WalletView(
             BodyMedium(text = stringResource(id = R.string.ns_recent_activity), color = colorResource(id = co.electriccoin.zcash.ui.design.R.color.ns_parmaviolet))
             Spacer(modifier = Modifier.height(4.dp))
             transactionSnapshot.take(2).toImmutableList().forEach { transactionOverview ->
-                TransactionOverviewHistoryRow(transactionOverview = transactionOverview, onItemClick = { onTransactionDetail(it.id)})
+                TransactionOverviewHistoryRow(transactionOverview = transactionOverview, onItemClick = { onTransactionDetail(it.id) })
             }
             Spacer(modifier = Modifier.height(10.dp))
             Row(
@@ -228,25 +228,28 @@ fun PageIndicator(pageCount: Int, pagerState: PagerState) {
 
 @Composable
 fun BalanceView(balanceDisplayValues: BalanceDisplayValues) {
-    Column(modifier = Modifier
-        .fillMaxWidth()
-        .height(dimensionResource(id = R.dimen.home_view_pager_min_height)),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Image(
-            painter = painterResource(id = balanceDisplayValues.iconDrawableRes),
-            contentDescription = "logo", contentScale = ContentScale.Inside,
-            modifier = Modifier.align(Alignment.CenterHorizontally)
-        )
-        Spacer(Modifier.height(dimensionResource(id = R.dimen.pageMargin)))
-        if (balanceDisplayValues.balance.isNotBlank()) {
-            BalanceAmountRow(balance = balanceDisplayValues.balance, balanceUnit = balanceDisplayValues.balanceUnit, onFlipClicked = {})
-        }
-        if (balanceDisplayValues.msg.isNullOrBlank().not()) {
-            BodySmall(text = balanceDisplayValues.msg ?: "", textAlign = TextAlign.Center, color = colorResource(id = co.electriccoin.zcash.ui.design.R.color.ns_parmaviolet))
-        }
-        if (balanceDisplayValues.balanceType.isNotBlank()) {
-            BodySmall(text = balanceDisplayValues.balanceType, textAlign = TextAlign.Center, color = colorResource(id = co.electriccoin.zcash.ui.design.R.color.ns_parmaviolet))
+    Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+        Column(modifier = Modifier
+            .fillMaxWidth(0.8f)
+            .height(dimensionResource(id = R.dimen.home_view_pager_min_height)),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Image(
+                painter = painterResource(id = balanceDisplayValues.iconDrawableRes),
+                contentDescription = "logo", contentScale = ContentScale.Inside,
+                modifier = Modifier.align(Alignment.CenterHorizontally)
+            )
+            Spacer(Modifier.height(dimensionResource(id = R.dimen.pageMargin)))
+            if (balanceDisplayValues.balance.isNotBlank()) {
+                BalanceAmountRow(balance = balanceDisplayValues.balance, balanceUnit = balanceDisplayValues.balanceUnit, onFlipClicked = {})
+            }
+            if (balanceDisplayValues.msg.isNullOrBlank().not()) {
+                BodySmall(text = balanceDisplayValues.msg
+                    ?: "", textAlign = TextAlign.Center, color = colorResource(id = co.electriccoin.zcash.ui.design.R.color.ns_parmaviolet))
+            }
+            if (balanceDisplayValues.balanceType.isNotBlank()) {
+                BodySmall(text = balanceDisplayValues.balanceType, textAlign = TextAlign.Center, color = colorResource(id = co.electriccoin.zcash.ui.design.R.color.ns_parmaviolet))
+            }
         }
     }
 }
