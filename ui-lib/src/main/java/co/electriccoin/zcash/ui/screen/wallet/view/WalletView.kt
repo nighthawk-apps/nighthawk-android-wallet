@@ -140,8 +140,8 @@ fun WalletView(
         if (walletSnapshot.status == Synchronizer.Status.SYNCED) {
             // show synced status with viewpager
             val pageCount = BalanceViewType.TOTAL_VIEWS
-            val state = rememberPagerState()
-            HorizontalPager(pageCount = pageCount, state = state) { pageNo ->
+            val state = rememberPagerState(initialPage = 0) { pageCount }
+            HorizontalPager(state = state) { pageNo ->
                 val balanceDisplayValues = BalanceDisplayValues.getNextValue(LocalContext.current, BalanceViewType.getBalanceViewType(pageNo), walletSnapshot)
                 BalanceView(balanceDisplayValues = balanceDisplayValues)
             }
@@ -229,7 +229,7 @@ fun PageIndicator(pageCount: Int, pagerState: PagerState) {
 @Composable
 fun BalanceView(balanceDisplayValues: BalanceDisplayValues) {
     Column(modifier = Modifier
-        .fillMaxWidth(0.8f)
+        .fillMaxWidth()
         .height(dimensionResource(id = R.dimen.home_view_pager_min_height)),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
