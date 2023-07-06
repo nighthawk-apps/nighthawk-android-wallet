@@ -67,6 +67,12 @@ class MainActivity : FragmentActivity() {
         setupUiContent()
 
         monitorForBackgroundSync()
+
+        handleIntentData()
+    }
+
+    private fun handleIntentData() {
+        homeViewModel.intentDataUriForDeepLink = intent?.data
     }
 
     private fun setupSplashScreen() {

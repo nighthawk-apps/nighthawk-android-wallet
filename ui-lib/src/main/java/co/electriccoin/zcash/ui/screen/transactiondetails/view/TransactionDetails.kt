@@ -16,6 +16,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Divider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -92,8 +93,12 @@ fun TransactionDetails(transactionDetailsUIModel: TransactionDetailsUIModel?, on
         Spacer(modifier = Modifier.height(38.dp))
 
         if (transactionDetailsUIModel == null) {
-            // May be we can show error dialog or loading
             Twig.info { "Transaction overview ui model is null" }
+            CircularProgressIndicator(
+                modifier = Modifier
+                    .align(Alignment.CenterHorizontally)
+                    .size(100.dp)
+            )
             return@Column
         }
 
@@ -355,9 +360,9 @@ private fun isSufficientlyOld(tx: TransactionDetailsUIModel): Boolean {
 }
 
 private fun toTxId(tx: ByteArray): String {
-    val sb = StringBuilder(tx.size * 2)
+    var txId = ""
     for (i in (tx.size - 1) downTo 0) {
-        sb.append(String.format("%02x", tx[i]))
+        txId += String.format("%02x", tx[i])
     }
-    return sb.toString()
+    return txId
 }
