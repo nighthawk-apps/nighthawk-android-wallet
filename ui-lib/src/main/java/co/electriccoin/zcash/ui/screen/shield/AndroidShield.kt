@@ -41,11 +41,10 @@ internal fun WrapShield(activity: ComponentActivity, onBack: () -> Unit) {
 
     DisposableEffect(key1 = Unit) {
         shieldViewModel.checkAutoShieldUiState()
-        val previousVisibility = homeViewModel.isBottomNavBarVisible.value
         homeViewModel.onBottomNavBarVisibilityChanged(show = false)
         onDispose {
             shieldViewModel.clearData()
-            homeViewModel.onBottomNavBarVisibilityChanged(show = previousVisibility)
+            homeViewModel.onBottomNavBarVisibilityChanged(show = true)
         }
     }
 
