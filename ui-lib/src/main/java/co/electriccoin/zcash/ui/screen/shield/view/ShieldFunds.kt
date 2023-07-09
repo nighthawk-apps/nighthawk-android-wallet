@@ -34,7 +34,6 @@ import co.electriccoin.zcash.ui.design.theme.ZcashTheme
 import co.electriccoin.zcash.ui.screen.shield.model.ShieldingProcessState
 import com.airbnb.lottie.compose.LottieAnimation
 import com.airbnb.lottie.compose.LottieCompositionSpec
-import com.airbnb.lottie.compose.LottieConstants
 import com.airbnb.lottie.compose.rememberLottieComposition
 
 @Preview
@@ -68,7 +67,6 @@ fun ShieldFunds(onBack: () -> Unit, shieldingProcessState: ShieldingProcessState
 
         LottieAnimation(
             composition = composition,
-            iterations = LottieConstants.IterateForever,
             modifier = Modifier
                 .align(Alignment.CenterHorizontally)
                 .height(250.dp)
