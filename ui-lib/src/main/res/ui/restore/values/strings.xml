@@ -281,4 +281,5 @@
     <string name="open_settings">Open Settings</string>
     <string name="notification_permission_dialog_title">Alert</string>
     <string name="notification_permission_dialog_desc">To post any notification we need to provide Notifications permission.\nFrom Settings please allow Notifications permission</string>
+    <string name="transaction_id_copied">Transaction ID copied!!!</string>
 </resources>

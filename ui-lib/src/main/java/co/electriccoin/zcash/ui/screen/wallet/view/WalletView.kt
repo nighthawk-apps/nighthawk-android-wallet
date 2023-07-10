@@ -81,7 +81,8 @@ fun WalletPreview() {
                 onShieldNow = {},
                 onAddressQrCodes = {},
                 onTransactionDetail = {},
-                onViewTransactionHistory = {}
+                onViewTransactionHistory = {},
+                onLongItemClick = {}
             )
         }
     }
@@ -115,7 +116,8 @@ fun WalletView(
     onShieldNow: () -> Unit,
     onAddressQrCodes: () -> Unit,
     onTransactionDetail: (Long) -> Unit,
-    onViewTransactionHistory: () -> Unit
+    onViewTransactionHistory: () -> Unit,
+    onLongItemClick: (TransactionOverview) -> Unit
 ) {
     Column(modifier = Modifier
         .fillMaxSize()
@@ -183,7 +185,7 @@ fun WalletView(
             BodyMedium(text = stringResource(id = R.string.ns_recent_activity), color = colorResource(id = co.electriccoin.zcash.ui.design.R.color.ns_parmaviolet))
             Spacer(modifier = Modifier.height(4.dp))
             transactionSnapshot.take(2).toImmutableList().forEach { transactionOverview ->
-                TransactionOverviewHistoryRow(transactionOverview = transactionOverview, onItemClick = { onTransactionDetail(it.id) })
+                TransactionOverviewHistoryRow(transactionOverview = transactionOverview, onItemClick = { onTransactionDetail(it.id) }, onItemLongClick = onLongItemClick)
             }
             Spacer(modifier = Modifier.height(10.dp))
             Row(

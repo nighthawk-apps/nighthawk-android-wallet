@@ -4,9 +4,15 @@ import androidx.activity.ComponentActivity
 import androidx.activity.viewModels
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.text.AnnotatedString
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import cash.z.ecc.android.sdk.model.TransactionOverview
 import co.electriccoin.zcash.global.DeepLinkUtil
 import co.electriccoin.zcash.ui.MainActivity
+import co.electriccoin.zcash.ui.R
+import co.electriccoin.zcash.ui.common.showMessage
+import co.electriccoin.zcash.ui.common.toFormattedString
 import co.electriccoin.zcash.ui.configuration.ConfigurationEntries
 import co.electriccoin.zcash.ui.configuration.RemoteConfig
 import co.electriccoin.zcash.ui.screen.home.viewmodel.HomeViewModel
@@ -51,6 +57,7 @@ internal fun WrapWallet(
     val isKeepScreenOnWhileSyncing =
         settingsViewModel.isKeepScreenOnWhileSyncing.collectAsStateWithLifecycle().value
     val isFiatConversionEnabled = ConfigurationEntries.IS_FIAT_CONVERSION_ENABLED.getValue(RemoteConfig.current)
+    val clipboardManager = LocalClipboardManager.current
 
     if (null == walletSnapshot) {
         // We can show progress bar
@@ -69,6 +76,10 @@ internal fun WrapWallet(
                 }
             }
         }
+        val onItemLongClickAction: (TransactionOverview) -> Unit = {
+            clipboardManager.setText(AnnotatedString(it.rawId.byteArray.toFormattedString()))
+            activity.showMessage(activity.getString(R.string.transaction_id_copied))
+        }
         WalletView(
             walletSnapshot = walletSnapshot,
             transactionSnapshot = transactionSnapshot,
@@ -77,7 +88,8 @@ internal fun WrapWallet(
             onShieldNow = onShieldNow,
             onAddressQrCodes = onAddressQrCodes,
             onTransactionDetail = onTransactionDetail,
-            onViewTransactionHistory = onViewTransactionHistory
+            onViewTransactionHistory = onViewTransactionHistory,
+            onLongItemClick = onItemLongClickAction
         )
     }
     activity.reportFullyDrawn()
