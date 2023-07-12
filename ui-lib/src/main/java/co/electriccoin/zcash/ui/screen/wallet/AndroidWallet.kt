@@ -13,6 +13,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import cash.z.ecc.android.sdk.ext.convertZecToZatoshi
 import cash.z.ecc.android.sdk.model.TransactionOverview
 import cash.z.ecc.android.sdk.model.Zatoshi
+import cash.z.ecc.android.sdk.model.toZecString
 import co.electriccoin.zcash.global.DeepLinkUtil
 import co.electriccoin.zcash.spackle.Twig
 import co.electriccoin.zcash.ui.MainActivity
@@ -92,6 +93,11 @@ internal fun WrapWallet(
                     }
                 }
                 checkForAutoShielding(walletSnapshot.transparentBalance.available, shieldViewModel)
+                if (homeViewModel.isAnyExpectingTransaction(walletSnapshot)) {
+                    activity.showMessage(activity.getString(R.string.ns_expecting_balance_snack_bar_msg,
+                        Zatoshi(homeViewModel.expectingZatoshi).toZecString()
+                    ))
+                }
             }
         }
         val onItemLongClickAction: (TransactionOverview) -> Unit = {
