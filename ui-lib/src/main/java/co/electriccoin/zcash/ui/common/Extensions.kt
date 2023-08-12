@@ -13,6 +13,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.FragmentActivity
+import cash.z.ecc.android.sdk.ext.isShielded
 import cash.z.ecc.android.sdk.model.ZcashNetwork
 import co.electriccoin.zcash.ui.R
 
@@ -41,6 +42,14 @@ internal fun Context.isBioMetricEnabledOnMobile(): Boolean {
 
 internal fun Context.showMessage(message: String) {
     Toast.makeText(this, message, Toast.LENGTH_SHORT).show()
+}
+
+internal fun ByteArray.toFormattedString(): String {
+    var txId = ""
+    for (i in (this.size - 1) downTo 0) {
+        txId += String.format("%02x", this[i])
+    }
+    return txId
 }
 
 internal fun FragmentActivity.authenticate(description: String, title: String, block: () -> Unit) {
@@ -89,9 +98,19 @@ internal fun FragmentActivity.authenticate(description: String, title: String, b
     }
 }
 
-internal fun ZcashNetwork.blockExplorerUrlStringId(): Int {
+internal fun ZcashNetwork?.blockExplorerUrlStringId(): Int {
     return when (this) {
         ZcashNetwork.Mainnet -> R.string.ns_block_explorer_url_main_net
         else -> R.string.ns_block_explorer_url_testnet
+    }
+}
+
+internal fun String.addressTypeNameId(): Int {
+    return if (this.isShielded()) {
+        R.string.ns_legacy_shielded_sapling
+    } else if (this.startsWith("u")) {
+        R.string.ns_shielded
+    } else {
+        R.string.ns_transparent
     }
 }

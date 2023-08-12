@@ -12,25 +12,18 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import cash.z.ecc.android.sdk.ext.ZcashSdk
 import cash.z.ecc.android.sdk.ext.convertZatoshiToZecString
-import cash.z.ecc.android.sdk.ext.isShielded
 import cash.z.ecc.android.sdk.model.MonetarySeparators
 import cash.z.ecc.android.sdk.model.Zatoshi
 import cash.z.ecc.android.sdk.model.ZecSendExt
-import cash.z.ecc.android.sdk.model.send
-import cash.z.ecc.android.sdk.model.toZecString
 import co.electriccoin.zcash.spackle.Twig
 import co.electriccoin.zcash.ui.MainActivity
-import co.electriccoin.zcash.ui.R
 import co.electriccoin.zcash.ui.screen.home.viewmodel.HomeViewModel
 import co.electriccoin.zcash.ui.screen.home.viewmodel.WalletViewModel
 import co.electriccoin.zcash.ui.screen.navigation.BottomNavItem
 import co.electriccoin.zcash.ui.screen.send.ext.ABBREVIATION_INDEX
-import co.electriccoin.zcash.ui.screen.send.nighthawk.model.SendAndReviewUiState
-import co.electriccoin.zcash.ui.screen.send.nighthawk.model.SendConfirmationState
+import co.electriccoin.zcash.ui.screen.send.model.SendArgumentsWrapper
 import co.electriccoin.zcash.ui.screen.send.nighthawk.model.SendUIState
 import co.electriccoin.zcash.ui.screen.send.nighthawk.view.EnterMessage
 import co.electriccoin.zcash.ui.screen.send.nighthawk.view.EnterReceiverAddress
@@ -48,7 +41,8 @@ internal fun MainActivity.AndroidSend(
     onTopUpWallet: () -> Unit,
     navigateTo: (String) -> Unit,
     onMoreDetails: (Long) -> Unit,
-    onScan: () -> Unit
+    onScan: () -> Unit,
+    sendArgumentsWrapper: SendArgumentsWrapper? = null
 ) {
     WrapAndroidSend(
         activity = this,
@@ -56,7 +50,8 @@ internal fun MainActivity.AndroidSend(
         onTopUpWallet = onTopUpWallet,
         navigateTo = navigateTo,
         onMoreDetails = onMoreDetails,
-        onScan = onScan
+        onScan = onScan,
+        sendArgumentsWrapper = sendArgumentsWrapper
     )
 }
 
@@ -67,24 +62,18 @@ internal fun WrapAndroidSend(
     onTopUpWallet: () -> Unit,
     navigateTo: (String) -> Unit,
     onMoreDetails: (Long) -> Unit,
-    onScan: () -> Unit
+    onScan: () -> Unit,
+    sendArgumentsWrapper: SendArgumentsWrapper? = null
 ) {
     val homeViewModel by activity.viewModels<HomeViewModel>()
     val sendViewModel by activity.viewModels<SendViewModel>()
     val walletViewModel by activity.viewModels<WalletViewModel>()
-
-    val showBottomBarOnDispose = remember {
-        mutableStateOf(true)
-    }
 
     val sendUIState = sendViewModel.currentSendUIState.collectAsStateWithLifecycle()
     BackHandler(enabled = sendUIState.value != SendUIState.ENTER_ZEC) {
         Twig.info { "WrapAndroidSend BackHandler: sendUIState $sendUIState" }
     }
     DisposableEffect(key1 = Unit) {
-        homeViewModel.onBottomNavBarVisibilityChanged(show = false)
-        showBottomBarOnDispose.value = true
-
         // Check for deepLink data if there is any. If we found then update receiverAddress, amount and memo
         homeViewModel.sendDeepLinkData?.let {
             sendViewModel.updateReceiverAddress(it.address)
@@ -92,9 +81,15 @@ internal fun WrapAndroidSend(
             it.memo?.let { memo -> sendViewModel.updateMemo(memo) }
         }?.also { homeViewModel.sendDeepLinkData = null }
 
+        // Get data after scan the QR code and update sendViewModel receiver address
+        sendArgumentsWrapper?.let {
+            it.recipientAddress?.let { address ->
+                sendViewModel.updateReceiverAddress(address)
+            }
+        }
+
         onDispose {
             Twig.info { "WrapAndroidSend: onDispose $sendUIState" }
-            homeViewModel.onBottomNavBarVisibilityChanged(show = showBottomBarOnDispose.value)
         }
     }
 
@@ -105,17 +100,11 @@ internal fun WrapAndroidSend(
             EnterZec(
                 enterZecUIState = enterZecUIState.value,
                 onBack = onBack,
-                onScanPaymentCode = {
-                    showBottomBarOnDispose.value = false
-                    onScan.invoke()
-                },
+                onScanPaymentCode = onScan,
                 onContinue = sendViewModel::onNextSendUiState,
                 onTopUpWallet = onTopUpWallet,
-                onNotEnoughZCash = {
-                    sendViewModel.clearViewModelSavedData()
-                    onBack()
-                },
-                onKeyPressed = sendViewModel::onKeyPressed
+                onKeyPressed = sendViewModel::onKeyPressed,
+                onSendAllClicked = sendViewModel::onSendAllClicked
             )
         }
 
@@ -154,9 +143,10 @@ internal fun WrapAndroidSend(
             }
 
             EnterReceiverAddress(
-                receiverAddress = sendViewModel.receiverAddress,
+                receiverAddress = sendArgumentsWrapper?.recipientAddress ?: sendViewModel.receiverAddress,
                 isContinueBtnEnabled = isContinueEnabled,
                 onBack = sendViewModel::onPreviousSendUiState,
+                onScan = onScan,
                 onValueChanged = { address ->
                     if (address.length <= ABBREVIATION_INDEX) {
                         isContinueEnabled = false
@@ -190,62 +180,13 @@ internal fun WrapAndroidSend(
         }
 
         SendUIState.REVIEW_AND_SEND -> {
-            val scope = rememberCoroutineScope()
             val synchronizer = walletViewModel.synchronizer.collectAsStateWithLifecycle().value
             val spendingKey = walletViewModel.spendingKey.collectAsStateWithLifecycle().value
             ReviewAndSend(
-                sendAndReviewUiState = SendAndReviewUiState()
-                    .copy(
-                        amountToSend = sendViewModel.zecSend?.amount?.toZecString() ?: "",
-                        convertedAmountWithCurrency = "--",
-                        memo = sendViewModel.zecSend?.memo?.value ?: "",
-                        recipientType = if ((sendViewModel.zecSend?.destination?.address
-                                ?: "").isShielded()
-                        )
-                            stringResource(id = R.string.ns_shielded) else stringResource(id = R.string.ns_transparent),
-                        receiverAddress = sendViewModel.zecSend?.destination?.address ?: "",
-                        subTotal = sendViewModel.zecSend?.amount?.toZecString() ?: "",
-                        networkFees = ZcashSdk.MINERS_FEE.toZecString(),
-                        totalAmount = "${
-                            sendViewModel.zecSend?.amount?.plus(ZcashSdk.MINERS_FEE)?.toZecString()
-                        }"
-                    ),
+                sendAndReviewUiState = sendViewModel.sendAndReviewUiState(),
                 onBack = sendViewModel::onPreviousSendUiState,
                 onSendZCash = {
-                    sendViewModel.onSendZCash()
-                    scope.launch {
-                        val zecSend = sendViewModel.zecSend
-                        if (zecSend == null) {
-                            Twig.error { "Sending Zec: Send zec is null" }
-                            sendViewModel.updateSendConfirmationState(SendConfirmationState.Failed)
-                            return@launch
-                        }
-                        if (spendingKey == null) {
-                            Twig.error { "Sending Zec: spending key is null" }
-                            sendViewModel.updateSendConfirmationState(SendConfirmationState.Failed)
-                            return@launch
-                        }
-                        if (synchronizer == null) {
-                            Twig.error { "Sending Zec: synchronizer is null" }
-                            sendViewModel.updateSendConfirmationState(SendConfirmationState.Failed)
-                            return@launch
-                        }
-                        runCatching {
-                            synchronizer.send(spendingKey = spendingKey, send = zecSend)
-                        }
-                            .onSuccess {
-                                Twig.info { "Sending Zec: Sent successfully $it" }
-                                sendViewModel.updateSendConfirmationState(
-                                    SendConfirmationState.Success(
-                                        it
-                                    )
-                                )
-                            }
-                            .onFailure {
-                                Twig.error { "Sending Zec: Send fail $it" }
-                                sendViewModel.updateSendConfirmationState(SendConfirmationState.Failed)
-                            }
-                    }
+                    sendViewModel.onSendZCash(sendViewModel.zecSend, spendingKey, synchronizer)
                 }
             )
         }

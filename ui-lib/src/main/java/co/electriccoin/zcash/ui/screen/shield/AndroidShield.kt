@@ -9,10 +9,10 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
 import co.electriccoin.zcash.spackle.Twig
 import co.electriccoin.zcash.ui.MainActivity
 import co.electriccoin.zcash.ui.common.onLaunchUrl
-import co.electriccoin.zcash.ui.screen.home.viewmodel.HomeViewModel
 import co.electriccoin.zcash.ui.screen.home.viewmodel.WalletViewModel
 import co.electriccoin.zcash.ui.screen.shield.model.ShieldUIState
 import co.electriccoin.zcash.ui.screen.shield.model.ShieldUiDestination
@@ -30,8 +30,7 @@ internal fun MainActivity.AndroidShield(onBack: () -> Unit) {
 
 @Composable
 internal fun WrapShield(activity: ComponentActivity, onBack: () -> Unit) {
-    val shieldViewModel by activity.viewModels<ShieldViewModel>()
-    val homeViewModel by activity.viewModels<HomeViewModel>()
+    val shieldViewModel = viewModel<ShieldViewModel>()
     val walletViewModel by activity.viewModels<WalletViewModel>()
     val scope = rememberCoroutineScope()
 
@@ -41,10 +40,8 @@ internal fun WrapShield(activity: ComponentActivity, onBack: () -> Unit) {
 
     DisposableEffect(key1 = Unit) {
         shieldViewModel.checkAutoShieldUiState()
-        homeViewModel.onBottomNavBarVisibilityChanged(show = false)
         onDispose {
             shieldViewModel.clearData()
-            homeViewModel.onBottomNavBarVisibilityChanged(show = true)
         }
     }
 

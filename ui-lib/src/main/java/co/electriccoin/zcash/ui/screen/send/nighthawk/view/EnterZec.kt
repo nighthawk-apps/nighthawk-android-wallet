@@ -2,6 +2,7 @@ package co.electriccoin.zcash.ui.screen.send.nighthawk.view
 
 import android.widget.Toast
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -36,7 +37,6 @@ import co.electriccoin.zcash.ui.design.component.Body
 import co.electriccoin.zcash.ui.design.component.BodyMedium
 import co.electriccoin.zcash.ui.design.component.DottedBorderTextButton
 import co.electriccoin.zcash.ui.design.component.PrimaryButton
-import co.electriccoin.zcash.ui.design.component.TertiaryButton
 import co.electriccoin.zcash.ui.design.component.TitleLarge
 import co.electriccoin.zcash.ui.design.theme.ZcashTheme
 import co.electriccoin.zcash.ui.screen.send.nighthawk.model.EnterZecUIState
@@ -62,8 +62,8 @@ fun EnterZecPreview() {
                 onScanPaymentCode = {},
                 onContinue = {},
                 onTopUpWallet = {},
-                onNotEnoughZCash = {},
-                onKeyPressed = {}
+                onKeyPressed = {},
+                onSendAllClicked = {}
             )
         }
     }
@@ -76,8 +76,8 @@ fun EnterZec(
     onScanPaymentCode: () -> Unit,
     onContinue: () -> Unit,
     onTopUpWallet: () -> Unit,
-    onNotEnoughZCash: () -> Unit,
-    onKeyPressed: (NumberPadValueTypes) -> Unit
+    onKeyPressed: (NumberPadValueTypes) -> Unit,
+    onSendAllClicked: (String) -> Unit
 ) {
     Column(modifier = Modifier
         .fillMaxSize()
@@ -99,7 +99,14 @@ fun EnterZec(
                 TitleLarge(text = stringResource(id = R.string.ns_nighthawk), textAlign = TextAlign.Center, modifier = Modifier.align(Alignment.CenterHorizontally))
                 Spacer(modifier = Modifier.height(dimensionResource(id = R.dimen.pageMargin)))
                 BodyMedium(text = stringResource(id = R.string.ns_choose_send), textAlign = TextAlign.Center, modifier = Modifier.align(Alignment.CenterHorizontally), color = ZcashTheme.colors.surfaceEnd)
-                BodyMedium(text = stringResource(id = R.string.ns_spendable_balance, enterZecUIState.spendableBalance, enterZecUIState.amountUnit), textAlign = TextAlign.Center, modifier = Modifier.align(Alignment.CenterHorizontally), color = ZcashTheme.colors.surfaceEnd)
+                BodyMedium(
+                    text = stringResource(id = R.string.ns_spendable_balance, enterZecUIState.spendableBalance, enterZecUIState.amountUnit),
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier
+                        .align(Alignment.CenterHorizontally)
+                        .clickable { onSendAllClicked(enterZecUIState.spendableBalance) },
+                    color = ZcashTheme.colors.surfaceEnd
+                )
                 Spacer(modifier = Modifier.height(40.dp))
                 BalanceAmountRow(balance = enterZecUIState.enteredAmount, balanceUnit = enterZecUIState.amountUnit, onFlipClicked = {}, modifier = Modifier.align(Alignment.CenterHorizontally))
                 Spacer(modifier = Modifier.height(12.dp))
@@ -112,7 +119,7 @@ fun EnterZec(
                     DottedBorderTextButton(
                         onClick = onScanPaymentCode,
                         text = stringResource(id = R.string.ns_scan_payment_code),
-                        modifier = Modifier.align(Alignment.CenterHorizontally).height(36.dp)
+                        modifier = Modifier.align(Alignment.CenterHorizontally).height(dimensionResource(id = R.dimen.button_height))
                     )
                 }
 
@@ -132,15 +139,7 @@ fun EnterZec(
                         text = stringResource(id = R.string.ns_top_up_wallet).uppercase(),
                         modifier = Modifier
                             .align(Alignment.CenterHorizontally)
-                            .sizeIn(minWidth = 220.dp, minHeight = dimensionResource(id = R.dimen.button_height))
-                    )
-
-                    TertiaryButton(
-                        onClick = onNotEnoughZCash,
-                        text = stringResource (id = R.string.ns_not_enough_zcash).uppercase(),
-                        modifier = Modifier
-                            .align(Alignment.CenterHorizontally)
-                            .sizeIn(minWidth = 220.dp, minHeight = dimensionResource(id = R.dimen.button_height))
+                            .sizeIn(minWidth = dimensionResource(id = R.dimen.restore_button_min_width), minHeight = dimensionResource(id = R.dimen.button_height))
                     )
                 }
                 Spacer(modifier = Modifier.height(dimensionResource(id = R.dimen.text_margin)))

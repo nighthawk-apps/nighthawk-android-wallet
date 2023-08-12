@@ -23,7 +23,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import co.electriccoin.zcash.spackle.Twig
 import co.electriccoin.zcash.ui.R
 import co.electriccoin.zcash.ui.common.AlertDialog
 import co.electriccoin.zcash.ui.common.SettingsListItem
@@ -45,6 +44,7 @@ fun SettingsPreview() {
                 onSecurity = {},
                 onBackupWallet = {},
                 onRescan = {},
+                onAdvancedSetting = {},
                 onExternalServices = {},
                 onAbout = {}
             )
@@ -59,6 +59,7 @@ fun SettingsView(
     onSecurity: () -> Unit,
     onBackupWallet: () -> Unit,
     onRescan: (ReScanType) -> Unit,
+    onAdvancedSetting: () -> Unit,
     onExternalServices: () -> Unit,
     onAbout: () -> Unit
 ) {
@@ -91,8 +92,8 @@ fun SettingsView(
             modifier = Modifier.heightIn(min = dimensionResource(id = R.dimen.setting_list_item_min_height))
                 .clickable { onSyncNotifications() }
         )
-        Spacer(modifier = Modifier.height(10.dp))
-        /*SettingsListItem(
+        /*Spacer(modifier = Modifier.height(10.dp))
+        SettingsListItem(
             iconRes = R.drawable.ic_icon_fiat_currency,
             title = stringResource(id = R.string.ns_fiat_currency),
             desc = stringResource(id = R.string.ns_fiat_currency_text),
@@ -123,9 +124,8 @@ fun SettingsView(
             modifier = Modifier.heightIn(min = dimensionResource(id = R.dimen.setting_list_item_min_height))
                 .clickable { showReScanDialog.value = true }
         )
-        Spacer(modifier = Modifier.height(10.dp))
-
-        /*SettingsListItem(
+        /*Spacer(modifier = Modifier.height(10.dp))
+        SettingsListItem(
             iconRes = R.drawable.ic_icon_change_server,
             title = stringResource(id = R.string.ns_change_server),
             desc = stringResource(id = R.string.ns_change_server_text),
@@ -139,6 +139,14 @@ fun SettingsView(
             desc = stringResource(id = R.string.ns_external_services_text),
             modifier = Modifier.heightIn(min = dimensionResource(id = R.dimen.setting_list_item_min_height))
                 .clickable { onExternalServices() }
+        )
+        Spacer(modifier = Modifier.height(10.dp))
+        SettingsListItem(
+            iconRes = R.drawable.ic_icon_settings,
+            title = stringResource(id = R.string.advanced),
+            desc = stringResource(id = R.string.advanced_msg),
+            modifier = Modifier.heightIn(min = dimensionResource(id = R.dimen.setting_list_item_min_height))
+                .clickable { onAdvancedSetting() }
         )
         Spacer(modifier = Modifier.height(10.dp))
         SettingsListItem(

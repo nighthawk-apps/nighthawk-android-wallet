@@ -1,13 +1,13 @@
 package co.electriccoin.zcash.ui.design.component
 
 import androidx.annotation.DrawableRes
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
@@ -17,6 +17,7 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ButtonDefaults.buttonColors
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -32,6 +33,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import co.electriccoin.zcash.spackle.Twig
 import co.electriccoin.zcash.ui.design.R
 import co.electriccoin.zcash.ui.design.theme.ZcashTheme
 import co.electriccoin.zcash.ui.design.theme.internal.Typography
@@ -47,6 +49,7 @@ private fun ButtonComposablePreview() {
                 TertiaryButton(onClick = { }, text = "Tertiary")
                 NavigationButton(onClick = { }, text = "Navigation")
                 DottedBorderTextButton(onClick = { }, text = "Scan a payment code")
+                OutlinedPrimaryButton(onClick = { }, text = "Border Button")
             }
         }
     }
@@ -63,13 +66,10 @@ fun PrimaryButton(
     ),
     enabled: Boolean = true
 ) {
+    Twig.info { "$outerPaddingValues" }
     Button(
         onClick = onClick,
-        modifier = modifier.then(
-            Modifier
-                .padding(outerPaddingValues)
-                .defaultMinSize(minWidth = 1.dp, minHeight = 1.dp)
-        ),
+        modifier = modifier,
         enabled = enabled,
         colors = buttonColors(
             containerColor = MaterialTheme.colorScheme.primary,
@@ -148,13 +148,10 @@ fun TertiaryButton(
     ),
     enabled: Boolean = true
 ) {
+    Twig.info { "$outerPaddingValues" }
     Button(
         onClick = onClick,
-        modifier = modifier.then(
-            Modifier
-                .padding(outerPaddingValues)
-                .defaultMinSize(minWidth = 1.dp, minHeight = 1.dp)
-        ),
+        modifier = modifier,
         enabled = enabled,
         elevation = ButtonDefaults.buttonElevation(0.dp, 0.dp, 0.dp),
         colors = buttonColors(containerColor = ZcashTheme.colors.tertiary),
@@ -165,6 +162,23 @@ fun TertiaryButton(
             text = text,
             color = ZcashTheme.colors.onTertiary
         )
+    }
+}
+
+@Composable
+fun OutlinedPrimaryButton(
+    onClick: () -> Unit,
+    text: String,
+    modifier: Modifier = Modifier,
+    borderStroke: BorderStroke = BorderStroke(1.dp, color = MaterialTheme.colorScheme.primary)
+) {
+    OutlinedButton(
+        onClick = onClick,
+        modifier = modifier,
+        shape = RoundedCornerShape(8.dp),
+        border = borderStroke
+    ) {
+        Text(text = text, style = Typography.bodyMedium, color = Color.White)
     }
 }
 

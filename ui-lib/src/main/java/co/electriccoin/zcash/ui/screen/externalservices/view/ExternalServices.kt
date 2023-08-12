@@ -59,7 +59,7 @@ fun ExternalServices(onBack: () -> Unit, isUnstoppableChecked: Boolean, onUnstop
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            BodyMedium(text = stringResource(id = R.string.ns_external_services_uns))
+            BodyMedium(text = stringResource(id = R.string.ns_external_services_uns), modifier = Modifier.weight(1f))
             Switch(
                 checked = isUnstoppableChecked,
                 onCheckedChange = { onUnstoppableCheckStateChanged(it) },

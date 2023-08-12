@@ -2,9 +2,6 @@ package co.electriccoin.zcash.ui.screen.navigation
 
 import androidx.annotation.DrawableRes
 import androidx.annotation.StringRes
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.slideInVertically
-import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Icon
@@ -33,10 +30,12 @@ import co.electriccoin.zcash.ui.NavigationArguments
 import co.electriccoin.zcash.ui.R
 import co.electriccoin.zcash.ui.design.component.BodySmall
 import co.electriccoin.zcash.ui.screen.about.nighthawk.AndroidAboutView
+import co.electriccoin.zcash.ui.screen.advancesetting.AndroidAdvancedSetting
 import co.electriccoin.zcash.ui.screen.externalservices.AndroidExternalServicesView
 import co.electriccoin.zcash.ui.screen.navigation.ArgumentKeys.IS_PIN_SETUP
 import co.electriccoin.zcash.ui.screen.navigation.ArgumentKeys.TRANSACTION_DETAILS_ID
 import co.electriccoin.zcash.ui.screen.navigation.NavigationTargets.ABOUT
+import co.electriccoin.zcash.ui.screen.navigation.NavigationTargets.ADVANCED_SETTING
 import co.electriccoin.zcash.ui.screen.navigation.NavigationTargets.EXTERNAL_SERVICES
 import co.electriccoin.zcash.ui.screen.navigation.NavigationTargets.PIN
 import co.electriccoin.zcash.ui.screen.navigation.NavigationTargets.RECEIVE_MONEY
@@ -55,6 +54,7 @@ import co.electriccoin.zcash.ui.screen.receive.nighthawk.AndroidReceive
 import co.electriccoin.zcash.ui.screen.receiveqrcodes.AndroidReceiveQrCodes
 import co.electriccoin.zcash.ui.screen.scan.WrapScanValidator
 import co.electriccoin.zcash.ui.screen.security.AndroidSecurity
+import co.electriccoin.zcash.ui.screen.send.model.SendArgumentsWrapper
 import co.electriccoin.zcash.ui.screen.send.nighthawk.AndroidSend
 import co.electriccoin.zcash.ui.screen.settings.nighthawk.AndroidSettings
 import co.electriccoin.zcash.ui.screen.shield.AndroidShield
@@ -65,6 +65,7 @@ import co.electriccoin.zcash.ui.screen.transactionhistory.AndroidTransactionHist
 import co.electriccoin.zcash.ui.screen.transfer.AndroidTransfer
 import co.electriccoin.zcash.ui.screen.wallet.AndroidWallet
 import co.electriccoin.zcash.ui.settingbackupwallet.AndroidSettingBackUpWallet
+import kotlinx.collections.immutable.persistentListOf
 
 @Composable
 internal fun MainActivity.MainNavigation(navHostController: NavHostController, paddingValues: PaddingValues) {
@@ -90,11 +91,12 @@ internal fun MainActivity.MainNavigation(navHostController: NavHostController, p
                 onSyncNotifications = { navHostController.navigateJustOnce(SYNC_NOTIFICATION) },
                 onSecurity = { navHostController.navigateJustOnce(SECURITY) },
                 onBackupWallet = { navHostController.navigateJustOnce(SETTING_BACK_UP_WALLET) },
+                onAdvancedSetting = { navHostController.navigateJustOnce(ADVANCED_SETTING) },
                 onExternalServices = { navHostController.navigateJustOnce(EXTERNAL_SERVICES) },
                 onAbout = { navHostController.navigateJustOnce(ABOUT) }
             )
         }
-        composable(SEND_MONEY) {
+        composable(SEND_MONEY) { backStackEntry ->
             AndroidSend(
                 onBack = { navHostController.popBackStackJustOnce(SEND_MONEY) },
                 onTopUpWallet = {
@@ -106,12 +108,22 @@ internal fun MainActivity.MainNavigation(navHostController: NavHostController, p
                     navHostController.popBackStack(BottomNavItem.Transfer.route, false)
                     navHostController.navigateJustOnce(NavigationTargets.navigationRouteTransactionDetails(transactionId = it))
                 },
-                onScan = { navHostController.navigateJustOnce(SCAN) }
+                onScan = { navHostController.navigateJustOnce(SCAN) },
+                sendArgumentsWrapper = SendArgumentsWrapper(
+                    recipientAddress = backStackEntry.savedStateHandle[NavigationArguments.SEND_RECIPIENT_ADDRESS],
+                    amount = backStackEntry.savedStateHandle[NavigationArguments.SEND_AMOUNT],
+                    memo = backStackEntry.savedStateHandle[NavigationArguments.SEND_MEMO]
+                )
             )
+            backStackEntry.savedStateHandle.remove<String>(NavigationArguments.SEND_RECIPIENT_ADDRESS)
+            backStackEntry.savedStateHandle.remove<String>(NavigationArguments.SEND_AMOUNT)
+            backStackEntry.savedStateHandle.remove<String>(NavigationArguments.SEND_MEMO)
         }
         composable(RECEIVE_MONEY) {
             AndroidReceive(
-                onBack = { navHostController.popBackStackJustOnce(RECEIVE_MONEY) }
+                onBack = { navHostController.popBackStackJustOnce(RECEIVE_MONEY) },
+                onShowQrCode = { navHostController.navigateJustOnce(RECEIVE_QR_CODES) },
+                onTopUpWallet = { navHostController.navigateJustOnce(TOP_UP) }
             )
         }
         composable(TOP_UP) {
@@ -200,6 +212,11 @@ internal fun MainActivity.MainNavigation(navHostController: NavHostController, p
                 onBack = { navHostController.popBackStackJustOnce(ABOUT) }
             )
         }
+        composable(ADVANCED_SETTING) {
+            AndroidAdvancedSetting(
+                onBack = { navHostController.popBackStackJustOnce(ADVANCED_SETTING) }
+            )
+        }
         composable(EXTERNAL_SERVICES) {
             AndroidExternalServicesView(
                 onBack = { navHostController.popBackStackJustOnce(EXTERNAL_SERVICES) }
@@ -209,25 +226,21 @@ internal fun MainActivity.MainNavigation(navHostController: NavHostController, p
 }
 
 @Composable
-internal fun BottomNavigation(navController: NavController, showBottomNavBar: Boolean = true, enableTransferTab: Boolean = false) {
-    val navItemList = listOf(BottomNavItem.Wallet, BottomNavItem.Transfer, BottomNavItem.Settings)
-    AnimatedVisibility(
-        visible = showBottomNavBar,
-        enter = slideInVertically { it },
-        exit = slideOutVertically { it }
-    ) {
+internal fun BottomNavigation(navController: NavController) {
+    val navBackStackEntry by navController.currentBackStackEntryAsState()
+    val currentRoute = navBackStackEntry?.destination?.route
+    val showBottomNavBar = destinationsWithBottomBar.any { it.contentEquals(currentRoute, true) }
+    if (showBottomNavBar) {
         NavigationBar(
             containerColor = colorResource(id = co.electriccoin.zcash.ui.design.R.color.ns_navy)
         ) {
-            val navBackStackEntry by navController.currentBackStackEntryAsState()
-            val currentRoute = navBackStackEntry?.destination?.route
             navItemList.forEach { bottomNavItem ->
                 NavigationBarItem(
                     selected = isBottomNavItemSelected(bottomNavItem.route, currentRoute),
                     onClick = {
                         navController.navigate(bottomNavItem.route) {
-                            navController.graph.startDestinationRoute?.let { screen_route ->
-                                popUpTo(screen_route) {
+                            navController.graph.startDestinationRoute?.let { screenRoute ->
+                                popUpTo(screenRoute) {
                                     saveState = true
                                 }
                             }
@@ -236,7 +249,7 @@ internal fun BottomNavigation(navController: NavController, showBottomNavBar: Bo
                         }
                     },
                     icon = { Icon(painter = painterResource(id = bottomNavItem.icon), contentDescription = bottomNavItem.route) },
-                    enabled = if (BottomNavItem.Transfer.route == bottomNavItem.route) enableTransferTab else true,
+                    enabled = true,
                     label = { BodySmall(text = stringResource(id = bottomNavItem.title)) },
                     alwaysShowLabel = true,
                     colors = NavigationBarItemDefaults.colors(
@@ -272,6 +285,17 @@ fun isBottomNavItemSelected(bottomNavItemRoute: String, currentRoute: String?): 
     }
 }
 
+private val navItemList = persistentListOf(BottomNavItem.Wallet, BottomNavItem.Transfer, BottomNavItem.Settings)
+
+private val destinationsWithBottomBar = persistentListOf(
+    BottomNavItem.Wallet.route,
+    BottomNavItem.Transfer.route,
+    BottomNavItem.Settings.route,
+    RECEIVE_MONEY,
+    TOP_UP,
+    RECEIVE_QR_CODES,
+    )
+
 object NavigationTargets {
     const val SEND_MONEY = "send_money"
     const val RECEIVE_MONEY = "receive_money"
@@ -282,6 +306,7 @@ object NavigationTargets {
     const val SYNC_NOTIFICATION = "sync_notification"
     const val SECURITY = "security"
     const val SETTING_BACK_UP_WALLET = "setting_back_up_wallet"
+    const val ADVANCED_SETTING = "advanced_settings"
     const val EXTERNAL_SERVICES = "external_services"
     const val ABOUT = "about"
     const val TRANSACTION_HISTORY = "transaction_history"
