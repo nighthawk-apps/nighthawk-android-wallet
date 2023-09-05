@@ -41,6 +41,7 @@ fun SettingsPreview() {
             SettingsView(
                 versionInfo = VersionInfoFixture.new(),
                 onSyncNotifications = {},
+                onFiatCurrency = {},
                 onSecurity = {},
                 onBackupWallet = {},
                 onRescan = {},
@@ -56,6 +57,7 @@ fun SettingsPreview() {
 fun SettingsView(
     versionInfo: VersionInfo,
     onSyncNotifications: () -> Unit,
+    onFiatCurrency: () -> Unit,
     onSecurity: () -> Unit,
     onBackupWallet: () -> Unit,
     onRescan: (ReScanType) -> Unit,
@@ -92,14 +94,14 @@ fun SettingsView(
             modifier = Modifier.heightIn(min = dimensionResource(id = R.dimen.setting_list_item_min_height))
                 .clickable { onSyncNotifications() }
         )
-        /*Spacer(modifier = Modifier.height(10.dp))
+        Spacer(modifier = Modifier.height(10.dp))
         SettingsListItem(
             iconRes = R.drawable.ic_icon_fiat_currency,
             title = stringResource(id = R.string.ns_fiat_currency),
             desc = stringResource(id = R.string.ns_fiat_currency_text),
             modifier = Modifier.heightIn(min = dimensionResource(id = R.dimen.setting_list_item_min_height))
                 .clickable { onFiatCurrency() }
-        )*/
+        )
         Spacer(modifier = Modifier.height(10.dp))
         SettingsListItem(
             iconRes = R.drawable.ic_icon_security,

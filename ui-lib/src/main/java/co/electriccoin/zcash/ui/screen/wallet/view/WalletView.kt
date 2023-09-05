@@ -59,6 +59,8 @@ import co.electriccoin.zcash.ui.design.component.TitleLarge
 import co.electriccoin.zcash.ui.design.component.TitleMedium
 import co.electriccoin.zcash.ui.design.theme.ZcashTheme
 import co.electriccoin.zcash.ui.fixture.WalletSnapshotFixture
+import co.electriccoin.zcash.ui.screen.fiatcurrency.model.FiatCurrency
+import co.electriccoin.zcash.ui.screen.fiatcurrency.model.FiatCurrencyUiState
 import co.electriccoin.zcash.ui.screen.home.model.WalletDisplayValues
 import co.electriccoin.zcash.ui.screen.home.model.WalletSnapshot
 import co.electriccoin.zcash.ui.screen.transactionhistory.view.TransactionOverviewHistoryRow
@@ -78,6 +80,7 @@ fun WalletPreview() {
                 transactionSnapshot = persistentListOf(),
                 isKeepScreenOnWhileSyncing = true,
                 isFiatConversionEnabled = false,
+                fiatCurrencyUiState = FiatCurrencyUiState(FiatCurrency.USD, 25.8),
                 onShieldNow = {},
                 onAddressQrCodes = {},
                 onTransactionDetail = {},
@@ -99,6 +102,7 @@ fun BalanceViewPreview() {
                     "120.99",
                     "ZEC",
                     "Total Balance",
+                    "125 USD",
                     "expecting (+1 ZEC)"
                 )
             )
@@ -113,6 +117,7 @@ fun WalletView(
     transactionSnapshot: ImmutableList<TransactionOverview>,
     isKeepScreenOnWhileSyncing: Boolean?,
     isFiatConversionEnabled: Boolean,
+    fiatCurrencyUiState: FiatCurrencyUiState,
     onShieldNow: () -> Unit,
     onAddressQrCodes: () -> Unit,
     onTransactionDetail: (Long) -> Unit,
@@ -122,9 +127,14 @@ fun WalletView(
     Column(modifier = Modifier
         .fillMaxSize()
         .verticalScroll(rememberScrollState())
-        .padding(start = dimensionResource(id = R.dimen.screen_standard_margin), end = dimensionResource(id = R.dimen.screen_standard_margin), bottom = 10.dp)
+        .padding(
+            start = dimensionResource(id = R.dimen.screen_standard_margin),
+            end = dimensionResource(id = R.dimen.screen_standard_margin),
+            bottom = 10.dp
+        )
     ) {
         val showShieldNow by remember { mutableStateOf(false) }
+        val isBalancePrivateMode = remember { mutableStateOf(true) }
         Twig.info { "walletSnapshot $walletSnapshot and is fiat currency enabled $isFiatConversionEnabled and showShieldNoe $showShieldNow" }
         Spacer(modifier = Modifier.height(dimensionResource(id = R.dimen.top_margin_back_btn)))
         Image(
@@ -146,13 +156,14 @@ fun WalletView(
             val pageCount = BalanceViewType.TOTAL_VIEWS
             val state = rememberPagerState(initialPage = 0) { pageCount }
             HorizontalPager(state = state) { pageNo ->
-                val balanceDisplayValues = BalanceDisplayValues.getNextValue(LocalContext.current, BalanceViewType.getBalanceViewType(pageNo), walletSnapshot)
+                val balanceDisplayValues = BalanceDisplayValues.getNextValue(LocalContext.current, BalanceViewType.getBalanceViewType(pageNo), walletSnapshot, fiatCurrencyUiState)
                 BalanceView(balanceDisplayValues = balanceDisplayValues)
             }
             val balanceViewType = BalanceViewType.getBalanceViewType(state.currentPage)
             if (balanceViewType != BalanceViewType.SWIPE) {
                 PageIndicator(pageCount = pageCount, pagerState = state)
             }
+            isBalancePrivateMode.value = balanceViewType == BalanceViewType.SWIPE
             // Show shield now button in last if balanceViewType is Transparent and some transparentBalance is available 0.01 ZEC
             if (balanceViewType == BalanceViewType.TRANSPARENT && walletSnapshot.transparentBalance.available > MIN_ZEC_FOR_SHIELDING.convertZecToZatoshi()) {
                 Spacer(Modifier.height(dimensionResource(id = R.dimen.pageMargin)))
@@ -161,7 +172,10 @@ fun WalletView(
                     text = stringResource(id = R.string.ns_shield_now).uppercase(),
                     modifier = Modifier
                         .align(Alignment.CenterHorizontally)
-                        .sizeIn(minWidth = dimensionResource(id = R.dimen.button_min_width), minHeight = dimensionResource(id = R.dimen.button_height))
+                        .sizeIn(
+                            minWidth = dimensionResource(id = R.dimen.button_min_width),
+                            minHeight = dimensionResource(id = R.dimen.button_height)
+                        )
                 )
             }
         } else {
@@ -185,7 +199,7 @@ fun WalletView(
             BodyMedium(text = stringResource(id = R.string.ns_recent_activity), color = colorResource(id = co.electriccoin.zcash.ui.design.R.color.ns_parmaviolet))
             Spacer(modifier = Modifier.height(4.dp))
             transactionSnapshot.take(2).toImmutableList().forEach { transactionOverview ->
-                TransactionOverviewHistoryRow(transactionOverview = transactionOverview, onItemClick = { onTransactionDetail(it.id) }, onItemLongClick = onLongItemClick)
+                TransactionOverviewHistoryRow(transactionOverview = transactionOverview, fiatCurrencyUiState = fiatCurrencyUiState, isBalancePrivateMode = isBalancePrivateMode.value,  onItemClick = { onTransactionDetail(it.id) }, onItemLongClick = onLongItemClick)
             }
             Spacer(modifier = Modifier.height(10.dp))
             Row(
@@ -246,6 +260,9 @@ fun BalanceView(balanceDisplayValues: BalanceDisplayValues) {
             Spacer(Modifier.height(dimensionResource(id = R.dimen.pageMargin)))
             if (balanceDisplayValues.balance.isNotBlank()) {
                 BalanceAmountRow(balance = balanceDisplayValues.balance, balanceUnit = balanceDisplayValues.balanceUnit, onFlipClicked = {})
+            }
+            if (balanceDisplayValues.fiatBalance.isNotBlank()) {
+                BodySmall(text = balanceDisplayValues.fiatBalance, textAlign = TextAlign.Center, color = colorResource(id = co.electriccoin.zcash.ui.design.R.color.ns_parmaviolet))
             }
             if (balanceDisplayValues.msg.isNullOrBlank().not()) {
                 BodySmall(text = balanceDisplayValues.msg

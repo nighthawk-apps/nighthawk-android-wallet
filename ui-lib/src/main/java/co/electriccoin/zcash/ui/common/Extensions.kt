@@ -13,9 +13,15 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.FragmentActivity
+import cash.z.ecc.android.sdk.ext.convertZatoshiToZec
 import cash.z.ecc.android.sdk.ext.isShielded
+import cash.z.ecc.android.sdk.ext.toZecString
+import cash.z.ecc.android.sdk.model.Zatoshi
 import cash.z.ecc.android.sdk.model.ZcashNetwork
 import co.electriccoin.zcash.ui.R
+import co.electriccoin.zcash.ui.screen.fiatcurrency.model.FiatCurrency
+import co.electriccoin.zcash.ui.screen.fiatcurrency.model.FiatCurrencyUiState
+import java.math.BigDecimal
 
 internal fun ComponentActivity.onLaunchUrl(url: String) {
     try {
@@ -113,4 +119,13 @@ internal fun String.addressTypeNameId(): Int {
     } else {
         R.string.ns_transparent
     }
+}
+
+internal fun Zatoshi.toFiatPriceString(fiatCurrencyUiState: FiatCurrencyUiState): String {
+    if (fiatCurrencyUiState.fiatCurrency != FiatCurrency.OFF) {
+        fiatCurrencyUiState.price?.let {
+            return this.convertZatoshiToZec().multiply(BigDecimal(it)).toZecString() + " ${fiatCurrencyUiState.fiatCurrency.currencyName}"
+        }
+    }
+    return ""
 }

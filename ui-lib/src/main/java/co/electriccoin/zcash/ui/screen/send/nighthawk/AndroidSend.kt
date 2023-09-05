@@ -19,6 +19,7 @@ import cash.z.ecc.android.sdk.model.Zatoshi
 import cash.z.ecc.android.sdk.model.ZecSendExt
 import co.electriccoin.zcash.spackle.Twig
 import co.electriccoin.zcash.ui.MainActivity
+import co.electriccoin.zcash.ui.common.ShortcutAction
 import co.electriccoin.zcash.ui.screen.home.viewmodel.HomeViewModel
 import co.electriccoin.zcash.ui.screen.home.viewmodel.WalletViewModel
 import co.electriccoin.zcash.ui.screen.navigation.BottomNavItem
@@ -83,7 +84,7 @@ internal fun WrapAndroidSend(
 
         // Check if there is any shortcut click data available or not
         homeViewModel.shortcutAction?.let {
-            if (it == HomeViewModel.ShortcutAction.SEND_MONEY_SCAN_QR_CODE) {
+            if (it == ShortcutAction.SEND_MONEY_SCAN_QR_CODE) {
                 onScan()
             }
         }?.also { homeViewModel.shortcutAction = null }
