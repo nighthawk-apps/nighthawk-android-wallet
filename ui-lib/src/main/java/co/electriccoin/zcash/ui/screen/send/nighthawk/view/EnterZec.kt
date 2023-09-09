@@ -108,7 +108,7 @@ fun EnterZec(
                     color = ZcashTheme.colors.surfaceEnd
                 )
                 Spacer(modifier = Modifier.height(40.dp))
-                BalanceAmountRow(balance = enterZecUIState.enteredAmount, balanceUnit = enterZecUIState.amountUnit, onFlipClicked = {}, modifier = Modifier.align(Alignment.CenterHorizontally))
+                BalanceAmountRow(balance = enterZecUIState.enteredAmount, balanceUnit = enterZecUIState.amountUnit, onFlipCurrency = {}, showFlipCurrencyIcon = true, modifier = Modifier.align(Alignment.CenterHorizontally))
                 Spacer(modifier = Modifier.height(12.dp))
                 enterZecUIState.convertedAmount?.let {
                     BodyMedium(text = stringResource(id = R.string.ns_around, it), textAlign = TextAlign.Center, modifier = Modifier.align(Alignment.CenterHorizontally), color = ZcashTheme.colors.surfaceEnd)

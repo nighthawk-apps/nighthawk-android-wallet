@@ -24,8 +24,6 @@ import co.electriccoin.zcash.ui.common.MIN_ZEC_FOR_SHIELDING
 import co.electriccoin.zcash.ui.common.ShortcutAction
 import co.electriccoin.zcash.ui.common.showMessage
 import co.electriccoin.zcash.ui.common.toFormattedString
-import co.electriccoin.zcash.ui.configuration.ConfigurationEntries
-import co.electriccoin.zcash.ui.configuration.RemoteConfig
 import co.electriccoin.zcash.ui.screen.home.model.WalletSnapshot
 import co.electriccoin.zcash.ui.screen.home.viewmodel.HomeViewModel
 import co.electriccoin.zcash.ui.screen.home.viewmodel.WalletViewModel
@@ -72,8 +70,6 @@ internal fun WrapWallet(
     val settingsViewModel by activity.viewModels<SettingsViewModel>()
     val isKeepScreenOnWhileSyncing =
         settingsViewModel.isKeepScreenOnWhileSyncing.collectAsStateWithLifecycle().value
-    val isFiatConversionEnabled =
-        ConfigurationEntries.IS_FIAT_CONVERSION_ENABLED.getValue(RemoteConfig.current)
     val clipboardManager = LocalClipboardManager.current
 
     val isAutoShieldingInitiated = remember {
@@ -121,18 +117,20 @@ internal fun WrapWallet(
         }
 
         val fiatCurrencyUiState by homeViewModel.fiatCurrencyUiStateFlow.collectAsStateWithLifecycle()
+        val isFiatCurrencyPreferred by homeViewModel.isFiatCurrencyPreferredOverZec.collectAsStateWithLifecycle()
 
         WalletView(
             walletSnapshot = walletSnapshot,
             transactionSnapshot = transactionSnapshot,
             isKeepScreenOnWhileSyncing = isKeepScreenOnWhileSyncing,
-            isFiatConversionEnabled = isFiatConversionEnabled,
+            isFiatCurrencyPreferred = isFiatCurrencyPreferred,
             fiatCurrencyUiState = fiatCurrencyUiState,
             onShieldNow = onShieldNow,
             onAddressQrCodes = onAddressQrCodes,
             onTransactionDetail = onTransactionDetail,
             onViewTransactionHistory = onViewTransactionHistory,
-            onLongItemClick = onItemLongClickAction
+            onLongItemClick = onItemLongClickAction,
+            onFlipCurrency = homeViewModel::onPreferredCurrencyChanged
         )
 
         val shieldUIState = shieldViewModel.shieldUIState.collectAsStateWithLifecycle().value

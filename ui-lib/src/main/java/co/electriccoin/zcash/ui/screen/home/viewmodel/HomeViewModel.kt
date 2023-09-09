@@ -121,6 +121,19 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    val isFiatCurrencyPreferredOverZec = flow {
+        val preference = EncryptedPreferenceSingleton.getInstance(application)
+        emitAll(EncryptedPreferenceKeys.IS_FIAT_CURRENCY_PREFERRED.observe(preference))
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(ANDROID_STATE_FLOW_TIMEOUT.inWholeMilliseconds), false)
+
+    fun onPreferredCurrencyChanged(isFiatCurrencyPreferredOverZec: Boolean) {
+        val application = getApplication<Application>()
+        viewModelScope.launch(Dispatchers.IO) {
+            val preference = EncryptedPreferenceSingleton.getInstance(application)
+            EncryptedPreferenceKeys.IS_FIAT_CURRENCY_PREFERRED.putValue(preference, isFiatCurrencyPreferredOverZec)
+        }
+    }
+
     private val _fiatCurrencyUiStateFlow = MutableStateFlow(FiatCurrencyUiState(FiatCurrency.OFF, null))
     val fiatCurrencyUiStateFlow get() = _fiatCurrencyUiStateFlow.asStateFlow()
 }

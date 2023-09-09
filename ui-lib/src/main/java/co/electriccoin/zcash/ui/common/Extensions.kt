@@ -121,10 +121,19 @@ internal fun String.addressTypeNameId(): Int {
     }
 }
 
-internal fun Zatoshi.toFiatPriceString(fiatCurrencyUiState: FiatCurrencyUiState): String {
+internal fun Zatoshi.toFiatPriceWithCurrencyUnit(fiatCurrencyUiState: FiatCurrencyUiState): String {
     if (fiatCurrencyUiState.fiatCurrency != FiatCurrency.OFF) {
         fiatCurrencyUiState.price?.let {
-            return this.convertZatoshiToZec().multiply(BigDecimal(it)).toZecString() + " ${fiatCurrencyUiState.fiatCurrency.currencyName}"
+            return this.toFiatPrice(fiatCurrencyUiState) + " ${fiatCurrencyUiState.fiatCurrency.currencyName}"
+        }
+    }
+    return ""
+}
+
+internal fun Zatoshi.toFiatPrice(fiatCurrencyUiState: FiatCurrencyUiState): String {
+    if (fiatCurrencyUiState.fiatCurrency != FiatCurrency.OFF) {
+        fiatCurrencyUiState.price?.let {
+            return this.convertZatoshiToZec().multiply(BigDecimal(it)).toZecString(maxDecimals = 2)
         }
     }
     return ""

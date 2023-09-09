@@ -46,6 +46,7 @@ class FiatCurrencyViewModel(val context: Application): AndroidViewModel(applicat
         viewModelScope.launch(Dispatchers.IO) {
             val preference = EncryptedPreferenceSingleton.getInstance(application)
             EncryptedPreferenceKeys.PREFERRED_FIAT_CURRENCY_VALUE.putValue(preference, "0.0")
+            EncryptedPreferenceKeys.IS_FIAT_CURRENCY_PREFERRED.putValue(preference, false)
         }
     }
 

@@ -26,7 +26,7 @@ import cash.z.ecc.android.sdk.ext.convertZatoshiToZec
 import cash.z.ecc.android.sdk.fixture.TransactionOverviewFixture
 import cash.z.ecc.android.sdk.model.TransactionOverview
 import co.electriccoin.zcash.ui.R
-import co.electriccoin.zcash.ui.common.toFiatPriceString
+import co.electriccoin.zcash.ui.common.toFiatPriceWithCurrencyUnit
 import co.electriccoin.zcash.ui.design.component.Body
 import co.electriccoin.zcash.ui.design.component.BodySmall
 import co.electriccoin.zcash.ui.design.component.TitleMedium
@@ -94,7 +94,7 @@ fun TransactionOverviewHistoryRow(
                 val transactionText = if (isBalancePrivateMode) "---" else "${transactionValue.convertZatoshiToZec()}"
                 Body(text = "$transactionText ZEC", color = colorResource(id = co.electriccoin.zcash.ui.design.R.color.ns_parmaviolet))
                 Spacer(modifier = Modifier.height(4.dp))
-                val fiatCurrency = transactionValue.toFiatPriceString(fiatCurrencyUiState)
+                val fiatCurrency = transactionValue.toFiatPriceWithCurrencyUnit(fiatCurrencyUiState)
                 val fiatCurrencyText = if (isBalancePrivateMode.not() && fiatCurrency.isNotBlank()) {
                     fiatCurrency
                 } else {
