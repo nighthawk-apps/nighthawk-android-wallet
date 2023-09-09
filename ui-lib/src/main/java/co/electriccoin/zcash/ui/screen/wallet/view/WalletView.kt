@@ -64,6 +64,7 @@ import co.electriccoin.zcash.ui.screen.home.model.WalletDisplayValues
 import co.electriccoin.zcash.ui.screen.home.model.WalletSnapshot
 import co.electriccoin.zcash.ui.screen.transactionhistory.view.TransactionOverviewHistoryRow
 import co.electriccoin.zcash.ui.screen.wallet.model.BalanceDisplayValues
+import co.electriccoin.zcash.ui.screen.wallet.model.BalanceUIModel
 import co.electriccoin.zcash.ui.screen.wallet.model.BalanceViewType
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.persistentListOf
@@ -99,11 +100,13 @@ fun BalanceViewPreview() {
             BalanceView(
                 balanceDisplayValues = BalanceDisplayValues(
                     R.drawable.ic_icon_total,
-                    "120.99",
-                    "ZEC",
                     "Total Balance",
-                    "125",
-                    "USD",
+                    BalanceUIModel(
+                        "124.25",
+                        "ZEC",
+                        "125",
+                        "USD"
+                    ),
                     "expecting (+1 ZEC)"
                 ),
                 showFlipCurrencyIcon = true,
@@ -211,7 +214,14 @@ fun WalletView(
             BodyMedium(text = stringResource(id = R.string.ns_recent_activity), color = colorResource(id = co.electriccoin.zcash.ui.design.R.color.ns_parmaviolet))
             Spacer(modifier = Modifier.height(4.dp))
             transactionSnapshot.take(2).toImmutableList().forEach { transactionOverview ->
-                TransactionOverviewHistoryRow(transactionOverview = transactionOverview, fiatCurrencyUiState = fiatCurrencyUiState, isBalancePrivateMode = isBalancePrivateMode.value,  onItemClick = { onTransactionDetail(it.id) }, onItemLongClick = onLongItemClick)
+                TransactionOverviewHistoryRow(
+                    transactionOverview = transactionOverview,
+                    fiatCurrencyUiState = fiatCurrencyUiState,
+                    isBalancePrivateMode = isBalancePrivateMode.value,
+                    isFiatCurrencyPreferred = isFiatCurrencyPreferred,
+                    onItemClick = { onTransactionDetail(it.id) },
+                    onItemLongClick = onLongItemClick
+                )
             }
             Spacer(modifier = Modifier.height(10.dp))
             Row(
@@ -275,17 +285,17 @@ fun BalanceView(
                 modifier = Modifier.align(Alignment.CenterHorizontally)
             )
             Spacer(Modifier.height(dimensionResource(id = R.dimen.pageMargin)))
-            if (balanceDisplayValues.balance.isNotBlank()) {
+            if (balanceDisplayValues.balanceUIModel.balance.isNotBlank()) {
                 BalanceAmountRow(
-                    balance = balanceDisplayValues.balance,
-                    balanceUnit = balanceDisplayValues.balanceUnit,
+                    balance = balanceDisplayValues.balanceUIModel.balance,
+                    balanceUnit = balanceDisplayValues.balanceUIModel.balanceUnit,
                     showFlipCurrencyIcon = showFlipCurrencyIcon,
                     onFlipCurrency = onFlipCurrency
                 )
             }
-            if (balanceDisplayValues.fiatBalance.isNotBlank()) {
+            if (balanceDisplayValues.balanceUIModel.fiatBalance.isNotBlank()) {
                 BodySmall(
-                    text = balanceDisplayValues.fiatBalance + " ${balanceDisplayValues.fiatUnit}",
+                    text = balanceDisplayValues.balanceUIModel.fiatBalance + " ${balanceDisplayValues.balanceUIModel.fiatUnit}",
                     textAlign = TextAlign.Center
                 )
             }

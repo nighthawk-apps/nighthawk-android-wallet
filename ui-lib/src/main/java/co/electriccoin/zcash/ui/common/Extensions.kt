@@ -18,9 +18,12 @@ import cash.z.ecc.android.sdk.ext.isShielded
 import cash.z.ecc.android.sdk.ext.toZecString
 import cash.z.ecc.android.sdk.model.Zatoshi
 import cash.z.ecc.android.sdk.model.ZcashNetwork
+import cash.z.ecc.android.sdk.model.toZecString
 import co.electriccoin.zcash.ui.R
 import co.electriccoin.zcash.ui.screen.fiatcurrency.model.FiatCurrency
 import co.electriccoin.zcash.ui.screen.fiatcurrency.model.FiatCurrencyUiState
+import co.electriccoin.zcash.ui.screen.wallet.model.BalanceUIModel
+import co.electriccoin.zcash.ui.screen.wallet.model.BalanceValuesModel
 import java.math.BigDecimal
 
 internal fun ComponentActivity.onLaunchUrl(url: String) {
@@ -137,4 +140,41 @@ internal fun Zatoshi.toFiatPrice(fiatCurrencyUiState: FiatCurrencyUiState): Stri
         }
     }
     return ""
+}
+
+internal fun Zatoshi.toBalanceValueModel(
+    fiatCurrencyUiState: FiatCurrencyUiState,
+    isFiatCurrencyPreferred: Boolean,
+    selectedDenomination: String = "ZEC"): BalanceValuesModel {
+    val isLocalCurrencySelectedAsPrimary = isFiatCurrencyPreferred && fiatCurrencyUiState.fiatCurrency != FiatCurrency.OFF
+    val availableBalance = this
+    val balance: String
+    val balanceUnit: String
+    val fiatBalance: String
+    val fiatUnit: String
+    if (isLocalCurrencySelectedAsPrimary) {
+        balance = availableBalance.toFiatPrice(fiatCurrencyUiState)
+        balanceUnit = fiatCurrencyUiState.fiatCurrency.currencyName
+        fiatBalance = availableBalance.toZecString()
+        fiatUnit = selectedDenomination
+    } else {
+        balance = availableBalance.toZecString()
+        balanceUnit = selectedDenomination
+        fiatBalance = availableBalance.toFiatPrice(fiatCurrencyUiState)
+        fiatUnit = fiatCurrencyUiState.fiatCurrency.currencyName
+    }
+    return BalanceValuesModel(balance = balance, balanceUnit = balanceUnit, fiatBalance = fiatBalance, fiatUnit = fiatUnit)
+}
+
+internal fun BalanceValuesModel.toBalanceUiModel(context: Context): BalanceUIModel {
+    val fiatValue = context.getString(
+        R.string.ns_around,
+        fiatBalance
+    ).takeIf { fiatBalance.isNotBlank() } ?: ""
+    return BalanceUIModel(
+        balance = balance,
+        balanceUnit = balanceUnit,
+        fiatBalance = fiatValue,
+        fiatUnit = fiatUnit
+    )
 }

@@ -4,18 +4,15 @@ import android.content.Context
 import androidx.annotation.DrawableRes
 import cash.z.ecc.android.sdk.model.toZecString
 import co.electriccoin.zcash.ui.R
-import co.electriccoin.zcash.ui.common.toFiatPrice
-import co.electriccoin.zcash.ui.screen.fiatcurrency.model.FiatCurrency
+import co.electriccoin.zcash.ui.common.toBalanceUiModel
+import co.electriccoin.zcash.ui.common.toBalanceValueModel
 import co.electriccoin.zcash.ui.screen.fiatcurrency.model.FiatCurrencyUiState
 import co.electriccoin.zcash.ui.screen.home.model.WalletSnapshot
 
 data class BalanceDisplayValues(
     @DrawableRes val iconDrawableRes: Int,
-    val balance: String,
-    val balanceUnit: String,
     val balanceType: String,
-    val fiatBalance: String,
-    val fiatUnit: String,
+    val balanceUIModel: BalanceUIModel,
     val msg: String?
 ) {
     companion object {
@@ -27,13 +24,10 @@ data class BalanceDisplayValues(
             fiatCurrencyUiState: FiatCurrencyUiState
         ): BalanceDisplayValues {
             var iconDrawableRes = R.drawable.ic_icon_left_swipe
-            var balance = ""
-            var balanceUnit = context.getString(R.string.ns_zec)
+            val selectedDenomination = context.getString(R.string.ns_zec)
             var balanceType = ""
             var msg: String? = null
-            var fiatBalance = ""
-            var fiatUnit = ""
-            val isLocalCurrencySelectedAsPrimary = isFiatCurrencyPreferred && fiatCurrencyUiState.fiatCurrency != FiatCurrency.OFF
+            var balanceUIModel = BalanceValuesModel().toBalanceUiModel(context)
 
             when (balanceViewType) {
                 BalanceViewType.SWIPE -> {
@@ -54,22 +48,7 @@ data class BalanceDisplayValues(
                             (totalBalance - availableBalance).toZecString()
                         )
                     }
-                    if (isLocalCurrencySelectedAsPrimary) {
-                        balance = availableBalance.toFiatPrice(fiatCurrencyUiState)
-                        fiatBalance =
-                            context.getString(R.string.ns_around, availableBalance.toZecString())
-                        balanceUnit = fiatCurrencyUiState.fiatCurrency.currencyName
-                        fiatUnit = context.getString(R.string.ns_zec)
-                    } else {
-                        balance = availableBalance.toZecString()
-                        balanceUnit = context.getString(R.string.ns_zec)
-                        val fiatValue = availableBalance.toFiatPrice(fiatCurrencyUiState)
-                        fiatBalance = context.getString(
-                            R.string.ns_around,
-                            fiatValue
-                        ).takeIf { fiatValue.isNotBlank() } ?: ""
-                        fiatUnit = fiatCurrencyUiState.fiatCurrency.currencyName
-                    }
+                    balanceUIModel = availableBalance.toBalanceValueModel(fiatCurrencyUiState, isFiatCurrencyPreferred, selectedDenomination).toBalanceUiModel(context)
                 }
                 BalanceViewType.SHIELDED -> {
                     iconDrawableRes = R.drawable.ic_icon_shielded
@@ -81,22 +60,7 @@ data class BalanceDisplayValues(
                         )
                     }
                     val availableBalance = walletSnapshot.saplingBalance.available
-                    if (isLocalCurrencySelectedAsPrimary) {
-                        balance = availableBalance.toFiatPrice(fiatCurrencyUiState)
-                        fiatBalance =
-                            context.getString(R.string.ns_around, availableBalance.toZecString())
-                        balanceUnit = fiatCurrencyUiState.fiatCurrency.currencyName
-                        fiatUnit = context.getString(R.string.ns_zec)
-                    } else {
-                        balance = availableBalance.toZecString()
-                        balanceUnit = context.getString(R.string.ns_zec)
-                        val fiatValue = availableBalance.toFiatPrice(fiatCurrencyUiState)
-                        fiatBalance = context.getString(
-                            R.string.ns_around,
-                            fiatValue
-                        ).takeIf { fiatValue.isNotBlank() } ?: ""
-                        fiatUnit = fiatCurrencyUiState.fiatCurrency.currencyName
-                    }
+                    balanceUIModel = availableBalance.toBalanceValueModel(fiatCurrencyUiState, isFiatCurrencyPreferred).toBalanceUiModel(context)
                 }
                 BalanceViewType.TRANSPARENT -> {
                     iconDrawableRes = R.drawable.ic_icon_transparent
@@ -108,31 +72,13 @@ data class BalanceDisplayValues(
                         )
                     }
                     val availableBalance = walletSnapshot.transparentBalance.available
-                    if (isLocalCurrencySelectedAsPrimary) {
-                        balance = availableBalance.toFiatPrice(fiatCurrencyUiState)
-                        fiatBalance =
-                            context.getString(R.string.ns_around, availableBalance.toZecString())
-                        balanceUnit = fiatCurrencyUiState.fiatCurrency.currencyName
-                        fiatUnit = context.getString(R.string.ns_zec)
-                    } else {
-                        balance = availableBalance.toZecString()
-                        balanceUnit = context.getString(R.string.ns_zec)
-                        val fiatValue = availableBalance.toFiatPrice(fiatCurrencyUiState)
-                        fiatBalance = context.getString(
-                            R.string.ns_around,
-                            fiatValue
-                        ).takeIf { fiatValue.isNotBlank() } ?: ""
-                        fiatUnit = fiatCurrencyUiState.fiatCurrency.currencyName
-                    }
+                    balanceUIModel = availableBalance.toBalanceValueModel(fiatCurrencyUiState, isFiatCurrencyPreferred).toBalanceUiModel(context)
                 }
             }
             return BalanceDisplayValues(
                 iconDrawableRes,
-                balance,
-                balanceUnit,
                 balanceType,
-                fiatBalance,
-                fiatUnit,
+                balanceUIModel,
                 msg
             )
         }

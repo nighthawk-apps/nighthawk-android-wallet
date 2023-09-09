@@ -22,11 +22,10 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import cash.z.ecc.android.sdk.ext.convertZatoshiToZec
 import cash.z.ecc.android.sdk.fixture.TransactionOverviewFixture
 import cash.z.ecc.android.sdk.model.TransactionOverview
 import co.electriccoin.zcash.ui.R
-import co.electriccoin.zcash.ui.common.toFiatPriceWithCurrencyUnit
+import co.electriccoin.zcash.ui.common.toBalanceValueModel
 import co.electriccoin.zcash.ui.design.component.Body
 import co.electriccoin.zcash.ui.design.component.BodySmall
 import co.electriccoin.zcash.ui.design.component.TitleMedium
@@ -48,6 +47,7 @@ fun TransactionOverviewHistoryRowPreview() {
             TransactionOverviewHistoryRow(
                 transactionOverview = TransactionOverviewFixture.new(),
                 fiatCurrencyUiState = FiatCurrencyUiState(FiatCurrency.USD, 25.24),
+                isFiatCurrencyPreferred = true,
                 onItemClick = {},
                 onItemLongClick = {})
         }
@@ -60,6 +60,7 @@ fun TransactionOverviewHistoryRow(
     transactionOverview: TransactionOverview,
     fiatCurrencyUiState: FiatCurrencyUiState,
     isBalancePrivateMode: Boolean = false,
+    isFiatCurrencyPreferred: Boolean = false,
     onItemClick: (TransactionOverview) -> Unit,
     onItemLongClick: (TransactionOverview) -> Unit = {}
 ) {
@@ -91,15 +92,11 @@ fun TransactionOverviewHistoryRow(
             Spacer(modifier = Modifier.weight(1f))
             Column(horizontalAlignment = Alignment.End) {
                 val transactionValue = transactionOverview.netValue - transactionOverview.feePaid
-                val transactionText = if (isBalancePrivateMode) "---" else "${transactionValue.convertZatoshiToZec()}"
-                Body(text = "$transactionText ZEC", color = colorResource(id = co.electriccoin.zcash.ui.design.R.color.ns_parmaviolet))
+                val balanceValuesModel = transactionValue.toBalanceValueModel(fiatCurrencyUiState, isFiatCurrencyPreferred)
+                val transactionText = (if (isBalancePrivateMode) "---" else balanceValuesModel.balance) + " ${balanceValuesModel.balanceUnit}"
+                Body(text = transactionText, color = colorResource(id = co.electriccoin.zcash.ui.design.R.color.ns_parmaviolet))
                 Spacer(modifier = Modifier.height(4.dp))
-                val fiatCurrency = transactionValue.toFiatPriceWithCurrencyUnit(fiatCurrencyUiState)
-                val fiatCurrencyText = if (isBalancePrivateMode.not() && fiatCurrency.isNotBlank()) {
-                    fiatCurrency
-                } else {
-                    "--- ${fiatCurrencyUiState.fiatCurrency.currencyName}"
-                }
+                val fiatCurrencyText = (if (isBalancePrivateMode) "---" else balanceValuesModel.fiatBalance) + " ${balanceValuesModel.fiatUnit}"
                 BodySmall(text = fiatCurrencyText, textAlign = TextAlign.End)
             }
         }

@@ -41,6 +41,7 @@ fun TransactionHistoryPreview() {
             TransactionHistory(
                 transactionSnapshot = list.toPersistentList(),
                 fiatCurrencyUiState = FiatCurrencyUiState(FiatCurrency.USD, 25.25),
+                isFiatCurrencyPreferred = false,
                 onBack = {},
                 onTransactionDetail = {},
                 onItemLongClick = {})
@@ -52,6 +53,7 @@ fun TransactionHistoryPreview() {
 fun TransactionHistory(
     transactionSnapshot: ImmutableList<TransactionOverview>,
     fiatCurrencyUiState: FiatCurrencyUiState,
+    isFiatCurrencyPreferred: Boolean,
     onBack: () -> Unit,
     onTransactionDetail: (Long) -> Unit,
     onItemLongClick: (TransactionOverview) -> Unit
@@ -86,7 +88,13 @@ fun TransactionHistory(
         Spacer(modifier = Modifier.height(dimensionResource(id = R.dimen.screen_standard_margin)))
         LazyColumn {
             items(transactionSnapshot) { transactionOverview ->
-                TransactionOverviewHistoryRow(transactionOverview = transactionOverview, fiatCurrencyUiState = fiatCurrencyUiState, onItemClick = {onTransactionDetail(it.id)}, onItemLongClick = onItemLongClick)
+                TransactionOverviewHistoryRow(
+                    transactionOverview = transactionOverview,
+                    fiatCurrencyUiState = fiatCurrencyUiState,
+                    isFiatCurrencyPreferred = isFiatCurrencyPreferred,
+                    onItemClick = { onTransactionDetail(it.id) },
+                    onItemLongClick = onItemLongClick
+                )
             }
         }
     }

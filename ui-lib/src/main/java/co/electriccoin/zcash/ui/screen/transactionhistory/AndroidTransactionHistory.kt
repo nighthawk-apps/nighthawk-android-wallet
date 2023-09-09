@@ -30,7 +30,16 @@ internal fun WrapTransactionHistory(activity: ComponentActivity, onBack: () -> U
         clipboardManager.setText(AnnotatedString(it.rawId.byteArray.toFormattedString()))
         activity.showMessage(activity.getString(R.string.transaction_id_copied))
     }
-    val transactionSnapshot = walletViewModel.transactionSnapshot.collectAsStateWithLifecycle().value
+    val transactionSnapshot =
+        walletViewModel.transactionSnapshot.collectAsStateWithLifecycle().value
     val fiatCurrencyUiState by homeViewModel.fiatCurrencyUiStateFlow.collectAsStateWithLifecycle()
-    TransactionHistory(transactionSnapshot = transactionSnapshot, fiatCurrencyUiState = fiatCurrencyUiState, onBack = onBack, onTransactionDetail = onTransactionDetail, onItemLongClick = onItemLongClickAction)
+    val isFiatCurrencyPreferred by homeViewModel.isFiatCurrencyPreferredOverZec.collectAsStateWithLifecycle()
+    TransactionHistory(
+        transactionSnapshot = transactionSnapshot,
+        fiatCurrencyUiState = fiatCurrencyUiState,
+        isFiatCurrencyPreferred = isFiatCurrencyPreferred,
+        onBack = onBack,
+        onTransactionDetail = onTransactionDetail,
+        onItemLongClick = onItemLongClickAction
+    )
 }
