@@ -34,6 +34,7 @@ import co.electriccoin.zcash.ui.screen.send.nighthawk.view.SendConfirmation
 import co.electriccoin.zcash.ui.screen.send.nighthawk.viewmodel.SendViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 @Composable
@@ -70,17 +71,27 @@ internal fun WrapAndroidSend(
     val sendViewModel by activity.viewModels<SendViewModel>()
     val walletViewModel by activity.viewModels<WalletViewModel>()
 
+    val fiatCurrencyUiState by homeViewModel.fiatCurrencyUiStateFlow.collectAsStateWithLifecycle()
+    val isFiatCurrencyPreferred by homeViewModel.isFiatCurrencyPreferredOverZec.collectAsStateWithLifecycle()
+    LaunchedEffect(key1 = fiatCurrencyUiState, key2 = isFiatCurrencyPreferred) {
+        sendViewModel.updateFiatCurrencyData(fiatCurrencyUiState, isFiatCurrencyPreferred)
+
+        // Check for deepLink data if there is any. If we found then update receiverAddress, amount and memo
+        launch {
+            delay(1000)
+            homeViewModel.sendDeepLinkData?.let {
+                sendViewModel.updateReceiverAddress(it.address)
+                it.amount?.let { zatoshi -> sendViewModel.enteredZecFromDeepLink(Zatoshi(zatoshi).convertZatoshiToZecString()) }
+                it.memo?.let { memo -> sendViewModel.updateMemo(memo) }
+            }?.also { homeViewModel.sendDeepLinkData = null }
+        }
+    }
+
     val sendUIState = sendViewModel.currentSendUIState.collectAsStateWithLifecycle()
     BackHandler(enabled = sendUIState.value != SendUIState.ENTER_ZEC) {
         Twig.info { "WrapAndroidSend BackHandler: sendUIState $sendUIState" }
     }
     DisposableEffect(key1 = Unit) {
-        // Check for deepLink data if there is any. If we found then update receiverAddress, amount and memo
-        homeViewModel.sendDeepLinkData?.let {
-            sendViewModel.updateReceiverAddress(it.address)
-            it.amount?.let { zatoshi -> sendViewModel.enteredZecFromDeepLink(Zatoshi(zatoshi).convertZatoshiToZecString()) }
-            it.memo?.let { memo -> sendViewModel.updateMemo(memo) }
-        }?.also { homeViewModel.sendDeepLinkData = null }
 
         // Check if there is any shortcut click data available or not
         homeViewModel.shortcutAction?.let {
@@ -112,7 +123,12 @@ internal fun WrapAndroidSend(
                 onContinue = sendViewModel::onNextSendUiState,
                 onTopUpWallet = onTopUpWallet,
                 onKeyPressed = sendViewModel::onKeyPressed,
-                onSendAllClicked = sendViewModel::onSendAllClicked
+                onSendAllClicked = sendViewModel::onSendAllClicked,
+                onFlipCurrency = {
+                    sendViewModel.updateFiatCurrencyData(fiatCurrencyUiState, isFiatCurrencyPreferred.not())
+                    homeViewModel.onPreferredCurrencyChanged(isFiatCurrencyPreferred.not())
+                    sendViewModel.switchEnteredAmountType()
+                }
             )
         }
 
@@ -166,7 +182,7 @@ internal fun WrapAndroidSend(
                     val zecSendValidation = ZecSendExt.new(
                         activity,
                         it,
-                        sendViewModel.enterZecUIState.value.enteredAmount,
+                        sendViewModel.getEnteredAmountInZecString(),
                         sendViewModel.userEnteredMemo,
                         MonetarySeparators.current().copy(decimal = '.')
                     )

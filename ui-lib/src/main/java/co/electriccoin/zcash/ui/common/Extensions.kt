@@ -14,17 +14,20 @@ import androidx.compose.ui.graphics.Color
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.FragmentActivity
 import cash.z.ecc.android.sdk.ext.convertZatoshiToZec
+import cash.z.ecc.android.sdk.ext.convertZecToZatoshi
 import cash.z.ecc.android.sdk.ext.isShielded
 import cash.z.ecc.android.sdk.ext.toZecString
 import cash.z.ecc.android.sdk.model.Zatoshi
 import cash.z.ecc.android.sdk.model.ZcashNetwork
 import cash.z.ecc.android.sdk.model.toZecString
+import co.electriccoin.zcash.spackle.Twig
 import co.electriccoin.zcash.ui.R
 import co.electriccoin.zcash.ui.screen.fiatcurrency.model.FiatCurrency
 import co.electriccoin.zcash.ui.screen.fiatcurrency.model.FiatCurrencyUiState
 import co.electriccoin.zcash.ui.screen.wallet.model.BalanceUIModel
 import co.electriccoin.zcash.ui.screen.wallet.model.BalanceValuesModel
 import java.math.BigDecimal
+import java.text.DecimalFormat
 
 internal fun ComponentActivity.onLaunchUrl(url: String) {
     try {
@@ -123,20 +126,21 @@ internal fun String.addressTypeNameId(): Int {
         R.string.ns_transparent
     }
 }
-
-internal fun Zatoshi.toFiatPriceWithCurrencyUnit(fiatCurrencyUiState: FiatCurrencyUiState): String {
-    if (fiatCurrencyUiState.fiatCurrency != FiatCurrency.OFF) {
-        fiatCurrencyUiState.price?.let {
-            return this.toFiatPrice(fiatCurrencyUiState) + " ${fiatCurrencyUiState.fiatCurrency.currencyName}"
-        }
+/**
+ * Convert fiat currency price to Zatoshi
+ */
+internal fun Double.toFiatZatoshi(fiatCurrencyUiState: FiatCurrencyUiState, isFiatCurrencyPreferredOverZec: Boolean): Zatoshi? {
+    if (isFiatCurrencyPreferredOverZec) {
+        if (fiatCurrencyUiState.price == null || fiatCurrencyUiState.price == 0.0) return null
+        return (this / fiatCurrencyUiState.price).convertZecToZatoshi()
     }
-    return ""
+    return this.convertZecToZatoshi()
 }
 
 internal fun Zatoshi.toFiatPrice(fiatCurrencyUiState: FiatCurrencyUiState): String {
     if (fiatCurrencyUiState.fiatCurrency != FiatCurrency.OFF) {
         fiatCurrencyUiState.price?.let {
-            return this.convertZatoshiToZec().multiply(BigDecimal(it)).toZecString(maxDecimals = 2)
+            return this.convertZatoshiToZec().multiply(BigDecimal(it)).toZecString(maxDecimals = 2).removeTrailingZero()
         }
     }
     return ""
@@ -153,14 +157,14 @@ internal fun Zatoshi.toBalanceValueModel(
     val fiatBalance: String
     val fiatUnit: String
     if (isLocalCurrencySelectedAsPrimary) {
-        balance = availableBalance.toFiatPrice(fiatCurrencyUiState)
+        balance = availableBalance.toFiatPrice(fiatCurrencyUiState).removeTrailingZero()
         balanceUnit = fiatCurrencyUiState.fiatCurrency.currencyName
-        fiatBalance = availableBalance.toZecString()
+        fiatBalance = availableBalance.toZecString().removeTrailingZero()
         fiatUnit = selectedDenomination
     } else {
-        balance = availableBalance.toZecString()
+        balance = availableBalance.toZecString().removeTrailingZero()
         balanceUnit = selectedDenomination
-        fiatBalance = availableBalance.toFiatPrice(fiatCurrencyUiState)
+        fiatBalance = availableBalance.toFiatPrice(fiatCurrencyUiState).removeTrailingZero()
         fiatUnit = fiatCurrencyUiState.fiatCurrency.currencyName
     }
     return BalanceValuesModel(balance = balance, balanceUnit = balanceUnit, fiatBalance = fiatBalance, fiatUnit = fiatUnit)
@@ -177,4 +181,15 @@ internal fun BalanceValuesModel.toBalanceUiModel(context: Context): BalanceUIMod
         fiatBalance = fiatValue,
         fiatUnit = fiatUnit
     )
+}
+
+internal fun String.removeTrailingZero(): String {
+    return try {
+        this.toDoubleOrNull()?.let {
+            DecimalFormat("0.#####").format(it)
+        } ?: this
+    } catch (e: Exception) {
+        Twig.error { "Exception in formatting value $this" }
+        this
+    }
 }

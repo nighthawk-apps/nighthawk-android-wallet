@@ -4,7 +4,8 @@ data class EnterZecUIState(
     val enteredAmount: String = "0",
     val amountUnit: String = "ZEC",
     val spendableBalance: String = "--",
-    val convertedAmount: String? = null,
+    val fiatAmount: String? = null,
+    val fiatUnit: String? = null,
     val isEnoughBalance: Boolean = true,
     val isScanPaymentCodeOptionAvailable: Boolean = enteredAmount == "0" && isEnoughBalance
 )
