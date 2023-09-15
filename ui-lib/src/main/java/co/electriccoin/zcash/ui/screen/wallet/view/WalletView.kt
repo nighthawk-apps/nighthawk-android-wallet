@@ -276,7 +276,7 @@ fun BalanceView(
         Column(
             modifier = Modifier
                 .fillMaxWidth(0.8f)
-                .height(dimensionResource(id = R.dimen.home_view_pager_min_height)),
+                .heightIn(dimensionResource(id = R.dimen.home_view_pager_min_height)),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Image(
