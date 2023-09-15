@@ -23,7 +23,6 @@ import co.electriccoin.zcash.ui.common.MIN_ZEC_FOR_SHIELDING
 import co.electriccoin.zcash.ui.common.ShortcutAction
 import co.electriccoin.zcash.ui.common.showMessage
 import co.electriccoin.zcash.ui.common.toFormattedString
-import co.electriccoin.zcash.ui.screen.home.model.WalletSnapshot
 import co.electriccoin.zcash.ui.screen.home.viewmodel.HomeViewModel
 import co.electriccoin.zcash.ui.screen.home.viewmodel.WalletViewModel
 import co.electriccoin.zcash.ui.screen.settings.viewmodel.SettingsViewModel
@@ -85,8 +84,8 @@ internal fun WrapWallet(
         LaunchedEffect(key1 = Unit) {
             homeViewModel.shortcutAction?.let {
                 when (it) {
-                    HomeViewModel.ShortcutAction.SEND_MONEY_SCAN_QR_CODE -> onSendFromDeepLink()
-                    HomeViewModel.ShortcutAction.RECEIVE_MONEY_QR_CODE -> {
+                    ShortcutAction.SEND_MONEY_SCAN_QR_CODE -> onSendFromDeepLink()
+                    ShortcutAction.RECEIVE_MONEY_QR_CODE -> {
                         onAddressQrCodes()
                         homeViewModel.shortcutAction = null
                     }
