@@ -215,8 +215,8 @@
     <string name="ns_expired">Expired</string>
     <string name="ns_unknown">Unknown</string>
     <string name="ns_cancel">Cancel</string>
-    <string name="ns_success">Success</string>
-    <string name="ns_done">Done</string>
+    <string name="ns_success">Succes</string>
+    <string name="ns_done">Udført</string>
     <string name="ns_more_details">More Details</string>
     <string name="ns_failed">Failed</string>
     <string name="ns_try_again">Try Again</string>
