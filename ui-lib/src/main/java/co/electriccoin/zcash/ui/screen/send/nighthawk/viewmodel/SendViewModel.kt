@@ -5,8 +5,8 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import cash.z.ecc.android.sdk.Synchronizer
 import cash.z.ecc.android.sdk.ext.ZcashSdk
+import cash.z.ecc.android.sdk.ext.convertZatoshiToZecString
 import cash.z.ecc.android.sdk.ext.convertZecToZatoshi
-import cash.z.ecc.android.sdk.ext.toZec
 import cash.z.ecc.android.sdk.model.UnifiedSpendingKey
 import cash.z.ecc.android.sdk.model.Zatoshi
 import cash.z.ecc.android.sdk.model.ZecSend
@@ -17,8 +17,12 @@ import co.electriccoin.zcash.preference.api.PreferenceProvider
 import co.electriccoin.zcash.spackle.Twig
 import co.electriccoin.zcash.ui.common.UnsUtil
 import co.electriccoin.zcash.ui.common.addressTypeNameId
+import co.electriccoin.zcash.ui.common.toBalanceValueModel
+import co.electriccoin.zcash.ui.common.toFiatZatoshi
 import co.electriccoin.zcash.ui.preference.StandardPreferenceKeys
 import co.electriccoin.zcash.ui.preference.StandardPreferenceSingleton
+import co.electriccoin.zcash.ui.screen.fiatcurrency.model.FiatCurrency
+import co.electriccoin.zcash.ui.screen.fiatcurrency.model.FiatCurrencyUiState
 import co.electriccoin.zcash.ui.screen.home.model.WalletSnapshot
 import co.electriccoin.zcash.ui.screen.send.nighthawk.model.EnterZecUIState
 import co.electriccoin.zcash.ui.screen.send.nighthawk.model.NumberPadValueTypes
@@ -52,6 +56,10 @@ class SendViewModel(val context: Application) : AndroidViewModel(application = c
 
     private val uns by lazy { UnsUtil() }
     private var prefProvider: PreferenceProvider? = null
+
+    private var fiatCurrencyUiState: FiatCurrencyUiState =
+        FiatCurrencyUiState(FiatCurrency.OFF, null)
+    private var isFiatCurrencyPreferredOverZec: Boolean = false
 
     fun onNextSendUiState() {
         _currentSendUiState.getAndUpdate { it?.getNext(it) }
@@ -90,7 +98,26 @@ class SendViewModel(val context: Application) : AndroidViewModel(application = c
     }
 
     fun enteredZecFromDeepLink(zec: String) {
-        _enterZecUIState.update { it.copy(enteredAmount = zec) }
+        _enterZecUIState.update {
+            it.copy(
+                enteredAmount = zec.toDoubleOrNull().convertZecToZatoshi().toBalanceValueModel(
+                    fiatCurrencyUiState,
+                    isFiatCurrencyPreferredOverZec
+                ).balance
+            )
+        }
+    }
+
+    fun updateFiatCurrencyData(
+        fiatCurrencyUiState: FiatCurrencyUiState,
+        isFiatCurrencyPreferred: Boolean
+    ) {
+        this.fiatCurrencyUiState = fiatCurrencyUiState
+        isFiatCurrencyPreferredOverZec = isFiatCurrencyPreferred
+    }
+
+    fun getEnteredAmountInZecString(): String {
+        return enterZecUIState.value.enteredAmount.toDoubleOrNull()?.toFiatZatoshi(fiatCurrencyUiState, isFiatCurrencyPreferredOverZec).convertZatoshiToZecString()
     }
 
     fun onKeyPressed(numberPadValueTypes: NumberPadValueTypes) {
@@ -109,15 +136,39 @@ class SendViewModel(val context: Application) : AndroidViewModel(application = c
     fun updateEnterZecUiStateWithWalletSnapshot(walletSnapshot: WalletSnapshot) {
         Twig.info { "SendVieModel walletSnapShot $walletSnapshot" }
         _enterZecUIState.getAndUpdate {
-            val availableZatoshi = walletSnapshot.saplingBalance.available.takeIf { available -> available.value > ZcashSdk.MINERS_FEE.value }
-                ?.let {available -> available - ZcashSdk.MINERS_FEE } ?: Zatoshi(0)
-            val isEnoughBalance =
-                (it.enteredAmount.toDoubleOrNull()?.toZec()?.convertZecToZatoshi()?.value
-                    ?: 0L) <= availableZatoshi.value
+            val availableZatoshi =
+                walletSnapshot.saplingBalance.available.takeIf { available -> available.value > ZcashSdk.MINERS_FEE.value }
+                    ?.let { available -> available - ZcashSdk.MINERS_FEE } ?: Zatoshi(0)
+            val balanceValuesModel = (it.enteredAmount.toDoubleOrNull()
+                ?.toFiatZatoshi(fiatCurrencyUiState, isFiatCurrencyPreferredOverZec)
+                ?: Zatoshi(0)).toBalanceValueModel(
+                fiatCurrencyUiState,
+                isFiatCurrencyPreferredOverZec
+            )
+            val availableBalanceModel = availableZatoshi.toBalanceValueModel(
+                fiatCurrencyUiState,
+                isFiatCurrencyPreferredOverZec
+            )
+            val isEnoughBalance = (it.enteredAmount.toDoubleOrNull()
+                ?: 0.0) <= (availableBalanceModel.balance.toDoubleOrNull() ?: 0.0)
             it.copy(
-                spendableBalance = availableZatoshi.toZecString(),
+                amountUnit = balanceValuesModel.balanceUnit,
+                spendableBalance = availableBalanceModel.balance,
+                fiatAmount = balanceValuesModel.fiatBalance,
+                fiatUnit = balanceValuesModel.fiatUnit,
                 isEnoughBalance = isEnoughBalance,
                 isScanPaymentCodeOptionAvailable = it.enteredAmount == "0" && isEnoughBalance
+            )
+        }
+    }
+
+    fun switchEnteredAmountType() {
+        _enterZecUIState.update {
+            it.copy(
+                enteredAmount = it.fiatAmount ?: "0",
+                amountUnit = it.fiatUnit ?: "ZEC",
+                fiatAmount = it.enteredAmount,
+                fiatUnit = it.amountUnit
             )
         }
     }
@@ -128,13 +179,17 @@ class SendViewModel(val context: Application) : AndroidViewModel(application = c
         }
     }
 
-    fun sendAndReviewUiState() =
+    fun sendAndReviewUiState() = run {
+        val balanceValuesModel = (zecSend?.amount ?: Zatoshi(0)).toBalanceValueModel(fiatCurrencyUiState, isFiatCurrencyPreferredOverZec)
         SendAndReviewUiState()
             .copy(
-                amountToSend = zecSend?.amount?.toZecString() ?: "",
-                convertedAmountWithCurrency = "--",
+                amountToSend = balanceValuesModel.balance,
+                amountUnit = balanceValuesModel.balanceUnit,
+                convertedAmountWithCurrency = "${balanceValuesModel.fiatBalance} ${balanceValuesModel.fiatUnit}",
                 memo = zecSend?.memo?.value ?: "",
-                recipientType = context.getString((zecSend?.destination?.address ?: "").addressTypeNameId()),
+                recipientType = context.getString(
+                    (zecSend?.destination?.address ?: "").addressTypeNameId()
+                ),
                 receiverAddress = zecSend?.destination?.address ?: "",
                 subTotal = zecSend?.amount?.toZecString() ?: "",
                 networkFees = ZcashSdk.MINERS_FEE.toZecString(),
@@ -142,6 +197,7 @@ class SendViewModel(val context: Application) : AndroidViewModel(application = c
                     zecSend?.amount?.plus(ZcashSdk.MINERS_FEE)?.toZecString()
                 }"
             )
+    }
 
     private fun initiateSend(
         zecSend: ZecSend?,
@@ -219,11 +275,18 @@ class SendViewModel(val context: Application) : AndroidViewModel(application = c
     }
 
     fun clearViewModelSavedData() {
+        fiatCurrencyUiState = FiatCurrencyUiState(FiatCurrency.OFF, null)
+        isFiatCurrencyPreferredOverZec = false
         _currentSendUiState.value = SendUIState.ENTER_ZEC
         _enterZecUIState.value = EnterZecUIState()
         zecSend = null
         updateMemo("")
         updateReceiverAddress("")
+        resetSendConfirmationState()
+    }
+
+    fun resetSendConfirmationState() {
+        updateSendConfirmationState(SendConfirmationState.Sending)
     }
 
     private suspend fun getSharedPrefProvider(): PreferenceProvider {

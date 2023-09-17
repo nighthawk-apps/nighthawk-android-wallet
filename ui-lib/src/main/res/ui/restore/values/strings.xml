@@ -29,7 +29,7 @@
     <string name="ns_terms_conditions">Terms and Conditions</string>
     <string name="ns_create_wallet">Create Wallet</string>
     <string name="ns_create_wallet_title">Write down your backup seed</string>
-    <string name="ns_create_wallet_text">If you lose access to your phone or Nighthawk wallet, the only way you can regain access to your Zcash is if you have this 24 word phrase and wallet birthday code.\n\nWrite it down on paper and store it somewhere safe.</string>
+    <string name="ns_create_wallet_text">If you lose access to your phone or Nighthawk Wallet, the only way you can regain access to your Zcash is if you have this 24 word phrase and wallet birthday code.\n\nWrite it down on paper and store it somewhere safe.</string>
     <string name="ns_create_wallet_confirm_text">I confirm I have written down my seed phrase.</string>
     <string name="ns_restore_from_backup">Restore from Backup</string>
     <string name="ns_restore_wallet_text">Enter your 24 word seed phrase below. If you do not have this phrase, you will need to create a new wallet.</string>
@@ -38,7 +38,7 @@
     <string name="ns_birthday_height">Birthday Height (optional)</string>
     <string name="ns_your_seed_error">Error - This doesn\'t look like a valid seed phrase.</string>
     <string name="ns_continue">Continue</string>
-    <string name="ns_export_as_pdf">Export as Pdf</string>
+    <string name="ns_export_as_pdf">Export as PDF</string>
     <string name="ns_pdf_dialog_sub_heading">Export the seed words to a password protected PDF which can be backed up to user secured portable storage devices.</string>
     <string name="ns_please_enter_password">Please Enter Password</string>
     <string name="ns_export_pdf">Export PDF</string>
@@ -172,9 +172,11 @@
     <string name="ns_about">About</string>
     <string name="ns_about_message">Nighthawk is a Shielded Zcash light-wallet with support for Z-addresses, including sending &amp; receiving shielded transactions, memo support &amp; optional t-addresses support with Auto-Shielding technology.\n\nAs a non-custodial wallet for Zcash, you have sole responsibility over its funds. Please immediately and securely back up the seed words upon creating a wallet.\n\nZcash is a digital currency, or cryptocurrency, like Bitcoin. Zcash was built on the original Bitcoin code base. It was conceived by scientists at MIT, Johns Hopkins and other respected academic and scientific institutions.\n\nNighthawk Wallet requires trust in the default or custom lightwalletd server to display accurate transaction information and CoinGecko service for exchange rate feed. This software is provided "as is", without warranty of any kind, express or implied.</string>
     <string name="ns_view_source">View Source</string>
+    <string name="ns_credits">Nighthawk friends</string>
     <string name="ns_about_text">Nighthawk v%s &amp; Licenses</string>
     <string name="ns_view_license">OSS Licenses</string>
     <string name="ns_source_code_link" translatable="false">https://github.com/nighthawk-apps/nighthawk-android-wallet</string>
+    <string name="ns_credits_link" translatable="false">https://nighthawkwallet.com/credits/</string>
     <string name="ns_privacy_policy_link" translatable="false">https://nighthawkwallet.com/privacypolicy/</string>
     <string name="ns_block_explorer_url_testnet" translatable="false">https://testnet.zcashblockexplorer.com/transactions/%s</string>
     <string name="ns_block_explorer_url_main_net" translatable="false">https://zcashblockexplorer.com/transactions/%s</string>
@@ -278,7 +280,7 @@
     <string name="autoshielding_button_positive">Great!</string>
     <string name="autoshielding_button_neutral">Learn more</string>
     <string name="link_to_ecc_title">Redirecting to ElectricCoin.co</string>
-    <string name="link_to_ecc_description">Please confirm opening your device browser to learn more about Unified Addresses.</string>
+    <string name="link_to_ecc_description">Please confirm opening electriccoin.co on your device browser to learn more about Unified Addresses.</string>
     <string name="shielding">Shielding…</string>
     <string name="open_settings">Open Settings</string>
     <string name="notification_permission_dialog_title">Alert</string>
@@ -292,7 +294,7 @@
     <string name="advanced">Advanced</string>
     <string name="advanced_msg">Less common settings</string>
     <string name="nuke_wallet">Nuke Wallet</string>
-    <string name="nuke_wallet_caution">CAUTION: This will completely wipe your wallet and you will be unable to recover funds without your seed words.Ensure you have them saved somewhere safe before proceeding</string>
+    <string name="nuke_wallet_caution">CAUTION: This will completely wipe your wallet and you will be unable to recover funds without your seed words. Ensure you have them saved somewhere safe before proceeding</string>
     <string name="nuke_wallet_dialog_msg">This operation is IRREVERSIBLE. Restoring your funds will be impossible without seed words. Be ABSOLUTELY sure you have saved them somewhere safe before proceeding. Due you still want to proceed?</string>
     <string name="are_you_sure">Are you sure?</string>
 </resources>

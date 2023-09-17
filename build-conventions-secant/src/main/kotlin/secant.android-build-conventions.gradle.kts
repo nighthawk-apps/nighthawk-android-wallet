@@ -175,7 +175,7 @@ fun com.android.build.gradle.BaseExtension.configureBaseExtension() {
         )
     }
 
-    if (this is CommonExtension<*, *, *, *>) {
+    if (this is CommonExtension<*, *, *, *, *>) {
         kotlinOptions {
             jvmTarget = project.property("ANDROID_JVM_TARGET").toString()
             allWarningsAsErrors = project.property("ZCASH_IS_TREAT_WARNINGS_AS_ERRORS").toString().toBoolean()
@@ -191,7 +191,7 @@ fun com.android.build.gradle.BaseExtension.configureBaseExtension() {
     }
 }
 
-fun CommonExtension<*, *, *, *>.kotlinOptions(block: KotlinJvmOptions.() -> Unit) {
+fun CommonExtension<*, *, *, *, *>.kotlinOptions(block: KotlinJvmOptions.() -> Unit) {
     (this as ExtensionAware).extensions.configure("kotlinOptions", block)
 }
 
@@ -199,8 +199,9 @@ fun Project.buildComposeMetricsParameters(): List<String> {
     val metricParameters = mutableListOf<String>()
     val enableMetricsProvider = project.providers.gradleProperty("IS_ENABLE_COMPOSE_COMPILER_METRICS")
     val enableMetrics = (enableMetricsProvider.orNull == "true")
+    val buildDirectory = layout.buildDirectory.get().asFile
     if (enableMetrics) {
-        val metricsFolder = File(project.buildDir, "compose-metrics")
+        val metricsFolder = File(buildDirectory, "compose-metrics")
         metricParameters.add("-P")
         metricParameters.add(
             "plugin:androidx.compose.compiler.plugins.kotlin:metricsDestination=" + metricsFolder.absolutePath
@@ -210,7 +211,7 @@ fun Project.buildComposeMetricsParameters(): List<String> {
     val enableReportsProvider = project.providers.gradleProperty("IS_ENABLE_COMPOSE_COMPILER_REPORTS")
     val enableReports = (enableReportsProvider.orNull == "true")
     if (enableReports) {
-        val reportsFolder = File(project.buildDir, "compose-reports")
+        val reportsFolder = File(buildDirectory, "compose-reports")
         metricParameters.add("-P")
         metricParameters.add(
             "plugin:androidx.compose.compiler.plugins.kotlin:reportsDestination=" + reportsFolder.absolutePath

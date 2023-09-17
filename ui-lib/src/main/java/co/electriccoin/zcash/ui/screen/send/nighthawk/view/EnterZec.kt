@@ -53,7 +53,8 @@ fun EnterZecPreview() {
                 enteredAmount = "11",
                 amountUnit = "ZEC",
                 spendableBalance = "10.88",
-                convertedAmount = null, // if there is no Fiat conversion enabled
+                fiatAmount = "125", // null if there is no Fiat conversion enabled
+                fiatUnit = "USD",
                 isEnoughBalance = true
             )
             EnterZec(
@@ -63,7 +64,8 @@ fun EnterZecPreview() {
                 onContinue = {},
                 onTopUpWallet = {},
                 onKeyPressed = {},
-                onSendAllClicked = {}
+                onSendAllClicked = {},
+                onFlipCurrency = {}
             )
         }
     }
@@ -77,7 +79,8 @@ fun EnterZec(
     onContinue: () -> Unit,
     onTopUpWallet: () -> Unit,
     onKeyPressed: (NumberPadValueTypes) -> Unit,
-    onSendAllClicked: (String) -> Unit
+    onSendAllClicked: (String) -> Unit,
+    onFlipCurrency: () -> Unit
 ) {
     Column(modifier = Modifier
         .fillMaxSize()
@@ -100,7 +103,11 @@ fun EnterZec(
                 Spacer(modifier = Modifier.height(dimensionResource(id = R.dimen.pageMargin)))
                 BodyMedium(text = stringResource(id = R.string.ns_choose_send), textAlign = TextAlign.Center, modifier = Modifier.align(Alignment.CenterHorizontally), color = ZcashTheme.colors.surfaceEnd)
                 BodyMedium(
-                    text = stringResource(id = R.string.ns_spendable_balance, enterZecUIState.spendableBalance, enterZecUIState.amountUnit),
+                    text = stringResource(
+                        id = R.string.ns_spendable_balance,
+                        enterZecUIState.spendableBalance,
+                        enterZecUIState.amountUnit
+                    ),
                     textAlign = TextAlign.Center,
                     modifier = Modifier
                         .align(Alignment.CenterHorizontally)
@@ -108,10 +115,26 @@ fun EnterZec(
                     color = ZcashTheme.colors.surfaceEnd
                 )
                 Spacer(modifier = Modifier.height(40.dp))
-                BalanceAmountRow(balance = enterZecUIState.enteredAmount, balanceUnit = enterZecUIState.amountUnit, onFlipClicked = {}, modifier = Modifier.align(Alignment.CenterHorizontally))
+                BalanceAmountRow(
+                    balance = enterZecUIState.enteredAmount,
+                    balanceUnit = enterZecUIState.amountUnit,
+                    onFlipCurrency = onFlipCurrency,
+                    showFlipCurrencyIcon = enterZecUIState.fiatUnit.isNullOrBlank().not(),
+                    modifier = Modifier.align(Alignment.CenterHorizontally)
+                )
                 Spacer(modifier = Modifier.height(12.dp))
-                enterZecUIState.convertedAmount?.let {
-                    BodyMedium(text = stringResource(id = R.string.ns_around, it), textAlign = TextAlign.Center, modifier = Modifier.align(Alignment.CenterHorizontally), color = ZcashTheme.colors.surfaceEnd)
+                enterZecUIState.fiatAmount?.let {
+                    if (it.isNotBlank()) {
+                        BodyMedium(
+                            text = stringResource(
+                                id = R.string.ns_around,
+                                "$it ${enterZecUIState.fiatUnit}"
+                            ),
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.align(Alignment.CenterHorizontally),
+                            color = ZcashTheme.colors.surfaceEnd
+                        )
+                    }
                 }
                 Spacer(modifier = Modifier.weight(1f))
 
@@ -119,7 +142,9 @@ fun EnterZec(
                     DottedBorderTextButton(
                         onClick = onScanPaymentCode,
                         text = stringResource(id = R.string.ns_scan_payment_code),
-                        modifier = Modifier.align(Alignment.CenterHorizontally).height(dimensionResource(id = R.dimen.button_height))
+                        modifier = Modifier
+                            .align(Alignment.CenterHorizontally)
+                            .height(dimensionResource(id = R.dimen.button_height))
                     )
                 }
 
@@ -129,7 +154,10 @@ fun EnterZec(
                         text = stringResource(id = R.string.ns_continue).uppercase(),
                         modifier = Modifier
                             .align(Alignment.CenterHorizontally)
-                            .sizeIn(minWidth = dimensionResource(id = R.dimen.button_min_width), minHeight = dimensionResource(id = R.dimen.button_height))
+                            .sizeIn(
+                                minWidth = dimensionResource(id = R.dimen.button_min_width),
+                                minHeight = dimensionResource(id = R.dimen.button_height)
+                            )
                     )
                 }
 
@@ -139,7 +167,10 @@ fun EnterZec(
                         text = stringResource(id = R.string.ns_top_up_wallet).uppercase(),
                         modifier = Modifier
                             .align(Alignment.CenterHorizontally)
-                            .sizeIn(minWidth = dimensionResource(id = R.dimen.restore_button_min_width), minHeight = dimensionResource(id = R.dimen.button_height))
+                            .sizeIn(
+                                minWidth = dimensionResource(id = R.dimen.restore_button_min_width),
+                                minHeight = dimensionResource(id = R.dimen.button_height)
+                            )
                     )
                 }
                 Spacer(modifier = Modifier.height(dimensionResource(id = R.dimen.text_margin)))

@@ -15,6 +15,7 @@ import co.electriccoin.zcash.ui.screen.settings.nighthawk.view.SettingsView
 @Composable
 internal fun MainActivity.AndroidSettings(
     onSyncNotifications: () -> Unit,
+    onFiatCurrency: () -> Unit,
     onSecurity: () -> Unit,
     onBackupWallet: () -> Unit,
     onAdvancedSetting: () -> Unit,
@@ -24,6 +25,7 @@ internal fun MainActivity.AndroidSettings(
     WrapSettings(
         activity = this,
         onSyncNotifications = onSyncNotifications,
+        onFiatCurrency = onFiatCurrency,
         onSecurity = onSecurity,
         onBackupWallet = onBackupWallet,
         onAdvancedSetting = onAdvancedSetting,
@@ -36,6 +38,7 @@ internal fun MainActivity.AndroidSettings(
 internal fun WrapSettings(
     activity: ComponentActivity,
     onSyncNotifications: () -> Unit,
+    onFiatCurrency: () -> Unit,
     onSecurity: () -> Unit,
     onBackupWallet: () -> Unit,
     onAdvancedSetting: () -> Unit,
@@ -61,6 +64,7 @@ internal fun WrapSettings(
     SettingsView(
         versionInfo = VersionInfo.new(packageInfo),
         onSyncNotifications = onSyncNotifications,
+        onFiatCurrency = onFiatCurrency,
         onSecurity = onSecurity,
         onBackupWallet = onBackupWallet,
         onRescan = onReScan,

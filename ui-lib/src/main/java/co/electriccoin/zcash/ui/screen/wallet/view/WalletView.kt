@@ -27,7 +27,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -59,10 +58,13 @@ import co.electriccoin.zcash.ui.design.component.TitleLarge
 import co.electriccoin.zcash.ui.design.component.TitleMedium
 import co.electriccoin.zcash.ui.design.theme.ZcashTheme
 import co.electriccoin.zcash.ui.fixture.WalletSnapshotFixture
+import co.electriccoin.zcash.ui.screen.fiatcurrency.model.FiatCurrency
+import co.electriccoin.zcash.ui.screen.fiatcurrency.model.FiatCurrencyUiState
 import co.electriccoin.zcash.ui.screen.home.model.WalletDisplayValues
 import co.electriccoin.zcash.ui.screen.home.model.WalletSnapshot
 import co.electriccoin.zcash.ui.screen.transactionhistory.view.TransactionOverviewHistoryRow
 import co.electriccoin.zcash.ui.screen.wallet.model.BalanceDisplayValues
+import co.electriccoin.zcash.ui.screen.wallet.model.BalanceUIModel
 import co.electriccoin.zcash.ui.screen.wallet.model.BalanceViewType
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.persistentListOf
@@ -77,12 +79,14 @@ fun WalletPreview() {
                 walletSnapshot = WalletSnapshotFixture.new(),
                 transactionSnapshot = persistentListOf(),
                 isKeepScreenOnWhileSyncing = true,
-                isFiatConversionEnabled = false,
+                isFiatCurrencyPreferred = true,
+                fiatCurrencyUiState = FiatCurrencyUiState(FiatCurrency.USD, 25.8),
                 onShieldNow = {},
                 onAddressQrCodes = {},
                 onTransactionDetail = {},
                 onViewTransactionHistory = {},
-                onLongItemClick = {}
+                onLongItemClick = {},
+                onFlipCurrency = {}
             )
         }
     }
@@ -96,11 +100,17 @@ fun BalanceViewPreview() {
             BalanceView(
                 balanceDisplayValues = BalanceDisplayValues(
                     R.drawable.ic_icon_total,
-                    "120.99",
-                    "ZEC",
                     "Total Balance",
+                    BalanceUIModel(
+                        "124.25",
+                        "ZEC",
+                        "125",
+                        "USD"
+                    ),
                     "expecting (+1 ZEC)"
-                )
+                ),
+                showFlipCurrencyIcon = true,
+                onFlipCurrency = {}
             )
         }
     }
@@ -112,20 +122,26 @@ fun WalletView(
     walletSnapshot: WalletSnapshot,
     transactionSnapshot: ImmutableList<TransactionOverview>,
     isKeepScreenOnWhileSyncing: Boolean?,
-    isFiatConversionEnabled: Boolean,
+    isFiatCurrencyPreferred: Boolean,
+    fiatCurrencyUiState: FiatCurrencyUiState,
     onShieldNow: () -> Unit,
     onAddressQrCodes: () -> Unit,
     onTransactionDetail: (Long) -> Unit,
     onViewTransactionHistory: () -> Unit,
-    onLongItemClick: (TransactionOverview) -> Unit
+    onLongItemClick: (TransactionOverview) -> Unit,
+    onFlipCurrency: (isFiatCurrencyPreferredOverZec: Boolean) -> Unit
 ) {
     Column(modifier = Modifier
         .fillMaxSize()
         .verticalScroll(rememberScrollState())
-        .padding(start = dimensionResource(id = R.dimen.screen_standard_margin), end = dimensionResource(id = R.dimen.screen_standard_margin), bottom = 10.dp)
+        .padding(
+            start = dimensionResource(id = R.dimen.screen_standard_margin),
+            end = dimensionResource(id = R.dimen.screen_standard_margin),
+            bottom = 10.dp
+        )
     ) {
-        val showShieldNow by remember { mutableStateOf(false) }
-        Twig.info { "walletSnapshot $walletSnapshot and is fiat currency enabled $isFiatConversionEnabled and showShieldNoe $showShieldNow" }
+        val isBalancePrivateMode = remember { mutableStateOf(true) }
+        Twig.info { "walletSnapshot $walletSnapshot and is fiat currency preferred $isFiatCurrencyPreferred" }
         Spacer(modifier = Modifier.height(dimensionResource(id = R.dimen.top_margin_back_btn)))
         Image(
             painter = painterResource(id = R.drawable.ic_icon_scan_qr),
@@ -146,13 +162,23 @@ fun WalletView(
             val pageCount = BalanceViewType.TOTAL_VIEWS
             val state = rememberPagerState(initialPage = 0) { pageCount }
             HorizontalPager(state = state) { pageNo ->
-                val balanceDisplayValues = BalanceDisplayValues.getNextValue(LocalContext.current, BalanceViewType.getBalanceViewType(pageNo), walletSnapshot)
-                BalanceView(balanceDisplayValues = balanceDisplayValues)
+                val balanceDisplayValues = BalanceDisplayValues.getNextValue(
+                    LocalContext.current,
+                    BalanceViewType.getBalanceViewType(pageNo),
+                    walletSnapshot,
+                    isFiatCurrencyPreferred,
+                    fiatCurrencyUiState
+                )
+                BalanceView(
+                    balanceDisplayValues = balanceDisplayValues,
+                    showFlipCurrencyIcon = fiatCurrencyUiState.fiatCurrency != FiatCurrency.OFF,
+                    onFlipCurrency = { onFlipCurrency(isFiatCurrencyPreferred.not()) })
             }
             val balanceViewType = BalanceViewType.getBalanceViewType(state.currentPage)
             if (balanceViewType != BalanceViewType.SWIPE) {
                 PageIndicator(pageCount = pageCount, pagerState = state)
             }
+            isBalancePrivateMode.value = balanceViewType == BalanceViewType.SWIPE
             // Show shield now button in last if balanceViewType is Transparent and some transparentBalance is available 0.01 ZEC
             if (balanceViewType == BalanceViewType.TRANSPARENT && walletSnapshot.transparentBalance.available > MIN_ZEC_FOR_SHIELDING.convertZecToZatoshi()) {
                 Spacer(Modifier.height(dimensionResource(id = R.dimen.pageMargin)))
@@ -161,7 +187,10 @@ fun WalletView(
                     text = stringResource(id = R.string.ns_shield_now).uppercase(),
                     modifier = Modifier
                         .align(Alignment.CenterHorizontally)
-                        .sizeIn(minWidth = dimensionResource(id = R.dimen.button_min_width), minHeight = dimensionResource(id = R.dimen.button_height))
+                        .sizeIn(
+                            minWidth = dimensionResource(id = R.dimen.button_min_width),
+                            minHeight = dimensionResource(id = R.dimen.button_height)
+                        )
                 )
             }
         } else {
@@ -185,7 +214,14 @@ fun WalletView(
             BodyMedium(text = stringResource(id = R.string.ns_recent_activity), color = colorResource(id = co.electriccoin.zcash.ui.design.R.color.ns_parmaviolet))
             Spacer(modifier = Modifier.height(4.dp))
             transactionSnapshot.take(2).toImmutableList().forEach { transactionOverview ->
-                TransactionOverviewHistoryRow(transactionOverview = transactionOverview, onItemClick = { onTransactionDetail(it.id) }, onItemLongClick = onLongItemClick)
+                TransactionOverviewHistoryRow(
+                    transactionOverview = transactionOverview,
+                    fiatCurrencyUiState = fiatCurrencyUiState,
+                    isBalancePrivateMode = isBalancePrivateMode.value,
+                    isFiatCurrencyPreferred = isFiatCurrencyPreferred,
+                    onItemClick = { onTransactionDetail(it.id) },
+                    onItemLongClick = onLongItemClick
+                )
             }
             Spacer(modifier = Modifier.height(10.dp))
             Row(
@@ -231,11 +267,16 @@ fun PageIndicator(pageCount: Int, pagerState: PagerState) {
 }
 
 @Composable
-fun BalanceView(balanceDisplayValues: BalanceDisplayValues) {
+fun BalanceView(
+    balanceDisplayValues: BalanceDisplayValues,
+    showFlipCurrencyIcon: Boolean,
+    onFlipCurrency: () -> Unit
+) {
     Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-        Column(modifier = Modifier
-            .fillMaxWidth(0.8f)
-            .height(dimensionResource(id = R.dimen.home_view_pager_min_height)),
+        Column(
+            modifier = Modifier
+                .fillMaxWidth(0.8f)
+                .heightIn(dimensionResource(id = R.dimen.home_view_pager_min_height)),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Image(
@@ -244,8 +285,19 @@ fun BalanceView(balanceDisplayValues: BalanceDisplayValues) {
                 modifier = Modifier.align(Alignment.CenterHorizontally)
             )
             Spacer(Modifier.height(dimensionResource(id = R.dimen.pageMargin)))
-            if (balanceDisplayValues.balance.isNotBlank()) {
-                BalanceAmountRow(balance = balanceDisplayValues.balance, balanceUnit = balanceDisplayValues.balanceUnit, onFlipClicked = {})
+            if (balanceDisplayValues.balanceUIModel.balance.isNotBlank()) {
+                BalanceAmountRow(
+                    balance = balanceDisplayValues.balanceUIModel.balance,
+                    balanceUnit = balanceDisplayValues.balanceUIModel.balanceUnit,
+                    showFlipCurrencyIcon = showFlipCurrencyIcon,
+                    onFlipCurrency = onFlipCurrency
+                )
+            }
+            if (balanceDisplayValues.balanceUIModel.fiatBalance.isNotBlank()) {
+                BodySmall(
+                    text = balanceDisplayValues.balanceUIModel.fiatBalance + " ${balanceDisplayValues.balanceUIModel.fiatUnit}",
+                    textAlign = TextAlign.Center
+                )
             }
             if (balanceDisplayValues.msg.isNullOrBlank().not()) {
                 BodySmall(text = balanceDisplayValues.msg
@@ -259,20 +311,28 @@ fun BalanceView(balanceDisplayValues: BalanceDisplayValues) {
 }
 
 @Composable
-fun BalanceAmountRow(balance: String, balanceUnit: String, onFlipClicked: () -> Unit, modifier: Modifier = Modifier) {
+fun BalanceAmountRow(
+    balance: String,
+    balanceUnit: String,
+    showFlipCurrencyIcon: Boolean,
+    onFlipCurrency: () -> Unit,
+    modifier: Modifier = Modifier
+) {
     Row(modifier = modifier) {
         BalanceText(text = balance)
         Spacer(modifier = Modifier.width(4.dp))
         BalanceText(text = balanceUnit, color = MaterialTheme.colorScheme.primary)
         Spacer(modifier = Modifier.width(4.dp))
-        Icon(
-            painter = painterResource(id = R.drawable.ic_icon_up_down),
-            contentDescription = "Fiat balance",
-            modifier = Modifier.clickable {
-                onFlipClicked.invoke()
-            },
-            tint = MaterialTheme.colorScheme.primary
-        )
+        if (showFlipCurrencyIcon) {
+            Icon(
+                painter = painterResource(id = R.drawable.ic_icon_up_down),
+                contentDescription = "Fiat balance",
+                modifier = Modifier.clickable {
+                    onFlipCurrency.invoke()
+                },
+                tint = MaterialTheme.colorScheme.primary
+            )
+        }
     }
 }
 

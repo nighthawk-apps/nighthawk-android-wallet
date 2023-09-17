@@ -32,11 +32,13 @@ import co.electriccoin.zcash.ui.design.component.BodySmall
 import co.electriccoin.zcash.ui.screen.about.nighthawk.AndroidAboutView
 import co.electriccoin.zcash.ui.screen.advancesetting.AndroidAdvancedSetting
 import co.electriccoin.zcash.ui.screen.externalservices.AndroidExternalServicesView
+import co.electriccoin.zcash.ui.screen.fiatcurrency.AndroidFiatCurrency
 import co.electriccoin.zcash.ui.screen.navigation.ArgumentKeys.IS_PIN_SETUP
 import co.electriccoin.zcash.ui.screen.navigation.ArgumentKeys.TRANSACTION_DETAILS_ID
 import co.electriccoin.zcash.ui.screen.navigation.NavigationTargets.ABOUT
 import co.electriccoin.zcash.ui.screen.navigation.NavigationTargets.ADVANCED_SETTING
 import co.electriccoin.zcash.ui.screen.navigation.NavigationTargets.EXTERNAL_SERVICES
+import co.electriccoin.zcash.ui.screen.navigation.NavigationTargets.FIAT_CURRENCY
 import co.electriccoin.zcash.ui.screen.navigation.NavigationTargets.PIN
 import co.electriccoin.zcash.ui.screen.navigation.NavigationTargets.RECEIVE_MONEY
 import co.electriccoin.zcash.ui.screen.navigation.NavigationTargets.RECEIVE_QR_CODES
@@ -89,6 +91,7 @@ internal fun MainActivity.MainNavigation(navHostController: NavHostController, p
         composable(BottomNavItem.Settings.route) {
             AndroidSettings(
                 onSyncNotifications = { navHostController.navigateJustOnce(SYNC_NOTIFICATION) },
+                onFiatCurrency = { navHostController.navigateJustOnce(FIAT_CURRENCY) },
                 onSecurity = { navHostController.navigateJustOnce(SECURITY) },
                 onBackupWallet = { navHostController.navigateJustOnce(SETTING_BACK_UP_WALLET) },
                 onAdvancedSetting = { navHostController.navigateJustOnce(ADVANCED_SETTING) },
@@ -194,6 +197,11 @@ internal fun MainActivity.MainNavigation(navHostController: NavHostController, p
         composable(SYNC_NOTIFICATION) {
             AndroidSyncNotification(
                 onBack = { navHostController.popBackStackJustOnce(SYNC_NOTIFICATION) }
+            )
+        }
+        composable(FIAT_CURRENCY) {
+            AndroidFiatCurrency(
+                onBack = { navHostController.popBackStackJustOnce(FIAT_CURRENCY) }
             )
         }
         composable(SECURITY) {
@@ -304,6 +312,7 @@ object NavigationTargets {
     const val RECEIVE_QR_CODES = "receive_qr_codes"
     const val SHIELD = "shield"
     const val SYNC_NOTIFICATION = "sync_notification"
+    const val FIAT_CURRENCY = "fiat_currency"
     const val SECURITY = "security"
     const val SETTING_BACK_UP_WALLET = "setting_back_up_wallet"
     const val ADVANCED_SETTING = "advanced_settings"

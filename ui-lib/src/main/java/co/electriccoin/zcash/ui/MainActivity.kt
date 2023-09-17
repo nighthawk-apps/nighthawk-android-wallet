@@ -21,6 +21,7 @@ import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.navigation.NavHostController
 import co.electriccoin.zcash.ui.common.BindCompLocalProvider
+import co.electriccoin.zcash.ui.common.ShortcutAction
 import co.electriccoin.zcash.ui.configuration.RemoteConfig
 import co.electriccoin.zcash.ui.design.component.ConfigurationOverride
 import co.electriccoin.zcash.ui.design.component.Override
@@ -73,6 +74,7 @@ class MainActivity : FragmentActivity() {
 
     private fun handleIntentData() {
         homeViewModel.intentDataUriForDeepLink = intent?.data
+        homeViewModel.shortcutAction = ShortcutAction.getShortcutAction(intent?.getStringExtra(ShortcutAction.KEY_SHORT_CUT_CLICK))
     }
 
     private fun setupSplashScreen() {
