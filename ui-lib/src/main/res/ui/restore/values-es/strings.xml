@@ -26,7 +26,7 @@
     <string name="ns_terms_conditions">Términos y Condiciones</string>
     <string name="ns_create_wallet">Crear billetera</string>
     <string name="ns_create_wallet_title">Escribe tu semilla de respaldo</string>
-    <string name="ns_create_wallet_text">Si pierdes el acceso a tu teléfono o billetera Nighthawk, la única forma en que puede recuperar el acceso a su Zcash es si tiene esta frase de 24 palabras y código de cumpleaños del monedero.\n\nEscríbalo en papel y guárdelo en un lugar seguro.</string>
+    <string name="ns_create_wallet_text">If you lose access to your phone or Nighthawk Wallet, the only way you can regain access to your Zcash is if you have this 24 word phrase and wallet birthday code.\n\nWrite it down on paper and store it somewhere safe.</string>
     <string name="ns_create_wallet_confirm_text">Confirmo que he escrito mi frase semilla.</string>
     <string name="ns_restore_from_backup">Restaurar desde una copia de seguridad</string>
     <string name="ns_restore_wallet_text">Introduzca su frase semilla de 24 palabras. Si no tiene esta frase, necesitará crear una nueva billetera.</string>
@@ -35,7 +35,7 @@
     <string name="ns_birthday_height">Birthday Height (optional)</string>
     <string name="ns_your_seed_error">Error - Esto no parece ser una frase de semilla válida.</string>
     <string name="ns_continue">Continuar</string>
-    <string name="ns_export_as_pdf">Export as Pdf</string>
+    <string name="ns_export_as_pdf">Export as PDF</string>
     <string name="ns_pdf_dialog_sub_heading">Exportar las palabras de semilla a un PDF protegido por contraseña que puede ser respaldado a dispositivos de almacenamiento portátiles asegurados por el usuario.</string>
     <string name="ns_please_enter_password">Introduce la contraseña</string>
     <string name="ns_export_pdf">Exportar PDF</string>
@@ -163,6 +163,7 @@
     <string name="ns_about">Acerca de</string>
     <string name="ns_about_message">Nighthawk es una billetera Zcash blindada con soporte para direcciones Z, incluyendo el envío &amp; recepción de transacciones protegidas, soporte de memo &amp; soporte opcional de dirección rápida con tecnología de protección automática.\n\nComo billetera no custodial para Zcash, usted es el único responsable de sus fondos. Por favor, haga una copia de seguridad inmediata y segura de la frase semilla al crear una billetera.\n\nZcash es una moneda digital, o criptomoneda, como Bitcoin. Zcash fue construido sobre la base original del código de Bitcoin. Fue concebido por científicos del MIT, Johns Hopkins y otras instituciones científicas y académicas respetadas.\n\nNighthawk Wallet requiere confianza en el servidor de lightwalletd por defecto o personalizado para mostrar información precisa de la transacción y el servicio CoinGecko para el flujo de tipos de cambio. Este software se proporciona \"tal cual\", sin garantía de ningún tipo, expresa o implícita.</string>
     <string name="ns_view_source">Ver código fuente</string>
+    <string name="ns_credits">Nighthawk friends</string>
     <string name="ns_about_text">Nighthawk v%s &amp; Licencias</string>
     <string name="ns_view_license">Licencias OSS</string>
     <string name="ns_back_up_seed_dialog_title">¿Ver frase semilla?</string>
@@ -260,7 +261,7 @@
     <string name="autoshielding_button_positive">Great!</string>
     <string name="autoshielding_button_neutral">Learn more</string>
     <string name="link_to_ecc_title">Redirigiendo a ElectricCoin.co</string>
-    <string name="link_to_ecc_description">Por favor, confirme la apertura del navegador de su dispositivo para obtener más información sobre direcciones unificadas.</string>
+    <string name="link_to_ecc_description">Please confirm opening electriccoin.co on your device browser to learn more about Unified Addresses.</string>
     <string name="shielding">Shielding…</string>
     <string name="open_settings">Open Settings</string>
     <string name="notification_permission_dialog_title">Alert</string>
@@ -274,7 +275,7 @@
     <string name="advanced">Advanced</string>
     <string name="advanced_msg">Less common settings</string>
     <string name="nuke_wallet">Nuke Wallet</string>
-    <string name="nuke_wallet_caution">CAUTION: This will completely wipe your wallet and you will be unable to recover funds without your seed words.Ensure you have them saved somewhere safe before proceeding</string>
+    <string name="nuke_wallet_caution">CAUTION: This will completely wipe your wallet and you will be unable to recover funds without your seed words. Ensure you have them saved somewhere safe before proceeding</string>
     <string name="nuke_wallet_dialog_msg">This operation is IRREVERSIBLE. Restoring your funds will be impossible without seed words. Be ABSOLUTELY sure you have saved them somewhere safe before proceeding. Due you still want to proceed?</string>
     <string name="are_you_sure">¿Estás seguro?</string>
 </resources>
