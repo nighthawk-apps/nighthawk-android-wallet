@@ -95,9 +95,12 @@ fun TransactionOverviewHistoryRow(
                 val balanceValuesModel = transactionValue.toBalanceValueModel(fiatCurrencyUiState, isFiatCurrencyPreferred)
                 val transactionText = (if (isBalancePrivateMode) "---" else balanceValuesModel.balance) + " ${balanceValuesModel.balanceUnit}"
                 Body(text = transactionText, color = colorResource(id = co.electriccoin.zcash.ui.design.R.color.ns_parmaviolet))
-                Spacer(modifier = Modifier.height(4.dp))
-                val fiatCurrencyText = (if (isBalancePrivateMode) "---" else balanceValuesModel.fiatBalance) + " ${balanceValuesModel.fiatUnit}"
-                BodySmall(text = fiatCurrencyText, textAlign = TextAlign.End)
+                if (fiatCurrencyUiState.fiatCurrency != FiatCurrency.OFF) {
+                    Spacer(modifier = Modifier.height(4.dp))
+                    val fiatCurrencyText =
+                        (if (isBalancePrivateMode) "---" else balanceValuesModel.fiatBalance) + " ${balanceValuesModel.fiatUnit}"
+                    BodySmall(text = fiatCurrencyText, textAlign = TextAlign.End)
+                }
             }
         }
         Spacer(modifier = Modifier.height(15.dp))
