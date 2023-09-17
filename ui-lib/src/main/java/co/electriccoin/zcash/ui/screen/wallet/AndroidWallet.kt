@@ -4,6 +4,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.viewModels
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalClipboardManager
@@ -19,10 +20,9 @@ import co.electriccoin.zcash.spackle.Twig
 import co.electriccoin.zcash.ui.MainActivity
 import co.electriccoin.zcash.ui.R
 import co.electriccoin.zcash.ui.common.MIN_ZEC_FOR_SHIELDING
+import co.electriccoin.zcash.ui.common.ShortcutAction
 import co.electriccoin.zcash.ui.common.showMessage
 import co.electriccoin.zcash.ui.common.toFormattedString
-import co.electriccoin.zcash.ui.configuration.ConfigurationEntries
-import co.electriccoin.zcash.ui.configuration.RemoteConfig
 import co.electriccoin.zcash.ui.screen.home.viewmodel.HomeViewModel
 import co.electriccoin.zcash.ui.screen.home.viewmodel.WalletViewModel
 import co.electriccoin.zcash.ui.screen.settings.viewmodel.SettingsViewModel
@@ -68,12 +68,14 @@ internal fun WrapWallet(
     val settingsViewModel by activity.viewModels<SettingsViewModel>()
     val isKeepScreenOnWhileSyncing =
         settingsViewModel.isKeepScreenOnWhileSyncing.collectAsStateWithLifecycle().value
-    val isFiatConversionEnabled =
-        ConfigurationEntries.IS_FIAT_CONVERSION_ENABLED.getValue(RemoteConfig.current)
     val clipboardManager = LocalClipboardManager.current
 
     val isAutoShieldingInitiated = remember {
         mutableStateOf(false)
+    }
+
+    LaunchedEffect(key1 = Unit) {
+        homeViewModel.fetchZecPriceFromCoinMetrics()
     }
 
     if (null == walletSnapshot) {
@@ -82,8 +84,8 @@ internal fun WrapWallet(
         LaunchedEffect(key1 = Unit) {
             homeViewModel.shortcutAction?.let {
                 when (it) {
-                    HomeViewModel.ShortcutAction.SEND_MONEY_SCAN_QR_CODE -> onSendFromDeepLink()
-                    HomeViewModel.ShortcutAction.RECEIVE_MONEY_QR_CODE -> {
+                    ShortcutAction.SEND_MONEY_SCAN_QR_CODE -> onSendFromDeepLink()
+                    ShortcutAction.RECEIVE_MONEY_QR_CODE -> {
                         onAddressQrCodes()
                         homeViewModel.shortcutAction = null
                     }
@@ -109,16 +111,22 @@ internal fun WrapWallet(
             clipboardManager.setText(AnnotatedString(it.rawId.byteArray.toFormattedString()))
             activity.showMessage(activity.getString(R.string.transaction_id_copied))
         }
+
+        val fiatCurrencyUiState by homeViewModel.fiatCurrencyUiStateFlow.collectAsStateWithLifecycle()
+        val isFiatCurrencyPreferred by homeViewModel.isFiatCurrencyPreferredOverZec.collectAsStateWithLifecycle()
+
         WalletView(
             walletSnapshot = walletSnapshot,
             transactionSnapshot = transactionSnapshot,
             isKeepScreenOnWhileSyncing = isKeepScreenOnWhileSyncing,
-            isFiatConversionEnabled = isFiatConversionEnabled,
+            isFiatCurrencyPreferred = isFiatCurrencyPreferred,
+            fiatCurrencyUiState = fiatCurrencyUiState,
             onShieldNow = onShieldNow,
             onAddressQrCodes = onAddressQrCodes,
             onTransactionDetail = onTransactionDetail,
             onViewTransactionHistory = onViewTransactionHistory,
-            onLongItemClick = onItemLongClickAction
+            onLongItemClick = onItemLongClickAction,
+            onFlipCurrency = homeViewModel::onPreferredCurrencyChanged
         )
 
         val shieldUIState = shieldViewModel.shieldUIState.collectAsStateWithLifecycle().value

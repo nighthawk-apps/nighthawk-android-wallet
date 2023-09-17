@@ -27,6 +27,8 @@ import cash.z.ecc.android.sdk.model.TransactionOverview
 import co.electriccoin.zcash.ui.R
 import co.electriccoin.zcash.ui.design.component.TitleLarge
 import co.electriccoin.zcash.ui.design.theme.ZcashTheme
+import co.electriccoin.zcash.ui.screen.fiatcurrency.model.FiatCurrency
+import co.electriccoin.zcash.ui.screen.fiatcurrency.model.FiatCurrencyUiState
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.toPersistentList
 
@@ -36,29 +38,63 @@ fun TransactionHistoryPreview() {
     ZcashTheme(darkTheme = false) {
         Surface {
             val list = listOf(TransactionOverviewFixture.new(memoCount = 2, isSentTransaction = true), TransactionOverviewFixture.new())
-            TransactionHistory(transactionSnapshot = list.toPersistentList(), onBack = {}, onTransactionDetail = {}, onItemLongClick = {})
+            TransactionHistory(
+                transactionSnapshot = list.toPersistentList(),
+                fiatCurrencyUiState = FiatCurrencyUiState(FiatCurrency.USD, 25.25),
+                isFiatCurrencyPreferred = false,
+                onBack = {},
+                onTransactionDetail = {},
+                onItemLongClick = {})
         }
     }
 }
 
 @Composable
-fun TransactionHistory(transactionSnapshot: ImmutableList<TransactionOverview>, onBack: () -> Unit, onTransactionDetail: (Long) -> Unit, onItemLongClick: (TransactionOverview) -> Unit) {
-    Column(modifier = Modifier
-        .fillMaxSize()
-        .padding(dimensionResource(id = R.dimen.screen_standard_margin))
+fun TransactionHistory(
+    transactionSnapshot: ImmutableList<TransactionOverview>,
+    fiatCurrencyUiState: FiatCurrencyUiState,
+    isFiatCurrencyPreferred: Boolean,
+    onBack: () -> Unit,
+    onTransactionDetail: (Long) -> Unit,
+    onItemLongClick: (TransactionOverview) -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(dimensionResource(id = R.dimen.screen_standard_margin))
     ) {
         Box {
-            IconButton(onClick = onBack, modifier = Modifier.size(dimensionResource(id = R.dimen.back_icon_size))) {
-                Icon(imageVector = Icons.Filled.ArrowBack, contentDescription = stringResource(R.string.receive_back_content_description))
+            IconButton(
+                onClick = onBack,
+                modifier = Modifier.size(dimensionResource(id = R.dimen.back_icon_size))
+            ) {
+                Icon(
+                    imageVector = Icons.Filled.ArrowBack,
+                    contentDescription = stringResource(R.string.receive_back_content_description)
+                )
             }
-            Box(modifier = Modifier.fillMaxWidth().padding(horizontal = dimensionResource(id = R.dimen.back_icon_size)), contentAlignment = Alignment.Center) {
-                TitleLarge(text = stringResource(id = R.string.ns_transaction_history), textAlign = TextAlign.Center)
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = dimensionResource(id = R.dimen.back_icon_size)),
+                contentAlignment = Alignment.Center
+            ) {
+                TitleLarge(
+                    text = stringResource(id = R.string.ns_transaction_history),
+                    textAlign = TextAlign.Center
+                )
             }
         }
         Spacer(modifier = Modifier.height(dimensionResource(id = R.dimen.screen_standard_margin)))
         LazyColumn {
             items(transactionSnapshot) { transactionOverview ->
-                TransactionOverviewHistoryRow(transactionOverview = transactionOverview, onItemClick = {onTransactionDetail(it.id)}, onItemLongClick = onItemLongClick)
+                TransactionOverviewHistoryRow(
+                    transactionOverview = transactionOverview,
+                    fiatCurrencyUiState = fiatCurrencyUiState,
+                    isFiatCurrencyPreferred = isFiatCurrencyPreferred,
+                    onItemClick = { onTransactionDetail(it.id) },
+                    onItemLongClick = onItemLongClick
+                )
             }
         }
     }

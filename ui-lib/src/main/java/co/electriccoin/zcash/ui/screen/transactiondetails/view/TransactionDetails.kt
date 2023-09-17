@@ -57,6 +57,7 @@ import co.electriccoin.zcash.ui.design.component.DottedBorderTextButton
 import co.electriccoin.zcash.ui.design.component.TitleLarge
 import co.electriccoin.zcash.ui.design.theme.ZcashTheme
 import co.electriccoin.zcash.ui.screen.transactiondetails.model.TransactionDetailsUIModel
+import co.electriccoin.zcash.ui.screen.wallet.model.BalanceUIModel
 import kotlinx.datetime.Instant
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
@@ -77,6 +78,7 @@ fun TransactionDetailsPreview() {
             )
             TransactionDetails(
                 transactionDetailsUIModel = transactionDetailsUIModel,
+                balanceUIModel = BalanceUIModel("50", "ZEC", "154.92", "USD"),
                 onBack = {},
                 viewOnBlockExplorer = { _, _ -> },
                 isNavigateAwayFromAppWarningShown = false
@@ -88,6 +90,7 @@ fun TransactionDetailsPreview() {
 @Composable
 fun TransactionDetails(
     transactionDetailsUIModel: TransactionDetailsUIModel?,
+    balanceUIModel: BalanceUIModel,
     isNavigateAwayFromAppWarningShown: Boolean,
     onBack: () -> Unit,
     viewOnBlockExplorer: (url: String, updateWarningStatus: Boolean) -> Unit
@@ -151,16 +154,16 @@ fun TransactionDetails(
         Row(
             modifier = Modifier.align(Alignment.CenterHorizontally),
         ) {
-            BalanceText(text = (transactionDetailsUIModel.transactionOverview.netValue - transactionDetailsUIModel.transactionOverview.feePaid).toZecString())
+            BalanceText(text = balanceUIModel.balance)
             Spacer(modifier = Modifier.width(4.dp))
             BalanceText(
-                text = stringResource(id = R.string.ns_zec),
+                text = balanceUIModel.balanceUnit,
                 color = ZcashTheme.colors.surfaceEnd
             )
         }
         Spacer(modifier = Modifier.width(12.dp))
         BodyMedium(
-            text = stringResource(id = R.string.ns_around, "--"),
+            text = "${balanceUIModel.fiatBalance} ${balanceUIModel.fiatUnit}",
             textAlign = TextAlign.Center,
             modifier = Modifier.align(Alignment.CenterHorizontally),
             color = ZcashTheme.colors.surfaceEnd

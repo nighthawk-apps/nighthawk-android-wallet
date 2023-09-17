@@ -22,14 +22,16 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import cash.z.ecc.android.sdk.ext.convertZatoshiToZec
 import cash.z.ecc.android.sdk.fixture.TransactionOverviewFixture
 import cash.z.ecc.android.sdk.model.TransactionOverview
 import co.electriccoin.zcash.ui.R
+import co.electriccoin.zcash.ui.common.toBalanceValueModel
 import co.electriccoin.zcash.ui.design.component.Body
 import co.electriccoin.zcash.ui.design.component.BodySmall
 import co.electriccoin.zcash.ui.design.component.TitleMedium
 import co.electriccoin.zcash.ui.design.theme.ZcashTheme
+import co.electriccoin.zcash.ui.screen.fiatcurrency.model.FiatCurrency
+import co.electriccoin.zcash.ui.screen.fiatcurrency.model.FiatCurrencyUiState
 import kotlinx.datetime.Instant
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toJavaLocalDateTime
@@ -42,16 +44,29 @@ import java.time.format.FormatStyle
 fun TransactionOverviewHistoryRowPreview() {
     ZcashTheme(darkTheme = false) {
         Surface {
-            TransactionOverviewHistoryRow(transactionOverview = TransactionOverviewFixture.new(), onItemClick = {}, onItemLongClick = {})
+            TransactionOverviewHistoryRow(
+                transactionOverview = TransactionOverviewFixture.new(),
+                fiatCurrencyUiState = FiatCurrencyUiState(FiatCurrency.USD, 25.24),
+                isFiatCurrencyPreferred = true,
+                onItemClick = {},
+                onItemLongClick = {})
         }
     }
 }
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-fun TransactionOverviewHistoryRow(transactionOverview: TransactionOverview, onItemClick: (TransactionOverview) -> Unit, onItemLongClick: (TransactionOverview) -> Unit = {}) {
+fun TransactionOverviewHistoryRow(
+    transactionOverview: TransactionOverview,
+    fiatCurrencyUiState: FiatCurrencyUiState,
+    isBalancePrivateMode: Boolean = false,
+    isFiatCurrencyPreferred: Boolean = false,
+    onItemClick: (TransactionOverview) -> Unit,
+    onItemLongClick: (TransactionOverview) -> Unit = {}
+) {
     Column(
-        modifier = Modifier.fillMaxWidth()
+        modifier = Modifier
+            .fillMaxWidth()
             .combinedClickable(
                 onClick = { onItemClick(transactionOverview) },
                 onLongClick = { onItemLongClick(transactionOverview) }
@@ -59,7 +74,11 @@ fun TransactionOverviewHistoryRow(transactionOverview: TransactionOverview, onIt
     ) {
         Spacer(modifier = Modifier.height(10.dp))
         Row {
-            Icon(painter = painterResource(id = R.drawable.ic_icon_downloading), contentDescription = null, modifier = Modifier.rotate(if (transactionOverview.isSentTransaction) 180f else 0f))
+            Icon(
+                painter = painterResource(id = R.drawable.ic_icon_downloading),
+                contentDescription = null,
+                modifier = Modifier.rotate(if (transactionOverview.isSentTransaction) 180f else 0f)
+            )
             Spacer(modifier = Modifier.width(14.dp))
             Column {
                 TitleMedium(text = stringResource(id = if (transactionOverview.isSentTransaction) R.string.ns_sent else R.string.ns_received), textAlign = TextAlign.Center)
@@ -72,9 +91,16 @@ fun TransactionOverviewHistoryRow(transactionOverview: TransactionOverview, onIt
             }
             Spacer(modifier = Modifier.weight(1f))
             Column(horizontalAlignment = Alignment.End) {
-                Body(text = "${(transactionOverview.netValue - transactionOverview.feePaid).convertZatoshiToZec()} ZEC", color = colorResource(id = co.electriccoin.zcash.ui.design.R.color.ns_parmaviolet))
-                Spacer(modifier = Modifier.height(4.dp))
-                BodySmall(text = "---", textAlign = TextAlign.End)
+                val transactionValue = transactionOverview.netValue - transactionOverview.feePaid
+                val balanceValuesModel = transactionValue.toBalanceValueModel(fiatCurrencyUiState, isFiatCurrencyPreferred)
+                val transactionText = (if (isBalancePrivateMode) "---" else balanceValuesModel.balance) + " ${balanceValuesModel.balanceUnit}"
+                Body(text = transactionText, color = colorResource(id = co.electriccoin.zcash.ui.design.R.color.ns_parmaviolet))
+                if (fiatCurrencyUiState.fiatCurrency != FiatCurrency.OFF) {
+                    Spacer(modifier = Modifier.height(4.dp))
+                    val fiatCurrencyText =
+                        (if (isBalancePrivateMode) "---" else balanceValuesModel.fiatBalance) + " ${balanceValuesModel.fiatUnit}"
+                    BodySmall(text = fiatCurrencyText, textAlign = TextAlign.End)
+                }
             }
         }
         Spacer(modifier = Modifier.height(15.dp))
