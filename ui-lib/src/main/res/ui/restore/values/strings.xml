@@ -188,7 +188,7 @@
     <string name="ns_disable_pin_message">Pin disabled</string>
     <string name="ns_view_licences">View Licences</string>
     <string name="dialog_rescan_wallet_title">Rescan This Wallet?</string>
-    <string name="dialog_rescan_wallet_message">Rescanning may take up to 10hrs depending on the length of history of your wallet’s transactions. Would you like to start a rescan?</string>
+    <string name="dialog_rescan_wallet_message">Rescanning may take up to few hours depending on the length of history of your wallet’s transactions. Would you like to start a rescan?</string>
     <string name="dialog_rescan_wallet_button_positive">Quick</string>
     <string name="dialog_rescan_wallet_button_negative">Full</string>
     <string name="dialog_rescan_wallet_button_neutral">Wipe</string>
