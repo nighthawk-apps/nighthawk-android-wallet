@@ -25,38 +25,47 @@ import co.electriccoin.zcash.ui.common.showMessage
 import co.electriccoin.zcash.ui.common.toFormattedString
 import co.electriccoin.zcash.ui.screen.home.viewmodel.HomeViewModel
 import co.electriccoin.zcash.ui.screen.home.viewmodel.WalletViewModel
+import co.electriccoin.zcash.ui.screen.send.model.SendArgumentsWrapper
 import co.electriccoin.zcash.ui.screen.settings.viewmodel.SettingsViewModel
 import co.electriccoin.zcash.ui.screen.shield.model.ShieldUIState
 import co.electriccoin.zcash.ui.screen.shield.model.ShieldUiDestination
 import co.electriccoin.zcash.ui.screen.shield.viewmodel.ShieldViewModel
 import co.electriccoin.zcash.ui.screen.wallet.view.WalletView
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 @Composable
 internal fun MainActivity.AndroidWallet(
+    sendArgumentsWrapper: SendArgumentsWrapper?,
     onAddressQrCodes: () -> Unit,
     onShieldNow: () -> Unit,
     onTransactionDetail: (Long) -> Unit,
     onViewTransactionHistory: () -> Unit,
-    onSendFromDeepLink: () -> Unit
+    onSendFromDeepLink: () -> Unit,
+    onScanToSend: () -> Unit
 ) {
     WrapWallet(
         activity = this,
+        sendArgumentsWrapper = sendArgumentsWrapper,
         onAddressQrCodes = onAddressQrCodes,
         onShieldNow = onShieldNow,
         onTransactionDetail = onTransactionDetail,
         onViewTransactionHistory = onViewTransactionHistory,
-        onSendFromDeepLink = onSendFromDeepLink
+        onSendFromDeepLink = onSendFromDeepLink,
+        onScanToSend = onScanToSend
     )
 }
 
 @Composable
 internal fun WrapWallet(
     activity: ComponentActivity,
+    sendArgumentsWrapper: SendArgumentsWrapper?,
     onAddressQrCodes: () -> Unit,
     onShieldNow: () -> Unit,
     onTransactionDetail: (Long) -> Unit,
     onViewTransactionHistory: () -> Unit,
-    onSendFromDeepLink: () -> Unit
+    onSendFromDeepLink: () -> Unit,
+    onScanToSend: () -> Unit
 ) {
     val homeViewModel by activity.viewModels<HomeViewModel>()
     val walletViewModel by activity.viewModels<WalletViewModel>()
@@ -82,23 +91,36 @@ internal fun WrapWallet(
         // We can show progress bar
     } else {
         LaunchedEffect(key1 = Unit) {
-            homeViewModel.shortcutAction?.let {
-                when (it) {
-                    ShortcutAction.SEND_MONEY_SCAN_QR_CODE -> onSendFromDeepLink()
-                    ShortcutAction.RECEIVE_MONEY_QR_CODE -> {
-                        onAddressQrCodes()
-                        homeViewModel.shortcutAction = null
+            launch {
+                delay(500)
+                homeViewModel.shortcutAction?.let {
+                    when (it) {
+                        ShortcutAction.SEND_MONEY_SCAN_QR_CODE -> onSendFromDeepLink()
+                        ShortcutAction.RECEIVE_MONEY_QR_CODE -> {
+                            onAddressQrCodes()
+                            homeViewModel.shortcutAction = null
+                        }
                     }
                 }
-            }
-            homeViewModel.intentDataUriForDeepLink?.let {
-                DeepLinkUtil.getSendDeepLinkData(it)?.let { sendDeepLinkData ->
-                    homeViewModel.sendDeepLinkData = sendDeepLinkData
-                    onSendFromDeepLink()
-                    homeViewModel.intentDataUriForDeepLink = null
+                homeViewModel.intentDataUriForDeepLink?.let {
+                    DeepLinkUtil.getSendDeepLinkData(it)?.let { sendDeepLinkData ->
+                        homeViewModel.sendDeepLinkData = sendDeepLinkData
+                        onSendFromDeepLink()
+                        homeViewModel.intentDataUriForDeepLink = null
+                    }
                 }
+                sendArgumentsWrapper?.let {
+                    it.recipientAddress?.let { address ->
+                        homeViewModel.sendDeepLinkData = DeepLinkUtil.SendDeepLinkData(
+                            address = address,
+                            amount = null,
+                            memo = it.memo
+                        )
+                        onSendFromDeepLink()
+                    }
+                }
+                checkForAutoShielding(walletSnapshot.transparentBalance.available, shieldViewModel)
             }
-            checkForAutoShielding(walletSnapshot.transparentBalance.available, shieldViewModel)
             if (homeViewModel.isAnyExpectingTransaction(walletSnapshot)) {
                 activity.showMessage(
                     activity.getString(
@@ -126,7 +148,8 @@ internal fun WrapWallet(
             onTransactionDetail = onTransactionDetail,
             onViewTransactionHistory = onViewTransactionHistory,
             onLongItemClick = onItemLongClickAction,
-            onFlipCurrency = homeViewModel::onPreferredCurrencyChanged
+            onFlipCurrency = homeViewModel::onPreferredCurrencyChanged,
+            onScanToSend = onScanToSend
         )
 
         val shieldUIState = shieldViewModel.shieldUIState.collectAsStateWithLifecycle().value

@@ -16,6 +16,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavController
 import androidx.navigation.NavHostController
 import androidx.navigation.NavOptionsBuilder
@@ -72,14 +73,17 @@ import kotlinx.collections.immutable.persistentListOf
 @Composable
 internal fun MainActivity.MainNavigation(navHostController: NavHostController, paddingValues: PaddingValues) {
     NavHost(navController = navHostController, startDestination = BottomNavItem.Wallet.route, modifier = Modifier.padding(paddingValues)) {
-        composable(BottomNavItem.Wallet.route) {
+        composable(BottomNavItem.Wallet.route) { backStackEntry ->
             AndroidWallet(
+                sendArgumentsWrapper = getScanSavedData(backStackEntry = backStackEntry),
                 onAddressQrCodes = { navHostController.navigateJustOnce(RECEIVE_QR_CODES) },
                 onShieldNow = { navHostController.navigateJustOnce(SHIELD) },
                 onTransactionDetail = { navHostController.navigateJustOnce(NavigationTargets.navigationRouteTransactionDetails(transactionId = it)) },
                 onViewTransactionHistory = { navHostController.navigateJustOnce(TRANSACTION_HISTORY) },
-                onSendFromDeepLink = { navHostController.navigateJustOnce(SEND_MONEY) }
+                onSendFromDeepLink = { navHostController.navigateJustOnce(SEND_MONEY) },
+                onScanToSend = { navHostController.navigateJustOnce(SCAN) }
             )
+            removeScanSavedData(backStackEntry = backStackEntry)
         }
         composable(BottomNavItem.Transfer.route) {
             AndroidTransfer(
@@ -112,15 +116,9 @@ internal fun MainActivity.MainNavigation(navHostController: NavHostController, p
                     navHostController.navigateJustOnce(NavigationTargets.navigationRouteTransactionDetails(transactionId = it))
                 },
                 onScan = { navHostController.navigateJustOnce(SCAN) },
-                sendArgumentsWrapper = SendArgumentsWrapper(
-                    recipientAddress = backStackEntry.savedStateHandle[NavigationArguments.SEND_RECIPIENT_ADDRESS],
-                    amount = backStackEntry.savedStateHandle[NavigationArguments.SEND_AMOUNT],
-                    memo = backStackEntry.savedStateHandle[NavigationArguments.SEND_MEMO]
-                )
+                sendArgumentsWrapper = getScanSavedData(backStackEntry = backStackEntry)
             )
-            backStackEntry.savedStateHandle.remove<String>(NavigationArguments.SEND_RECIPIENT_ADDRESS)
-            backStackEntry.savedStateHandle.remove<String>(NavigationArguments.SEND_AMOUNT)
-            backStackEntry.savedStateHandle.remove<String>(NavigationArguments.SEND_MEMO)
+            removeScanSavedData(backStackEntry = backStackEntry)
         }
         composable(RECEIVE_MONEY) {
             AndroidReceive(
@@ -231,6 +229,19 @@ internal fun MainActivity.MainNavigation(navHostController: NavHostController, p
             )
         }
     }
+}
+
+private fun getScanSavedData(backStackEntry: NavBackStackEntry) =
+    SendArgumentsWrapper(
+        recipientAddress = backStackEntry.savedStateHandle[NavigationArguments.SEND_RECIPIENT_ADDRESS],
+        amount = backStackEntry.savedStateHandle[NavigationArguments.SEND_AMOUNT],
+        memo = backStackEntry.savedStateHandle[NavigationArguments.SEND_MEMO]
+    )
+
+private fun removeScanSavedData(backStackEntry: NavBackStackEntry) {
+    backStackEntry.savedStateHandle.remove<String>(NavigationArguments.SEND_RECIPIENT_ADDRESS)
+    backStackEntry.savedStateHandle.remove<String>(NavigationArguments.SEND_AMOUNT)
+    backStackEntry.savedStateHandle.remove<String>(NavigationArguments.SEND_MEMO)
 }
 
 @Composable

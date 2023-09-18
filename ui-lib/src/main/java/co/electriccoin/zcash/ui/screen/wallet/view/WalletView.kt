@@ -86,7 +86,8 @@ fun WalletPreview() {
                 onTransactionDetail = {},
                 onViewTransactionHistory = {},
                 onLongItemClick = {},
-                onFlipCurrency = {}
+                onFlipCurrency = {},
+                onScanToSend = {}
             )
         }
     }
@@ -129,7 +130,8 @@ fun WalletView(
     onTransactionDetail: (Long) -> Unit,
     onViewTransactionHistory: () -> Unit,
     onLongItemClick: (TransactionOverview) -> Unit,
-    onFlipCurrency: (isFiatCurrencyPreferredOverZec: Boolean) -> Unit
+    onFlipCurrency: (isFiatCurrencyPreferredOverZec: Boolean) -> Unit,
+    onScanToSend: () -> Unit
 ) {
     Column(modifier = Modifier
         .fillMaxSize()
@@ -143,11 +145,21 @@ fun WalletView(
         val isBalancePrivateMode = remember { mutableStateOf(true) }
         Twig.info { "walletSnapshot $walletSnapshot and is fiat currency preferred $isFiatCurrencyPreferred" }
         Spacer(modifier = Modifier.height(dimensionResource(id = R.dimen.top_margin_back_btn)))
-        Image(
-            painter = painterResource(id = R.drawable.ic_icon_scan_qr),
-            contentDescription = "logo", contentScale = ContentScale.Inside,
-            modifier = Modifier.clickable { onAddressQrCodes() }
-        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Image(
+                painter = painterResource(id = R.drawable.ic_icon_scan_qr),
+                contentDescription = "logo", contentScale = ContentScale.Inside,
+                modifier = Modifier.clickable { onAddressQrCodes() }
+            )
+            Image(
+                painter = painterResource(id = R.drawable.ic_qr_scan),
+                contentDescription = "logo", contentScale = ContentScale.Inside,
+                modifier = Modifier.clickable { onScanToSend() }
+            )
+        }
         Image(
             painter = painterResource(id = R.drawable.ic_nighthawk_logo),
             contentDescription = "logo", contentScale = ContentScale.Inside,
