@@ -4,7 +4,7 @@
     <string name="restore_title">Wallet import</string>
     <string name="restore_back_content_description">Back</string>
     <string name="restore_button_clear">Clear</string>
-    <string name="restore_seed_instructions">You can import your backed up wallet by entering your backup recovery phrase (aka seed phrase) now.</string>
+    <string name="restore_seed_instructions">You can import your backed-up wallet by entering your backup recovery phrase (aka seed phrase) now.</string>
     <string name="restore_seed_button_restore">Restore wallet</string>
     <string name="restore_seed_warning_suggestions">This word is not in the seed phrase dictionary.  Please select the correct one from the suggestions.</string>
     <string name="restore_seed_warning_no_suggestions">This word is not in the seed phrase dictionary.</string>
@@ -29,14 +29,14 @@
     <string name="ns_create_wallet_text">If you lose access to your phone or Nighthawk Wallet, the only way you can regain access to your Zcash is if you have this 24 word phrase and wallet birthday code.\n\nWrite it down on paper and store it somewhere safe.</string>
     <string name="ns_create_wallet_confirm_text">I confirm I have written down my seed phrase.</string>
     <string name="ns_restore_from_backup">Restore from Backup</string>
-    <string name="ns_restore_wallet_text">Enter your 24 word seed phrase below. If you do not have this phrase, you will need to create a new wallet.</string>
+    <string name="ns_restore_wallet_text">Enter your 24-word seed phrase below. If you do not have this phrase, you will need to create a new wallet.</string>
     <string name="ns_your_seed_phrase">Your seed phrase</string>
     <string name="ns_wallet_birthday">Wallet Birthday: %s</string>
     <string name="ns_birthday_height">Birthday Height (optional)</string>
     <string name="ns_your_seed_error">Error - This doesn\'t look like a valid seed phrase.</string>
     <string name="ns_continue">Continue</string>
     <string name="ns_export_as_pdf">Export as PDF</string>
-    <string name="ns_pdf_dialog_sub_heading">Export the seed words to a password protected PDF which can be backed up to user secured portable storage devices.</string>
+    <string name="ns_pdf_dialog_sub_heading">Export the seed words to a password-protected PDF which can be backed up to user-secured portable storage devices.</string>
     <string name="ns_please_enter_password">Please Enter Password</string>
     <string name="ns_export_pdf">Export PDF</string>
     <string name="ns_receive">Receive</string>
@@ -100,7 +100,7 @@
     <string name="ns_buy_moonpay">Buy from MoonPay</string>
     <string name="ns_buy_moonpay_text">Buy ZEC with a credit card.</string>
     <string name="ns_swap_sideshift">Swap with SideShift.ai</string>
-    <string name="ns_swap_sideshift_text">Swap between 30+ coins. No sign-up required.</string>
+    <string name="ns_swap_sideshift_text">Swap between 30+ coins. No sign-up is required.</string>
     <string name="ns_swap_stealthex">Swap with StealthEx.io</string>
     <string name="ns_swap_stealthex_text">Swap transparent coins without limits.</string>
     <string name="ns_receive_money_securely">Receive money securely</string>
@@ -121,11 +121,11 @@
     <string name="ns_settings">Settings</string>
     <string name="ns_sync_notifications">Sync notifications</string>
     <string name="ns_sync_notifications_text">Reminding you to keep the wallet up-to-date</string>
-    <string name="ns_sync_notifications_body">When Nighthawk wallet is closed for a long period of time, then it will take longer to start up when you do want to use it.\n\nAllow sync notifications to remind you to open the wallet every week.</string>
+    <string name="ns_sync_notifications_body">When the Nighthawk wallet is closed for a long period of time, then it will take longer to start up when you do want to use it.\n\nAllow sync notifications to remind you to open the wallet every week.</string>
     <string name="ns_backup_wallet">Backup your wallet</string>
     <string name="ns_backup_wallet_text">Keep your wallet safe in case you lose your phone</string>
     <string name="ns_backup_wallet_heading">Write down your backup seed</string>
-    <string name="ns_backup_wallet_body">If you lose access to your phone or Nighthawk wallet, the only way you can regain access to your Zcash is if you have this 24 word phrase and wallet birthday code.\n\nWrite it down on paper and store it somewhere safe.</string>
+    <string name="ns_backup_wallet_body">If you lose access to your phone or Nighthawk wallet, the only way you can regain access to your Zcash is if you have this 24-word phrase and wallet birthday code.\n\nWrite it down on paper and store it somewhere safe.</string>
     <string name="ns_backup_wallet_pdf">Save as PDF</string>
     <string name="ns_rescan_wallet">Rescan wallet</string>
     <string name="ns_rescan_wallet_text">Rescan wallet balances to troubleshoot issues.</string>
@@ -134,7 +134,7 @@
     <string name="ns_rescan_wallet_wipe">Wipe &amp; restart</string>
     <string name="ns_fiat_currency">Fiat Currency</string>
     <string name="ns_fiat_currency_text">Choose your local currency</string>
-    <string name="ns_fiat_currency_body">Choose your local currency so that we can show you an close estimate of how much your ZEC is worth.\n\nWhen you first open the app, the exchange rate is fetched from CoinGecko API v3 and used to calculate values. Your fund amounts are never revealed to any server.</string>
+    <string name="ns_fiat_currency_body">Choose your local currency so that we can show you a close estimate of how much your ZEC is worth.\n\nWhen you first open the app, the exchange rate is fetched from CoinGecko API v3 and used to calculate values. Your fund amounts are never revealed to any server.</string>
     <string name="ns_change_server">Change server</string>
     <string name="ns_change_server_text">Change backend lightwalletd server.</string>
     <string name="ns_external_services">Зовнішні сервіси</string>
@@ -157,7 +157,7 @@
     <string name="biometric_backup_phrase_title">Authenticate to proceed</string>
     <string name="enable_face_id_touch_id">Enable Face ID/Touch ID</string>
     <string name="dialog_bio_metric_not_enabled_title">Face ID Touch ID Error</string>
-    <string name="dialog_bio_metric_not_enabled_message">Couldn\'t enable this option. It seems that Face ID or Touch ID is not enabled in your mobile device.</string>
+    <string name="dialog_bio_metric_not_enabled_message">Couldn\'t enable this option. It seems that Face ID or Touch ID is not enabled on your mobile device.</string>
     <string name="ns_security_choose">Choose PIN code</string>
     <string name="ns_security_try_again">Please try again</string>
     <string name="ns_about">About</string>
@@ -167,14 +167,14 @@
     <string name="ns_about_text">Nighthawk v%s &amp; Licenses</string>
     <string name="ns_view_license">Ліцензії OSS</string>
     <string name="ns_back_up_seed_dialog_title">View Seed Words?</string>
-    <string name="ns_back_up_seed_dialog_body">WARNING: Please make sure that you are the only one viewing your phone as your wallet seed key will be shown in the next screen.</string>
+    <string name="ns_back_up_seed_dialog_body">WARNING: Please make sure that you are the only one viewing your phone as your wallet seed key will be shown on the next screen.</string>
     <string name="ns_back_up_seed_dialog_positive">View Seed</string>
     <string name="ns_please_try_again">Please try again</string>
     <string name="ns_disable_pin">Disable Pin</string>
     <string name="ns_disable_pin_message">Pin disabled</string>
     <string name="ns_view_licences">View Licences</string>
     <string name="dialog_rescan_wallet_title">Rescan This Wallet?</string>
-    <string name="dialog_rescan_wallet_message">Rescanning may take up to 10hrs depending on the length of history of your wallet’s transactions. Would you like to start a rescan?</string>
+    <string name="dialog_rescan_wallet_message">Rescanning may take up to a few hours depending on the length of the history of your wallet’s transactions. Would you like to start a rescan?</string>
     <string name="dialog_rescan_wallet_button_positive">Quick</string>
     <string name="dialog_rescan_wallet_button_negative">Full</string>
     <string name="dialog_rescan_wallet_button_neutral">Wipe</string>
@@ -248,7 +248,7 @@
     <string name="ns_migration_app_error">We apologize for the inconvenience, but it seems that an error has occurred while importing the data from the previous storage. To ensure a smooth backup process, we recommend taking the following steps:\n\n1) Uninstall the app or clear the data to remove any conflicting information.\n2) Manually enter the seed words from your backup to initiate the backup process.</string>
     <string name="ns_migration_app_info">We have implemented an enhanced secure method for storing data locally. To ensure the integrity of your wallet, we need to migrate your seed words. You have two options:\n\n A) Proceed automatically: Your seed words will be migrated seamlessly to the new storage. No further action is required on your part.\n B) Choose manual migration: If you prefer not to migrate automatically, please uninstall the app or clear the app\'s data. Afterward, you can restore your wallet by manually entering the seed words.\n\n Would you like to proceed with automatic migration?</string>
     <string name="buy_zec_dialog_title">Buy ZEC from MoonPay</string>
-    <string name="buy_zec_dialog_msg">Customers that are not US residents can purchase Zcash (ZEC) by registering with MoonPay.\n\nYour Zcash T-Address has been copied to the clipboard.\nChoose \"Open Browser\" below, Select \'Zcash (ZEC)\' as the receiving coin once MoonPay loads, and then paste your T-address.</string>
+    <string name="buy_zec_dialog_msg">Customers who are not US residents can purchase Zcash (ZEC) by registering with MoonPay.\n\nYour Zcash T-Address has been copied to the clipboard.\nChoose \"Open Browser\" below, Select \'Zcash (ZEC)\' as the receiving coin once MoonPay loads, and then paste your T-address.</string>
     <string name="open_browser">Open Browser</string>
     <string name="fund_wallet_sideshift_title">Fund wallet with SideShift.ai?</string>
     <string name="fund_wallet_sideshift_description">Your Z-Address has been copied to the clipboard.\n\nChoose \"Open Browser\" below, select \'Zcash (Shielded)\' as the receiving coin on the SideShift site, and then paste your Z-address.</string>
@@ -266,8 +266,8 @@
     <string name="open_settings">Open Settings</string>
     <string name="notification_permission_dialog_title">Alert</string>
     <string name="notification_permission_dialog_desc">To post any notification we need to provide Notifications permission.\nFrom Settings please allow Notifications permission</string>
-    <string name="transaction_id_copied">Transaction Id has been copied to the clipboard.</string>
-    <string name="dialog_first_use_view_tx_message">Are you sure you\'d like to leave the app? This could reduce privacy, if you do not trust the destination.</string>
+    <string name="transaction_id_copied">Transaction ID has been copied to the clipboard.</string>
+    <string name="dialog_first_use_view_tx_message">Are you sure you\'d like to leave the app? This could reduce privacy if you do not trust the destination.</string>
     <string name="dialog_first_use_view_tx_positive">View Tx</string>
     <string name="dialog_first_use_view_tx_title">Potential Privacy Risk</string>
     <string name="keep_screen_on">Keep Screen on</string>
@@ -276,6 +276,6 @@
     <string name="advanced_msg">Less common settings</string>
     <string name="nuke_wallet">Nuke Wallet</string>
     <string name="nuke_wallet_caution">CAUTION: This will completely wipe your wallet and you will be unable to recover funds without your seed words. Ensure you have them saved somewhere safe before proceeding</string>
-    <string name="nuke_wallet_dialog_msg">This operation is IRREVERSIBLE. Restoring your funds will be impossible without seed words. Be ABSOLUTELY sure you have saved them somewhere safe before proceeding. Due you still want to proceed?</string>
+    <string name="nuke_wallet_dialog_msg">This operation is IRREVERSIBLE. Restoring your funds will be impossible without seed words. Be ABSOLUTELY sure you have saved them somewhere safe before proceeding. Do you still want to proceed?</string>
     <string name="are_you_sure">Are you sure?</string>
 </resources>
