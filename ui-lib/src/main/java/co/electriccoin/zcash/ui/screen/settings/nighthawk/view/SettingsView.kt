@@ -180,15 +180,14 @@ fun SettingsView(
             AlertDialog(
                 title = stringResource(id = R.string.dialog_rescan_wallet_title),
                 desc = stringResource(id = R.string.dialog_rescan_wallet_message),
-                confirmText = stringResource(id = R.string.dialog_rescan_wallet_button_negative).uppercase(),
-                dismissText = stringResource(id = R.string.dialog_rescan_wallet_button_neutral).uppercase(),
+                confirmText = stringResource(id = R.string.dialog_rescan_wallet_button_neutral).uppercase(),
+                dismissText = stringResource(id = R.string.ns_cancel).uppercase(),
                 onConfirm = {
                     showReScanDialog.value = false
-                    onRescan(ReScanType.FULL_SCAN)
+                    onRescan(ReScanType.WIPE)
                 },
                 onDismiss = {
                     showReScanDialog.value = false
-                    onRescan(ReScanType.WIPE)
                 },
                 onDismissRequest = {
                     showReScanDialog.value = false
