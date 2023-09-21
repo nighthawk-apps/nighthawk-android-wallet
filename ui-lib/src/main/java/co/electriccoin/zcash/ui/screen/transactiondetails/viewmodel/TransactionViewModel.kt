@@ -36,7 +36,7 @@ class TransactionViewModel(application: Application) : AndroidViewModel(applicat
                 .distinctUntilChanged()
                 .collectLatest { transactionSnapshotList ->
                     val transactionOverview =
-                        transactionSnapshotList.find { it.id == transactionId }
+                        transactionSnapshotList.find { it.index == transactionId }
                             ?: return@collectLatest
                     launch {
                         getMemoAndUpdateUiState(transactionOverview, synchronizer)

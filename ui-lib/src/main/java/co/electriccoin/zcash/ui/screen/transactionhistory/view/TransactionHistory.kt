@@ -92,7 +92,7 @@ fun TransactionHistory(
                     transactionOverview = transactionOverview,
                     fiatCurrencyUiState = fiatCurrencyUiState,
                     isFiatCurrencyPreferred = isFiatCurrencyPreferred,
-                    onItemClick = { onTransactionDetail(it.id) },
+                    onItemClick = { onTransactionDetail(it.index ?: -1) },
                     onItemLongClick = onItemLongClick
                 )
             }

@@ -24,6 +24,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import cash.z.ecc.android.sdk.fixture.TransactionOverviewFixture
 import cash.z.ecc.android.sdk.model.TransactionOverview
+import cash.z.ecc.android.sdk.model.Zatoshi
 import co.electriccoin.zcash.ui.R
 import co.electriccoin.zcash.ui.common.toBalanceValueModel
 import co.electriccoin.zcash.ui.design.component.Body
@@ -83,7 +84,7 @@ fun TransactionOverviewHistoryRow(
             Column {
                 TitleMedium(text = stringResource(id = if (transactionOverview.isSentTransaction) R.string.ns_sent else R.string.ns_received), textAlign = TextAlign.Center)
                 Spacer(modifier = Modifier.height(4.dp))
-                BodySmall(text = Instant.fromEpochSeconds(transactionOverview.blockTimeEpochSeconds).toLocalDateTime(TimeZone.UTC).toJavaLocalDateTime().format(DateTimeFormatter.ofLocalizedDate(FormatStyle.SHORT)))
+                BodySmall(text = Instant.fromEpochSeconds(transactionOverview.blockTimeEpochSeconds ?: 0L).toLocalDateTime(TimeZone.UTC).toJavaLocalDateTime().format(DateTimeFormatter.ofLocalizedDate(FormatStyle.SHORT)))
             }
             Spacer(modifier = Modifier.width(4.dp))
             if (transactionOverview.memoCount > 0) {
@@ -91,7 +92,7 @@ fun TransactionOverviewHistoryRow(
             }
             Spacer(modifier = Modifier.weight(1f))
             Column(horizontalAlignment = Alignment.End) {
-                val transactionValue = transactionOverview.netValue - transactionOverview.feePaid
+                val transactionValue = transactionOverview.netValue - (transactionOverview.feePaid ?: Zatoshi(0))
                 val balanceValuesModel = transactionValue.toBalanceValueModel(fiatCurrencyUiState, isFiatCurrencyPreferred)
                 val transactionText = (if (isBalancePrivateMode) "---" else balanceValuesModel.balance) + " ${balanceValuesModel.balanceUnit}"
                 Body(text = transactionText, color = colorResource(id = co.electriccoin.zcash.ui.design.R.color.ns_parmaviolet))

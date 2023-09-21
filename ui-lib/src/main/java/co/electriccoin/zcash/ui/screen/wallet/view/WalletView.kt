@@ -231,7 +231,7 @@ fun WalletView(
                     fiatCurrencyUiState = fiatCurrencyUiState,
                     isBalancePrivateMode = isBalancePrivateMode.value,
                     isFiatCurrencyPreferred = isFiatCurrencyPreferred,
-                    onItemClick = { onTransactionDetail(it.id) },
+                    onItemClick = { onTransactionDetail(it.index ?: -1) },
                     onItemLongClick = onLongItemClick
                 )
             }

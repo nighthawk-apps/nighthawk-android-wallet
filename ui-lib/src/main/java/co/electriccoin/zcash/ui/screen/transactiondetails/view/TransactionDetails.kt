@@ -43,6 +43,7 @@ import cash.z.ecc.android.sdk.fixture.TransactionOverviewFixture
 import cash.z.ecc.android.sdk.model.BlockHeight
 import cash.z.ecc.android.sdk.model.TransactionRecipient
 import cash.z.ecc.android.sdk.model.TransactionState
+import cash.z.ecc.android.sdk.model.Zatoshi
 import cash.z.ecc.android.sdk.model.ZcashNetwork
 import cash.z.ecc.android.sdk.model.toZecString
 import co.electriccoin.zcash.spackle.Twig
@@ -218,7 +219,7 @@ fun TransactionDetails(
                 color = ZcashTheme.colors.surfaceEnd
             )
             BodyMedium(
-                text = Instant.fromEpochSeconds(transactionDetailsUIModel.transactionOverview.blockTimeEpochSeconds)
+                text = Instant.fromEpochSeconds(transactionDetailsUIModel.transactionOverview.blockTimeEpochSeconds ?: 0L)
                     .toLocalDateTime(TimeZone.UTC).toString().replace("T", " "),
                 color = ZcashTheme.colors.surfaceEnd
             )
@@ -416,7 +417,7 @@ fun TransactionDetails(
                 color = ZcashTheme.colors.surfaceEnd
             )
             BodyMedium(
-                text = (transactionDetailsUIModel.transactionOverview.netValue - transactionDetailsUIModel.transactionOverview.feePaid).toZecString() + stringResource(
+                text = (transactionDetailsUIModel.transactionOverview.netValue - (transactionDetailsUIModel.transactionOverview.feePaid ?: Zatoshi(0))).toZecString() + stringResource(
                     id = R.string.ns_zec
                 ), color = ZcashTheme.colors.surfaceEnd
             )
@@ -432,7 +433,7 @@ fun TransactionDetails(
             )
             Spacer(modifier = Modifier.width(50.dp))
             BodyMedium(
-                text = (transactionDetailsUIModel.transactionOverview.feePaid).toZecString() + stringResource(
+                text = (transactionDetailsUIModel.transactionOverview.feePaid)?.toZecString() + stringResource(
                     id = R.string.ns_zec
                 ), color = ZcashTheme.colors.surfaceEnd, textAlign = TextAlign.End
             )

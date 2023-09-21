@@ -241,7 +241,7 @@ fun HistoryItem(
 
             // * 1000 to covert to millis
             @Suppress("MagicNumber")
-            val dateString = dateFormat.format(transaction.blockTimeEpochSeconds.times(1000))
+            val dateString = dateFormat.format(transaction.blockTimeEpochSeconds?.times(1000))
             Body(
                 text = dateString,
                 maxLines = 1,
