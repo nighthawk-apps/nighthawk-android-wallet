@@ -51,6 +51,7 @@ import co.electriccoin.zcash.ui.R
 import co.electriccoin.zcash.ui.common.AlertDialog
 import co.electriccoin.zcash.ui.common.addressTypeNameId
 import co.electriccoin.zcash.ui.common.blockExplorerUrlStringId
+import co.electriccoin.zcash.ui.common.removeTrailingZero
 import co.electriccoin.zcash.ui.common.toFormattedString
 import co.electriccoin.zcash.ui.design.component.BalanceText
 import co.electriccoin.zcash.ui.design.component.BodyMedium
@@ -417,26 +418,31 @@ fun TransactionDetails(
                 color = ZcashTheme.colors.surfaceEnd
             )
             BodyMedium(
-                text = (transactionDetailsUIModel.transactionOverview.netValue - (transactionDetailsUIModel.transactionOverview.feePaid ?: Zatoshi(0))).toZecString() + stringResource(
+                text = (transactionDetailsUIModel.transactionOverview.netValue - (transactionDetailsUIModel.transactionOverview.feePaid
+                    ?: Zatoshi(0))).toZecString().removeTrailingZero() + " " + stringResource(
                     id = R.string.ns_zec
                 ), color = ZcashTheme.colors.surfaceEnd
             )
         }
-        Spacer(modifier = Modifier.height(10.dp))
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            BodyMedium(
-                text = stringResource(id = R.string.ns_network_fee),
-                color = ZcashTheme.colors.surfaceEnd
-            )
-            Spacer(modifier = Modifier.width(50.dp))
-            BodyMedium(
-                text = (transactionDetailsUIModel.transactionOverview.feePaid)?.toZecString() + stringResource(
-                    id = R.string.ns_zec
-                ), color = ZcashTheme.colors.surfaceEnd, textAlign = TextAlign.End
-            )
+        // Fees paid
+        transactionDetailsUIModel.transactionOverview.feePaid?.let {
+            Spacer(modifier = Modifier.height(10.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                BodyMedium(
+                    text = stringResource(id = R.string.ns_network_fee),
+                    color = ZcashTheme.colors.surfaceEnd
+                )
+                Spacer(modifier = Modifier.width(50.dp))
+                BodyMedium(
+                    text = "${
+                        it.toZecString().removeTrailingZero()
+                    } ${stringResource(id = R.string.ns_zec)}",
+                    color = ZcashTheme.colors.surfaceEnd, textAlign = TextAlign.End
+                )
+            }
         }
 
         // Total
@@ -455,9 +461,12 @@ fun TransactionDetails(
                 color = ZcashTheme.colors.surfaceEnd
             )
             BodyMedium(
-                text = (transactionDetailsUIModel.transactionOverview.netValue).toZecString() + stringResource(
-                    id = R.string.ns_zec
-                ), color = ZcashTheme.colors.surfaceEnd
+                text = "${
+                    (transactionDetailsUIModel.transactionOverview.netValue)
+                        .toZecString()
+                        .removeTrailingZero()
+                } ${stringResource(id = R.string.ns_zec)}",
+                color = ZcashTheme.colors.surfaceEnd
             )
         }
         Spacer(modifier = Modifier.height(10.dp))
