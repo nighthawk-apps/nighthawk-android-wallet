@@ -9,6 +9,9 @@
 # Generate the combined proguard configuration for debugging.
 -printconfiguration build/outputs/proguard-config.txt
 
+-dontwarn com.gemalto.jp2.JP2Decoder
+-dontwarn com.gemalto.jp2.JP2Encoder
+
 -dontwarn androidx.compose.ui.util.MathHelpersKt
 -dontwarn com.google.common.util.concurrent.ListenableFuture
 -dontwarn com.google.errorprone.annotations.InlineMe
