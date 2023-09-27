@@ -35,7 +35,7 @@
     <string name="ns_birthday_height">Birthday Height (optional)</string>
     <string name="ns_your_seed_error">Error - This doesn\'t look like a valid seed phrase.</string>
     <string name="ns_continue">Continue</string>
-    <string name="ns_export_as_pdf">Export as Pdf</string>
+    <string name="ns_export_as_pdf">Export as PDF</string>
     <string name="ns_pdf_dialog_sub_heading">Export the seed words to a password-protected PDF which can be backed up to user-secured portable storage devices.</string>
     <string name="ns_please_enter_password">Please Enter Password</string>
     <string name="ns_export_pdf">Export PDF</string>
@@ -275,7 +275,7 @@
     <string name="advanced">Advanced</string>
     <string name="advanced_msg">Less common settings</string>
     <string name="nuke_wallet">Nuke Wallet</string>
-    <string name="nuke_wallet_caution">CAUTION: This will completely wipe your wallet and you will be unable to recover funds without your seed words.Ensure you have them saved somewhere safe before proceeding</string>
+    <string name="nuke_wallet_caution">CAUTION: This will completely wipe your wallet and you will be unable to recover funds without your seed words. Ensure you have them saved somewhere safe before proceeding</string>
     <string name="nuke_wallet_dialog_msg">This operation is IRREVERSIBLE. Restoring your funds will be impossible without seed words. Be ABSOLUTELY sure you have saved them somewhere safe before proceeding. Do you still want to proceed?</string>
     <string name="are_you_sure">Are you sure?</string>
 </resources>
