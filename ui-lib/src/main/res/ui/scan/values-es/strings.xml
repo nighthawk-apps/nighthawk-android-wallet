@@ -1,15 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="scan_header">Scan a Zcash QR</string>
-    <string name="scan_back_content_description">Back</string>
-    <string name="scan_preview_content_description">Camera</string>
-    <string name="scan_hint">You can scan any Zcash QR code.</string>
-    <string name="scan_settings_button">Enable camera permission</string>
-    <string name="scan_settings_open_failed">Unable to launch Settings app.</string>
-    <string name="scan_setup_failed">Unable to run QR scanner.</string>
-    <string name="scan_setup_back">Back</string>
-    <string name="scan_state_permission">Permission for camera is necessary.</string>
-    <string name="scan_state_scanning">Scanning…</string>
-    <string name="scan_state_failed">Scanning failed!</string>
-    <string name="scan_validation_invalid_address">Invalid Zcash address scanned.</string>
+    <string name="scan_header">Escanear un QR de Zcash</string>
+    <string name="scan_back_content_description">Volver</string>
+    <string name="scan_preview_content_description">Cámara</string>
+    <string name="scan_hint">Puede escanear cualquier código QR de Zcash.</string>
+    <string name="scan_settings_button">Habilitar permiso de cámara</string>
+    <string name="scan_settings_open_failed">No se puede iniciar la aplicación de correo electrónico.</string>
+    <string name="scan_setup_failed">No es posible ejecutar el escáner QR.</string>
+    <string name="scan_setup_back">Volver</string>
+    <string name="scan_state_permission">El permiso para la cámara es necesario.</string>
+    <string name="scan_state_scanning">Escaneando…</string>
+    <string name="scan_state_failed">¡Escaneo fallido!</string>
+    <string name="scan_validation_invalid_address">Dirección Zcash no válida.</string>
 </resources>
