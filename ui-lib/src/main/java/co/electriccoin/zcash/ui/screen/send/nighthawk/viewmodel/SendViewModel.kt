@@ -4,7 +4,6 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import cash.z.ecc.android.sdk.Synchronizer
-import cash.z.ecc.android.sdk.ext.ZcashSdk
 import cash.z.ecc.android.sdk.ext.convertZatoshiToZecString
 import cash.z.ecc.android.sdk.ext.convertZecToZatoshi
 import cash.z.ecc.android.sdk.model.UnifiedSpendingKey
@@ -15,8 +14,10 @@ import cash.z.ecc.android.sdk.model.toZecString
 import cash.z.ecc.android.sdk.type.AddressType
 import co.electriccoin.zcash.preference.api.PreferenceProvider
 import co.electriccoin.zcash.spackle.Twig
+import co.electriccoin.zcash.ui.common.NETWORK_FEES
 import co.electriccoin.zcash.ui.common.UnsUtil
 import co.electriccoin.zcash.ui.common.addressTypeNameId
+import co.electriccoin.zcash.ui.common.removeTrailingZero
 import co.electriccoin.zcash.ui.common.toBalanceValueModel
 import co.electriccoin.zcash.ui.common.toFiatZatoshi
 import co.electriccoin.zcash.ui.preference.StandardPreferenceKeys
@@ -137,8 +138,8 @@ class SendViewModel(val context: Application) : AndroidViewModel(application = c
         Twig.info { "SendVieModel walletSnapShot $walletSnapshot" }
         _enterZecUIState.getAndUpdate {
             val availableZatoshi =
-                walletSnapshot.saplingBalance.available.takeIf { available -> available.value > ZcashSdk.MINERS_FEE.value }
-                    ?.let { available -> available - ZcashSdk.MINERS_FEE } ?: Zatoshi(0)
+                walletSnapshot.saplingBalance.available.takeIf { available -> available.value > NETWORK_FEES.value }
+                    ?.let { available -> available - NETWORK_FEES } ?: Zatoshi(0)
             val balanceValuesModel = (it.enteredAmount.toDoubleOrNull()
                 ?.toFiatZatoshi(fiatCurrencyUiState, isFiatCurrencyPreferredOverZec)
                 ?: Zatoshi(0)).toBalanceValueModel(
@@ -192,9 +193,9 @@ class SendViewModel(val context: Application) : AndroidViewModel(application = c
                 ),
                 receiverAddress = zecSend?.destination?.address ?: "",
                 subTotal = zecSend?.amount?.toZecString() ?: "",
-                networkFees = ZcashSdk.MINERS_FEE.toZecString(),
+                networkFees = NETWORK_FEES.toZecString(),
                 totalAmount = "${
-                    zecSend?.amount?.plus(ZcashSdk.MINERS_FEE)?.toZecString()
+                    zecSend?.amount?.plus(NETWORK_FEES)?.toZecString()?.removeTrailingZero()
                 }"
             )
     }
