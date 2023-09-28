@@ -43,7 +43,6 @@ import cash.z.ecc.android.sdk.fixture.TransactionOverviewFixture
 import cash.z.ecc.android.sdk.model.BlockHeight
 import cash.z.ecc.android.sdk.model.TransactionRecipient
 import cash.z.ecc.android.sdk.model.TransactionState
-import cash.z.ecc.android.sdk.model.Zatoshi
 import cash.z.ecc.android.sdk.model.ZcashNetwork
 import cash.z.ecc.android.sdk.model.toZecString
 import co.electriccoin.zcash.spackle.Twig
@@ -403,7 +402,7 @@ fun TransactionDetails(
         }
 
         //Sub total
-        Spacer(modifier = Modifier.height(10.dp))
+        /*Spacer(modifier = Modifier.height(10.dp))
         Divider(
             thickness = 1.dp,
             color = ZcashTheme.colors.surfaceEnd
@@ -443,7 +442,7 @@ fun TransactionDetails(
                     color = ZcashTheme.colors.surfaceEnd, textAlign = TextAlign.End
                 )
             }
-        }
+        }*/
 
         // Total
         Spacer(modifier = Modifier.height(10.dp))

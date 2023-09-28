@@ -167,7 +167,7 @@ fun WalletView(
         )
         Spacer(Modifier.height(dimensionResource(id = R.dimen.pageMargin)))
         TitleLarge(text = stringResource(id = R.string.ns_nighthawk), textAlign = TextAlign.Center, modifier = Modifier.align(Alignment.CenterHorizontally))
-        Spacer(modifier = Modifier.height(dimensionResource(id = R.dimen.screen_standard_margin)))
+        Spacer(modifier = Modifier.height(dimensionResource(id = R.dimen.home_view_pager_min_height)))
 
         if (walletSnapshot.status == Synchronizer.Status.SYNCED) {
             // show synced status with viewpager
