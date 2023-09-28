@@ -13,6 +13,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import cash.z.ecc.android.sdk.model.Zatoshi
 import co.electriccoin.zcash.spackle.Twig
 import co.electriccoin.zcash.ui.MainActivity
 import co.electriccoin.zcash.ui.common.onLaunchUrl
@@ -66,7 +67,7 @@ internal fun WrapAndroidTransactionDetails(
     val balanceUIModel = remember(transactionDetailsUIModel) {
         derivedStateOf {
             transactionDetailsUIModel?.transactionOverview?.let {
-                (it.netValue - it.feePaid).toBalanceValueModel(
+                (it.netValue - (it.feePaid ?: Zatoshi(0))).toBalanceValueModel(
                     fiatCurrencyUiState,
                     isFiatCurrencyPreferred
                 ).toBalanceUiModel(context)

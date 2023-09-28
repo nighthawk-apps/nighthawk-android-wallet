@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.annotation.DrawableRes
 import cash.z.ecc.android.sdk.model.toZecString
 import co.electriccoin.zcash.ui.R
+import co.electriccoin.zcash.ui.common.removeTrailingZero
 import co.electriccoin.zcash.ui.common.toBalanceUiModel
 import co.electriccoin.zcash.ui.common.toBalanceValueModel
 import co.electriccoin.zcash.ui.screen.fiatcurrency.model.FiatCurrencyUiState
@@ -45,7 +46,7 @@ data class BalanceDisplayValues(
                     if (totalBalance > availableBalance) {
                         msg = context.getString(
                             R.string.ns_expecting_balance_snack_bar_msg,
-                            (totalBalance - availableBalance).toZecString()
+                            (totalBalance - availableBalance).toZecString().removeTrailingZero()
                         )
                     }
                     balanceUIModel = availableBalance.toBalanceValueModel(fiatCurrencyUiState, isFiatCurrencyPreferred, selectedDenomination).toBalanceUiModel(context)
@@ -56,7 +57,7 @@ data class BalanceDisplayValues(
                     if (walletSnapshot.saplingBalance.total > walletSnapshot.saplingBalance.available) {
                         msg = context.getString(
                             R.string.ns_expecting_balance_snack_bar_msg,
-                            (walletSnapshot.saplingBalance.total - walletSnapshot.saplingBalance.available).toZecString()
+                            (walletSnapshot.saplingBalance.total - walletSnapshot.saplingBalance.available).toZecString().removeTrailingZero()
                         )
                     }
                     val availableBalance = walletSnapshot.saplingBalance.available
@@ -68,7 +69,7 @@ data class BalanceDisplayValues(
                     if (walletSnapshot.transparentBalance.total > walletSnapshot.transparentBalance.available) {
                         msg = context.getString(
                             R.string.ns_expecting_balance_snack_bar_msg,
-                            (walletSnapshot.transparentBalance.total - walletSnapshot.transparentBalance.available).toZecString()
+                            (walletSnapshot.transparentBalance.total - walletSnapshot.transparentBalance.available).toZecString().removeTrailingZero()
                         )
                     }
                     val availableBalance = walletSnapshot.transparentBalance.available

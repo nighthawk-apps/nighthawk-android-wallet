@@ -149,8 +149,8 @@ class SendViewModel(val context: Application) : AndroidViewModel(application = c
                 fiatCurrencyUiState,
                 isFiatCurrencyPreferredOverZec
             )
-            val isEnoughBalance = (it.enteredAmount.toDoubleOrNull()
-                ?: 0.0) <= (availableBalanceModel.balance.toDoubleOrNull() ?: 0.0)
+            val isEnoughBalance = ((availableBalanceModel.balance.toDoubleOrNull() ?: 0.0) > 0) &&
+                    ((it.enteredAmount.toDoubleOrNull() ?: 0.0) <= (availableBalanceModel.balance.toDoubleOrNull() ?: 0.0))
             it.copy(
                 amountUnit = balanceValuesModel.balanceUnit,
                 spendableBalance = availableBalanceModel.balance,
