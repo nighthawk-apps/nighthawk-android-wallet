@@ -1,6 +1,7 @@
 pluginManager.withPlugin("org.jetbrains.kotlin.multiplatform") {
     extensions.findByType<org.jetbrains.kotlin.gradle.dsl.KotlinMultiplatformExtension>()?.apply {
-        jvmToolchain(project.property("JVM_TOOLCHAIN").toString().toInt())
+//        jvmToolchain(project.property("JVM_TOOLCHAIN").toString().toInt())
+        jvm()
 
         targets.all {
             compilations.all {
