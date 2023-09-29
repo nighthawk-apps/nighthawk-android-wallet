@@ -2,7 +2,7 @@
 <resources>
     <string name="restore_header">Create a wallet</string>
     <string name="restore_title">Wallet import</string>
-    <string name="restore_back_content_description">Back</string>
+    <string name="restore_back_content_description">Indietro</string>
     <string name="restore_button_clear">Clear</string>
     <string name="restore_seed_instructions">You can import your backed-up wallet by entering your backup recovery phrase (aka seed phrase) now.</string>
     <string name="restore_seed_button_restore">Restore wallet</string>
@@ -267,7 +267,7 @@
     <string name="link_to_ecc_description">Please confirm opening electriccoin.co on your device browser to learn more about Unified Addresses.</string>
     <string name="shielding">Shielding…</string>
     <string name="open_settings">Open Settings</string>
-    <string name="notification_permission_dialog_title">Alert</string>
+    <string name="notification_permission_dialog_title">Avviso</string>
     <string name="notification_permission_dialog_desc">To post any notification we need to provide Notifications permission.\nFrom Settings please allow Notifications permission</string>
     <string name="transaction_id_copied">Transaction ID has been copied to the clipboard.</string>
     <string name="dialog_first_use_view_tx_message">Are you sure you\'d like to leave the app? This could reduce privacy if you do not trust the destination.</string>
