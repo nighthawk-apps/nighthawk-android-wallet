@@ -2,9 +2,11 @@ package cash.z.ecc.sdk.fixture
 
 import cash.z.ecc.android.sdk.WalletInitMode
 import cash.z.ecc.android.sdk.model.BlockHeight
+import cash.z.ecc.android.sdk.model.Mainnet
 import cash.z.ecc.android.sdk.model.PersistableWallet
 import cash.z.ecc.android.sdk.model.SeedPhrase
 import cash.z.ecc.android.sdk.model.ZcashNetwork
+import co.electriccoin.lightwallet.client.model.LightWalletEndpoint
 
 object PersistableWalletFixture {
 
@@ -17,10 +19,13 @@ object PersistableWalletFixture {
 
     val WALLET_INIT_MODE = WalletInitMode.ExistingWallet
 
+    val ENDPOINT = LightWalletEndpoint.Mainnet
+
     fun new(
         network: ZcashNetwork = NETWORK,
+        endpoint: LightWalletEndpoint = ENDPOINT,
         birthday: BlockHeight = BIRTHDAY,
         seedPhrase: SeedPhrase = SEED_PHRASE,
         walletInitMode: WalletInitMode = WALLET_INIT_MODE
-    ) = PersistableWallet(network, birthday, seedPhrase, walletInitMode)
+    ) = PersistableWallet(network, endpoint, birthday, seedPhrase, walletInitMode)
 }

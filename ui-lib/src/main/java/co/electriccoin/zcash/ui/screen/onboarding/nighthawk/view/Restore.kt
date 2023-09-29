@@ -45,8 +45,10 @@ import cash.z.ecc.android.sdk.WalletInitMode
 import cash.z.ecc.android.sdk.model.BlockHeight
 import cash.z.ecc.android.sdk.model.SeedPhrase
 import cash.z.ecc.android.sdk.model.ZcashNetwork
+import cash.z.ecc.android.sdk.model.defaultForNetwork
 import cash.z.ecc.sdk.model.SeedPhraseValidation
 import cash.z.ecc.sdk.type.fromResources
+import co.electriccoin.lightwallet.client.model.LightWalletEndpoint
 import co.electriccoin.zcash.ui.R
 import co.electriccoin.zcash.ui.design.component.BodyMedium
 import co.electriccoin.zcash.ui.design.component.PrimaryButton
@@ -81,12 +83,14 @@ internal fun RestoreWallet(activity: ComponentActivity) {
         restoreViewModel.userWordList.set(seedPhrase.split(" "))
     }
     val onContinue = { seedPhrase: String, birthdayHeight: Long? ->
+        val network = ZcashNetwork.fromResources(applicationContext)
         persistExistingWalletWithSeedPhrase(
             applicationContext,
             walletViewModel,
             SeedPhrase.new(seedPhrase),
-            birthdayHeight?.let { BlockHeight.new(ZcashNetwork.fromResources(applicationContext), it) },
-            WalletInitMode.RestoreWallet
+            birthdayHeight?.let { BlockHeight.new(network, it) },
+            WalletInitMode.RestoreWallet,
+            LightWalletEndpoint.defaultForNetwork(network)
         )
     }
     Restore(
