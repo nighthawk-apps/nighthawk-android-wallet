@@ -84,7 +84,10 @@ fun TransactionOverviewHistoryRow(
             Column {
                 TitleMedium(text = stringResource(id = if (transactionOverview.isSentTransaction) R.string.ns_sent else R.string.ns_received), textAlign = TextAlign.Center)
                 Spacer(modifier = Modifier.height(4.dp))
-                BodySmall(text = Instant.fromEpochSeconds(transactionOverview.blockTimeEpochSeconds ?: 0L).toLocalDateTime(TimeZone.UTC).toJavaLocalDateTime().format(DateTimeFormatter.ofLocalizedDate(FormatStyle.SHORT)))
+                val timeText = transactionOverview.blockTimeEpochSeconds?.let {
+                    Instant.fromEpochSeconds(it).toLocalDateTime(TimeZone.UTC).toJavaLocalDateTime().format(DateTimeFormatter.ofLocalizedDate(FormatStyle.SHORT))
+                } ?: stringResource(id = R.string.ns_transaction_date_error)
+                BodySmall(text = timeText)
             }
             Spacer(modifier = Modifier.width(4.dp))
             if (transactionOverview.memoCount > 0) {
