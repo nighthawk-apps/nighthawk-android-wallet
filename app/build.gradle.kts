@@ -28,8 +28,8 @@ val hasFirebaseApiKeys = run {
 }
 
 if (hasFirebaseApiKeys) {
-    apply(plugin = "com.google.gms.google-services")
-    apply(plugin = "com.google.firebase.crashlytics")
+//    apply(plugin = "com.google.gms.google-services")
+//    apply(plugin = "com.google.firebase.crashlytics")
 }
 
 val packageName = project.property("ZCASH_RELEASE_PACKAGE_NAME").toString()

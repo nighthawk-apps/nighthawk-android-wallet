@@ -88,7 +88,7 @@ dependencies {
     implementation(projects.buildInfoLib)
     implementation(projects.configurationApiLib)
     implementation(projects.configurationImplAndroidLib)
-    implementation(projects.crashAndroidLib)
+//    implementation(projects.crashAndroidLib)
     implementation(projects.preferenceApiLib)
     implementation(projects.preferenceImplAndroidLib)
     implementation(projects.sdkExtLib)

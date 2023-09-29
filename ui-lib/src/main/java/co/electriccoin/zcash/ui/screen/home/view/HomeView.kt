@@ -56,7 +56,7 @@ import androidx.compose.ui.unit.dp
 import cash.z.ecc.android.sdk.Synchronizer
 import cash.z.ecc.android.sdk.model.FiatCurrencyConversionRateState
 import cash.z.ecc.android.sdk.model.PercentDecimal
-import co.electriccoin.zcash.crash.android.GlobalCrashReporter
+//import co.electriccoin.zcash.crash.android.GlobalCrashReporter
 import co.electriccoin.zcash.ui.R
 import co.electriccoin.zcash.ui.common.DisableScreenTimeout
 import co.electriccoin.zcash.ui.common.closeDrawerMenu
@@ -216,9 +216,9 @@ private fun DebugMenu(
                 onClick = {
                     // Eventually this shouldn't rely on the Android implementation, but rather an expect/actual
                     // should be used at the crash API level.
-                    GlobalCrashReporter.reportCaughtException(
+                    /*GlobalCrashReporter.reportCaughtException(
                         RuntimeException("Manually caught exception from debug menu")
-                    )
+                    )*/
                     expanded = false
                 }
             )

@@ -1,13 +1,13 @@
 package co.electriccoin.zcash.ui.screen.support.model
 
-import android.content.Context
-import co.electriccoin.zcash.crash.ExceptionPath
+/*import co.electriccoin.zcash.crash.ExceptionPath
 import co.electriccoin.zcash.crash.ReportedException
 import co.electriccoin.zcash.crash.android.getExceptionDirectory
 import co.electriccoin.zcash.crash.new
-import co.electriccoin.zcash.spackle.io.listFilesSuspend
+import co.electriccoin.zcash.spackle.io.listFilesSuspend*/
+import android.content.Context
+import co.electriccoin.zcash.spackle.Twig
 import kotlinx.datetime.Instant
-import java.io.File
 
 data class CrashInfo(val exceptionClassName: String, val isUncaught: Boolean, val timestamp: Instant) {
     fun toSupportString() = buildString {
@@ -34,7 +34,9 @@ fun List<CrashInfo>.toCrashSupportString() = buildString {
 private const val MAX_EXCEPTIONS_TO_REPORT = 5
 
 suspend fun CrashInfo.Companion.all(context: Context): List<CrashInfo> {
-    val exceptionDirectory = ExceptionPath.getExceptionDirectory(context) ?: return emptyList()
+    Twig.info { "$context" }
+    return emptyList()
+    /*val exceptionDirectory = ExceptionPath.getExceptionDirectory(context) ?: return emptyList()
     val filesList: List<File> = exceptionDirectory.listFilesSuspend().toList()
     return filesList
         .mapNotNull {
@@ -42,5 +44,5 @@ suspend fun CrashInfo.Companion.all(context: Context): List<CrashInfo> {
         }.sortedBy { it.time }
         .reversed()
         .take(MAX_EXCEPTIONS_TO_REPORT)
-        .map { CrashInfo(it.exceptionClassName, it.isUncaught, it.time) }
+        .map { CrashInfo(it.exceptionClassName, it.isUncaught, it.time) }*/
 }
