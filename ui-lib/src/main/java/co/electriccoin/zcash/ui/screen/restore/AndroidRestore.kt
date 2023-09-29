@@ -9,7 +9,9 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import cash.z.ecc.android.sdk.WalletInitMode
 import cash.z.ecc.android.sdk.model.SeedPhrase
 import cash.z.ecc.android.sdk.model.ZcashNetwork
+import cash.z.ecc.android.sdk.model.defaultForNetwork
 import cash.z.ecc.sdk.type.fromResources
+import co.electriccoin.lightwallet.client.model.LightWalletEndpoint
 import co.electriccoin.zcash.ui.screen.home.viewmodel.WalletViewModel
 import co.electriccoin.zcash.ui.screen.onboarding.persistExistingWalletWithSeedPhrase
 import co.electriccoin.zcash.ui.screen.onboarding.viewmodel.OnboardingViewModel
@@ -49,12 +51,14 @@ fun WrapRestore(activity: ComponentActivity) {
                     return@RestoreWallet clipboardManager?.primaryClip?.toString()
                 },
                 onFinished = {
+                    val network = ZcashNetwork.fromResources(applicationContext)
                     persistExistingWalletWithSeedPhrase(
                         applicationContext,
                         walletViewModel,
                         SeedPhrase(restoreViewModel.userWordList.current.value),
                         restoreViewModel.userBirthdayHeight.value,
-                        WalletInitMode.RestoreWallet
+                        WalletInitMode.RestoreWallet,
+                        LightWalletEndpoint.defaultForNetwork(network)
                     )
                 }
             )

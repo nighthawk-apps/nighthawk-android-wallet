@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="update_header">Update available!</string>
-    <string name="update_critical_header">Critical update required!</string>
+    <string name="update_header">¡Actualización disponible!</string>
+    <string name="update_critical_header">¡Actualización crítica requerida!</string>
     <string name="update_image_content_description"></string>
-    <string name="update_description">There is a new version of the app available.</string>
-    <string name="update_link_text">Learn more about this update here.</string>
-    <string name="update_download_button">Download Update</string>
-    <string name="update_later_enabled_button">Remind me later</string>
-    <string name="update_later_disabled_button">This can not be skipped.</string>
-    <string name="update_unable_to_open_play_store">Unable to launch Google Play store app.</string>
+    <string name="update_description">Hay una versión más reciente de la aplicación disponible.</string>
+    <string name="update_link_text">Más información sobre esta actualización aquí.</string>
+    <string name="update_download_button">Descargar actualización</string>
+    <string name="update_later_enabled_button">Recuerdame más tarde</string>
+    <string name="update_later_disabled_button">No se puede omitir.</string>
+    <string name="update_unable_to_open_play_store">No se puede iniciar la aplicación Google Play.</string>
 </resources>

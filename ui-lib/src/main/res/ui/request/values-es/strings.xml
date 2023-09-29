@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources xmlns:tools="http://schemas.android.com/tools" xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
-    <string name="request_title">Request ZEC</string>
-    <string name="request_back_content_description">Back</string>
-    <string name="request_from">Who would you like to request ZEC from?</string>
-    <string name="request_amount">How much?</string>
-    <string name="request_message">Message</string>
-    <string name="request_create">Create and Send</string>
-    <string name="request_template_format" formatted="true">Someone is requesting ZEC from you. Please click the link: <xliff:g id="link" example="zcash:asdf">%1$s</xliff:g></string>
+    <string name="request_title">Solicitar ZEC</string>
+    <string name="request_back_content_description">Volver</string>
+    <string name="request_from">¿A quién le gustaría solicitar ZEC?</string>
+    <string name="request_amount">¿Cuánto?</string>
+    <string name="request_message">Mensaje</string>
+    <string name="request_create">Crear y enviar</string>
+    <string name="request_template_format" formatted="true">Alguien te está solicitando ZEC. Por favor, haz clic en el enlace: <xliff:g id="link" example="zcash:asdf">%1$s</xliff:g></string>
 </resources>

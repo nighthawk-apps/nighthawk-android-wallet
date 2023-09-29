@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="wallet_address_title">My wallet addresses</string>
-    <string name="wallet_address_back_content_description">Back</string>
-    <string name="wallet_address_unified">Your Unified Address</string>
-    <string name="wallet_address_header_includes">which includes</string>
-    <string name="wallet_address_sapling">Shielded Sapling (NU1)</string>
+    <string name="wallet_address_title">Mis direcciones</string>
+    <string name="wallet_address_back_content_description">Volver</string>
+    <string name="wallet_address_unified">Tu dirección unificada</string>
+    <string name="wallet_address_header_includes">que incluye</string>
+    <string name="wallet_address_sapling">Sapling Blindado (NU1)</string>
     <string name="wallet_address_transparent">Transparente</string>
-    <string name="wallet_address_show">Show address</string>
-    <string name="wallet_address_hide">Hide address</string>
-    <string name="wallet_address_clipboard_tag">Zcash Wallet Address</string>
+    <string name="wallet_address_show">Mostrar direcciones</string>
+    <string name="wallet_address_hide">Ocultar direcciones</string>
+    <string name="wallet_address_clipboard_tag">Dirección de la billetera Zcash</string>
 </resources>

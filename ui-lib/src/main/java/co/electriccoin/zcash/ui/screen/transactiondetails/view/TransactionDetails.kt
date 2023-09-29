@@ -43,7 +43,6 @@ import cash.z.ecc.android.sdk.fixture.TransactionOverviewFixture
 import cash.z.ecc.android.sdk.model.BlockHeight
 import cash.z.ecc.android.sdk.model.TransactionRecipient
 import cash.z.ecc.android.sdk.model.TransactionState
-import cash.z.ecc.android.sdk.model.Zatoshi
 import cash.z.ecc.android.sdk.model.ZcashNetwork
 import cash.z.ecc.android.sdk.model.toZecString
 import co.electriccoin.zcash.spackle.Twig
@@ -140,270 +139,282 @@ fun TransactionDetails(
 
         if (transactionDetailsUIModel?.transactionOverview == null) {
             Twig.info { "Transaction overview ui model is null" }
-            return@Column
-        }
-
-        Icon(
-            painter = painterResource(id = R.drawable.ic_icon_downloading),
-            contentDescription = null,
-            modifier = Modifier
-                .rotate(if (transactionDetailsUIModel.transactionOverview.isSentTransaction) 180f else 0f)
-                .align(Alignment.CenterHorizontally)
-        )
-        Spacer(modifier = Modifier.height(21.dp))
-
-        // Amount section
-        Row(
-            modifier = Modifier.align(Alignment.CenterHorizontally),
-        ) {
-            BalanceText(text = balanceUIModel.balance)
-            Spacer(modifier = Modifier.width(4.dp))
-            BalanceText(
-                text = balanceUIModel.balanceUnit,
+            BodyMedium(
+                text = stringResource(id = R.string.ns_transaction_details_error_msg),
+                textAlign = TextAlign.Center,
+                modifier = Modifier.align(Alignment.CenterHorizontally),
                 color = ZcashTheme.colors.surfaceEnd
             )
-        }
-        Spacer(modifier = Modifier.width(12.dp))
-        BodyMedium(
-            text = "${balanceUIModel.fiatBalance} ${balanceUIModel.fiatUnit}",
-            textAlign = TextAlign.Center,
-            modifier = Modifier.align(Alignment.CenterHorizontally),
-            color = ZcashTheme.colors.surfaceEnd
-        )
-        Spacer(
-            modifier = Modifier.height(30.dp)
-        )
+        } else {
 
-        val (transactionStateTextId, transactionStateIconId) = when (transactionDetailsUIModel.transactionOverview.transactionState) {
-            TransactionState.Confirmed -> Pair(R.string.ns_confirmed, R.drawable.ic_icon_confirmed)
-            TransactionState.Pending -> Pair(R.string.ns_pending, R.drawable.ic_icon_preparing)
-            TransactionState.Expired -> Pair(R.string.ns_expired, R.drawable.ic_done_24dp)
-        }
+            Icon(
+                painter = painterResource(id = R.drawable.ic_icon_downloading),
+                contentDescription = null,
+                modifier = Modifier
+                    .rotate(if (transactionDetailsUIModel.transactionOverview.isSentTransaction) 180f else 0f)
+                    .align(Alignment.CenterHorizontally)
+            )
+            Spacer(modifier = Modifier.height(21.dp))
 
-        DottedBorderTextButton(
-            onClick = {},
-            text = stringResource(id = transactionStateTextId),
-            modifier = Modifier
-                .align(Alignment.CenterHorizontally)
-                .height(40.dp),
-            borderColor = ZcashTheme.colors.surfaceEnd,
-            startIcon = transactionStateIconId
-        )
-
-        Spacer(
-            modifier = Modifier.heightIn(min = 50.dp)
-        )
-
-        // Memo
-        if (transactionDetailsUIModel.memo.isNotBlank()) {
-            BodyMedium(
-                text = stringResource(id = R.string.ns_memo),
-                color = ZcashTheme.colors.surfaceEnd
-            )
-            Spacer(modifier = Modifier.height(10.dp))
-            BodyMedium(text = transactionDetailsUIModel.memo)
-            Spacer(modifier = Modifier.height(40.dp))
-        }
-
-        // Time
-        Divider(
-            thickness = 1.dp,
-            color = ZcashTheme.colors.surfaceEnd
-        )
-        Spacer(modifier = Modifier.height(10.dp))
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            BodyMedium(
-                text = stringResource(id = R.string.ns_time_utc),
-                color = ZcashTheme.colors.surfaceEnd
-            )
-            BodyMedium(
-                text = Instant.fromEpochSeconds(transactionDetailsUIModel.transactionOverview.blockTimeEpochSeconds ?: 0L)
-                    .toLocalDateTime(TimeZone.UTC).toString().replace("T", " "),
-                color = ZcashTheme.colors.surfaceEnd
-            )
-        }
-
-        // Network
-        Spacer(modifier = Modifier.height(10.dp))
-        Divider(
-            thickness = 1.dp,
-            color = ZcashTheme.colors.surfaceEnd
-        )
-        Spacer(modifier = Modifier.height(10.dp))
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            BodyMedium(
-                text = stringResource(id = R.string.ns_network),
-                color = ZcashTheme.colors.surfaceEnd
-            )
-            BodyMedium(
-                text = transactionDetailsUIModel.network?.networkName ?: "",
-                color = ZcashTheme.colors.surfaceEnd
-            )
-        }
-
-        // BlockId
-        Spacer(modifier = Modifier.height(10.dp))
-        Divider(
-            thickness = 1.dp,
-            color = ZcashTheme.colors.surfaceEnd
-        )
-        Spacer(modifier = Modifier.height(10.dp))
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            BodyMedium(
-                text = stringResource(id = R.string.ns_block_id),
-                color = ZcashTheme.colors.surfaceEnd
-            )
-            BodyMedium(
-                text = "${transactionDetailsUIModel.transactionOverview.minedHeight?.value}",
-                color = ZcashTheme.colors.surfaceEnd
-            )
-        }
-
-        // Confirmations
-        val countText = getCountText(transactionDetailsUIModel)
-        Spacer(modifier = Modifier.height(10.dp))
-        Divider(
-            thickness = 1.dp,
-            color = ZcashTheme.colors.surfaceEnd
-        )
-        Spacer(modifier = Modifier.height(10.dp))
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            BodyMedium(
-                text = stringResource(id = R.string.ns_confirmations),
-                color = ZcashTheme.colors.surfaceEnd
-            )
-            BodyMedium(text = countText, color = ZcashTheme.colors.surfaceEnd)
-        }
-
-        // TransactionId
-        Spacer(modifier = Modifier.height(10.dp))
-        val transactionId =
-            transactionDetailsUIModel.transactionOverview.rawId.byteArray.toFormattedString()
-        Divider(
-            thickness = 1.dp,
-            color = ZcashTheme.colors.surfaceEnd
-        )
-        Spacer(modifier = Modifier.height(10.dp))
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            BodyMedium(
-                text = stringResource(id = R.string.ns_transaction_id),
-                color = ZcashTheme.colors.surfaceEnd
-            )
-            Spacer(modifier = Modifier.width(50.dp))
-            BodyMedium(
-                text = transactionId,
-                color = ZcashTheme.colors.surfaceEnd,
-                textAlign = TextAlign.End
-            )
-        }
-
-        val onViewBlockExplorerClicked = { updateWarningStatus: Boolean ->
-            viewOnBlockExplorer(
-                context.getString(
-                    transactionDetailsUIModel.network.blockExplorerUrlStringId(),
-                    transactionId
-                ),
-                updateWarningStatus
-            )
-        }
-        TextButton(
-            onClick = {
-                if (isNavigateAwayFromAppWarningShown) {
-                    onViewBlockExplorerClicked(false)
-                } else {
-                    showAppLeavingDialog.value = true
-                }
-            },
-            modifier = Modifier.align(Alignment.End)
-        ) {
-            BodyMedium(
-                text = stringResource(id = R.string.ns_view_block_explorer),
-                color = ZcashTheme.colors.onBackgroundHeader,
-                textAlign = TextAlign.End
-            )
-        }
-
-        // Recipient
-        if (transactionDetailsUIModel.transactionOverview.isSentTransaction) {
-            val recipientAddress = when (transactionDetailsUIModel.transactionRecipient) {
-                is TransactionRecipient.Address -> transactionDetailsUIModel.transactionRecipient.addressValue
-                else -> ""
+            // Amount section
+            Row(
+                modifier = Modifier.align(Alignment.CenterHorizontally),
+            ) {
+                BalanceText(text = balanceUIModel.balance)
+                Spacer(modifier = Modifier.width(4.dp))
+                BalanceText(
+                    text = balanceUIModel.balanceUnit,
+                    color = ZcashTheme.colors.surfaceEnd
+                )
             }
-            if (recipientAddress.isNotBlank()) {
-                Spacer(modifier = Modifier.height(10.dp))
-                Divider(
-                    thickness = 1.dp,
+            Spacer(modifier = Modifier.width(12.dp))
+            BodyMedium(
+                text = "${balanceUIModel.fiatBalance} ${balanceUIModel.fiatUnit}",
+                textAlign = TextAlign.Center,
+                modifier = Modifier.align(Alignment.CenterHorizontally),
+                color = ZcashTheme.colors.surfaceEnd
+            )
+            Spacer(
+                modifier = Modifier.height(30.dp)
+            )
+
+            val (transactionStateTextId, transactionStateIconId) = when (transactionDetailsUIModel.transactionOverview.transactionState) {
+                TransactionState.Confirmed -> Pair(
+                    R.string.ns_confirmed,
+                    R.drawable.ic_icon_confirmed
+                )
+
+                TransactionState.Pending -> Pair(R.string.ns_pending, R.drawable.ic_icon_preparing)
+                TransactionState.Expired -> Pair(R.string.ns_expired, R.drawable.ic_done_24dp)
+            }
+
+            DottedBorderTextButton(
+                onClick = {},
+                text = stringResource(id = transactionStateTextId),
+                modifier = Modifier
+                    .align(Alignment.CenterHorizontally)
+                    .height(40.dp),
+                borderColor = ZcashTheme.colors.surfaceEnd,
+                startIcon = transactionStateIconId
+            )
+
+            Spacer(
+                modifier = Modifier.heightIn(min = 50.dp)
+            )
+
+            // Memo
+            if (transactionDetailsUIModel.memo.isNotBlank()) {
+                BodyMedium(
+                    text = stringResource(id = R.string.ns_memo),
                     color = ZcashTheme.colors.surfaceEnd
                 )
                 Spacer(modifier = Modifier.height(10.dp))
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    BodyMedium(
-                        text = stringResource(id = R.string.ns_recipient),
-                        color = ZcashTheme.colors.surfaceEnd
-                    )
-                    BodyMedium(
-                        text = stringResource(id = recipientAddress.addressTypeNameId()), color = ZcashTheme.colors.surfaceEnd
-                    )
+                BodyMedium(text = transactionDetailsUIModel.memo)
+                Spacer(modifier = Modifier.height(40.dp))
+            }
+
+            // Time
+            Divider(
+                thickness = 1.dp,
+                color = ZcashTheme.colors.surfaceEnd
+            )
+            Spacer(modifier = Modifier.height(10.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                BodyMedium(
+                    text = stringResource(id = R.string.ns_time_utc),
+                    color = ZcashTheme.colors.surfaceEnd
+                )
+                val timeText = transactionDetailsUIModel.transactionOverview.blockTimeEpochSeconds?.let {
+                    Instant.fromEpochSeconds(it).toLocalDateTime(TimeZone.UTC).toString().replace("T", " ")
+                } ?: stringResource(id = R.string.ns_transaction_date_error)
+                BodyMedium(
+                    text = timeText,
+                    color = ZcashTheme.colors.surfaceEnd
+                )
+            }
+
+            // Network
+            Spacer(modifier = Modifier.height(10.dp))
+            Divider(
+                thickness = 1.dp,
+                color = ZcashTheme.colors.surfaceEnd
+            )
+            Spacer(modifier = Modifier.height(10.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                BodyMedium(
+                    text = stringResource(id = R.string.ns_network),
+                    color = ZcashTheme.colors.surfaceEnd
+                )
+                BodyMedium(
+                    text = transactionDetailsUIModel.network?.networkName ?: "",
+                    color = ZcashTheme.colors.surfaceEnd
+                )
+            }
+
+            // BlockId
+            Spacer(modifier = Modifier.height(10.dp))
+            Divider(
+                thickness = 1.dp,
+                color = ZcashTheme.colors.surfaceEnd
+            )
+            Spacer(modifier = Modifier.height(10.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                BodyMedium(
+                    text = stringResource(id = R.string.ns_block_id),
+                    color = ZcashTheme.colors.surfaceEnd
+                )
+                BodyMedium(
+                    text = "${transactionDetailsUIModel.transactionOverview.minedHeight?.value}",
+                    color = ZcashTheme.colors.surfaceEnd
+                )
+            }
+
+            // Confirmations
+            val countText = getCountText(transactionDetailsUIModel)
+            Spacer(modifier = Modifier.height(10.dp))
+            Divider(
+                thickness = 1.dp,
+                color = ZcashTheme.colors.surfaceEnd
+            )
+            Spacer(modifier = Modifier.height(10.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                BodyMedium(
+                    text = stringResource(id = R.string.ns_confirmations),
+                    color = ZcashTheme.colors.surfaceEnd
+                )
+                BodyMedium(text = countText, color = ZcashTheme.colors.surfaceEnd)
+            }
+
+            // TransactionId
+            Spacer(modifier = Modifier.height(10.dp))
+            val transactionId =
+                transactionDetailsUIModel.transactionOverview.rawId.byteArray.toFormattedString()
+            Divider(
+                thickness = 1.dp,
+                color = ZcashTheme.colors.surfaceEnd
+            )
+            Spacer(modifier = Modifier.height(10.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                BodyMedium(
+                    text = stringResource(id = R.string.ns_transaction_id),
+                    color = ZcashTheme.colors.surfaceEnd
+                )
+                Spacer(modifier = Modifier.width(50.dp))
+                BodyMedium(
+                    text = transactionId,
+                    color = ZcashTheme.colors.surfaceEnd,
+                    textAlign = TextAlign.End
+                )
+            }
+
+            val onViewBlockExplorerClicked = { updateWarningStatus: Boolean ->
+                viewOnBlockExplorer(
+                    context.getString(
+                        transactionDetailsUIModel.network.blockExplorerUrlStringId(),
+                        transactionId
+                    ),
+                    updateWarningStatus
+                )
+            }
+            TextButton(
+                onClick = {
+                    if (isNavigateAwayFromAppWarningShown) {
+                        onViewBlockExplorerClicked(false)
+                    } else {
+                        showAppLeavingDialog.value = true
+                    }
+                },
+                modifier = Modifier.align(Alignment.End)
+            ) {
+                BodyMedium(
+                    text = stringResource(id = R.string.ns_view_block_explorer),
+                    color = ZcashTheme.colors.onBackgroundHeader,
+                    textAlign = TextAlign.End
+                )
+            }
+
+            // Recipient
+            if (transactionDetailsUIModel.transactionOverview.isSentTransaction) {
+                val recipientAddress = when (transactionDetailsUIModel.transactionRecipient) {
+                    is TransactionRecipient.Address -> transactionDetailsUIModel.transactionRecipient.addressValue
+                    else -> ""
                 }
-                Spacer(modifier = Modifier.height(10.dp))
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    BodyMedium(
-                        text = stringResource(id = R.string.ns_address),
+                if (recipientAddress.isNotBlank()) {
+                    Spacer(modifier = Modifier.height(10.dp))
+                    Divider(
+                        thickness = 1.dp,
                         color = ZcashTheme.colors.surfaceEnd
                     )
-                    Spacer(modifier = Modifier.width(50.dp))
-                    BodyMedium(
-                        text = buildAnnotatedString {
-                            if (recipientAddress.length > 20) {
-                                withStyle(style = SpanStyle(color = Color.White)) {
-                                    append(recipientAddress.take(10))
-                                }
-                                withStyle(style = SpanStyle(color = ZcashTheme.colors.surfaceEnd)) {
-                                    append(
-                                        recipientAddress.substring(
-                                            10,
-                                            recipientAddress.length - 10
+                    Spacer(modifier = Modifier.height(10.dp))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        BodyMedium(
+                            text = stringResource(id = R.string.ns_recipient),
+                            color = ZcashTheme.colors.surfaceEnd
+                        )
+                        BodyMedium(
+                            text = stringResource(id = recipientAddress.addressTypeNameId()),
+                            color = ZcashTheme.colors.surfaceEnd
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(10.dp))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        BodyMedium(
+                            text = stringResource(id = R.string.ns_address),
+                            color = ZcashTheme.colors.surfaceEnd
+                        )
+                        Spacer(modifier = Modifier.width(50.dp))
+                        BodyMedium(
+                            text = buildAnnotatedString {
+                                if (recipientAddress.length > 20) {
+                                    withStyle(style = SpanStyle(color = Color.White)) {
+                                        append(recipientAddress.take(10))
+                                    }
+                                    withStyle(style = SpanStyle(color = ZcashTheme.colors.surfaceEnd)) {
+                                        append(
+                                            recipientAddress.substring(
+                                                10,
+                                                recipientAddress.length - 10
+                                            )
                                         )
-                                    )
+                                    }
+                                    withStyle(style = SpanStyle(color = Color.White)) {
+                                        append(recipientAddress.takeLast(10))
+                                    }
+                                } else {
+                                    withStyle(style = SpanStyle(color = ZcashTheme.colors.surfaceEnd)) {
+                                        append(recipientAddress)
+                                    }
                                 }
-                                withStyle(style = SpanStyle(color = Color.White)) {
-                                    append(recipientAddress.takeLast(10))
-                                }
-                            } else {
-                                withStyle(style = SpanStyle(color = ZcashTheme.colors.surfaceEnd)) {
-                                    append(recipientAddress)
-                                }
-                            }
-                        },
-                        textAlign = TextAlign.End
-                    )
+                            },
+                            textAlign = TextAlign.End
+                        )
+                    }
                 }
             }
-        }
 
-        //Sub total
-        Spacer(modifier = Modifier.height(10.dp))
+            //Sub total
+            /*Spacer(modifier = Modifier.height(10.dp))
         Divider(
             thickness = 1.dp,
             color = ZcashTheme.colors.surfaceEnd
@@ -443,52 +454,53 @@ fun TransactionDetails(
                     color = ZcashTheme.colors.surfaceEnd, textAlign = TextAlign.End
                 )
             }
-        }
+        }*/
 
-        // Total
-        Spacer(modifier = Modifier.height(10.dp))
-        Divider(
-            thickness = 1.dp,
-            color = ZcashTheme.colors.surfaceEnd
-        )
-        Spacer(modifier = Modifier.height(10.dp))
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            BodyMedium(
-                text = stringResource(id = R.string.ns_total_amount),
+            // Total
+            Spacer(modifier = Modifier.height(10.dp))
+            Divider(
+                thickness = 1.dp,
                 color = ZcashTheme.colors.surfaceEnd
             )
-            BodyMedium(
-                text = "${
-                    (transactionDetailsUIModel.transactionOverview.netValue)
-                        .toZecString()
-                        .removeTrailingZero()
-                } ${stringResource(id = R.string.ns_zec)}",
+            Spacer(modifier = Modifier.height(10.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                BodyMedium(
+                    text = stringResource(id = R.string.ns_total_amount),
+                    color = ZcashTheme.colors.surfaceEnd
+                )
+                BodyMedium(
+                    text = "${
+                        (transactionDetailsUIModel.transactionOverview.netValue)
+                            .toZecString()
+                            .removeTrailingZero()
+                    } ${stringResource(id = R.string.ns_zec)}",
+                    color = ZcashTheme.colors.surfaceEnd
+                )
+            }
+            Spacer(modifier = Modifier.height(10.dp))
+            Divider(
+                thickness = 1.dp,
                 color = ZcashTheme.colors.surfaceEnd
             )
-        }
-        Spacer(modifier = Modifier.height(10.dp))
-        Divider(
-            thickness = 1.dp,
-            color = ZcashTheme.colors.surfaceEnd
-        )
 
-        if (showAppLeavingDialog.value) {
-            AlertDialog(
-                title = stringResource(id = R.string.dialog_first_use_view_tx_title),
-                desc = stringResource(id = R.string.dialog_first_use_view_tx_message),
-                confirmText = stringResource(id = R.string.dialog_first_use_view_tx_positive),
-                dismissText = stringResource(id = R.string.ns_cancel),
-                onConfirm = {
-                    onViewBlockExplorerClicked(true)
-                    showAppLeavingDialog.value = false
-                },
-                onDismiss = {
-                    showAppLeavingDialog.value = false
-                }
-            )
+            if (showAppLeavingDialog.value) {
+                AlertDialog(
+                    title = stringResource(id = R.string.dialog_first_use_view_tx_title),
+                    desc = stringResource(id = R.string.dialog_first_use_view_tx_message),
+                    confirmText = stringResource(id = R.string.dialog_first_use_view_tx_positive),
+                    dismissText = stringResource(id = R.string.ns_cancel),
+                    onConfirm = {
+                        onViewBlockExplorerClicked(true)
+                        showAppLeavingDialog.value = false
+                    },
+                    onDismiss = {
+                        showAppLeavingDialog.value = false
+                    }
+                )
+            }
         }
     }
 }

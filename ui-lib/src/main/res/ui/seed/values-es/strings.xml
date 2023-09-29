@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="seed_title">My secret phrase</string>
-    <string name="seed_back_content_description">Back</string>
-    <string name="seed_header">Your Secret Recovery Phrase</string>
-    <string name="seed_body">These words represent your funds and the security used to protect them.</string>
-    <string name="seed_copy">Copy to buffer</string>
+    <string name="seed_title">Mi frase secreta</string>
+    <string name="seed_back_content_description">Volver</string>
+    <string name="seed_header">Su Frase Secreta de Recuperación</string>
+    <string name="seed_body">Estas palabras representan tus fondos y la seguridad utilizada para protegerlos.¡Haz una copia de seguridad ahora.</string>
+    <string name="seed_copy">Copiar al búfer</string>
 </resources>
