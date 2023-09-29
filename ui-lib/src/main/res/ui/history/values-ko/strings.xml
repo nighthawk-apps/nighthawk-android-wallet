@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
-    <string name="history_title">Transaction history</string>
-    <string name="history_back_content_description">Back</string>
-    <string name="history_syncing">Additional transactions may be found after syncing completes…</string>
-    <string name="history_empty">No transactions yet</string>
+    <string name="history_title">거래 내역</string>
+    <string name="history_back_content_description">돌아가기</string>
+    <string name="history_syncing">동기화 완료 후 추가 트랜잭션을 확인할 수 있습니다...</string>
+    <string name="history_empty">아직 트랜잭션 내역이 없습니다.</string>
     <string name="history_item_sent">Sent</string>
     <string name="history_item_received">Received</string>
     <string name="history_item_sending">Sending</string>
-    <string name="history_item_receiving">Receiving</string>
+    <string name="history_item_receiving">수신 중</string>
     <string name="history_item_expired">Expired</string>
 </resources>
