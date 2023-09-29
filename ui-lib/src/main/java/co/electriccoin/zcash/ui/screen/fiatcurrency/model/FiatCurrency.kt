@@ -17,6 +17,7 @@ enum class FiatCurrency(val currencyName: String, val currencyText: String, val 
     SGD("SGD", "Singapore Dollar", "sgd"),
     CHF("CHF", "Swiss Franc", "chf"),
     CNY("CNY", "Chinese Yuan", "cny"),
+    KRW("KRW", "Korean Won", "krw"),
     OFF("", "OFF", "");
 
     companion object {
@@ -33,6 +34,7 @@ enum class FiatCurrency(val currencyName: String, val currencyText: String, val 
                 SGD.currencyName.lowercase() -> SGD
                 CHF.currencyName.lowercase() -> CHF
                 CNY.currencyName.lowercase() -> CNY
+                KRW.currencyName.lowercase() -> KRW
                 else -> OFF
             }
         }
@@ -49,6 +51,7 @@ enum class FiatCurrency(val currencyName: String, val currencyText: String, val 
                 SGD.serverUrl.lowercase() -> SGD
                 CHF.serverUrl.lowercase() -> CHF
                 CNY.serverUrl.lowercase() -> CNY
+                KRW.serverUrl.lowercase() -> KRW
                 else -> OFF
             }
         }
