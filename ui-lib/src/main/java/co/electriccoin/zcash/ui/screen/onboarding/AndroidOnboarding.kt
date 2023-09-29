@@ -14,7 +14,9 @@ import cash.z.ecc.android.sdk.model.BlockHeight
 import cash.z.ecc.android.sdk.model.PersistableWallet
 import cash.z.ecc.android.sdk.model.SeedPhrase
 import cash.z.ecc.android.sdk.model.ZcashNetwork
+import cash.z.ecc.android.sdk.model.defaultForNetwork
 import cash.z.ecc.sdk.type.fromResources
+import co.electriccoin.lightwallet.client.model.LightWalletEndpoint
 import co.electriccoin.zcash.spackle.EmulatorWtfUtil
 import co.electriccoin.zcash.spackle.FirebaseTestLabUtil
 import co.electriccoin.zcash.ui.BuildConfig
@@ -50,6 +52,8 @@ internal fun WrapOnboarding(
 
     // TODO [#383]: https://github.com/zcash/secant-android-wallet/issues/383
     if (!onboardingViewModel.isImporting.collectAsStateWithLifecycle().value) {
+        val network = ZcashNetwork.fromResources(applicationContext)
+        val endpoint = LightWalletEndpoint.defaultForNetwork(network)
         val onCreateWallet = {
             if (FirebaseTestLabUtil.isFirebaseTestLab(applicationContext)) {
                 persistExistingWalletWithSeedPhrase(
@@ -57,7 +61,8 @@ internal fun WrapOnboarding(
                     walletViewModel,
                     SeedPhrase.new(WalletFixture.Alice.seedPhrase),
                     birthday = WalletFixture.Alice.getBirthday(ZcashNetwork.fromResources(applicationContext)),
-                    WalletInitMode.NewWallet
+                    WalletInitMode.NewWallet,
+                    endpoint
                 )
             } else {
                 walletViewModel.persistNewWallet()
@@ -75,7 +80,8 @@ internal fun WrapOnboarding(
                     walletViewModel,
                     SeedPhrase.new(WalletFixture.Alice.seedPhrase),
                     birthday = WalletFixture.Alice.getBirthday(ZcashNetwork.fromResources(applicationContext)),
-                    WalletInitMode.RestoreWallet
+                    WalletInitMode.RestoreWallet,
+                    endpoint
                 )
             } else {
                 onboardingViewModel.setIsImporting(true)
@@ -88,7 +94,8 @@ internal fun WrapOnboarding(
                 walletViewModel,
                 SeedPhrase.new(WalletFixture.Alice.seedPhrase),
                 birthday = WalletFixture.Alice.getBirthday(ZcashNetwork.fromResources(applicationContext)),
-                WalletInitMode.ExistingWallet
+                WalletInitMode.ExistingWallet,
+                endpoint
             )
         }
 
@@ -130,16 +137,18 @@ internal fun persistExistingWalletWithSeedPhrase(
     walletViewModel: WalletViewModel,
     seedPhrase: SeedPhrase,
     birthday: BlockHeight?,
-    walletInitMode: WalletInitMode
+    walletInitMode: WalletInitMode,
+    endpoint: LightWalletEndpoint
 ) {
     walletViewModel.persistBackupComplete()
 
     val network = ZcashNetwork.fromResources(context)
     val restoredWallet = PersistableWallet(
-        network,
-        birthday,
-        seedPhrase,
-        walletInitMode
+        network = network,
+        birthday = birthday,
+        endpoint = endpoint,
+        seedPhrase = seedPhrase,
+        walletInitMode = walletInitMode
     )
     walletViewModel.persistExistingWallet(restoredWallet)
 }
