@@ -164,7 +164,7 @@ fun ReviewAndSend(
         }
 
         //Sub total
-        /*Spacer(modifier = Modifier.height(10.dp))
+        Spacer(modifier = Modifier.height(10.dp))
         Divider(
             thickness = 1.dp,
             color = ZcashTheme.colors.surfaceEnd
@@ -185,7 +185,7 @@ fun ReviewAndSend(
             BodyMedium(text = stringResource(id = R.string.ns_network_fee), color = ZcashTheme.colors.surfaceEnd)
             Spacer(modifier = Modifier.width(50.dp))
             BodyMedium(text = sendAndReviewUiState.networkFees + " " + sendAndReviewUiState.amountUnit, color = ZcashTheme.colors.surfaceEnd, textAlign = TextAlign.End)
-        }*/
+        }
 
         // Total
         Spacer(modifier = Modifier.height(10.dp))

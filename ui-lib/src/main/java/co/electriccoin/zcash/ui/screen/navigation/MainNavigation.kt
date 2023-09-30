@@ -32,12 +32,14 @@ import co.electriccoin.zcash.ui.R
 import co.electriccoin.zcash.ui.design.component.BodySmall
 import co.electriccoin.zcash.ui.screen.about.nighthawk.AndroidAboutView
 import co.electriccoin.zcash.ui.screen.advancesetting.AndroidAdvancedSetting
+import co.electriccoin.zcash.ui.screen.changeserver.AndroidChangeServer
 import co.electriccoin.zcash.ui.screen.externalservices.AndroidExternalServicesView
 import co.electriccoin.zcash.ui.screen.fiatcurrency.AndroidFiatCurrency
 import co.electriccoin.zcash.ui.screen.navigation.ArgumentKeys.IS_PIN_SETUP
 import co.electriccoin.zcash.ui.screen.navigation.ArgumentKeys.TRANSACTION_DETAILS_ID
 import co.electriccoin.zcash.ui.screen.navigation.NavigationTargets.ABOUT
 import co.electriccoin.zcash.ui.screen.navigation.NavigationTargets.ADVANCED_SETTING
+import co.electriccoin.zcash.ui.screen.navigation.NavigationTargets.CHANGE_SERVER
 import co.electriccoin.zcash.ui.screen.navigation.NavigationTargets.EXTERNAL_SERVICES
 import co.electriccoin.zcash.ui.screen.navigation.NavigationTargets.FIAT_CURRENCY
 import co.electriccoin.zcash.ui.screen.navigation.NavigationTargets.PIN
@@ -99,6 +101,7 @@ internal fun MainActivity.MainNavigation(navHostController: NavHostController, p
                 onSecurity = { navHostController.navigateJustOnce(SECURITY) },
                 onBackupWallet = { navHostController.navigateJustOnce(SETTING_BACK_UP_WALLET) },
                 onAdvancedSetting = { navHostController.navigateJustOnce(ADVANCED_SETTING) },
+                onChangeServer = { navHostController.navigateJustOnce(CHANGE_SERVER) },
                 onExternalServices = { navHostController.navigateJustOnce(EXTERNAL_SERVICES) },
                 onAbout = { navHostController.navigateJustOnce(ABOUT) }
             )
@@ -228,6 +231,11 @@ internal fun MainActivity.MainNavigation(navHostController: NavHostController, p
                 onBack = { navHostController.popBackStackJustOnce(EXTERNAL_SERVICES) }
             )
         }
+        composable(CHANGE_SERVER) {
+            AndroidChangeServer(
+                onBack = { navHostController.popBackStackJustOnce(CHANGE_SERVER) }
+            )
+        }
     }
 }
 
@@ -327,6 +335,7 @@ object NavigationTargets {
     const val SECURITY = "security"
     const val SETTING_BACK_UP_WALLET = "setting_back_up_wallet"
     const val ADVANCED_SETTING = "advanced_settings"
+    const val CHANGE_SERVER = "change_server"
     const val EXTERNAL_SERVICES = "external_services"
     const val ABOUT = "about"
     const val TRANSACTION_HISTORY = "transaction_history"

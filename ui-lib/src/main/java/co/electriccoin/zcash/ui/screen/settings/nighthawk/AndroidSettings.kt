@@ -19,6 +19,7 @@ internal fun MainActivity.AndroidSettings(
     onSecurity: () -> Unit,
     onBackupWallet: () -> Unit,
     onAdvancedSetting: () -> Unit,
+    onChangeServer: () -> Unit,
     onExternalServices: () -> Unit,
     onAbout: () -> Unit
 ) {
@@ -29,6 +30,7 @@ internal fun MainActivity.AndroidSettings(
         onSecurity = onSecurity,
         onBackupWallet = onBackupWallet,
         onAdvancedSetting = onAdvancedSetting,
+        onChangeServer = onChangeServer,
         onExternalServices = onExternalServices,
         onAbout = onAbout
     )
@@ -42,6 +44,7 @@ internal fun WrapSettings(
     onSecurity: () -> Unit,
     onBackupWallet: () -> Unit,
     onAdvancedSetting: () -> Unit,
+    onChangeServer: () -> Unit,
     onExternalServices: () -> Unit,
     onAbout: () -> Unit
 ) {
@@ -69,6 +72,7 @@ internal fun WrapSettings(
         onBackupWallet = onBackupWallet,
         onRescan = onReScan,
         onAdvancedSetting = onAdvancedSetting,
+        onChangeServer = onChangeServer,
         onExternalServices = onExternalServices,
         onAbout = onAbout
     )

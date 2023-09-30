@@ -46,6 +46,7 @@ fun SettingsPreview() {
                 onBackupWallet = {},
                 onRescan = {},
                 onAdvancedSetting = {},
+                onChangeServer = {},
                 onExternalServices = {},
                 onAbout = {}
             )
@@ -62,6 +63,7 @@ fun SettingsView(
     onBackupWallet: () -> Unit,
     onRescan: (ReScanType) -> Unit,
     onAdvancedSetting: () -> Unit,
+    onChangeServer: () -> Unit,
     onExternalServices: () -> Unit,
     onAbout: () -> Unit
 ) {
@@ -126,14 +128,14 @@ fun SettingsView(
             modifier = Modifier.heightIn(min = dimensionResource(id = R.dimen.setting_list_item_min_height))
                 .clickable { showReScanDialog.value = true }
         )
-        /*Spacer(modifier = Modifier.height(10.dp))
+        Spacer(modifier = Modifier.height(10.dp))
         SettingsListItem(
             iconRes = R.drawable.ic_icon_change_server,
             title = stringResource(id = R.string.ns_change_server),
             desc = stringResource(id = R.string.ns_change_server_text),
             modifier = Modifier.heightIn(min = dimensionResource(id = R.dimen.setting_list_item_min_height))
                 .clickable { onChangeServer() }
-        )*/
+        )
         Spacer(modifier = Modifier.height(10.dp))
         SettingsListItem(
             iconRes = R.drawable.ic_icon_external_services,
