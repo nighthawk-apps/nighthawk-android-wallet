@@ -9,6 +9,7 @@ import cash.z.ecc.android.sdk.model.TransactionOverview
 import cash.z.ecc.android.sdk.model.TransactionRecipient
 import co.electriccoin.zcash.spackle.Twig
 import co.electriccoin.zcash.ui.common.ANDROID_STATE_FLOW_TIMEOUT
+import co.electriccoin.zcash.ui.common.toFormattedString
 import co.electriccoin.zcash.ui.preference.StandardPreferenceKeys
 import co.electriccoin.zcash.ui.preference.StandardPreferenceSingleton
 import co.electriccoin.zcash.ui.screen.transactiondetails.model.TransactionDetailsUIModel
@@ -30,13 +31,13 @@ class TransactionViewModel(application: Application) : AndroidViewModel(applicat
     private val _transactionDetailsUiModel = MutableStateFlow<TransactionDetailsUIModel?>(null)
     val transactionDetailsUIModel: StateFlow<TransactionDetailsUIModel?> get() = _transactionDetailsUiModel
 
-    fun getTransactionUiModel(transactionId: Long, synchronizer: Synchronizer) {
+    fun getTransactionUiModel(transactionId: String, synchronizer: Synchronizer) {
         viewModelScope.launch(Dispatchers.IO) {
             synchronizer.transactions
                 .distinctUntilChanged()
                 .collectLatest { transactionSnapshotList ->
                     val transactionOverview =
-                        transactionSnapshotList.find { it.index == transactionId }
+                        transactionSnapshotList.find { it.rawId.byteArray.toFormattedString() == transactionId }
                             ?: return@collectLatest
                     launch {
                         getMemoAndUpdateUiState(transactionOverview, synchronizer)

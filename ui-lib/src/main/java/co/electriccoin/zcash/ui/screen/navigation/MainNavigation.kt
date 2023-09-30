@@ -114,10 +114,10 @@ internal fun MainActivity.MainNavigation(navHostController: NavHostController, p
                     navHostController.navigateJustOnce(TOP_UP)
                 },
                 navigateTo = { navHostController.popBackStack(it, false) },
-                onMoreDetails = {
+               /* onMoreDetails = {
                     navHostController.popBackStack(BottomNavItem.Transfer.route, false)
                     navHostController.navigateJustOnce(NavigationTargets.navigationRouteTransactionDetails(transactionId = it))
-                },
+                },*/
                 onScan = { navHostController.navigateJustOnce(SCAN) },
                 sendArgumentsWrapper = getScanSavedData(backStackEntry = backStackEntry)
             )
@@ -139,13 +139,13 @@ internal fun MainActivity.MainNavigation(navHostController: NavHostController, p
             route = TRANSACTION_DETAILS,
             arguments = listOf(
                 navArgument(TRANSACTION_DETAILS_ID) {
-                    type = NavType.LongType
+                    type = NavType.StringType
                     nullable = false
                 }
             )
         ) {
             AndroidTransactionDetails(
-                transactionId = it.arguments?.getLong(TRANSACTION_DETAILS_ID, -1) ?: -1,
+                transactionId = it.arguments?.getString(TRANSACTION_DETAILS_ID, "") ?: "",
                 onBack = { navHostController.popBackStack() }
             )
         }
@@ -341,8 +341,8 @@ object NavigationTargets {
     const val TRANSACTION_HISTORY = "transaction_history"
     const val TRANSACTION_DETAILS = "transaction_details/{$TRANSACTION_DETAILS_ID}"
     const val PIN = "pin?$IS_PIN_SETUP={$IS_PIN_SETUP}"
-    fun navigationRouteTransactionDetails(transactionId: Long): String {
-        return TRANSACTION_DETAILS.replace("{$TRANSACTION_DETAILS_ID}", "$transactionId")
+    fun navigationRouteTransactionDetails(transactionId: String): String {
+        return TRANSACTION_DETAILS.replace("{$TRANSACTION_DETAILS_ID}", transactionId)
     }
     fun navigateToPinScreen(isPinSetUp: Boolean = false): String {
         return PIN.replace("{$IS_PIN_SETUP}", "$isPinSetUp")

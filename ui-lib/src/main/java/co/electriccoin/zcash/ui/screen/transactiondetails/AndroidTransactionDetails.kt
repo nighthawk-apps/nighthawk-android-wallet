@@ -31,14 +31,14 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
 @Composable
-internal fun MainActivity.AndroidTransactionDetails(transactionId: Long, onBack: () -> Unit) {
+internal fun MainActivity.AndroidTransactionDetails(transactionId: String, onBack: () -> Unit) {
     WrapAndroidTransactionDetails(activity = this, transactionId = transactionId, onBack = onBack)
 }
 
 @Composable
 internal fun WrapAndroidTransactionDetails(
     activity: ComponentActivity,
-    transactionId: Long,
+    transactionId: String,
     onBack: () -> Unit
 ) {
     Twig.info { "TransactionId $transactionId" }

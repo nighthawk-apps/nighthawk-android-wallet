@@ -39,7 +39,7 @@ internal fun MainActivity.AndroidWallet(
     sendArgumentsWrapper: SendArgumentsWrapper?,
     onAddressQrCodes: () -> Unit,
     onShieldNow: () -> Unit,
-    onTransactionDetail: (Long) -> Unit,
+    onTransactionDetail: (String) -> Unit,
     onViewTransactionHistory: () -> Unit,
     onSendFromDeepLink: () -> Unit,
     onScanToSend: () -> Unit
@@ -62,7 +62,7 @@ internal fun WrapWallet(
     sendArgumentsWrapper: SendArgumentsWrapper?,
     onAddressQrCodes: () -> Unit,
     onShieldNow: () -> Unit,
-    onTransactionDetail: (Long) -> Unit,
+    onTransactionDetail: (String) -> Unit,
     onViewTransactionHistory: () -> Unit,
     onSendFromDeepLink: () -> Unit,
     onScanToSend: () -> Unit

@@ -35,7 +35,7 @@ import com.airbnb.lottie.compose.rememberLottieComposition
 fun SendConfirmationPreview() {
     ZcashTheme(darkTheme = false) {
         Surface {
-            SendConfirmation(sendConfirmationState = SendConfirmationState.Success(id = 10), onCancel = {}, onTryAgain = {}, onDone = {}, onMoreDetails = {})
+            SendConfirmation(sendConfirmationState = SendConfirmationState.Success(id = 10), onCancel = {}, onTryAgain = {}, onDone = {}/*, onMoreDetails = {}*/)
         }
     }
 }
@@ -46,7 +46,7 @@ fun SendConfirmation(
     onCancel: () ->  Unit,
     onTryAgain: () ->  Unit,
     onDone: () ->  Unit,
-    onMoreDetails: (Long) ->  Unit,
+    /*onMoreDetails: (Long) ->  Unit,*/
 ) {
     Column(modifier = Modifier
         .fillMaxSize()
@@ -106,12 +106,12 @@ fun SendConfirmation(
                         .sizeIn(minWidth = dimensionResource(id = R.dimen.button_min_width), minHeight = dimensionResource(id = R.dimen.button_height)),
                 )
 
-                TextButton(
+                /*TextButton(
                     onClick = { onMoreDetails(sendConfirmationState.id) },
                     modifier = Modifier.align(Alignment.CenterHorizontally)
                 ) {
                     BodyMedium(text = stringResource(id = R.string.ns_more_details).uppercase(), color = ZcashTheme.colors.onBackgroundHeader)
-                }
+                }*/
             }
         }
     }

@@ -42,7 +42,7 @@ internal fun MainActivity.AndroidSend(
     onBack: () -> Unit,
     onTopUpWallet: () -> Unit,
     navigateTo: (String) -> Unit,
-    onMoreDetails: (Long) -> Unit,
+    /*onMoreDetails: (String) -> Unit,*/
     onScan: () -> Unit,
     sendArgumentsWrapper: SendArgumentsWrapper? = null
 ) {
@@ -51,7 +51,7 @@ internal fun MainActivity.AndroidSend(
         onBack = onBack,
         onTopUpWallet = onTopUpWallet,
         navigateTo = navigateTo,
-        onMoreDetails = onMoreDetails,
+        /*onMoreDetails = onMoreDetails,*/
         onScan = onScan,
         sendArgumentsWrapper = sendArgumentsWrapper
     )
@@ -63,7 +63,7 @@ internal fun WrapAndroidSend(
     onBack: () -> Unit,
     onTopUpWallet: () -> Unit,
     navigateTo: (String) -> Unit,
-    onMoreDetails: (Long) -> Unit,
+    /*onMoreDetails: (String) -> Unit,*/
     onScan: () -> Unit,
     sendArgumentsWrapper: SendArgumentsWrapper? = null
 ) {
@@ -231,10 +231,10 @@ internal fun WrapAndroidSend(
                     sendViewModel.clearViewModelSavedData()
                     navigateTo(BottomNavItem.Transfer.route)
                 },
-                onMoreDetails = {
+                /*onMoreDetails = {
                     sendViewModel.clearViewModelSavedData()
                     onMoreDetails(it)
-                }
+                }*/
             )
         }
 
