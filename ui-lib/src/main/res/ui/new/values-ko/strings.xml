@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="new_wallet_header">My secret phrase</string>
-    <string name="new_wallet_body">These words represent your funds and the security used to protect them.\n\nBack them up now!.</string>
-    <string name="new_wallet_button_finished">I wrote it down</string>
-    <string name="new_wallet_button_copy">Copy to buffer</string>
+    <string name="new_wallet_header">비밀 문구</string>
+    <string name="new_wallet_body">이 단어는 귀하의 자금과 이를 보호하는데 사용되는 보안을 나타냅니다.\n\n지금 백업하세요!</string>
+    <string name="new_wallet_button_finished">문구를 옮겨 적었습니다:</string>
+    <string name="new_wallet_button_copy">메모리리를 복사합니다.</string>
 </resources>

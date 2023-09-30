@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="new_wallet_clipboard_tag">Zcash Seed Phrase</string>
-    <string name="new_wallet_navigation_back_button_content_description">Back</string>
+    <string name="new_wallet_clipboard_tag">Frase de Semente Zcash</string>
+    <string name="new_wallet_navigation_back_button_content_description">Voltar</string>
     <string name="new_wallet_toolbar_more_button_content_description">More</string>
     <string name="new_wallet_short_header">My secret phrase</string>
     <string name="new_wallet_short_body">These words represent your funds and the security used to protect them.\n\nBack them up now!</string>
