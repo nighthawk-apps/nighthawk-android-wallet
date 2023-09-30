@@ -91,6 +91,8 @@
     <string name="ns_confirmations">Confirmations</string>
     <string name="ns_transaction_id">Transaction ID</string>
     <string name="ns_processing">Processing</string>
+    <string name="ns_transaction_details_error_msg">Transaction details are currently unavailable. Please wait until the scanning process is complete.</string>
+    <string name="ns_transaction_date_error">Not available</string>
     <!-- Transfer Screen -->
     <string name="ns_transfer">Transfer</string>
     <string name="ns_transfer_title">Send and receive Zcash</string>
