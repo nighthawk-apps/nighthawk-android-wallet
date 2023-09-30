@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
-    <string name="not_enough_space_title">Not enough space!</string>
-    <string name="not_enough_space_description">You need approximately <xliff:g example="1" id="required_gigabytes">%1$s</xliff:g> gig of space while synchronizing the Zcash blockchain, but only 300 megs once done. Syncing will stay paused until more space is available.</string>
-    <string name="space_required_to_continue"><xliff:g example="300" id="required_megabytes">~%1$s</xliff:g> megs required to continue </string>
+    <string name="not_enough_space_title">저장공간이 부족합니다</string>
+    <string name="not_enough_space_description">Zcash 블록체인을 동기화되는 동안 약 <xliff:g example="1" id="required_gigabytes">%1$s</xliff:g> Gb의 공간이 필요하지만 완료되면 300MB만 필요합니다. 더 많은 공간을 사용할 수 있을 때까지 동기화는 일시중지된 상태로 유지됩니다.</string>
+    <string name="space_required_to_continue"><xliff:g example="300" id="required_megabytes">~%1$s</xliff:g> 계속하려면 Mb 필요합니다 </string>
     <string name="unknown">알 수 없는</string>
 </resources>
