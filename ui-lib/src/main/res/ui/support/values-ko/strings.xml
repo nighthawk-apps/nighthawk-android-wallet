@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
-    <string name="support_header">Contact support</string>
+    <string name="support_header">문의하기</string>
     <string name="support_back_content_description">Back</string>
     <string name="support_hint">How can we help?</string>
     <string name="support_send">보내기</string>
