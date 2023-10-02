@@ -50,6 +50,7 @@ import cash.z.ecc.android.sdk.model.TransactionOverview
 import co.electriccoin.zcash.ui.R
 import co.electriccoin.zcash.ui.common.DisableScreenTimeout
 import co.electriccoin.zcash.ui.common.MIN_ZEC_FOR_SHIELDING
+import co.electriccoin.zcash.ui.common.toFormattedString
 import co.electriccoin.zcash.ui.design.component.BalanceText
 import co.electriccoin.zcash.ui.design.component.BodyMedium
 import co.electriccoin.zcash.ui.design.component.BodySmall
@@ -127,7 +128,7 @@ fun WalletView(
     fiatCurrencyUiState: FiatCurrencyUiState,
     onShieldNow: () -> Unit,
     onAddressQrCodes: () -> Unit,
-    onTransactionDetail: (Long) -> Unit,
+    onTransactionDetail: (String) -> Unit,
     onViewTransactionHistory: () -> Unit,
     onLongItemClick: (TransactionOverview) -> Unit,
     onFlipCurrency: (isFiatCurrencyPreferredOverZec: Boolean) -> Unit,
@@ -231,7 +232,7 @@ fun WalletView(
                     fiatCurrencyUiState = fiatCurrencyUiState,
                     isBalancePrivateMode = isBalancePrivateMode.value,
                     isFiatCurrencyPreferred = isFiatCurrencyPreferred,
-                    onItemClick = { onTransactionDetail(it.index ?: -1) },
+                    onItemClick = { onTransactionDetail(it.rawId.byteArray.toFormattedString()) },
                     onItemLongClick = onLongItemClick
                 )
             }

@@ -15,4 +15,6 @@ object EncryptedPreferenceKeys {
     val PREFERRED_FIAT_CURRENCY_VALUE = StringPreferenceDefault(PreferenceKey("preferred_fiat_currency_value"), "0.0")
 
     val IS_FIAT_CURRENCY_PREFERRED = BooleanPreferenceDefault(PreferenceKey("is_fiat_currency_preferred_over_zec"), false)
+
+    val SELECTED_SERVER = StringPreferenceDefault(PreferenceKey("selected_server"), "default")
 }

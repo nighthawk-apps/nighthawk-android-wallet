@@ -192,8 +192,8 @@ class SendViewModel(val context: Application) : AndroidViewModel(application = c
                     (zecSend?.destination?.address ?: "").addressTypeNameId()
                 ),
                 receiverAddress = zecSend?.destination?.address ?: "",
-                subTotal = zecSend?.amount?.toZecString() ?: "",
-                networkFees = NETWORK_FEES.toZecString(),
+                subTotal = zecSend?.amount?.toZecString()?.removeTrailingZero() ?: "",
+                networkFees = NETWORK_FEES.toZecString().removeTrailingZero(),
                 totalAmount = "${
                     zecSend?.amount?.plus(NETWORK_FEES)?.toZecString()?.removeTrailingZero()
                 }"

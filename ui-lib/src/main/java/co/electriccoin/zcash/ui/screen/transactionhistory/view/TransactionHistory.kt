@@ -25,6 +25,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import cash.z.ecc.android.sdk.fixture.TransactionOverviewFixture
 import cash.z.ecc.android.sdk.model.TransactionOverview
 import co.electriccoin.zcash.ui.R
+import co.electriccoin.zcash.ui.common.toFormattedString
 import co.electriccoin.zcash.ui.design.component.TitleLarge
 import co.electriccoin.zcash.ui.design.theme.ZcashTheme
 import co.electriccoin.zcash.ui.screen.fiatcurrency.model.FiatCurrency
@@ -55,7 +56,7 @@ fun TransactionHistory(
     fiatCurrencyUiState: FiatCurrencyUiState,
     isFiatCurrencyPreferred: Boolean,
     onBack: () -> Unit,
-    onTransactionDetail: (Long) -> Unit,
+    onTransactionDetail: (String) -> Unit,
     onItemLongClick: (TransactionOverview) -> Unit
 ) {
     Column(
@@ -92,7 +93,7 @@ fun TransactionHistory(
                     transactionOverview = transactionOverview,
                     fiatCurrencyUiState = fiatCurrencyUiState,
                     isFiatCurrencyPreferred = isFiatCurrencyPreferred,
-                    onItemClick = { onTransactionDetail(it.index ?: -1) },
+                    onItemClick = { onTransactionDetail(it.rawId.byteArray.toFormattedString()) },
                     onItemLongClick = onItemLongClick
                 )
             }

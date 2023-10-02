@@ -32,12 +32,14 @@ import co.electriccoin.zcash.ui.R
 import co.electriccoin.zcash.ui.design.component.BodySmall
 import co.electriccoin.zcash.ui.screen.about.nighthawk.AndroidAboutView
 import co.electriccoin.zcash.ui.screen.advancesetting.AndroidAdvancedSetting
+import co.electriccoin.zcash.ui.screen.changeserver.AndroidChangeServer
 import co.electriccoin.zcash.ui.screen.externalservices.AndroidExternalServicesView
 import co.electriccoin.zcash.ui.screen.fiatcurrency.AndroidFiatCurrency
 import co.electriccoin.zcash.ui.screen.navigation.ArgumentKeys.IS_PIN_SETUP
 import co.electriccoin.zcash.ui.screen.navigation.ArgumentKeys.TRANSACTION_DETAILS_ID
 import co.electriccoin.zcash.ui.screen.navigation.NavigationTargets.ABOUT
 import co.electriccoin.zcash.ui.screen.navigation.NavigationTargets.ADVANCED_SETTING
+import co.electriccoin.zcash.ui.screen.navigation.NavigationTargets.CHANGE_SERVER
 import co.electriccoin.zcash.ui.screen.navigation.NavigationTargets.EXTERNAL_SERVICES
 import co.electriccoin.zcash.ui.screen.navigation.NavigationTargets.FIAT_CURRENCY
 import co.electriccoin.zcash.ui.screen.navigation.NavigationTargets.PIN
@@ -99,6 +101,7 @@ internal fun MainActivity.MainNavigation(navHostController: NavHostController, p
                 onSecurity = { navHostController.navigateJustOnce(SECURITY) },
                 onBackupWallet = { navHostController.navigateJustOnce(SETTING_BACK_UP_WALLET) },
                 onAdvancedSetting = { navHostController.navigateJustOnce(ADVANCED_SETTING) },
+                onChangeServer = { navHostController.navigateJustOnce(CHANGE_SERVER) },
                 onExternalServices = { navHostController.navigateJustOnce(EXTERNAL_SERVICES) },
                 onAbout = { navHostController.navigateJustOnce(ABOUT) }
             )
@@ -111,10 +114,10 @@ internal fun MainActivity.MainNavigation(navHostController: NavHostController, p
                     navHostController.navigateJustOnce(TOP_UP)
                 },
                 navigateTo = { navHostController.popBackStack(it, false) },
-                onMoreDetails = {
+               /* onMoreDetails = {
                     navHostController.popBackStack(BottomNavItem.Transfer.route, false)
                     navHostController.navigateJustOnce(NavigationTargets.navigationRouteTransactionDetails(transactionId = it))
-                },
+                },*/
                 onScan = { navHostController.navigateJustOnce(SCAN) },
                 sendArgumentsWrapper = getScanSavedData(backStackEntry = backStackEntry)
             )
@@ -136,13 +139,13 @@ internal fun MainActivity.MainNavigation(navHostController: NavHostController, p
             route = TRANSACTION_DETAILS,
             arguments = listOf(
                 navArgument(TRANSACTION_DETAILS_ID) {
-                    type = NavType.LongType
+                    type = NavType.StringType
                     nullable = false
                 }
             )
         ) {
             AndroidTransactionDetails(
-                transactionId = it.arguments?.getLong(TRANSACTION_DETAILS_ID, -1) ?: -1,
+                transactionId = it.arguments?.getString(TRANSACTION_DETAILS_ID, "") ?: "",
                 onBack = { navHostController.popBackStack() }
             )
         }
@@ -226,6 +229,11 @@ internal fun MainActivity.MainNavigation(navHostController: NavHostController, p
         composable(EXTERNAL_SERVICES) {
             AndroidExternalServicesView(
                 onBack = { navHostController.popBackStackJustOnce(EXTERNAL_SERVICES) }
+            )
+        }
+        composable(CHANGE_SERVER) {
+            AndroidChangeServer(
+                onBack = { navHostController.popBackStackJustOnce(CHANGE_SERVER) }
             )
         }
     }
@@ -327,13 +335,14 @@ object NavigationTargets {
     const val SECURITY = "security"
     const val SETTING_BACK_UP_WALLET = "setting_back_up_wallet"
     const val ADVANCED_SETTING = "advanced_settings"
+    const val CHANGE_SERVER = "change_server"
     const val EXTERNAL_SERVICES = "external_services"
     const val ABOUT = "about"
     const val TRANSACTION_HISTORY = "transaction_history"
     const val TRANSACTION_DETAILS = "transaction_details/{$TRANSACTION_DETAILS_ID}"
     const val PIN = "pin?$IS_PIN_SETUP={$IS_PIN_SETUP}"
-    fun navigationRouteTransactionDetails(transactionId: Long): String {
-        return TRANSACTION_DETAILS.replace("{$TRANSACTION_DETAILS_ID}", "$transactionId")
+    fun navigationRouteTransactionDetails(transactionId: String): String {
+        return TRANSACTION_DETAILS.replace("{$TRANSACTION_DETAILS_ID}", transactionId)
     }
     fun navigateToPinScreen(isPinSetUp: Boolean = false): String {
         return PIN.replace("{$IS_PIN_SETUP}", "$isPinSetUp")
