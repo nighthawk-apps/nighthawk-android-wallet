@@ -142,6 +142,7 @@
     <string name="ns_fiat_currency_body">Choose your local currency so that we can show you a close estimate of how much your ZEC is worth.\n\nWhen you first open the app, the exchange rate is fetched from CoinGecko API v3 and used to calculate values. Your fund amounts are never revealed to any server.</string>
     <string name="ns_change_server">Change server</string>
     <string name="ns_change_server_text">Change backend lightwalletd server.</string>
+    <string name="ns_change_server_body">Change to nearest available backend lightwalletd server around your region.</string>
     <string name="ns_external_services">External services</string>
     <string name="ns_external_services_text">Opt-in to our partner services.</string>
     <string name="ns_external_services_uns">Enable Unstoppable Domain Service</string>
@@ -166,7 +167,7 @@
     <string name="ns_security_choose">Choose PIN code</string>
     <string name="ns_security_try_again">Please try again</string>
     <string name="ns_about">About</string>
-    <string name="ns_about_message">Nighthawk is a Shielded Zcash light-wallet with support for Z-addresses, including sending &amp; receiving shielded transactions, memo support &amp; optional t-addresses support with Auto-Shielding technology.\n\nAs a non-custodial wallet for Zcash, you have sole responsibility over its funds. Please immediately and securely back up the seed words upon creating a wallet.\n\nZcash is a digital currency, or cryptocurrency, like Bitcoin. Zcash was built on the original Bitcoin code base. It was conceived by scientists at MIT, Johns Hopkins and other respected academic and scientific institutions.\n\nNighthawk Wallet requires trust in the default or custom lightwalletd server to display accurate transaction information and CoinGecko service for exchange rate feed. This software is provided \"as is\", without warranty of any kind, express or implied.</string>
+    <string name="ns_about_message">Nighthawk is a Shielded-by-Default wallet for Zcash with Spend-before-Sync support &amp; optional T-addresses support with Auto-Shielding technology.\n\nAs a non-custodial wallet for Zcash, you have sole responsibility over its funds. Please immediately and securely back up the seed words upon creating a wallet.\n\nZcash is a digital currency, or cryptocurrency, like Bitcoin. Zcash was built on the original Bitcoin code base. It was conceived by scientists at MIT, Johns Hopkins and other respected academic and scientific institutions.\n\nNighthawk Wallet requires trust in the default or custom lightwalletd server to display accurate transaction information and CoinGecko service for exchange rate feed. This software is provided \"as is\", without warranty of any kind, express or implied.</string>
     <string name="ns_view_source">View Source</string>
     <string name="ns_credits">Nighthawk friends</string>
     <string name="ns_about_text">Nighthawk v%s &amp; Licenses</string>
@@ -186,6 +187,7 @@
     <string name="dialog_rescan_initiated_title">Performing Full Rescan!</string>
     <string name="dialog_rescan_failed_title">Full Rescan Failed</string>
     <string name="rescan_wallet_wipe_success">Wiped block data successfully! Wallet data cleared. Please relaunch the app!</string>
+    <string name="ns_update">Update</string>
     <!-- Backup/Restore Screen-->
     <string name="ns_landing_backup_skipped_message_1">Are you sure? Without a backup, funds can be lost FOREVER!</string>
     <string name="ns_landing_backup_skipped_message_2">You can\'t backup later. You\'re probably going to lose your funds!</string>
