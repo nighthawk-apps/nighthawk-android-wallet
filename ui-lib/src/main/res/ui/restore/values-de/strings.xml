@@ -142,6 +142,7 @@
     <string name="ns_fiat_currency_body">Choose your local currency so that we can show you a close estimate of how much your ZEC is worth.\n\nWhen you first open the app, the exchange rate is fetched from CoinGecko API v3 and used to calculate values. Your fund amounts are never revealed to any server.</string>
     <string name="ns_change_server">Change server</string>
     <string name="ns_change_server_text">Change backend lightwalletd server.</string>
+    <string name="ns_change_server_body">Change to nearest available backend lightwalletd server around your region.</string>
     <string name="ns_external_services">Externe Dienste</string>
     <string name="ns_external_services_text">Opt-in to our partner services.</string>
     <string name="ns_external_services_uns">Enable Unstoppable Domain Service</string>
@@ -186,6 +187,7 @@
     <string name="dialog_rescan_initiated_title">Performing Full Rescan!</string>
     <string name="dialog_rescan_failed_title">Full Rescan Failed</string>
     <string name="rescan_wallet_wipe_success">Wiped block data successfully! Wallet data cleared. Please relaunch the app!</string>
+    <string name="ns_update">Update</string>
     <!-- Backup/Restore Screen-->
     <string name="ns_landing_backup_skipped_message_1">Are you sure? Without a backup, funds can be lost FOREVER!</string>
     <string name="ns_landing_backup_skipped_message_2">You can\'t backup later. You\'re probably going to lose your funds!</string>
