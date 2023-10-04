@@ -264,7 +264,7 @@
     <string name="insufficient_msg">Non hai abbastanza fondi da inviare</string>
     <string name="memo_max_length_msg">Hai raggiunto la lunghezza massima per inviare un messaggio</string>
     <string name="autoshielding_title_text">Il portafoglio Nighthawk è <b>Schermato per impostazione predefinita</b>. Abbiamo implementato misure per garantire il massimo livello di riservatezza per i tuoi fondi.</string>
-    <string name="autoshielding_body_text"><b>Auto-Shielding</b> means any funds coming into your transparent address will automatically be moved to your shielded address.\n\nWe are committed to providing regular updates on the latest privacy-preserving best practices and recommendations to keep you well-informed.</string>
+    <string name="autoshielding_body_text"><b>Auto-Schermatura</b> significa che qualsiasi fondo che entra nel tuo indirizzo trasparente verrà automaticamente spostato nel tuo indirizzo schermato.\n\nCi impegniamo a fornire aggiornamenti periodici sulle migliori pratiche e raccomandazioni più recenti per la tutela della privacy per tenerti ben informato.</string>
     <string name="autoshielding_button_positive">Fantastico!</string>
     <string name="autoshielding_button_neutral">Ulteriori informazioni</string>
     <string name="link_to_ecc_title">Redirecting to ElectricCoin.co</string>
@@ -272,17 +272,17 @@
     <string name="shielding">Schermatura…</string>
     <string name="open_settings">Apri le impostazioni</string>
     <string name="notification_permission_dialog_title">Avviso</string>
-    <string name="notification_permission_dialog_desc">To post any notification we need to provide Notifications permission.\nFrom Settings please allow Notifications permission</string>
-    <string name="transaction_id_copied">Transaction ID has been copied to the clipboard.</string>
-    <string name="dialog_first_use_view_tx_message">Are you sure you\'d like to leave the app? This could reduce privacy if you do not trust the destination.</string>
+    <string name="notification_permission_dialog_desc">Per inviare qualsiasi notifica è necessario fornire l\'autorizzazione per le notifiche.\nPer favore, consenti l\'autorizzazione alle notifiche dalle impostazioni</string>
+    <string name="transaction_id_copied">L\'ID della transazione è stato copiato negli appunti.</string>
+    <string name="dialog_first_use_view_tx_message">Sei sicuro/a di voler uscire dall\'app? Questo potrebbe compromettere la privacy se non ti fidi della destinazione.</string>
     <string name="dialog_first_use_view_tx_positive">View Tx</string>
     <string name="dialog_first_use_view_tx_title">Potential Privacy Risk</string>
-    <string name="keep_screen_on">Keep Screen on</string>
-    <string name="keep_screen_on_detail_msg">If you haven\'t opened your wallet in a while, the sync process can take some time. Setting screen mode to \"Keep on\" will ensure your phone doesn\'t fall asleep while syncing.</string>
-    <string name="advanced">Advanced</string>
-    <string name="advanced_msg">Less common settings</string>
-    <string name="nuke_wallet">Nuke Wallet</string>
-    <string name="nuke_wallet_caution">CAUTION: This will completely wipe your wallet and you will be unable to recover funds without your seed words. Ensure you have them saved somewhere safe before proceeding</string>
-    <string name="nuke_wallet_dialog_msg">This operation is IRREVERSIBLE. Restoring your funds will be impossible without seed words. Be ABSOLUTELY sure you have saved them somewhere safe before proceeding. Do you still want to proceed?</string>
+    <string name="keep_screen_on">Mantieni lo schermo acceso</string>
+    <string name="keep_screen_on_detail_msg">Se non hai aperto il tuo portafoglio da un po\', il processo di sincronizzazione può richiedere del tempo. Impostare la modalità schermo su \"Mantieni acceso\" assicurerà che il telefono non si addormenti durante la sincronizzazione.</string>
+    <string name="advanced">Avanzate</string>
+    <string name="advanced_msg">Impostazioni meno comuni</string>
+    <string name="nuke_wallet">Azzera il portafoglio</string>
+    <string name="nuke_wallet_caution">ATTENZIONE: Questo cancellerà completamente il tuo portafoglio e non sarai in grado di recuperare fondi senza le parole del tuo seed. Assicurati di averle salvate in un posto sicuro prima di procedere</string>
+    <string name="nuke_wallet_dialog_msg">Questa operazione è IRREVERSIBLE. Ripristinare i tuoi fondi sarà impossibile senza parole del seed. Sii ASSOLUTAMENTE sicuro di averle salvate da qualche parte prima di procedere. Vuoi ancora procedere?</string>
     <string name="are_you_sure">Are you sure?</string>
 </resources>
