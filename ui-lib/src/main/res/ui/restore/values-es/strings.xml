@@ -142,6 +142,7 @@
     <string name="ns_fiat_currency_body">Elija su moneda local para que podamos mostrarle una estimación aproximada de cuánto vale su ZEC.\n\nCuando abres la aplicación por primera vez, el tipo de cambio se obtiene de CoinGecko API v3 y se utiliza para calcular los valores. Las cantidades de tu fondo nunca se revelan a ningún servidor.</string>
     <string name="ns_change_server">Cambiar de servidor</string>
     <string name="ns_change_server_text">Cambiar servidor lightwalletd del backend.</string>
+    <string name="ns_change_server_body">Change to nearest available backend lightwalletd server around your region.</string>
     <string name="ns_external_services">Servicio externo</string>
     <string name="ns_external_services_text">Optar por nuestros servicios asociados.</string>
     <string name="ns_external_services_uns">Habilitar Unstoppable Domain Service</string>
@@ -186,6 +187,7 @@
     <string name="dialog_rescan_initiated_title">¡Realizando el reescaneo total!</string>
     <string name="dialog_rescan_failed_title">Falló el reescaneo completo</string>
     <string name="rescan_wallet_wipe_success">¡Datos de bloque borrados con éxito! Los datos de la billetera se han borrado. ¡Por favor, vuelva a abrir la aplicación!</string>
+    <string name="ns_update">Update</string>
     <!-- Backup/Restore Screen-->
     <string name="ns_landing_backup_skipped_message_1">¿Está seguro? Sin una copia de seguridad, los fondos pueden perderse ¡PARA SIEMPRE!</string>
     <string name="ns_landing_backup_skipped_message_2">No puedes hacer una copia de seguridad más tarde. ¡Probablemente perderás tus fondos!</string>
