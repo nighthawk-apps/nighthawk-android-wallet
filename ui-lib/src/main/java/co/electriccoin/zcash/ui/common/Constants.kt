@@ -23,3 +23,4 @@ const val PIN_CODE = "const.pin.code"
 const val IS_BIO_METRIC_OR_FACE_ID_ENABLED = "const.pin.is_biometric_or_face_id"
 const val MIN_ZEC_FOR_SHIELDING = 0.01
 val NETWORK_FEES = Zatoshi(10000)
+const val MAXIMUM_FRACTION_DIGIT = 8

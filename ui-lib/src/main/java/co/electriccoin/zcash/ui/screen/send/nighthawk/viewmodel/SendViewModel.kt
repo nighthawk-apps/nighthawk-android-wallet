@@ -14,6 +14,7 @@ import cash.z.ecc.android.sdk.model.toZecString
 import cash.z.ecc.android.sdk.type.AddressType
 import co.electriccoin.zcash.preference.api.PreferenceProvider
 import co.electriccoin.zcash.spackle.Twig
+import co.electriccoin.zcash.ui.common.MAXIMUM_FRACTION_DIGIT
 import co.electriccoin.zcash.ui.common.NETWORK_FEES
 import co.electriccoin.zcash.ui.common.UnsUtil
 import co.electriccoin.zcash.ui.common.addressTypeNameId
@@ -118,7 +119,8 @@ class SendViewModel(val context: Application) : AndroidViewModel(application = c
     }
 
     fun getEnteredAmountInZecString(): String {
-        return enterZecUIState.value.enteredAmount.toDoubleOrNull()?.toFiatZatoshi(fiatCurrencyUiState, isFiatCurrencyPreferredOverZec).convertZatoshiToZecString()
+        return enterZecUIState.value.enteredAmount.toDoubleOrNull()?.toFiatZatoshi(fiatCurrencyUiState, isFiatCurrencyPreferredOverZec)
+            .convertZatoshiToZecString(MAXIMUM_FRACTION_DIGIT)
     }
 
     fun onKeyPressed(numberPadValueTypes: NumberPadValueTypes) {

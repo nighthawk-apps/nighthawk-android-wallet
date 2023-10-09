@@ -14,12 +14,12 @@ import androidx.compose.ui.graphics.Color
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.FragmentActivity
 import cash.z.ecc.android.sdk.ext.convertZatoshiToZec
+import cash.z.ecc.android.sdk.ext.convertZatoshiToZecString
 import cash.z.ecc.android.sdk.ext.convertZecToZatoshi
 import cash.z.ecc.android.sdk.ext.isShielded
 import cash.z.ecc.android.sdk.ext.toZecString
 import cash.z.ecc.android.sdk.model.Zatoshi
 import cash.z.ecc.android.sdk.model.ZcashNetwork
-import cash.z.ecc.android.sdk.model.toZecString
 import co.electriccoin.zcash.spackle.Twig
 import co.electriccoin.zcash.ui.R
 import co.electriccoin.zcash.ui.screen.fiatcurrency.model.FiatCurrency
@@ -132,9 +132,9 @@ internal fun String.addressTypeNameId(): Int {
 internal fun Double.toFiatZatoshi(fiatCurrencyUiState: FiatCurrencyUiState, isFiatCurrencyPreferredOverZec: Boolean): Zatoshi? {
     if (isFiatCurrencyPreferredOverZec) {
         if (fiatCurrencyUiState.price == null || fiatCurrencyUiState.price == 0.0) return null
-        return (this / fiatCurrencyUiState.price).convertZecToZatoshi()
+        return (this / fiatCurrencyUiState.price).convertZecToZatoshi(MAXIMUM_FRACTION_DIGIT)
     }
-    return this.convertZecToZatoshi()
+    return this.convertZecToZatoshi(MAXIMUM_FRACTION_DIGIT)
 }
 
 internal fun Zatoshi.toFiatPrice(fiatCurrencyUiState: FiatCurrencyUiState): String {
@@ -159,10 +159,10 @@ internal fun Zatoshi.toBalanceValueModel(
     if (isLocalCurrencySelectedAsPrimary) {
         balance = availableBalance.toFiatPrice(fiatCurrencyUiState).removeTrailingZero()
         balanceUnit = fiatCurrencyUiState.fiatCurrency.currencyName
-        fiatBalance = availableBalance.toZecString().removeTrailingZero()
+        fiatBalance = availableBalance.convertZatoshiToZecString(MAXIMUM_FRACTION_DIGIT).removeTrailingZero()
         fiatUnit = selectedDenomination
     } else {
-        balance = availableBalance.toZecString().removeTrailingZero()
+        balance = availableBalance.convertZatoshiToZecString(MAXIMUM_FRACTION_DIGIT).removeTrailingZero()
         balanceUnit = selectedDenomination
         fiatBalance = availableBalance.toFiatPrice(fiatCurrencyUiState).removeTrailingZero()
         fiatUnit = fiatCurrencyUiState.fiatCurrency.currencyName
@@ -186,7 +186,7 @@ internal fun BalanceValuesModel.toBalanceUiModel(context: Context): BalanceUIMod
 internal fun String.removeTrailingZero(): String {
     return try {
         this.toDoubleOrNull()?.let {
-            DecimalFormat("0.#####").format(it)
+            DecimalFormat("0.########").format(it)
         } ?: this
     } catch (e: Exception) {
         Twig.error { "Exception in formatting value $this" }
