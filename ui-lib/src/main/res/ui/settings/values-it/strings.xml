@@ -2,9 +2,9 @@
 <resources>
     <string name="settings_header">Settings</string>
     <string name="settings_back_content_description">Indietro</string>
-    <string name="settings_overflow_content_description">Additional settings</string>
-    <string name="settings_rescan">Rescan blockchain</string>
-    <string name="settings_enable_background_sync">Background sync</string>
-    <string name="settings_enable_keep_screen_on">Keep screen on during sync</string>
-    <string name="settings_enable_analytics">Report crashes</string>
+    <string name="settings_overflow_content_description">Impostazioni aggiuntive</string>
+    <string name="settings_rescan">Riscansiona la blockchain</string>
+    <string name="settings_enable_background_sync">Sincronizzazione in background</string>
+    <string name="settings_enable_keep_screen_on">Mantieni lo schermo acceso durante la sincronizzazione</string>
+    <string name="settings_enable_analytics">Segnala crash</string>
 </resources>
