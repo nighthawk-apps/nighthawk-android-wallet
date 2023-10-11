@@ -3,6 +3,6 @@
     <string name="seed_title">La mia frase segreta</string>
     <string name="seed_back_content_description">Indietro</string>
     <string name="seed_header">La tua frase di recupero segreta</string>
-    <string name="seed_body">These words represent your funds and the security used to protect them.</string>
+    <string name="seed_body">Queste parole rappresentano i tuoi fondi e la sicurezza utilizzata per proteggerli.</string>
     <string name="seed_copy">Copia negli appunti</string>
 </resources>
