@@ -61,6 +61,7 @@ import co.electriccoin.zcash.ui.screen.scan.WrapScanValidator
 import co.electriccoin.zcash.ui.screen.security.AndroidSecurity
 import co.electriccoin.zcash.ui.screen.send.model.SendArgumentsWrapper
 import co.electriccoin.zcash.ui.screen.send.nighthawk.AndroidSend
+import co.electriccoin.zcash.ui.screen.settingbackupwallet.AndroidSettingBackUpWallet
 import co.electriccoin.zcash.ui.screen.settings.nighthawk.AndroidSettings
 import co.electriccoin.zcash.ui.screen.shield.AndroidShield
 import co.electriccoin.zcash.ui.screen.syncnotification.AndroidSyncNotification
@@ -69,7 +70,6 @@ import co.electriccoin.zcash.ui.screen.transactiondetails.AndroidTransactionDeta
 import co.electriccoin.zcash.ui.screen.transactionhistory.AndroidTransactionHistory
 import co.electriccoin.zcash.ui.screen.transfer.AndroidTransfer
 import co.electriccoin.zcash.ui.screen.wallet.AndroidWallet
-import co.electriccoin.zcash.ui.settingbackupwallet.AndroidSettingBackUpWallet
 import kotlinx.collections.immutable.persistentListOf
 
 @Composable
