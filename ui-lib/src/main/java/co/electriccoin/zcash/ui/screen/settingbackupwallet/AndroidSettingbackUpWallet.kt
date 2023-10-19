@@ -1,4 +1,4 @@
-package co.electriccoin.zcash.ui.settingbackupwallet
+package co.electriccoin.zcash.ui.screen.settingbackupwallet
 
 import androidx.activity.ComponentActivity
 import androidx.activity.viewModels
