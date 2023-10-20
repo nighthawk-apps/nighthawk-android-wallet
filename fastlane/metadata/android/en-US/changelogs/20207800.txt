@@ -1,0 +1,3 @@
+- Switch Lightwalletd Server Regions
+- Fast Syncing Wallet: Leveraging the 'Spend Before Sync' feature from the recently launched Zcash Mobile SDK 2.0.1 by ECC
+- Future-Proofed: Strategic UX design decisions and enhancements ensure our code bases are future-proofed for security and compliance
