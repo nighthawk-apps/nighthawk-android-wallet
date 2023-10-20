@@ -1,11 +1,7 @@
 package co.electriccoin.zcash.app
 
-import co.electriccoin.zcash.crash.android.GlobalCrashReporter
 import co.electriccoin.zcash.spackle.StrictModeCompat
 import co.electriccoin.zcash.spackle.Twig
-import co.electriccoin.zcash.ui.preference.StandardPreferenceKeys
-import co.electriccoin.zcash.ui.preference.StandardPreferenceSingleton
-import kotlinx.coroutines.launch
 
 @Suppress("unused")
 class ZcashApplication : CoroutineApplication() {
@@ -35,21 +31,6 @@ class ZcashApplication : CoroutineApplication() {
     private fun configureStrictMode() {
         if (BuildConfig.DEBUG) {
             StrictModeCompat.enableStrictMode(BuildConfig.IS_STRICT_MODE_CRASH_ENABLED)
-        }
-    }
-
-    private fun configureAnalytics() {
-        if (GlobalCrashReporter.register(this)) {
-            applicationScope.launch {
-                val prefs = StandardPreferenceSingleton.getInstance(applicationContext)
-                StandardPreferenceKeys.IS_ANALYTICS_ENABLED.observe(prefs).collect {
-                    if (it) {
-                        GlobalCrashReporter.enable()
-                    } else {
-                        GlobalCrashReporter.disableAndDelete()
-                    }
-                }
-            }
         }
     }
 }
