@@ -48,8 +48,6 @@ buildscript {
     }
 
     dependencies {
-//        val crashlyticsVersion = project.property("FIREBASE_CRASHLYTICS_BUILD_TOOLS_VERSION")
-//        classpath("com.google.firebase:firebase-crashlytics-gradle:$crashlyticsVersion")
 //        classpath("com.google.gms:google-services:${project.property("GOOGLE_PLAY_SERVICES_GRADLE_PLUGIN_VERSION")}")
     }
 }

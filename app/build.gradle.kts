@@ -29,7 +29,6 @@ val hasFirebaseApiKeys = run {
 
 if (hasFirebaseApiKeys) {
 //    apply(plugin = "com.google.gms.google-services")
-//    apply(plugin = "com.google.firebase.crashlytics")
 }
 
 val packageName = project.property("ZCASH_RELEASE_PACKAGE_NAME").toString()
@@ -179,7 +178,6 @@ dependencies {
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.kotlinx.coroutines.core)
     implementation(libs.zcash.sdk) // just to configure logging
-    implementation(projects.crashAndroidLib)
     implementation(projects.preferenceApiLib)
     implementation(projects.preferenceImplAndroidLib)
     implementation(projects.spackleAndroidLib)
