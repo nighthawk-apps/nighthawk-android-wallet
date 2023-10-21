@@ -285,4 +285,7 @@
     <string name="nuke_wallet_caution">PRECAUCIÓN: Esto borrará completamente su billetera y no podrá recuperar fondos sin su frase semilla. Asegúrate de guardarla en un lugar seguro antes de continuar</string>
     <string name="nuke_wallet_dialog_msg">Esta operación es IRREVERSIBLE. Restaurar sus fondos será imposible sin su frase semilla. Asegúrese ABSOLUTAMENTE de haberlas guardado en un lugar seguro antes de proceder. ¿Todavía quieres proceder?</string>
     <string name="are_you_sure">¿Estás seguro?</string>
+    <string name="app_icon">App Icon</string>
+    <string name="default_name">Default</string>
+    <string name="retro">Retro</string>
 </resources>
