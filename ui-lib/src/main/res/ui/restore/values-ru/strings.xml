@@ -285,4 +285,7 @@
     <string name="nuke_wallet_caution">CAUTION: This will completely wipe your wallet and you will be unable to recover funds without your seed words.Ensure you have them saved somewhere safe before proceeding</string>
     <string name="nuke_wallet_dialog_msg">This operation is IRREVERSIBLE. Restoring your funds will be impossible without seed words. Be ABSOLUTELY sure you have saved them somewhere safe before proceeding. Do you still want to proceed?</string>
     <string name="are_you_sure">Вы уверены?</string>
+    <string name="app_icon">App Icon</string>
+    <string name="default_name">Default</string>
+    <string name="retro">Retro</string>
 </resources>
