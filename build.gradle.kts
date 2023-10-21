@@ -101,10 +101,10 @@ tasks {
             "ZCASH_SUPPORT_EMAIL_ADDRESS" to "nighthawkwallet@protonmail.com",
 
             "ZCASH_DEBUG_KEYSTORE_PATH" to "",
-            "ZCASH_RELEASE_KEYSTORE_PATH" to "",
-            "ZCASH_RELEASE_KEYSTORE_PASSWORD" to "",
-            "ZCASH_RELEASE_KEY_ALIAS" to "",
-            "ZCASH_RELEASE_KEY_ALIAS_PASSWORD" to "",
+            "ZCASH_RELEASE_KEYSTORE_PATH" to "${rootProject.projectDir}/nighthawkpublic.keystore",
+            "ZCASH_RELEASE_KEYSTORE_PASSWORD" to "android",
+            "ZCASH_RELEASE_KEY_ALIAS" to "key0",
+            "ZCASH_RELEASE_KEY_ALIAS_PASSWORD" to "android",
 
             "IS_SIGN_RELEASE_BUILD_WITH_DEBUG_KEY" to "false",
 

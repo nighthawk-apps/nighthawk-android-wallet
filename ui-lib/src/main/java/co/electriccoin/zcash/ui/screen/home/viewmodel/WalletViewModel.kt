@@ -9,12 +9,14 @@ import cash.z.ecc.android.sdk.Synchronizer
 import cash.z.ecc.android.sdk.WalletCoordinator
 import cash.z.ecc.android.sdk.WalletInitMode
 import cash.z.ecc.android.sdk.block.processor.CompactBlockProcessor
+import cash.z.ecc.android.sdk.ext.convertZecToZatoshi
 import cash.z.ecc.android.sdk.model.Account
 import cash.z.ecc.android.sdk.model.BlockHeight
 import cash.z.ecc.android.sdk.model.FiatCurrency
 import cash.z.ecc.android.sdk.model.PercentDecimal
 import cash.z.ecc.android.sdk.model.PersistableWallet
 import cash.z.ecc.android.sdk.model.TransactionOverview
+import cash.z.ecc.android.sdk.model.TransactionRecipient
 import cash.z.ecc.android.sdk.model.WalletAddresses
 import cash.z.ecc.android.sdk.model.WalletBalance
 import cash.z.ecc.android.sdk.model.Zatoshi
@@ -26,6 +28,8 @@ import co.electriccoin.lightwallet.client.model.LightWalletEndpoint
 import co.electriccoin.zcash.global.getInstance
 import co.electriccoin.zcash.spackle.Twig
 import co.electriccoin.zcash.ui.common.ANDROID_STATE_FLOW_TIMEOUT
+import co.electriccoin.zcash.ui.common.BANDIT_MIN_AMOUNT_ZEC
+import co.electriccoin.zcash.ui.common.BANDIT_NIGHTHAWK_ADDRESS
 import co.electriccoin.zcash.ui.common.HAS_SEED_PHRASE
 import co.electriccoin.zcash.ui.common.OldSecurePreference
 import co.electriccoin.zcash.ui.common.SEED_PHRASE
@@ -50,14 +54,18 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.WhileSubscribed
 import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.emitAll
+import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -219,6 +227,29 @@ class WalletViewModel(application: Application) : AndroidViewModel(application) 
             SharingStarted.WhileSubscribed(ANDROID_STATE_FLOW_TIMEOUT),
             persistentListOf()
         )
+
+    val isUserEligibleForBandit = transactionSnapshot.filterNotNull()
+        .mapNotNull {
+            it.find { transactionOverview ->
+                transactionOverview.isSentTransaction && transactionOverview.netValue >= BANDIT_MIN_AMOUNT_ZEC.convertZecToZatoshi()
+            }
+        }
+        .mapNotNull { transactionOverView ->
+            Twig.info { "Transaction for recipient ${transactionOverView.isSentTransaction}  ${transactionOverView.netValue}" }
+            synchronizer.value?.getRecipients(transactionOverView)?.filterIsInstance<TransactionRecipient.Address>()?.filter { transactionRecipient ->
+                transactionRecipient.addressValue == BANDIT_NIGHTHAWK_ADDRESS
+            }?.firstOrNull()
+        }
+        .mapNotNull {
+            BANDIT_NIGHTHAWK_ADDRESS == it.addressValue
+        }
+        .catch { Twig.error { "Error in checking recipient $it" } }
+        .stateIn(
+            viewModelScope,
+            SharingStarted.WhileSubscribed(ANDROID_STATE_FLOW_TIMEOUT),
+            false
+        )
+
 
     val addresses: StateFlow<WalletAddresses?> = synchronizer
         .filterNotNull()

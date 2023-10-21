@@ -12,10 +12,6 @@ class ZcashApplication : CoroutineApplication() {
         configureLogging()
 
         configureStrictMode()
-
-        // Since analytics will need disk IO internally, we want this to be registered after strict
-        // mode is configured to ensure none of that IO happens on the main thread
-//        configureAnalytics()
     }
 
     private fun configureLogging() {

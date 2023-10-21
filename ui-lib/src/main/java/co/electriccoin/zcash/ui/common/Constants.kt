@@ -22,3 +22,5 @@ const val PIN_CODE = "const.pin.code"
 const val IS_BIO_METRIC_OR_FACE_ID_ENABLED = "const.pin.is_biometric_or_face_id"
 const val MIN_ZEC_FOR_SHIELDING = 0.01
 const val MAXIMUM_FRACTION_DIGIT = 8
+const val BANDIT_MIN_AMOUNT_ZEC = .117
+const val BANDIT_NIGHTHAWK_ADDRESS = "zs1nhawkewaslscuey9qhnv9e4wpx77sp73kfu0l8wh9vhna7puazvfnutyq5ymg830hn5u2dmr0sf"

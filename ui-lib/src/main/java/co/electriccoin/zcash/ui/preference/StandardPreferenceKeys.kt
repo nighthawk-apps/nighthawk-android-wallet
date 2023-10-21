@@ -30,6 +30,10 @@ object StandardPreferenceKeys {
 
     val IS_NAVIGATE_AWAY_FROM_APP_WARNING_SHOWN = BooleanPreferenceDefault(PreferenceKey("is_navigate_from_app_warning_shown"), false)
 
+    val IS_BANDIT_AVAILABLE = BooleanPreferenceDefault(PreferenceKey("is_bandit_available"), false)
+
+    val PREFERRED_LOGO = StringPreferenceDefault(PreferenceKey("preferred_logo"), "0")
+
     /**
      * The fiat currency that the user prefers.
      */

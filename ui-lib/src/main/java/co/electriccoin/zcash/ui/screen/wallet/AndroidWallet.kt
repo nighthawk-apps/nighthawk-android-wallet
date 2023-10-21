@@ -137,6 +137,8 @@ internal fun WrapWallet(
         val fiatCurrencyUiState by homeViewModel.fiatCurrencyUiStateFlow.collectAsStateWithLifecycle()
         val isFiatCurrencyPreferred by homeViewModel.isFiatCurrencyPreferredOverZec.collectAsStateWithLifecycle()
 
+        settingsViewModel.setBanditAvailable(walletViewModel.isUserEligibleForBandit.collectAsStateWithLifecycle().value)
+
         WalletView(
             walletSnapshot = walletSnapshot,
             transactionSnapshot = transactionSnapshot,
