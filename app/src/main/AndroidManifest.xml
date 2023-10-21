@@ -5,16 +5,17 @@
     <application
         android:name="co.electriccoin.zcash.app.ZcashApplication"
         android:allowBackup="false"
-        android:icon="@mipmap/ic_launcher"
-        android:roundIcon="@mipmap/ic_launcher_round"
         android:label="@string/app_name">
 
         <!-- Alias acts as the entrypoint to the application.
              Using an alias ensures we can refactor the actual Activity without breaking
              clients. -->
         <activity-alias
-            android:name="co.electricoin.zcash.LauncherActivity"
+            android:name="co.electriccoin.zcash.ui.screen.advancesetting.model.OneLauncherAlias"
             android:exported="true"
+            android:enabled="true"
+            android:icon="@mipmap/ic_launcher"
+            android:roundIcon="@mipmap/ic_launcher_round"
             android:label="@string/app_name"
             android:targetActivity="co.electriccoin.zcash.ui.MainActivity">
             <intent-filter>
@@ -31,7 +32,36 @@
                 <data android:scheme="zcash" />
             </intent-filter>
 
-            <meta-data android:name="android.app.shortcuts"
+            <meta-data
+                android:name="android.app.shortcuts"
+                android:resource="@xml/shortcuts" />
+
+        </activity-alias>
+
+        <activity-alias
+            android:name="co.electriccoin.zcash.ui.screen.advancesetting.model.TwoLauncherAlias"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@mipmap/ic_launcher_legacy"
+            android:label="@string/app_name"
+            android:roundIcon="@mipmap/ic_launcher_round_legacy"
+            android:targetActivity="co.electriccoin.zcash.ui.MainActivity">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+
+                <data android:scheme="zcash" />
+            </intent-filter>
+
+            <meta-data
+                android:name="android.app.shortcuts"
                 android:resource="@xml/shortcuts" />
 
         </activity-alias>

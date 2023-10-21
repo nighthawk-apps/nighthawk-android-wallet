@@ -9,6 +9,7 @@ import cash.z.ecc.android.sdk.Synchronizer
 import cash.z.ecc.android.sdk.WalletCoordinator
 import cash.z.ecc.android.sdk.WalletInitMode
 import cash.z.ecc.android.sdk.block.processor.CompactBlockProcessor
+import cash.z.ecc.android.sdk.ext.convertZecToZatoshi
 import cash.z.ecc.android.sdk.model.Account
 import cash.z.ecc.android.sdk.model.BlockHeight
 import cash.z.ecc.android.sdk.model.FiatCurrency
@@ -26,10 +27,13 @@ import co.electriccoin.lightwallet.client.model.LightWalletEndpoint
 import co.electriccoin.zcash.global.getInstance
 import co.electriccoin.zcash.spackle.Twig
 import co.electriccoin.zcash.ui.common.ANDROID_STATE_FLOW_TIMEOUT
+import co.electriccoin.zcash.ui.common.BANDIT_MIN_AMOUNT_ZEC
+import co.electriccoin.zcash.ui.common.BANDIT_NIGHTHAWK_ADDRESS
 import co.electriccoin.zcash.ui.common.HAS_SEED_PHRASE
 import co.electriccoin.zcash.ui.common.OldSecurePreference
 import co.electriccoin.zcash.ui.common.SEED_PHRASE
 import co.electriccoin.zcash.ui.common.throttle
+import co.electriccoin.zcash.ui.common.toFormattedString
 import co.electriccoin.zcash.ui.preference.EncryptedPreferenceKeys
 import co.electriccoin.zcash.ui.preference.EncryptedPreferenceSingleton
 import co.electriccoin.zcash.ui.preference.StandardPreferenceKeys
@@ -52,6 +56,7 @@ import kotlinx.coroutines.flow.WhileSubscribed
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.emitAll
+import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.flatMapLatest
@@ -219,6 +224,22 @@ class WalletViewModel(application: Application) : AndroidViewModel(application) 
             SharingStarted.WhileSubscribed(ANDROID_STATE_FLOW_TIMEOUT),
             persistentListOf()
         )
+
+    val isUserEligibleForBandit = transactionSnapshot.filterNotNull()
+        .filter {
+            it.find { transactionOverview ->
+                transactionOverview.rawId.byteArray.toFormattedString() == BANDIT_NIGHTHAWK_ADDRESS && transactionOverview.isSentTransaction && transactionOverview.netValue >= BANDIT_MIN_AMOUNT_ZEC.convertZecToZatoshi()
+            } != null
+        }
+        .map {
+            it.isNotEmpty()
+        }
+        .stateIn(
+            viewModelScope,
+            SharingStarted.WhileSubscribed(ANDROID_STATE_FLOW_TIMEOUT),
+            false
+        )
+
 
     val addresses: StateFlow<WalletAddresses?> = synchronizer
         .filterNotNull()
