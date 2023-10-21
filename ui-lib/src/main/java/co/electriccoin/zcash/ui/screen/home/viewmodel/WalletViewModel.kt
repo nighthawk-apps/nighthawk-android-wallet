@@ -16,6 +16,7 @@ import cash.z.ecc.android.sdk.model.FiatCurrency
 import cash.z.ecc.android.sdk.model.PercentDecimal
 import cash.z.ecc.android.sdk.model.PersistableWallet
 import cash.z.ecc.android.sdk.model.TransactionOverview
+import cash.z.ecc.android.sdk.model.TransactionRecipient
 import cash.z.ecc.android.sdk.model.WalletAddresses
 import cash.z.ecc.android.sdk.model.WalletBalance
 import cash.z.ecc.android.sdk.model.Zatoshi
@@ -33,7 +34,6 @@ import co.electriccoin.zcash.ui.common.HAS_SEED_PHRASE
 import co.electriccoin.zcash.ui.common.OldSecurePreference
 import co.electriccoin.zcash.ui.common.SEED_PHRASE
 import co.electriccoin.zcash.ui.common.throttle
-import co.electriccoin.zcash.ui.common.toFormattedString
 import co.electriccoin.zcash.ui.preference.EncryptedPreferenceKeys
 import co.electriccoin.zcash.ui.preference.EncryptedPreferenceSingleton
 import co.electriccoin.zcash.ui.preference.StandardPreferenceKeys
@@ -54,15 +54,18 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.WhileSubscribed
 import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -226,14 +229,21 @@ class WalletViewModel(application: Application) : AndroidViewModel(application) 
         )
 
     val isUserEligibleForBandit = transactionSnapshot.filterNotNull()
-        .filter {
+        .mapNotNull {
             it.find { transactionOverview ->
-                transactionOverview.rawId.byteArray.toFormattedString() == BANDIT_NIGHTHAWK_ADDRESS && transactionOverview.isSentTransaction && transactionOverview.netValue >= BANDIT_MIN_AMOUNT_ZEC.convertZecToZatoshi()
-            } != null
+                transactionOverview.isSentTransaction && transactionOverview.netValue >= BANDIT_MIN_AMOUNT_ZEC.convertZecToZatoshi()
+            }
         }
-        .map {
-            it.isNotEmpty()
+        .mapNotNull { transactionOverView ->
+            Twig.info { "Transaction for recipient ${transactionOverView.isSentTransaction}  ${transactionOverView.netValue}" }
+            synchronizer.value?.getRecipients(transactionOverView)?.filterIsInstance<TransactionRecipient.Address>()?.filter { transactionRecipient ->
+                transactionRecipient.addressValue == BANDIT_NIGHTHAWK_ADDRESS
+            }?.firstOrNull()
         }
+        .mapNotNull {
+            BANDIT_NIGHTHAWK_ADDRESS == it.addressValue
+        }
+        .catch { Twig.error { "Error in checking recipient $it" } }
         .stateIn(
             viewModelScope,
             SharingStarted.WhileSubscribed(ANDROID_STATE_FLOW_TIMEOUT),
