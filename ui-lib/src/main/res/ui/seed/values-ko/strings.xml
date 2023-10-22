@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="seed_title">비밀 문구</string>
-    <string name="seed_back_content_description">Back</string>
-    <string name="seed_header">Your Secret Recovery Phrase</string>
-    <string name="seed_body">These words represent your funds and the security used to protect them.</string>
-    <string name="seed_copy">Copy to buffer</string>
+    <string name="seed_back_content_description">돌아가기</string>
+    <string name="seed_header">당신의 비밀 복구 문구</string>
+    <string name="seed_body">이 단어는 귀하의 자금과 이를 보호하는데 사용되는 보안을 나타냅니다.</string>
+    <string name="seed_copy">메모리리를 복사합니다.</string>
 </resources>
