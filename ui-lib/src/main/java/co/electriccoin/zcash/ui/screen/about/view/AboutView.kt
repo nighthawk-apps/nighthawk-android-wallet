@@ -22,13 +22,13 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import co.electriccoin.zcash.build.gitSha
 import co.electriccoin.zcash.ui.R
+import co.electriccoin.zcash.ui.common.VersionInfo
 import co.electriccoin.zcash.ui.design.component.Body
 import co.electriccoin.zcash.ui.design.component.GradientSurface
 import co.electriccoin.zcash.ui.design.component.Header
 import co.electriccoin.zcash.ui.design.theme.ZcashTheme
 import co.electriccoin.zcash.ui.fixture.ConfigInfoFixture
 import co.electriccoin.zcash.ui.fixture.VersionInfoFixture
-import co.electriccoin.zcash.ui.screen.about.model.VersionInfo
 import co.electriccoin.zcash.ui.screen.support.model.ConfigInfo
 
 @Preview("About")
@@ -47,9 +47,9 @@ private fun AboutPreview() {
 
 @Composable
 fun About(
-    versionInfo: VersionInfo,
-    configInfo: ConfigInfo,
-    goBack: () -> Unit
+        versionInfo: VersionInfo,
+        configInfo: ConfigInfo,
+        goBack: () -> Unit
 ) {
     Scaffold(topBar = {
         AboutTopAppBar(onBack = goBack)
