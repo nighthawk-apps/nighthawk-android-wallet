@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources xmlns:tools="http://schemas.android.com/tools" xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
-    <string name="request_title">Request ZEC</string>
-    <string name="request_back_content_description">Back</string>
-    <string name="request_from">Who would you like to request ZEC from?</string>
-    <string name="request_amount">How much?</string>
-    <string name="request_message">Message</string>
-    <string name="request_create">Create and Send</string>
-    <string name="request_template_format" formatted="true">Someone is requesting ZEC from you. Please click the link: <xliff:g id="link" example="zcash:asdf">%1$s</xliff:g></string>
+    <string name="request_title">ZEC 요청하기</string>
+    <string name="request_back_content_description">돌아가기</string>
+    <string name="request_from">ZEC을 누구에게 요청하고 싶으신가요?</string>
+    <string name="request_amount">얼마나?</string>
+    <string name="request_message">메시지</string>
+    <string name="request_create">생성 및 전송</string>
+    <string name="request_template_format" formatted="true">누군가 ZEC를 요청하고 있습니다. 링크를 클릭하세요: <xliff:g id="link" example="zcash:asdf">%1$s</xliff:g></string>
 </resources>

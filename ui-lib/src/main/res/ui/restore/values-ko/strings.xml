@@ -4,39 +4,39 @@
     <string name="restore_title">지갑 불러오기</string>
     <string name="restore_back_content_description">돌아가기</string>
     <string name="restore_button_clear">초기화</string>
-    <string name="restore_seed_instructions">You can import your backed-up wallet by entering your backup recovery phrase (aka seed phrase) now.</string>
+    <string name="restore_seed_instructions">이제 복구 문구 (일명 시드 문구) 를 입력하여 백업된 지갑을 가져올 수 있습니다.</string>
     <string name="restore_seed_button_restore">지갑 복구</string>
-    <string name="restore_seed_warning_suggestions">This word is not in the seed phrase dictionary.  Please select the correct one from the suggestions.</string>
-    <string name="restore_seed_warning_no_suggestions">This word is not in the seed phrase dictionary.</string>
-    <string name="restore_birthday_header">Do you know the wallet’s birthday?</string>
-    <string name="restore_birthday_body">This will allow a faster sync. If you don’t know the wallet’s birthday, don’t worry.</string>
+    <string name="restore_seed_warning_suggestions">이 단어는 시드 구문 사전에 없습니다.  제안된 단어 중에서 올바른 단어를 선택해 주세요.</string>
+    <string name="restore_seed_warning_no_suggestions">이 단어는 시드 구문 사전에 없습니다.</string>
+    <string name="restore_birthday_header">지갑의 생성일을 알고 계신가요?</string>
+    <string name="restore_birthday_body">이렇게 하면 더 빠르게 동기화할 수 있습니다. 지갑의 생성일을 모르더라도 걱정하지 마세요.</string>
     <string name="restore_birthday_hint">Birthday Height</string>
     <string name="restore_birthday_button_restore">Birthday 복원하시오</string>
     <string name="restore_birthday_button_skip">지갑 Birthday를 모릅니다</string>
     <string name="restore_complete_header">시드 단어 가져오기</string>
-    <string name="restore_complete_info">We will now scan the blockchain to find your transactions and balance.</string>
-    <string name="restore_button_see_wallet">Take me to my wallet</string>
+    <string name="restore_complete_info">이제 블록체인을 스캔하여 거래와 잔액을 찾습니다.</string>
+    <string name="restore_button_see_wallet">내 지갑으로 데려다주세요</string>
     <!-- Start Flow -->
     <string name="ns_nighthawk">Nighthawk</string>
     <string name="ns_motto">Private money in your pocket.</string>
     <string name="ns_powered_by">Powered by Zcash</string>
     <string name="ns_get_started">Get Started</string>
     <string name="ns_landing_text">If it\'s your first time using Nighthawk, you\'ll need to create a wallet. If you are returning to Nighthawk, you can try to restore your previous wallet.</string>
-    <string name="ns_landing_footer">By using this app you accept our</string>
+    <string name="ns_landing_footer">이 앱을 사용함으로써 귀하는 당사의</string>
     <string name="ns_terms_conditions">Terms and Conditions</string>
     <string name="ns_create_wallet">Create Wallet</string>
     <string name="ns_create_wallet_title">Write down your backup seed</string>
     <string name="ns_create_wallet_text">If you lose access to your phone or Nighthawk wallet, the only way you can regain access to your Zcash is if you have this 24 word phrase and wallet birthday code.\n\nWrite it down on paper and store it somewhere safe.</string>
     <string name="ns_create_wallet_confirm_text">I confirm I have written down my seed phrase.</string>
     <string name="ns_restore_from_backup">Restore from Backup</string>
-    <string name="ns_restore_wallet_text">Enter your 24-word seed phrase below. If you do not have this phrase, you will need to create a new wallet.</string>
+    <string name="ns_restore_wallet_text">아래에 24단어 시드 문구를 입력합니다. 복구 문구가 없는 경우 새 지갑을 만들어야 합니다.</string>
     <string name="ns_your_seed_phrase">Your seed phrase</string>
     <string name="ns_wallet_birthday">Wallet Birthday: %s</string>
     <string name="ns_birthday_height">Birthday Height (옵션)</string>
     <string name="ns_your_seed_error">Error - This doesn\'t look like a valid seed phrase.</string>
     <string name="ns_continue">Continue</string>
     <string name="ns_export_as_pdf">PDF로 내보내기</string>
-    <string name="ns_pdf_dialog_sub_heading">Export the seed words to a password-protected PDF which can be backed up to user-secured portable storage devices.</string>
+    <string name="ns_pdf_dialog_sub_heading">시드 단어를 비밀번호로 보호된 PDF로 내보내 사용자 보안이 설정된 휴대용 저장 장치에 백업할 수 있습니다.</string>
     <string name="ns_please_enter_password">Please Enter Password</string>
     <string name="ns_export_pdf">Export PDF</string>
     <string name="ns_receive">Receive</string>
@@ -44,9 +44,9 @@
     <string name="ns_copy">Copy</string>
     <string name="ns_unified_address">통합주소 (Unified address)</string>
     <string name="ns_shielded_address">Shielded address</string>
-    <string name="ns_legacy_shielded_address">Legacy shielded address</string>
+    <string name="ns_legacy_shielded_address">레거시 보호 주소</string>
     <string name="ns_transparent_address">Transparent address</string>
-    <string name="ns_restore_dialog_title">Before you continue</string>
+    <string name="ns_restore_dialog_title">계속하기 전에</string>
     <string name="ns_restore_dialog_primary_action">계속</string>
     <string name="ns_restore_dialog_body">Please only import a seed phrase that was initially generated by Nighthawk. Other wallets operate differently, which may lead to inaccurate reporting of funds for your transactions.</string>
     <!-- Wallet Screen -->
@@ -187,7 +187,7 @@
     <string name="dialog_rescan_initiated_title">전체 다시 검색을 수행하는 중!</string>
     <string name="dialog_rescan_failed_title">Full Rescan Failed</string>
     <string name="rescan_wallet_wipe_success">블록 데이터를 성공적으로 삭제했습니다! 지갑 데이터가 삭제되었습니다. 앱을 다시 실행하세요!</string>
-    <string name="ns_update">Update</string>
+    <string name="ns_update">업데이트</string>
     <!-- Backup/Restore Screen-->
     <string name="ns_landing_backup_skipped_message_1">Are you sure? Without a backup, funds can be lost FOREVER!</string>
     <string name="ns_landing_backup_skipped_message_2">You can\'t backup later. You\'re probably going to lose your funds!</string>
@@ -207,7 +207,7 @@
     <string name="ns_scan_payment_request">Scan a Payment Request</string>
     <string name="ns_scan_payment_request_text">If you have a payment request, you can scan the QR code here to auto-fill all the details.</string>
     <string name="ns_choose_send">Choose how much to send</string>
-    <string name="ns_spendable_balance">Spendable balance (incl. tx fee) is %1s %2s</string>
+    <string name="ns_spendable_balance">사용 가능한 잔액(송금 수수료 포함) 은 %1s %2s입니다.</string>
     <string name="ns_scan_payment_code">Scan a payment code</string>
     <string name="ns_top_up_wallet">Top up wallet</string>
     <string name="ns_not_enough_zcash">Not enough Zcash</string>
@@ -233,13 +233,13 @@
     <string name="ns_format_date_time">dd/MM/yyyy</string>
     <string name="ns_view_all_transactions">View transaction history</string>
     <string name="ns_downloading_block">Downloading\n\nBlock %1s of %2s</string>
-    <string name="ns_downloading_wallet">Downloading…%1d%%</string>
-    <string name="ns_syncing_wallet">Syncing…%1$.2f%%</string>
+    <string name="ns_downloading_wallet">다운로드 중…%1d%%</string>
+    <string name="ns_syncing_wallet">동기화 중…%1$.2f%%</string>
     <string name="ns_syncing_block">Syncing\n\nBlock %1s of %2s</string>
     <string name="ns_send_and_receive_zcash">Send and receive Zcash</string>
     <string name="ns_add_address_hint">Add address here</string>
     <string name="ns_paste_from_clip_board">Paste from clipboard</string>
-    <string name="ns_clipboard_wrong_text_paste_error">It appears that the last copied value is not a valid Zcash address.</string>
+    <string name="ns_clipboard_wrong_text_paste_error">마지막으로 복사한 주소가 유효한 지캐시 주소가 아닌 것 같습니다.</string>
     <string name="ns_memo">Memo</string>
     <string name="ns_pool">Pool</string>
     <string name="ns_network">Network</string>
@@ -248,7 +248,7 @@
     <string name="ns_subtotal">Subtotal</string>
     <string name="ns_total_amount">Total amount</string>
     <string name="ns_shielded">Shielded</string>
-    <string name="ns_legacy_shielded_sapling"> Legacy shielded</string>
+    <string name="ns_legacy_shielded_sapling"> 레거시 차폐</string>
     <string name="ns_transparent">Transparent</string>
     <string name="ns_include_reply_to">include reply-to</string>
     <string name="ns_migration_app_title">Migrating form Old App version</string>
@@ -271,7 +271,7 @@
     <string name="link_to_ecc_description">Please confirm opening your device browser to learn more about Unified Addresses.</string>
     <string name="shielding">Shielding…</string>
     <string name="open_settings">Open Settings</string>
-    <string name="notification_permission_dialog_title">Alert</string>
+    <string name="notification_permission_dialog_title">경고</string>
     <string name="notification_permission_dialog_desc">To post any notification we need to provide Notifications permission.\nFrom Settings please allow Notifications permission</string>
     <string name="transaction_id_copied">Transaction ID has been copied to the clipboard.</string>
     <string name="dialog_first_use_view_tx_message">Are you sure you\'d like to leave the app? This could reduce privacy if you do not trust the destination.</string>
@@ -285,4 +285,7 @@
     <string name="nuke_wallet_caution">CAUTION: This will completely wipe your wallet and you will be unable to recover funds without your seed words. Ensure you have them saved somewhere safe before proceeding</string>
     <string name="nuke_wallet_dialog_msg">This operation is IRREVERSIBLE. Restoring your funds will be impossible without seed words. Be ABSOLUTELY sure you have saved them somewhere safe before proceeding. Do you still want to proceed?</string>
     <string name="are_you_sure">Are you sure?</string>
+    <string name="app_icon">App Icon</string>
+    <string name="default_name">Default</string>
+    <string name="retro">Retro</string>
 </resources>

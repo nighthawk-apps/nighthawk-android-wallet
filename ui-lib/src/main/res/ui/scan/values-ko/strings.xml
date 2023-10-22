@@ -1,15 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="scan_header">Scan a Zcash QR</string>
-    <string name="scan_back_content_description">Back</string>
-    <string name="scan_preview_content_description">Camera</string>
-    <string name="scan_hint">You can scan any Zcash QR code.</string>
-    <string name="scan_settings_button">Enable camera permission</string>
-    <string name="scan_settings_open_failed">Unable to launch Settings app.</string>
-    <string name="scan_setup_failed">Unable to run QR scanner.</string>
-    <string name="scan_setup_back">Back</string>
-    <string name="scan_state_permission">Permission for camera is necessary.</string>
-    <string name="scan_state_scanning">Scanning…</string>
-    <string name="scan_state_failed">Scanning failed!</string>
-    <string name="scan_validation_invalid_address">Invalid Zcash address scanned.</string>
+    <string name="scan_header">Zcash QR을 스캔하세요</string>
+    <string name="scan_back_content_description">돌아가기</string>
+    <string name="scan_preview_content_description">카메라</string>
+    <string name="scan_hint">당신은 모든 Zcash QR 코드를 스캔할 수 있습니다.</string>
+    <string name="scan_settings_button">카메라 권한 활성화</string>
+    <string name="scan_settings_open_failed">설정 앱을 시작할 수 없습니다.</string>
+    <string name="scan_setup_failed">QR 스캐너를 실행할 수 없습니다.</string>
+    <string name="scan_setup_back">돌아가기</string>
+    <string name="scan_state_permission">카메라에 대한 권한이 필요합니다.</string>
+    <string name="scan_state_scanning">스캔 중…</string>
+    <string name="scan_state_failed">스캔이 실패했습니다!</string>
+    <string name="scan_validation_invalid_address">잘못된 지캐시 주소가 스캔되었습니다.</string>
 </resources>
