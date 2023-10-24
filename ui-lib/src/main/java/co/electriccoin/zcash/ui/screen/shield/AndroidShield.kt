@@ -54,7 +54,7 @@ internal fun WrapShield(activity: ComponentActivity, onBack: () -> Unit) {
             when (val destination = shieldUIState.destination) {
                 is ShieldUiDestination.AutoShieldError -> {
                     // May be log or may be show error and navigate back
-                    Twig.info { "Error is ${destination.message}" }
+                    Twig.debug { "Error is ${destination.message}" }
                     Toast.makeText(activity, destination.message ?: "Error in autoShielding", Toast.LENGTH_SHORT).show()
                     onBack()
                 }
@@ -75,15 +75,15 @@ internal fun WrapShield(activity: ComponentActivity, onBack: () -> Unit) {
                         if (synchronizer != null && spendingKey != null) {
                             scope.launch(Dispatchers.IO) {
                                 runCatching {
-                                    Twig.info { "AutoShield onStarted" }
+                                    Twig.debug { "AutoShield onStarted" }
                                     synchronizer.shieldFunds(spendingKey)
                                 }
                                     .onSuccess {
-                                        Twig.info { "AutoShield onSuccess $it" }
+                                        Twig.debug { "AutoShield onSuccess $it" }
                                         shieldViewModel.updateShieldingProcessState(ShieldingProcessState.SUCCESS)
                                     }
                                     .onFailure {
-                                        Twig.info { "AutoShield onFailure $it" }
+                                        Twig.debug { "AutoShield onFailure $it" }
                                         shieldViewModel.updateShieldingProcessState(ShieldingProcessState.FAILURE)
                                     }
                             }

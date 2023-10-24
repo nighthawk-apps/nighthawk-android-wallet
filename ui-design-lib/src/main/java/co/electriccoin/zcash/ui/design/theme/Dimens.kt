@@ -47,23 +47,23 @@ internal var LocalDimens = staticCompositionLocalOf { defaultDimens }
  *     val screenLayoutBitMask = LocalConfiguration.current.screenLayout
  *     val resultDimens = when (screenLayoutBitMask and SCREENLAYOUT_SIZE_MASK) {
  *         SCREENLAYOUT_SIZE_SMALL -> {
- *             Twig.info { "Current device screen size: SMALL. Screen is approximately 320x426 dp at least." }
+ *             Twig.debug { "Current device screen size: SMALL. Screen is approximately 320x426 dp at least." }
  *             smallDimens
  *         }
  *         SCREENLAYOUT_SIZE_NORMAL -> {
- *             Twig.info { "Current device screen size: NORMAL. Screen is approximately 320x470 dp at least." }
+ *             Twig.debug { "Current device screen size: NORMAL. Screen is approximately 320x470 dp at least." }
  *             normalDimens
  *         }
  *         SCREENLAYOUT_SIZE_LARGE -> {
- *             Twig.info { "Current device screen size: LARGE. Screen is approximately 480x640 dp at least." }
+ *             Twig.debug { "Current device screen size: LARGE. Screen is approximately 480x640 dp at least." }
  *             largeDimens
  *         }
  *         SCREENLAYOUT_SIZE_XLARGE -> {
- *             Twig.info { "Current device screen size: XLARGE. Screen is approximately 720x960 dp at least." }
+ *             Twig.debug { "Current device screen size: XLARGE. Screen is approximately 720x960 dp at least." }
  *             xlargeDimens
  *         }
  *         else -> {
- *             Twig.info { "Current device screen size: UNDEFINED - using NORMAL size values." }
+ *             Twig.debug { "Current device screen size: UNDEFINED - using NORMAL size values." }
  *             normalDimens
  *         }
  *     }

@@ -55,7 +55,7 @@ class UnsUtil {
                                         val data = gson.fromJson(responseBody.string(), Domain::class.java).records?.zecAddress
                                         cont.resumeWith(Result.success(data))
                                     } catch (e: IOException) {
-                                        Twig.info { "uns + ${e.message}" }
+                                        Twig.debug { "uns + ${e.message}" }
                                     }
                                 }
                             }
@@ -96,7 +96,7 @@ class UnsUtil {
                                     val data = gson.fromJson(responseBody.string(), TLD::class.java).tlds
                                     cont.resumeWith(Result.success(data))
                                 } catch (e: IOException) {
-                                    Twig.info { "uns + ${e.message}" }
+                                    Twig.debug { "uns + ${e.message}" }
                                 }
                             }
                         }

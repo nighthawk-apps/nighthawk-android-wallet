@@ -78,7 +78,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                             is Resource.Success -> {
                                 val value = it.response.data.values.firstOrNull()
                                 saveFiatCurrencyValue(value)
-                                Twig.info { "Price fetched $value" }
+                                Twig.debug { "Price fetched $value" }
                                 _fiatCurrencyUiStateFlow.update { fiatCurrencyUiState ->
                                     fiatCurrencyUiState.copy(
                                         fiatCurrency = FiatCurrency.getFiatCurrencyByServerUrl(currencyServerUrl),
@@ -87,7 +87,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                                 }
                             }
                             else -> {
-                                Twig.info { "Getting price state $it" }
+                                Twig.debug { "Getting price state $it" }
                             }
                         }
                     }

@@ -13,6 +13,6 @@ internal fun MainActivity.AndroidTransfer(onSendMoney: () -> Unit, onReceiveMone
 
 @Composable
 internal fun WrapTransfer(activity: ComponentActivity, onSendMoney: () -> Unit, onReceiveMoney: () -> Unit, onTopUp: () -> Unit) {
-    Twig.info { "Just for initial run $activity" }
+    Twig.debug { "Just for initial run $activity" }
     TransferMainView(onSendMoney = onSendMoney, onReceiveMoney = onReceiveMoney, onTopUp = onTopUp)
 }

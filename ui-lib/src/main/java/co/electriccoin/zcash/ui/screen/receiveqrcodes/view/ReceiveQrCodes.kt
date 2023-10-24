@@ -127,7 +127,7 @@ fun ReceiveQrCodes(
     onBack: () -> Unit,
     onSeeMoreTopUpOption: () -> Unit
 ) {
-    Twig.info { "WalletAddresses $walletAddresses" }
+    Twig.debug { "WalletAddresses $walletAddresses" }
     val clipboardManager = LocalClipboardManager.current
     val context = LocalContext.current
     Column(

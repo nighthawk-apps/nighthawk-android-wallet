@@ -16,7 +16,7 @@ class ZcashApplication : CoroutineApplication() {
 
     private fun configureLogging() {
         Twig.initialize(applicationContext)
-        Twig.info { "Starting application…" }
+        Twig.debug { "Starting application…" }
 
         if (!BuildConfig.DEBUG) {
             // In release builds, logs should be stripped by R8 rules

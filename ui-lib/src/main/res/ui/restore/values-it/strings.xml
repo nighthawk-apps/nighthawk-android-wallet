@@ -285,4 +285,7 @@
     <string name="nuke_wallet_caution">ATTENZIONE: Questo cancellerà completamente il tuo portafoglio e non sarai in grado di recuperare fondi senza le parole del tuo seed. Assicurati di averle salvate in un posto sicuro prima di procedere</string>
     <string name="nuke_wallet_dialog_msg">Questa operazione è IRREVERSIBLE. Ripristinare i tuoi fondi sarà impossibile senza parole del seed. Sii ASSOLUTAMENTE sicuro di averle salvate da qualche parte prima di procedere. Vuoi ancora procedere?</string>
     <string name="are_you_sure">Are you sure?</string>
+    <string name="app_icon">App Icon</string>
+    <string name="default_name">Default</string>
+    <string name="retro">Retro</string>
 </resources>

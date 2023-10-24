@@ -137,7 +137,7 @@ internal fun WrapWallet(
         val fiatCurrencyUiState by homeViewModel.fiatCurrencyUiStateFlow.collectAsStateWithLifecycle()
         val isFiatCurrencyPreferred by homeViewModel.isFiatCurrencyPreferredOverZec.collectAsStateWithLifecycle()
 
-        settingsViewModel.setBanditAvailable(walletViewModel.isUserEligibleForBandit.collectAsStateWithLifecycle().value)
+        settingsViewModel.setBanditStatus(walletViewModel.isBandit.collectAsStateWithLifecycle().value)
 
         WalletView(
             walletSnapshot = walletSnapshot,
@@ -159,7 +159,7 @@ internal fun WrapWallet(
             ((shieldUIState is ShieldUIState.OnResult) && shieldUIState.destination == ShieldUiDestination.ShieldFunds)
                 .let {
                     if (it && isAutoShieldingInitiated.value.not()) {
-                        Twig.info { "AutoShield available" }
+                        Twig.debug { "AutoShield available" }
                         isAutoShieldingInitiated.value = true
                         shieldViewModel.clearData()
                         onShieldNow()

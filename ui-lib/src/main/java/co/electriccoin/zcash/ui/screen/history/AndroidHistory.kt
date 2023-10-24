@@ -29,7 +29,7 @@ internal fun WrapHistory(
     val transactionHistoryState =
         walletViewModel.transactionHistoryState.collectAsStateWithLifecycle().value
 
-    Twig.info { "Current transaction history state: $transactionHistoryState" }
+    Twig.debug { "Current transaction history state: $transactionHistoryState" }
 
     History(
         transactionState = transactionHistoryState,

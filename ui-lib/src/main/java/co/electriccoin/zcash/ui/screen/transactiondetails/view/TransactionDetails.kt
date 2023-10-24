@@ -139,7 +139,7 @@ fun TransactionDetails(
         Spacer(modifier = Modifier.height(38.dp))
 
         if (transactionDetailsUIModel?.transactionOverview == null) {
-            Twig.info { "Transaction overview ui model is null" }
+            Twig.debug { "Transaction overview ui model is null" }
             BodyMedium(
                 text = stringResource(id = R.string.ns_transaction_details_error_msg),
                 textAlign = TextAlign.Center,

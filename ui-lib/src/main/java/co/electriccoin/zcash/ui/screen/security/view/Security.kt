@@ -96,7 +96,7 @@ fun Security(onBack: () -> Unit, isPinEnabled: Boolean, isTouchIdOrFaceEnabled: 
             Switch(
                 checked = isTouchIdOrFaceEnabled,
                 onCheckedChange = {
-                    Twig.info { "toggle value changed $it" }
+                    Twig.debug { "toggle value changed $it" }
                     if (isPinEnabled.not()) {
                         Toast.makeText(context, context.getString(R.string.set_pin_code_request), Toast.LENGTH_SHORT).show()
                         return@Switch

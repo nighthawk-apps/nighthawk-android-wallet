@@ -13,7 +13,7 @@ object ClipboardManagerUtil {
         label: String,
         value: String
     ) {
-        Twig.info { "Copied to clipboard: label: $label, value: $value" }
+        Twig.debug { "Copied to clipboard: label: $label, value: $value" }
         val clipboardManager = context.getSystemService(ClipboardManager::class.java)
         val data = ClipData.newPlainText(
             label,

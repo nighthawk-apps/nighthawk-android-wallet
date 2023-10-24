@@ -66,7 +66,7 @@ fun PrimaryButton(
     ),
     enabled: Boolean = true
 ) {
-    Twig.info { "$outerPaddingValues" }
+    Twig.debug { "$outerPaddingValues" }
     Button(
         onClick = onClick,
         modifier = modifier,
@@ -148,7 +148,7 @@ fun TertiaryButton(
     ),
     enabled: Boolean = true
 ) {
-    Twig.info { "$outerPaddingValues" }
+    Twig.debug { "$outerPaddingValues" }
     Button(
         onClick = onClick,
         modifier = modifier,

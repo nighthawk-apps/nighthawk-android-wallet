@@ -124,7 +124,7 @@ class SendViewModel(val context: Application) : AndroidViewModel(application = c
     }
 
     fun onKeyPressed(numberPadValueTypes: NumberPadValueTypes) {
-        Twig.info { "WrapAndroidSend: onKeyPressed $numberPadValueTypes" }
+        Twig.debug { "WrapAndroidSend: onKeyPressed $numberPadValueTypes" }
         when (numberPadValueTypes) {
             is NumberPadValueTypes.BackSpace -> onBackSpaceKeyPressed()
             is NumberPadValueTypes.Number -> onNumberKeyPressed(numberPadValueTypes.value)
@@ -137,7 +137,7 @@ class SendViewModel(val context: Application) : AndroidViewModel(application = c
     }
 
     fun updateEnterZecUiStateWithWalletSnapshot(walletSnapshot: WalletSnapshot) {
-        Twig.info { "SendVieModel walletSnapShot $walletSnapshot" }
+        Twig.debug { "SendVieModel walletSnapShot $walletSnapshot" }
         _enterZecUIState.getAndUpdate {
             val availableZatoshi =
                 walletSnapshot.saplingBalance.available.takeIf { available -> available.value > ZcashSdk.MINERS_FEE.value }
@@ -227,7 +227,7 @@ class SendViewModel(val context: Application) : AndroidViewModel(application = c
                 synchronizer.send(spendingKey = spendingKey, send = zecSend)
             }
                 .onSuccess {
-                    Twig.info { "Sending Zec: Sent successfully $it" }
+                    Twig.debug { "Sending Zec: Sent successfully $it" }
                     updateSendConfirmationState(SendConfirmationState.Success(it))
                 }
                 .onFailure {
@@ -311,7 +311,7 @@ class SendViewModel(val context: Application) : AndroidViewModel(application = c
                         addressType = synchronizer.validateAddress(unsAddress)
                     }
                 }.onFailure {
-                    Twig.info { "Error in validating unstoppable address $it" }
+                    Twig.debug { "Error in validating unstoppable address $it" }
                 }
             }
         }

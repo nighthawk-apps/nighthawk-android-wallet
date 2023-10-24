@@ -1,15 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
     <string name="support_header">문의하기</string>
-    <string name="support_back_content_description">Back</string>
-    <string name="support_hint">How can we help?</string>
+    <string name="support_back_content_description">돌아가기</string>
+    <string name="support_hint">어떤 도움이 필요하신가요?</string>
     <string name="support_send">보내기</string>
     <string name="support_confirmation_dialog_ok">OK</string>
     <string name="support_confirmation_dialog_cancel">취소</string>
-    <string name="support_confirmation_explanation"><xliff:g id="app_name" example="Zcash">%1$s</xliff:g> is about to open your email app with a pre-filled message.\n\nBe sure to hit send within your email app.</string>
+    <string name="support_confirmation_explanation"><xliff:g id="app_name" example="Zcash">%1$s</xliff:g>가 미리 채워진 메시지로 이메일 앱을 열려고 합니다.\n\n이메일 앱에서 전송을 누르십시오.</string>
     <!-- This is replaced by a resource overlay via app/build.gradle.kts -->
     <string name="support_email_address"></string>
-    <string name="support_information">Please let us know about any problems you have had, or features you want to see in the future.</string>
-    <string name="support_disclaimer">Information provided is handled in accordance with our Privacy Policy.</string>
-    <string name="support_unable_to_open_email">Unable to launch email app.</string>
+    <string name="support_information">사용하면서 겪었던 문제나 앞으로 추가되었으면 하는 기능에 대해 알려주세요.</string>
+    <string name="support_disclaimer">제공된 정보는 당사의 개인정보 취급방침에 따라 처리됩니다.</string>
+    <string name="support_unable_to_open_email">이메일 앱을 열 수 없습니다</string>
 </resources>

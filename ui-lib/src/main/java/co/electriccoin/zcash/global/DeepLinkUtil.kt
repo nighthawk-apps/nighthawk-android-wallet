@@ -33,11 +33,11 @@ object DeepLinkUtil {
             if (!uriString.startsWith("z", ignoreCase = true)) return null
             uriString = uriString.replace("?$query", "") // address
 
-            Twig.info { "DeepLinkUtil: uri is: $uri address is $uriString amount is $amount memo is $memo" }
+            Twig.debug { "DeepLinkUtil: uri is: $uri address is $uriString amount is $amount memo is $memo" }
 
             return SendDeepLinkData(address = uriString, amount = amount.value, memo = memo)
         } catch (e: Exception) {
-            Twig.info {  "Error in parsing deep link $uri and error is $e" }
+            Twig.debug {  "Error in parsing deep link $uri and error is $e" }
             return null
         }
     }

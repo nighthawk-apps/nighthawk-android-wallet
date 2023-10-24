@@ -93,7 +93,7 @@ class TransactionViewModel(application: Application) : AndroidViewModel(applicat
     ) {
         viewModelScope.launch(Dispatchers.IO) {
             synchronizer.getMemos(transactionOverview).collectLatest { memo ->
-                Twig.info { "memo $memo and ${transactionOverview.netValue}" }
+                Twig.debug { "memo $memo and ${transactionOverview.netValue}" }
                 _transactionDetailsUiModel.update {
                     it?.copy(memo = memo) ?: TransactionDetailsUIModel(
                         null,

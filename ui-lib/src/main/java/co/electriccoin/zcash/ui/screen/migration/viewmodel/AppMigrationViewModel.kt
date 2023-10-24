@@ -56,7 +56,7 @@ class AppMigrationViewModel(private val context: Application) : AndroidViewModel
                 }
             } catch (e: Exception) {
                 _appMigrationState.update { AppMigrationState.Error(throwable = e) }
-                Twig.info { "Exception while checking for oldAppMigration $e" }
+                Twig.debug { "Exception while checking for oldAppMigration $e" }
             }
         }
     }
@@ -76,7 +76,7 @@ class AppMigrationViewModel(private val context: Application) : AndroidViewModel
             try {
                 oldSecurePreference.clear()
             } catch (e: Exception) {
-                Twig.info { "Exception while clearing data from oldAppMigration $e" }
+                Twig.debug { "Exception while clearing data from oldAppMigration $e" }
             }
         }
     }
