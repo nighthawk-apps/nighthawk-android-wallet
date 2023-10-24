@@ -3,11 +3,10 @@ package co.electriccoin.zcash.ui.screen.settings.nighthawk
 import androidx.activity.ComponentActivity
 import androidx.activity.viewModels
 import androidx.compose.runtime.Composable
-import co.electriccoin.zcash.spackle.getPackageInfoCompat
 import co.electriccoin.zcash.ui.MainActivity
 import co.electriccoin.zcash.ui.R
+import co.electriccoin.zcash.ui.common.VersionInfo
 import co.electriccoin.zcash.ui.common.showMessage
-import co.electriccoin.zcash.ui.screen.about.model.VersionInfo
 import co.electriccoin.zcash.ui.screen.home.viewmodel.WalletViewModel
 import co.electriccoin.zcash.ui.screen.settings.nighthawk.model.ReScanType
 import co.electriccoin.zcash.ui.screen.settings.nighthawk.view.SettingsView
@@ -48,7 +47,6 @@ internal fun WrapSettings(
     onExternalServices: () -> Unit,
     onAbout: () -> Unit
 ) {
-    val packageInfo = activity.packageManager.getPackageInfoCompat(activity.packageName, 0L)
     val walletViewModel by activity.viewModels<WalletViewModel>()
 
     val onReScan: (ReScanType) -> Unit = {
@@ -65,7 +63,7 @@ internal fun WrapSettings(
     }
 
     SettingsView(
-        versionInfo = VersionInfo.new(packageInfo),
+        versionInfo = VersionInfo.new(activity),
         onSyncNotifications = onSyncNotifications,
         onFiatCurrency = onFiatCurrency,
         onSecurity = onSecurity,

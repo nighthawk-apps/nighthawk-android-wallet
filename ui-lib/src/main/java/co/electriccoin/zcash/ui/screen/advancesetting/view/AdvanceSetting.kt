@@ -57,7 +57,7 @@ fun AdvanceSettingPreview() {
                 isScreenOnEnabled = true,
                 isBanditAvailable = true,
                 preferredLogo = null,
-                allAvailableLogo = AvailableLogo.values().toList().toPersistentList(),
+                allAvailableLogo = AvailableLogo.entries.toPersistentList(),
                 onScreenOnEnabledChanged = {},
                 onBack = {},
                 onNukeWallet = {},
