@@ -228,14 +228,14 @@ class WalletViewModel(application: Application) : AndroidViewModel(application) 
             persistentListOf()
         )
 
-    val isUserEligibleForBandit = transactionSnapshot.filterNotNull()
+    val isBandit = transactionSnapshot.filterNotNull()
         .mapNotNull {
             it.find { transactionOverview ->
                 transactionOverview.isSentTransaction && transactionOverview.netValue >= BANDIT_MIN_AMOUNT_ZEC.convertZecToZatoshi()
             }
         }
         .mapNotNull { transactionOverView ->
-            Twig.info { "Transaction for recipient ${transactionOverView.isSentTransaction}  ${transactionOverView.netValue}" }
+            Twig.debug { "Transaction for recipient ${transactionOverView.isSentTransaction} ${transactionOverView.netValue}" }
             synchronizer.value?.getRecipients(transactionOverView)?.filterIsInstance<TransactionRecipient.Address>()?.filter { transactionRecipient ->
                 transactionRecipient.addressValue == BANDIT_NIGHTHAWK_ADDRESS
             }?.firstOrNull()
@@ -249,7 +249,6 @@ class WalletViewModel(application: Application) : AndroidViewModel(application) 
             SharingStarted.WhileSubscribed(ANDROID_STATE_FLOW_TIMEOUT),
             false
         )
-
 
     val addresses: StateFlow<WalletAddresses?> = synchronizer
         .filterNotNull()

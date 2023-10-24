@@ -77,7 +77,7 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
         setBooleanPreference(StandardPreferenceKeys.IS_KEEP_SCREEN_ON_DURING_SYNC, enabled)
     }
 
-    fun setBanditAvailable(enabled: Boolean) {
+    fun setBanditStatus(enabled: Boolean) {
         setBooleanPreference(StandardPreferenceKeys.IS_BANDIT_AVAILABLE, enabled)
         if (enabled.not()) { // reset logo
             setPreferredLogo(availableLogo = AvailableLogo.DEFAULT)

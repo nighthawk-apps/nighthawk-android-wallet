@@ -34,7 +34,7 @@ fun List<CrashInfo>.toCrashSupportString() = buildString {
 private const val MAX_EXCEPTIONS_TO_REPORT = 5
 
 suspend fun CrashInfo.Companion.all(context: Context): List<CrashInfo> {
-    Twig.info { "$context" }
+    Twig.debug { "$context" }
     return emptyList()
     /*val exceptionDirectory = ExceptionPath.getExceptionDirectory(context) ?: return emptyList()
     val filesList: List<File> = exceptionDirectory.listFilesSuspend().toList()

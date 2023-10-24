@@ -158,7 +158,7 @@ internal fun MainActivity.MainNavigation(navHostController: NavHostController, p
         composable(SCAN) {
             WrapScanValidator(
                 onScanValid = { result ->
-                    Twig.info { "OnScanValid: $result" }
+                    Twig.debug { "OnScanValid: $result" }
                     // At this point we only pass recipient address
                     navHostController.previousBackStackEntry?.savedStateHandle?.apply {
                         set(NavigationArguments.SEND_RECIPIENT_ADDRESS, result)

@@ -144,7 +144,7 @@ fun WalletView(
         )
     ) {
         val isBalancePrivateMode = remember { mutableStateOf(true) }
-        Twig.info { "walletSnapshot $walletSnapshot and is fiat currency preferred $isFiatCurrencyPreferred" }
+        Twig.debug { "walletSnapshot $walletSnapshot and is fiat currency preferred $isFiatCurrencyPreferred" }
         Spacer(modifier = Modifier.height(dimensionResource(id = R.dimen.top_margin_back_btn)))
         Row(
             modifier = Modifier.fillMaxWidth(),

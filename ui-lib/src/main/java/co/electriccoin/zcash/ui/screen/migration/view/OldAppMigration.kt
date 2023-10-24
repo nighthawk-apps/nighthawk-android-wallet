@@ -112,7 +112,7 @@ fun OldAppMigration(
             }
 
             is AppMigrationState.DataRecovered -> {
-                Twig.info { "DataRecovered ${appMigrationState.persistableWallet}" }
+                Twig.debug { "DataRecovered ${appMigrationState.persistableWallet}" }
                 onDataRecovered(appMigrationState.persistableWallet)
             }
         }

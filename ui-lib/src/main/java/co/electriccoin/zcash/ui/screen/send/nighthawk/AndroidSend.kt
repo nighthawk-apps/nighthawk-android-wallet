@@ -89,7 +89,7 @@ internal fun WrapAndroidSend(
 
     val sendUIState = sendViewModel.currentSendUIState.collectAsStateWithLifecycle()
     BackHandler(enabled = sendUIState.value != SendUIState.ENTER_ZEC) {
-        Twig.info { "WrapAndroidSend BackHandler: sendUIState $sendUIState" }
+        Twig.debug { "WrapAndroidSend BackHandler: sendUIState $sendUIState" }
     }
     DisposableEffect(key1 = Unit) {
 
@@ -108,7 +108,7 @@ internal fun WrapAndroidSend(
         }
 
         onDispose {
-            Twig.info { "WrapAndroidSend: onDispose $sendUIState" }
+            Twig.debug { "WrapAndroidSend: onDispose $sendUIState" }
         }
     }
 

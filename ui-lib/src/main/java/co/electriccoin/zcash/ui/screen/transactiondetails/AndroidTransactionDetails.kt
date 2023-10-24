@@ -41,7 +41,7 @@ internal fun WrapAndroidTransactionDetails(
     transactionId: String,
     onBack: () -> Unit
 ) {
-    Twig.info { "TransactionId $transactionId" }
+    Twig.debug { "TransactionId $transactionId" }
     val walletViewModel by activity.viewModels<WalletViewModel>()
     val homeViewModel by activity.viewModels<HomeViewModel>()
     val transactionUiViewModel = viewModel<TransactionViewModel>()
@@ -75,7 +75,7 @@ internal fun WrapAndroidTransactionDetails(
         }
     }
 
-    Twig.info { "TransactionDetailUiModel: $transactionDetailsUIModel" }
+    Twig.debug { "TransactionDetailUiModel: $transactionDetailsUIModel" }
 
     TransactionDetails(
         transactionDetailsUIModel = transactionDetailsUIModel,

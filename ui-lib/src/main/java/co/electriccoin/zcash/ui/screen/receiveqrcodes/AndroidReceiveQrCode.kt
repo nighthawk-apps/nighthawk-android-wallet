@@ -19,7 +19,7 @@ fun WrapReceiveQrCodes(activity: ComponentActivity, onBack: () -> Unit, onSeeMor
     val walletViewModel by activity.viewModels<WalletViewModel>()
     val walletAddresses = walletViewModel.addresses.collectAsStateWithLifecycle().value
     if (walletAddresses == null) {
-        Twig.info { "WalletAddress is null" } // We can show loading dialog or error
+        Twig.debug { "WalletAddress is null" } // We can show loading dialog or error
     } else {
         ReceiveQrCodes(walletAddresses = walletAddresses, onBack = onBack, onSeeMoreTopUpOption = onSeeMoreTopUpOption)
     }
