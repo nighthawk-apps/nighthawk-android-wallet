@@ -64,7 +64,6 @@ dependencies {
     implementation(libs.bundles.androidx.camera)
     implementation(libs.bundles.androidx.compose.core)
     implementation(libs.bundles.androidx.compose.extended)
-    implementation(libs.bundles.play.update)
     implementation(libs.kotlin.stdlib)
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.kotlinx.coroutines.core)

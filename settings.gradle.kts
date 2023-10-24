@@ -60,7 +60,6 @@ pluginManagement {
         id("com.android.test") version (androidGradlePluginVersion) apply (false)
         id("com.github.ben-manes.versions") version (extra["GRADLE_VERSIONS_PLUGIN_VERSION"].toString()) apply (false)
         id("com.github.triplet.play") version (extra["PLAY_PUBLISHER_PLUGIN_VERSION"].toString()) apply (false)
-        id("com.osacky.fulladle") version (extra["FULLADLE_VERSION"].toString()) apply (false)
         id("org.jetbrains.kotlinx.kover") version (extra["KOVER_VERSION"].toString()) apply (false)
         id("wtf.emulator.gradle") version (extra["EMULATOR_WTF_GRADLE_PLUGIN_VERSION"].toString()) apply (false)
         id("com.mikepenz.aboutlibraries.plugin") version (extra["ABOUT_LIBRARIES_VERSION"].toString()) apply (false)
@@ -85,7 +84,6 @@ dependencyResolutionManagement {
             "com.google.android.gms",
             "com.google.android.material",
             "com.google.android.play",
-            "com.google.firebase",
             "com.google.testing.platform",
             "com.google.android.apps.common.testing.accessibility.framework"
         )
@@ -179,8 +177,6 @@ dependencyResolutionManagement {
             val kotlinxDateTimeVersion = extra["KOTLINX_DATETIME_VERSION"].toString()
             val kotlinxCoroutinesVersion = extra["KOTLINX_COROUTINES_VERSION"].toString()
             val kotlinxImmutableCollectionsVersion = extra["KOTLINX_IMMUTABLE_COLLECTIONS_VERSION"].toString()
-            val playAppUpdateVersion = extra["PLAY_APP_UPDATE_VERSION"].toString()
-            val playAppUpdateKtxVersion = extra["PLAY_APP_UPDATE_KTX_VERSION"].toString()
             val zcashBip39Version = extra["ZCASH_BIP39_VERSION"].toString()
             val zcashSdkVersion = extra["ZCASH_SDK_VERSION"].toString()
             val zxingVersion = extra["ZXING_VERSION"].toString()
@@ -227,10 +223,6 @@ dependencyResolutionManagement {
             library("androidx-viewmodel-compose", "androidx.lifecycle:lifecycle-viewmodel-compose:$androidxLifecycleVersion")
             library("androidx-workmanager", "androidx.work:work-runtime-ktx:$androidxWorkManagerVersion")
             library("desugaring", "com.android.tools:desugar_jdk_libs:$coreLibraryDesugaringVersion")
-            library("firebase-bom", "com.google.firebase:firebase-bom:${extra["FIREBASE_BOM_VERSION_MATCHER"]}")
-            library("firebase-installations", "com.google.firebase", "firebase-installations").withoutVersion()
-            library("firebase-crashlytics", "com.google.firebase", "firebase-crashlytics-ktx").withoutVersion()
-            library("firebase-crashlytics-ndk", "com.google.firebase", "firebase-crashlytics-ndk").withoutVersion()
             library("kotlin-stdlib", "org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlinVersion")
             library("kotlin-reflect", "org.jetbrains.kotlin:kotlin-reflect:$kotlinVersion")
             library("kotlin-test", "org.jetbrains.kotlin:kotlin-test:$kotlinVersion")
@@ -239,8 +231,6 @@ dependencyResolutionManagement {
             library("kotlinx-coroutines-guava", "org.jetbrains.kotlinx:kotlinx-coroutines-guava:$kotlinxCoroutinesVersion")
             library("kotlinx-datetime", "org.jetbrains.kotlinx:kotlinx-datetime:$kotlinxDateTimeVersion")
             library("kotlinx-immutable", "org.jetbrains.kotlinx:kotlinx-collections-immutable:$kotlinxImmutableCollectionsVersion")
-            library("play-update", "com.google.android.play:app-update:$playAppUpdateVersion")
-            library("play-update-ktx", "com.google.android.play:app-update-ktx:$playAppUpdateKtxVersion")
             library("zcash-sdk", "cash.z.ecc.android:zcash-android-sdk:$zcashSdkVersion")
             library("zcash-sdk-incubator", "cash.z.ecc.android:zcash-android-sdk-incubator:$zcashSdkVersion")
             library("zcash-bip39", "cash.z.ecc.android:kotlin-bip39:$zcashBip39Version")
@@ -300,13 +290,6 @@ dependencyResolutionManagement {
                     "androidx-lifecycle-compose",
                     "androidx-navigation-compose",
                     "androidx-viewmodel-compose"
-                )
-            )
-            bundle(
-                "play-update",
-                listOf(
-                    "play-update",
-                    "play-update-ktx",
                 )
             )
             bundle(
