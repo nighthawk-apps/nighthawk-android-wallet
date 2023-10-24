@@ -27,7 +27,7 @@ internal fun WrapAdvanceSetting(activity: ComponentActivity, onBack: () -> Unit)
         isScreenOnEnabled = isScreenOnEnabled,
         isBanditAvailable = isBanditAvailable,
         preferredLogo = preferredLogo,
-        allAvailableLogo = AvailableLogo.values().toList().toPersistentList(),
+        allAvailableLogo = AvailableLogo.entries.toPersistentList(),
         onScreenOnEnabledChanged =
         settingsViewModel::setKeepScreenOnWhileSyncing,
         onBack = onBack,
