@@ -9,8 +9,8 @@ import androidx.compose.ui.graphics.Color
 import co.electriccoin.zcash.ui.design.theme.ExtendedColors
 
 internal object Dark {
-    val backgroundStart = Color(0xff243155)
-    val backgroundEnd = Color(0xff29365A)
+    val backgroundStart = Color(0xFF000000)
+    val backgroundEnd = Color(0xFF000000)
 
     val textHeaderOnBackground = Color(0xffCBDCF2)
     val textBodyOnBackground = Color(0xFF93A4BE)
@@ -19,11 +19,11 @@ internal object Dark {
     val textTertiaryButton = Color.White
     val textNavigationButton = Color.Black
     val textCaption = Color(0xFF68728B)
-    val textChipIndex = Color(0xFFFFB900)
+    val textChipIndex = Color(0xFF93A4BE)
 
-    val primaryButton = Color(0xFFFFB900)
-    val primaryButtonPressed = Color(0xFFFFD800)
-    val primaryButtonDisabled = Color(0x33F4B728)
+    val primaryButton = Color(0xffCBDCF2)
+    val primaryButtonPressed = Color(0xFF93A4BE)
+    val primaryButtonDisabled = Color(0xFF68728B)
 
     val secondaryButton = Color(0xFFA7C0D9)
     val secondaryButtonPressed = Color(0xFFC8DCEF)
@@ -36,24 +36,24 @@ internal object Dark {
     val navigationButtonPressed = Color(0xFFC8DCEF)
 
     val progressStart = Color(0xFFF364CE)
-    val progressEnd = Color(0xFFF8964F)
+    val progressEnd = Color(0xFFE91E63)
     val progressBackground = Color(0xFF929bb3)
 
     val callout = Color(0xFFa7bed8)
     val onCallout = Color(0xFF3d698f)
 
     val overlay = Color(0x22000000)
-    val highlight = Color(0xFFFFD800)
+    val highlight = Color(0xFFFFFFFF)
 
     val addressHighlightBorder = Color(0xFF525252)
-    val addressHighlightUnified = Color(0xFFFFD800)
-    val addressHighlightSapling = Color(0xFF1BBFF6)
-    val addressHighlightTransparent = Color(0xFF97999A)
+    val addressHighlightUnified = Color(0xFFFFFFFF)
+    val addressHighlightSapling = Color(0xFF97999A)
+    val addressHighlightTransparent = Color(0xFF1BBFF6)
 
     val dangerous = Color(0xFFEC0008)
     val onDangerous = Color(0xFFFFFFFF)
 
-    val reference = Color(0xFF10A5FF)
+    val reference = Color(0xFF9AD9FF)
 }
 
 internal object Light {
@@ -72,8 +72,8 @@ internal object Light {
 
     // TODO The button colors are wrong for light
     val primaryButton = Color(0xFFFE7757)
-    val primaryButtonPressed = Color(0xFFFFD800)
-    val primaryButtonDisabled = Color(0x33F4B728)
+    val primaryButtonPressed = Color(0xFFFEAD9A)
+    val primaryButtonDisabled = Color(0xFFCE624E)
 
     val secondaryButton = Color(0xFFE8F3FA)
     val secondaryButtonPressed = Color(0xFFFAFBFD)
@@ -86,19 +86,19 @@ internal object Light {
     val navigationButtonPressed = Color(0xFFE3EDF7)
 
     val progressStart = Color(0xFFF364CE)
-    val progressEnd = Color(0xFFF8964F)
+    val progressEnd = Color(0xFFE91E63)
     val progressBackground = Color(0xFFbeccdf)
 
     val callout = Color(0xFFe6f0f9)
     val onCallout = Color(0xFFa1b8d0)
 
     val overlay = Color(0x22000000)
-    val highlight = Color(0xFFFFD800)
+    val highlight = Color(0xFFFEAD9A)
 
     // TODO [#159]: The colors are wrong for light theme
     // TODO [#159]: https://github.com/zcash/secant-android-wallet/issues/159
     val addressHighlightBorder = Color(0xFF525252)
-    val addressHighlightUnified = Color(0xFFFFD800)
+    val addressHighlightUnified = Color(0xFFFEAD9A)
     val addressHighlightSapling = Color(0xFF1BBFF6)
     val addressHighlightTransparent = Color(0xFF97999A)
 
