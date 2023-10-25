@@ -20,11 +20,8 @@ import co.electriccoin.zcash.ui.common.closeDrawerMenu
 import co.electriccoin.zcash.ui.configuration.ConfigurationEntries
 import co.electriccoin.zcash.ui.configuration.RemoteConfig
 import co.electriccoin.zcash.ui.screen.home.view.Home
-import co.electriccoin.zcash.ui.screen.home.viewmodel.CheckUpdateViewModel
 import co.electriccoin.zcash.ui.screen.home.viewmodel.WalletViewModel
 import co.electriccoin.zcash.ui.screen.settings.viewmodel.SettingsViewModel
-import co.electriccoin.zcash.ui.screen.update.AppUpdateCheckerImp
-import co.electriccoin.zcash.ui.screen.update.model.UpdateState
 import kotlinx.coroutines.CoroutineScope
 
 @Composable
@@ -62,17 +59,6 @@ internal fun WrapHome(
     goSend: () -> Unit,
     goHistory: () -> Unit,
 ) {
-    // we want to show information about app update, if available
-    val checkUpdateViewModel by activity.viewModels<CheckUpdateViewModel> {
-        CheckUpdateViewModel.CheckUpdateViewModelFactory(
-            activity.application,
-            AppUpdateCheckerImp.new()
-        )
-    }
-    val updateAvailable = checkUpdateViewModel.updateInfo.collectAsStateWithLifecycle().value.let {
-        it?.appUpdateInfo != null && it.state == UpdateState.Prepared
-    }
-
     val walletViewModel by activity.viewModels<WalletViewModel>()
     val walletSnapshot = walletViewModel.walletSnapshot.collectAsStateWithLifecycle().value
 
@@ -98,7 +84,7 @@ internal fun WrapHome(
 
         Home(
             walletSnapshot,
-            isUpdateAvailable = updateAvailable,
+            isUpdateAvailable = false,
             isKeepScreenOnDuringSync = isKeepScreenOnWhileSyncing,
             isFiatConversionEnabled = isFiatConversionEnabled,
             isCircularProgressBarEnabled = isCircularProgressBarEnabled,

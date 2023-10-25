@@ -22,8 +22,6 @@ import co.electriccoin.zcash.ui.NavigationTargets.SEND
 import co.electriccoin.zcash.ui.NavigationTargets.SETTINGS
 import co.electriccoin.zcash.ui.NavigationTargets.SUPPORT
 import co.electriccoin.zcash.ui.NavigationTargets.WALLET_ADDRESS_DETAILS
-import co.electriccoin.zcash.ui.configuration.ConfigurationEntries
-import co.electriccoin.zcash.ui.configuration.RemoteConfig
 import co.electriccoin.zcash.ui.screen.about.WrapAbout
 import co.electriccoin.zcash.ui.screen.address.WrapWalletAddresses
 import co.electriccoin.zcash.ui.screen.history.WrapHistory
@@ -36,7 +34,6 @@ import co.electriccoin.zcash.ui.screen.send.WrapSend
 import co.electriccoin.zcash.ui.screen.send.model.SendArgumentsWrapper
 import co.electriccoin.zcash.ui.screen.settings.WrapSettings
 import co.electriccoin.zcash.ui.screen.support.WrapSupport
-import co.electriccoin.zcash.ui.screen.update.WrapCheckForUpdate
 
 @Composable
 @Suppress("LongMethod")
@@ -58,10 +55,6 @@ internal fun MainActivity.Navigation() {
                 goSend = { navController.navigateJustOnce(SEND) },
                 goHistory = { navController.navigateJustOnce(HISTORY) }
             )
-
-            if (ConfigurationEntries.IS_APP_UPDATE_CHECK_ENABLED.getValue(RemoteConfig.current)) {
-                WrapCheckForUpdate()
-            }
         }
         composable(WALLET_ADDRESS_DETAILS) {
             WrapWalletAddresses(
