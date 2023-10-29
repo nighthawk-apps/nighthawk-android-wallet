@@ -60,8 +60,8 @@ class MainActivity : FragmentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        window.statusBarColor = ContextCompat.getColor(this, co.electriccoin.zcash.ui.design.R.color.ns_dark_navy)
-        window.navigationBarColor = ContextCompat.getColor(this, co.electriccoin.zcash.ui.design.R.color.ns_dark_navy)
+        window.statusBarColor = ContextCompat.getColor(this, R.color.splash_screen_background)
+        window.navigationBarColor = ContextCompat.getColor(this, R.color.splash_screen_background)
 
         setupSplashScreen()
 

@@ -9,7 +9,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
-import androidx.compose.material3.Divider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
@@ -29,6 +28,7 @@ import co.electriccoin.zcash.ui.R
 import co.electriccoin.zcash.ui.common.toBalanceValueModel
 import co.electriccoin.zcash.ui.design.component.Body
 import co.electriccoin.zcash.ui.design.component.BodySmall
+import co.electriccoin.zcash.ui.design.component.MaxWidthHorizontalDivider
 import co.electriccoin.zcash.ui.design.component.TitleMedium
 import co.electriccoin.zcash.ui.design.theme.ZcashTheme
 import co.electriccoin.zcash.ui.screen.fiatcurrency.model.FiatCurrency
@@ -108,6 +108,6 @@ fun TransactionOverviewHistoryRow(
             }
         }
         Spacer(modifier = Modifier.height(15.dp))
-        Divider(thickness = 1.dp, color = ZcashTheme.colors.surfaceEnd)
+        MaxWidthHorizontalDivider()
     }
 }

@@ -10,6 +10,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import co.electriccoin.zcash.ui.design.R
 import co.electriccoin.zcash.ui.design.theme.ZcashTheme
@@ -57,13 +58,15 @@ fun BodyMedium(
     modifier: Modifier = Modifier,
     textAlign: TextAlign = TextAlign.Start,
     color: Color = MaterialTheme.colorScheme.onBackground,
+    textDecoration: TextDecoration? = null
 ) {
     Text(
         text = text,
         style = Typography.bodyMedium,
         color = color,
         modifier = modifier,
-        textAlign = textAlign
+        textAlign = textAlign,
+        textDecoration = textDecoration
     )
 }
 

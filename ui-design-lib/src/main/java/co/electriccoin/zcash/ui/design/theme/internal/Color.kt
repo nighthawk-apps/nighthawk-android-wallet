@@ -29,11 +29,12 @@ internal object Dark {
     val secondaryButtonPressed = Color(0xFFC8DCEF)
     val secondaryButtonDisabled = Color(0x33C8DCEF)
 
-    val tertiaryButton = Color.Transparent
+    val tertiaryButton = Color(0xFF131212)
     val tertiaryButtonPressed = Color(0xB0C3D2BA)
 
     val navigationButton = Color(0xFFA7C0D9)
     val navigationButtonPressed = Color(0xFFC8DCEF)
+    val navigationIcon = Color(0xFFFE7757)
 
     val progressStart = Color(0xFFF364CE)
     val progressEnd = Color(0xFFE91E63)
@@ -54,6 +55,10 @@ internal object Dark {
     val onDangerous = Color(0xFFFFFFFF)
 
     val reference = Color(0xFF9AD9FF)
+    val divider = Color(0xFF2B2551)
+    val navigationContainer = Color(0xFF131212)
+    val selectedPageIndicator = Color(0xFFFE7757)
+    val secondaryTitleText = Color(0xFF93A4BE)
 }
 
 internal object Light {
@@ -84,6 +89,7 @@ internal object Light {
 
     val navigationButton = Color(0xFFE3EDF7)
     val navigationButtonPressed = Color(0xFFE3EDF7)
+    val navigationIcon = Color(0xFF110E2B)
 
     val progressStart = Color(0xFFF364CE)
     val progressEnd = Color(0xFFE91E63)
@@ -106,6 +112,10 @@ internal object Light {
     val onDangerous = Color(0xFFFFFFFF)
 
     val reference = primaryPeach
+    val divider = Color(0xFF2B2551)
+    val navigationContainer = Color(0xFF2B2551)
+    val selectedPageIndicator = Color(0xFFD2E4F3)
+    val secondaryTitleText = Color(0xFFD2E4F3)
 }
 
 internal val DarkColorPalette = darkColorScheme(
@@ -149,7 +159,12 @@ internal val DarkExtendedColorPalette = ExtendedColors(
     addressHighlightTransparent = Dark.addressHighlightTransparent,
     dangerous = Dark.dangerous,
     onDangerous = Dark.onDangerous,
-    reference = Dark.reference
+    reference = Dark.reference,
+    divider = Dark.divider,
+    navigationIcon = Dark.navigationIcon,
+    navigationContainer = Dark.navigationContainer,
+    selectedPageIndicator = Dark.selectedPageIndicator,
+    secondaryTitleText = Dark.secondaryTitleText
 )
 
 internal val LightExtendedColorPalette = ExtendedColors(
@@ -171,7 +186,12 @@ internal val LightExtendedColorPalette = ExtendedColors(
     addressHighlightTransparent = Light.addressHighlightTransparent,
     dangerous = Light.dangerous,
     onDangerous = Light.onDangerous,
-    reference = Light.reference
+    reference = Light.reference,
+    divider = Light.divider,
+    navigationIcon = Light.navigationIcon,
+    navigationContainer = Light.navigationContainer,
+    selectedPageIndicator = Light.selectedPageIndicator,
+    secondaryTitleText = Light.secondaryTitleText
 )
 
 @Suppress("CompositionLocalAllowlist")
@@ -195,6 +215,11 @@ internal val LocalExtendedColors = staticCompositionLocalOf {
         addressHighlightTransparent = Color.Unspecified,
         dangerous = Color.Unspecified,
         onDangerous = Color.Unspecified,
-        reference = Color.Unspecified
+        reference = Color.Unspecified,
+        divider = Color.Unspecified,
+        navigationIcon = Color.Unspecified,
+        navigationContainer = Color.Unspecified,
+        selectedPageIndicator = Color.Unspecified,
+        secondaryTitleText = Color.Unspecified
     )
 }

@@ -72,7 +72,7 @@ fun EnterReceiverAddress(receiverAddress: String, isContinueBtnEnabled: Boolean,
         Spacer(Modifier.height(dimensionResource(id = R.dimen.pageMargin)))
         TitleLarge(text = stringResource(id = R.string.ns_nighthawk), textAlign = TextAlign.Center, modifier = Modifier.align(Alignment.CenterHorizontally))
         Spacer(modifier = Modifier.height(dimensionResource(id = R.dimen.pageMargin)))
-        BodyMedium(text = stringResource(id = R.string.ns_choose_who), textAlign = TextAlign.Center, modifier = Modifier.align(Alignment.CenterHorizontally), color = ZcashTheme.colors.surfaceEnd)
+        BodyMedium(text = stringResource(id = R.string.ns_choose_who), textAlign = TextAlign.Center, modifier = Modifier.align(Alignment.CenterHorizontally), color = ZcashTheme.colors.secondaryTitleText)
         Spacer(modifier = Modifier.height(45.dp))
         OutlinedTextField(
             value = address.value,
@@ -85,7 +85,7 @@ fun EnterReceiverAddress(receiverAddress: String, isContinueBtnEnabled: Boolean,
                 .fillMaxWidth()
                 .heightIn(min = 55.dp),
             placeholder = {
-                BodyMedium(text = stringResource(id = R.string.ns_add_address_hint), modifier = Modifier.align(Alignment.CenterHorizontally), color = ZcashTheme.colors.surfaceEnd)
+                BodyMedium(text = stringResource(id = R.string.ns_add_address_hint), modifier = Modifier.align(Alignment.CenterHorizontally), color = ZcashTheme.colors.secondaryTitleText)
             },
             trailingIcon = {
                 if (address.value.isNotBlank()) {

@@ -53,7 +53,7 @@ fun TransferMainView(onSendMoney: () -> Unit, onReceiveMoney: () -> Unit, onTopU
         Spacer(modifier = Modifier.height(dimensionResource(id = R.dimen.pageMargin)))
         TitleLarge(text = stringResource(id = R.string.ns_nighthawk), textAlign = TextAlign.Center, modifier = Modifier.align(Alignment.CenterHorizontally))
         Spacer(modifier = Modifier.height(40.dp))
-        BodyMedium(text = stringResource(id = R.string.ns_send_and_receive_zcash), color = ZcashTheme.colors.surfaceEnd)
+        BodyMedium(text = stringResource(id = R.string.ns_send_and_receive_zcash), color = ZcashTheme.colors.secondaryTitleText)
         Spacer(modifier = Modifier.height(13.dp))
         SettingsListItem(
             iconRes = R.drawable.ic_arrow_back_black_24dp,

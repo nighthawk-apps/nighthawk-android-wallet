@@ -165,7 +165,7 @@ fun AdvanceSetting(
 
         Spacer(modifier = Modifier.height(24.dp))
         TitleMedium(
-            text = stringResource(id = R.string.nuke_wallet),
+            text = stringResource(id = R.string.delete_wallet),
             color = colorResource(
                 id = co.electriccoin.zcash.ui.design.R.color.ns_parmaviolet
             )
@@ -178,7 +178,7 @@ fun AdvanceSetting(
         Spacer(modifier = Modifier.height(8.dp))
         PrimaryButton(
             onClick = { showNukeWalletDialog = true },
-            text = stringResource(id = R.string.nuke_wallet).uppercase(),
+            text = stringResource(id = R.string.delete_wallet).uppercase(),
             modifier = Modifier
                 .align(Alignment.Start)
                 .sizeIn(
@@ -191,7 +191,7 @@ fun AdvanceSetting(
             AlertDialog(
                 title = stringResource(id = R.string.are_you_sure),
                 desc = stringResource(id = R.string.nuke_wallet_dialog_msg),
-                confirmText = stringResource(id = R.string.nuke_wallet),
+                confirmText = stringResource(id = R.string.delete_wallet),
                 dismissText = stringResource(id = R.string.ns_cancel),
                 onConfirm = {
                     onNukeWallet()

@@ -4,6 +4,8 @@ import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import co.electriccoin.zcash.ui.design.theme.internal.DarkColorPalette
+import co.electriccoin.zcash.ui.design.theme.internal.DarkExtendedColorPalette
 import co.electriccoin.zcash.ui.design.theme.internal.ExtendedTypography
 import co.electriccoin.zcash.ui.design.theme.internal.LightColorPalette
 import co.electriccoin.zcash.ui.design.theme.internal.LightExtendedColorPalette
@@ -17,15 +19,13 @@ fun ZcashTheme(
     content: @Composable () -> Unit
 ) {
     val baseColors = if (darkTheme) {
-//        DarkColorPalette
-        LightColorPalette
+        DarkColorPalette
     } else {
         LightColorPalette
     }
 
     val extendedColors = if (darkTheme) {
-//        DarkExtendedColorPalette
-        LightExtendedColorPalette
+        DarkExtendedColorPalette
     } else {
         LightExtendedColorPalette
     }

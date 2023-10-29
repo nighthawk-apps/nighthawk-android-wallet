@@ -32,7 +32,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.colorResource
@@ -266,7 +265,7 @@ fun PageIndicator(pageCount: Int, pagerState: PagerState) {
         horizontalArrangement = Arrangement.Center
     ) {
         repeat(pageCount) { iteration ->
-            val color = if (pagerState.currentPage == iteration) Color(0xFFD2CEF4) else MaterialTheme.colorScheme.primary
+            val color = if (pagerState.currentPage == iteration) ZcashTheme.colors.selectedPageIndicator else MaterialTheme.colorScheme.primary
             Box(
                 modifier = Modifier
                     .padding(2.dp)
