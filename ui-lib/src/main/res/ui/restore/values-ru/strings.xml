@@ -2,7 +2,7 @@
 <resources>
     <string name="restore_header">Create a wallet</string>
     <string name="restore_title">Wallet import</string>
-    <string name="restore_back_content_description">Back</string>
+    <string name="restore_back_content_description">Назад</string>
     <string name="restore_button_clear">Clear</string>
     <string name="restore_seed_instructions">You can import your backed-up wallet by entering your backup recovery phrase (aka seed phrase) now.</string>
     <string name="restore_seed_button_restore">Restore wallet</string>
