@@ -5,7 +5,7 @@
     <string name="home_button_send">Send</string>
     <string name="home_button_history">Transaction History</string>
     <string name="home_information">You won’t be able to transfer funds until your wallet is finished syncing. Please keep your device plugged in and the app open.</string>
-    <string name="home_menu_seed_phrase">My secret phrase</string>
+    <string name="home_menu_seed_phrase">Моя секретная фраза</string>
     <string name="home_menu_settings">Settings</string>
     <string name="home_menu_about">About</string>
     <string name="home_menu_support">Contact support</string>
