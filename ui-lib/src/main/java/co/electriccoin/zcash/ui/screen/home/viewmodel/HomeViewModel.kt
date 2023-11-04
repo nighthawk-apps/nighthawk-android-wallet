@@ -51,6 +51,15 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                 null
             )
 
+    val isDarkThemeEnabled = flow {
+        val preferenceProvider = StandardPreferenceSingleton.getInstance(application)
+        emitAll(StandardPreferenceKeys.IS_DARK_THEME_ENABLED.observe(preferenceProvider))
+    }.stateIn(
+        viewModelScope,
+        SharingStarted.WhileSubscribed(ANDROID_STATE_FLOW_TIMEOUT.inWholeMilliseconds),
+        false
+    )
+
     var intentDataUriForDeepLink: Uri? = null
     var sendDeepLinkData: DeepLinkUtil.SendDeepLinkData? = null
     var shortcutAction: ShortcutAction? = null

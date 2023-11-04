@@ -1,6 +1,5 @@
 package co.electriccoin.zcash.ui.design.theme
 
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -15,7 +14,7 @@ import co.electriccoin.zcash.ui.design.theme.internal.Typography
 
 @Composable
 fun ZcashTheme(
-    darkTheme: Boolean = isSystemInDarkTheme(),
+    darkTheme: Boolean = false /*isSystemInDarkTheme()*/,
     content: @Composable () -> Unit
 ) {
     val baseColors = if (darkTheme) {

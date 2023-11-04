@@ -56,12 +56,14 @@ fun AdvanceSettingPreview() {
             AdvanceSetting(
                 isScreenOnEnabled = true,
                 isBanditAvailable = true,
+                isDarkThemeEnabled = false,
                 preferredLogo = null,
                 allAvailableLogo = AvailableLogo.entries.toPersistentList(),
                 onScreenOnEnabledChanged = {},
                 onBack = {},
                 onNukeWallet = {},
-                onLogoPreferenceChanged = {}
+                onLogoPreferenceChanged = {},
+                onDarkThemePrefChanged = {}
             )
         }
     }
@@ -71,12 +73,14 @@ fun AdvanceSettingPreview() {
 fun AdvanceSetting(
     isScreenOnEnabled: Boolean?,
     isBanditAvailable: Boolean,
+    isDarkThemeEnabled: Boolean?,
     preferredLogo: AvailableLogo?,
     allAvailableLogo: PersistentList<AvailableLogo>,
     onScreenOnEnabledChanged: (isEnabled: Boolean) -> Unit,
     onBack: () -> Unit,
     onNukeWallet: () -> Unit,
-    onLogoPreferenceChanged: (availableLogo: AvailableLogo) -> Unit
+    onLogoPreferenceChanged: (availableLogo: AvailableLogo) -> Unit,
+    onDarkThemePrefChanged: (isEnabled: Boolean) -> Unit
 ) {
     Column(
         modifier = Modifier
@@ -160,6 +164,27 @@ fun AdvanceSetting(
                     Spacer(modifier = Modifier.width(8.dp))
                     BodyMedium(text = stringResource(id = logo.nameId))
                 }
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = 40.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                TitleMedium(
+                    text = stringResource(id = R.string.enable_dark_theme),
+                    color = colorResource(
+                        id = co.electriccoin.zcash.ui.design.R.color.ns_parmaviolet
+                    )
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Switch(
+                    checked = isDarkThemeEnabled ?: false,
+                    onCheckedChange = { onDarkThemePrefChanged(it) },
+                )
             }
         }
 
