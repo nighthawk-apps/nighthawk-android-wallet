@@ -17,9 +17,9 @@
     <string name="send_in_progress_memo_format" formatted="true">with a memo: <xliff:g id="memo" example="for Veronika">%1$s</xliff:g></string>
     <string name="send_in_progress_wait">Please wait</string>
     <string name="send_failure_title">Sending failure</string>
-    <string name="send_failure_amount_address_memo" formatted="true">Sending failed for: <xliff:g id="amount" example="12.345">%1$s</xliff:g> ZEC to <xliff:g id="address" example="zs1g7cqw &#x2026; mvyzgm">%2$s</xliff:g> with a memo: <xliff:g id="memo" example="for Veronika">%3$s</xliff:g></string>
+    <string name="send_failure_amount_address_memo" formatted="true">Отправить не удалось: <xliff:g id="amount" example="12.345">%1$s</xliff:g> ZEC на адрес <xliff:g id="address" example="zs1g7cqw &#x2026; mvyzgm">%2$s</xliff:g> с сообщением: <xliff:g id="memo" example="for Veronika">%3$s</xliff:g></string>
     <string name="send_failure_button">Назад</string>
-    <string name="send_successful_title">Sending successful</string>
-    <string name="send_successful_amount_address_memo" formatted="true">Sending succeeded for: <xliff:g id="amount" example="12.345">%1$s</xliff:g> ZEC to <xliff:g id="address" example="zs1g7cqw &#x2026; mvyzgm">%2$s</xliff:g> with a memo: <xliff:g id="memo" example="for Veronika">%3$s</xliff:g></string>
-    <string name="send_successful_button">Close</string>
+    <string name="send_successful_title">Отправлено успешно</string>
+    <string name="send_successful_amount_address_memo" formatted="true">Успешно отправлено: <xliff:g id="amount" example="12.345">%1$s</xliff:g> ZEC на адрес <xliff:g id="address" example="zs1g7cqw &#x2026; mvyzgm">%2$s</xliff:g> с сообщением: <xliff:g id="memo" example="for Veronika">%3$s</xliff:g></string>
+    <string name="send_successful_button">Закрыть</string>
 </resources>
