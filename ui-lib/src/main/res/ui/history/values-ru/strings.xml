@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
-    <string name="history_title">Transaction history</string>
+    <string name="history_title">История транзакций</string>
     <string name="history_back_content_description">Назад</string>
-    <string name="history_syncing">Additional transactions may be found after syncing completes…</string>
-    <string name="history_empty">No transactions yet</string>
+    <string name="history_syncing">Новые транзакции могут быть найдены после завершения синхронизации…</string>
+    <string name="history_empty">Транзакций пока не было</string>
     <string name="history_item_sent">Sent</string>
     <string name="history_item_received">Received</string>
     <string name="history_item_sending">Sending</string>
-    <string name="history_item_receiving">Receiving</string>
+    <string name="history_item_receiving">Получение</string>
     <string name="history_item_expired">Expired</string>
 </resources>
