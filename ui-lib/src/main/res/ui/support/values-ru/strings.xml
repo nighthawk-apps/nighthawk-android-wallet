@@ -1,15 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
-    <string name="support_header">Contact support</string>
+    <string name="support_header">Написать в поддержку</string>
     <string name="support_back_content_description">Назад</string>
-    <string name="support_hint">How can we help?</string>
+    <string name="support_hint">Как мы можем помочь?</string>
     <string name="support_send">Отправить</string>
     <string name="support_confirmation_dialog_ok">OK</string>
     <string name="support_confirmation_dialog_cancel">Отмена</string>
-    <string name="support_confirmation_explanation"><xliff:g id="app_name" example="Zcash">%1$s</xliff:g> is about to open your email app with a pre-filled message.\n\nBe sure to hit send within your email app.</string>
+    <string name="support_confirmation_explanation"><xliff:g id="app_name" example="Zcash">%1$s</xliff:g> будет открыто приложение электронной почты с предварительно заполненным сообщением.\n\nУбедитесь, что вы нажали кнопку \"Отправить\" в приложении электронной почты.</string>
     <!-- This is replaced by a resource overlay via app/build.gradle.kts -->
     <string name="support_email_address"></string>
-    <string name="support_information">Please let us know about any problems you have had, or features you want to see in the future.</string>
-    <string name="support_disclaimer">Information provided is handled in accordance with our Privacy Policy.</string>
-    <string name="support_unable_to_open_email">Unable to launch email app.</string>
+    <string name="support_information">Пожалуйста, сообщите нам о любых проблемах, с которыми вы столкнулись, или предложения по улучшению приложения.</string>
+    <string name="support_disclaimer">Предоставленная информация обрабатывается в соответствии с нашей политикой конфиденциальности.</string>
+    <string name="support_unable_to_open_email">Не удалось запустить приложение электронной почты.</string>
 </resources>
