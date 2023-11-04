@@ -82,8 +82,9 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
 
     fun setBanditStatus(enabled: Boolean) {
         setBooleanPreference(StandardPreferenceKeys.IS_BANDIT_AVAILABLE, enabled)
-        if (enabled.not()) { // reset logo
+        if (enabled.not()) { // reset logo, theme
             setPreferredLogo(availableLogo = AvailableLogo.DEFAULT)
+            setDarkTheme(enabled = false)
         }
     }
 
