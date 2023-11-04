@@ -2,9 +2,9 @@
 <resources>
     <string name="settings_header">Settings</string>
     <string name="settings_back_content_description">Назад</string>
-    <string name="settings_overflow_content_description">Additional settings</string>
-    <string name="settings_rescan">Rescan blockchain</string>
-    <string name="settings_enable_background_sync">Background sync</string>
-    <string name="settings_enable_keep_screen_on">Keep screen on during sync</string>
-    <string name="settings_enable_analytics">Report crashes</string>
+    <string name="settings_overflow_content_description">Дополнительные настройки</string>
+    <string name="settings_rescan">Пересканировать блокчейн</string>
+    <string name="settings_enable_background_sync">Фоновая синхронизация</string>
+    <string name="settings_enable_keep_screen_on">Во время синхронизации не блокируйте экран</string>
+    <string name="settings_enable_analytics">Отчёт об ошибках</string>
 </resources>
