@@ -1,6 +1,6 @@
 package co.electriccoin.zcash.ui.screen.wallet.view
 
-import androidx.compose.animation.core.FastOutLinearInEasing
+import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -38,7 +38,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -159,7 +159,7 @@ fun WalletView(
         }
         val rotationAngle by animateFloatAsState(
             targetValue = rotationTarget,
-            animationSpec = tween(durationMillis = 1500, easing = FastOutLinearInEasing),
+            animationSpec = tween(durationMillis = 1500, easing = LinearEasing),
             label = "Logo rotate"
         )
         Spacer(modifier = Modifier.height(dimensionResource(id = R.dimen.top_margin_back_btn)))
@@ -186,7 +186,9 @@ fun WalletView(
                 .then(
                     if (isBandit) {
                         Modifier
-                            .rotate(rotationAngle)
+                            .graphicsLayer {
+                                rotationZ = rotationAngle
+                            }
                             .clickable { rotationTarget += 90 }
                     } else Modifier
                 )
