@@ -1,22 +1,22 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources xmlns:tools="http://schemas.android.com/tools" xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
-    <string name="send_title">Send ZEC</string>
+    <string name="send_title">Отправить ZEC</string>
     <string name="send_back_content_description">Назад</string>
     <string name="send_scan_content_description">Сканировать</string>
-    <string name="send_balance" formatted="true"><xliff:g id="balance" example="12.345">%1$s</xliff:g> ZEC Available</string>
-    <string name="send_balance_subtitle">Additional funds may be in transit.</string>
-    <string name="send_to">Who would you like to send ZEC to?</string>
-    <string name="send_amount">How much?</string>
+    <string name="send_balance" formatted="true"><xliff:g id="balance" example="12.345">%1$s</xliff:g> ZEC доступно</string>
+    <string name="send_balance_subtitle">Дополнительные средства в процессе зачисления.</string>
+    <string name="send_to">Кому бы Вы хотели отправить ZEC?</string>
+    <string name="send_amount">Сумма?</string>
     <string name="send_memo">Заметка</string>
     <string name="send_create">Отправить</string>
-    <string name="send_confirmation_amount_and_address_format" formatted="true">Send <xliff:g id="amount" example="12.345">%1$s</xliff:g> ZEC to <xliff:g id="address" example="zs1g7cqw &#x2026; mvyzgm">%2$s</xliff:g>?</string>
-    <string name="send_confirmation_memo_format" formatted="true">Memo: <xliff:g id="memo" example="for Veronika">%1$s</xliff:g></string>
+    <string name="send_confirmation_amount_and_address_format" formatted="true">Отправить <xliff:g id="amount" example="12.345">%1$s</xliff:g> ZEC на <xliff:g id="address" example="zs1g7cqw &#x2026; mvyzgm">%2$s</xliff:g>?</string>
+    <string name="send_confirmation_memo_format" formatted="true">Заметка: <xliff:g id="memo" example="for Veronika">%1$s</xliff:g></string>
     <string name="send_confirmation_abbreviated_address_format" formatted="true"><xliff:g id="first_five" example="zs1g7">%1$s</xliff:g>…<xliff:g id="last_five" example="mvyzg">%2$s</xliff:g></string>
-    <string name="send_confirmation_button">Press to send ZEC</string>
-    <string name="send_in_progress_amount_format" formatted="true">Sending <xliff:g id="amount" example="12.345">%1$s</xliff:g> ZEC to</string>
-    <string name="send_in_progress_memo_format" formatted="true">with a memo: <xliff:g id="memo" example="for Veronika">%1$s</xliff:g></string>
-    <string name="send_in_progress_wait">Please wait</string>
-    <string name="send_failure_title">Sending failure</string>
+    <string name="send_confirmation_button">Нажмите для отправки ZEC</string>
+    <string name="send_in_progress_amount_format" formatted="true">Отправка <xliff:g id="amount" example="12.345">%1$s</xliff:g> ZEC на</string>
+    <string name="send_in_progress_memo_format" formatted="true">содержит заметку: <xliff:g id="memo" example="for Veronika">%1$s</xliff:g></string>
+    <string name="send_in_progress_wait">Пожалуйста, подождите</string>
+    <string name="send_failure_title">Не удалось отправить</string>
     <string name="send_failure_amount_address_memo" formatted="true">Отправить не удалось: <xliff:g id="amount" example="12.345">%1$s</xliff:g> ZEC на адрес <xliff:g id="address" example="zs1g7cqw &#x2026; mvyzgm">%2$s</xliff:g> с сообщением: <xliff:g id="memo" example="for Veronika">%3$s</xliff:g></string>
     <string name="send_failure_button">Назад</string>
     <string name="send_successful_title">Отправлено успешно</string>
