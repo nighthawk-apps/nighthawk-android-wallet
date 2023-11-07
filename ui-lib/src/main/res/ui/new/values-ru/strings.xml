@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="new_wallet_header">Моя секретная фраза</string>
-    <string name="new_wallet_body">These words represent your funds and the security used to protect them.\n\nBack them up now!.</string>
+    <string name="new_wallet_body">Эти слова являются секретным исходным ключом к вашим средствам.\n\nНадёжно сохраните их!.</string>
     <string name="new_wallet_button_finished">Я переписал</string>
     <string name="new_wallet_button_copy">Скопировать в буфер</string>
 </resources>
