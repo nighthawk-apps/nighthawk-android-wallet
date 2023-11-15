@@ -3,6 +3,6 @@
     <string name="seed_title">Моя секретная фраза</string>
     <string name="seed_back_content_description">Назад</string>
     <string name="seed_header">Ваша секретная фраза для восстановления</string>
-    <string name="seed_body">These words represent your funds and the security used to protect them.</string>
+    <string name="seed_body">Эти слова являются секретным исходным ключом к вашим средствам.</string>
     <string name="seed_copy">Скопировать в буфер</string>
 </resources>
