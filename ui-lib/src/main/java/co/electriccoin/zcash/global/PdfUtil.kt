@@ -78,6 +78,7 @@ object PdfUtil {
                 // Setups up the encryption parameters
                 standardProtectionPolicy.encryptionKeyLength = keyLength
                 standardProtectionPolicy.permissions = accessPermission
+                standardProtectionPolicy.isPreferAES = true
                 val provider = BouncyCastleProvider()
                 Security.addProvider(provider)
 
