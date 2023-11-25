@@ -19,9 +19,9 @@ pluginManagement {
         mavenCentral {
             if (isRepoRestrictionEnabled) {
                 content {
-                    wtfGroups.forEach {
+                    /*wtfGroups.forEach {
                         includeGroup(it)
-                    }
+                    }*/
                 }
             }
         }
