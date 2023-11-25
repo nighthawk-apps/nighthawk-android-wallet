@@ -1,6 +1,7 @@
 package co.electriccoin.zcash.ui.common
 
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -26,7 +27,7 @@ fun AlertDialog(title: String, desc: String, confirmText: String, dismissText: S
     AlertDialog(
         onDismissRequest = onDismissRequest,
         title = {
-            Body(text = title, color = ZcashTheme.colors.surfaceEnd)
+            Body(text = title, color = MaterialTheme.colorScheme.onBackground)
         },
         confirmButton = {
             TextButton(

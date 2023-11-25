@@ -84,12 +84,12 @@ fun ReceiveView(
             text = stringResource(id = R.string.ns_send_and_receive_zcash),
             textAlign = TextAlign.Center,
             modifier = Modifier.align(Alignment.CenterHorizontally),
-            color = ZcashTheme.colors.surfaceEnd
+            color = ZcashTheme.colors.secondaryTitleText
         )
         Spacer(modifier = Modifier.height(40.dp))
         BodyMedium(
             text = stringResource(id = R.string.ns_receive_money_securely),
-            color = ZcashTheme.colors.surfaceEnd
+            color = ZcashTheme.colors.secondaryTitleText
         )
         Spacer(modifier = Modifier.height(13.dp))
         SettingsListItem(
@@ -121,7 +121,7 @@ fun ReceiveView(
         Spacer(modifier = Modifier.height(26.dp))
         BodyMedium(
             text = stringResource(id = R.string.ns_receive_money_publicly),
-            color = ZcashTheme.colors.surfaceEnd
+            color = ZcashTheme.colors.secondaryTitleText
         )
         Spacer(modifier = Modifier.height(15.dp))
         SettingsListItem(

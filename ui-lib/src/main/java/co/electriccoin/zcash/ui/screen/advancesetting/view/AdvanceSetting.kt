@@ -56,12 +56,14 @@ fun AdvanceSettingPreview() {
             AdvanceSetting(
                 isScreenOnEnabled = true,
                 isBanditAvailable = true,
+                isDarkThemeEnabled = false,
                 preferredLogo = null,
                 allAvailableLogo = AvailableLogo.entries.toPersistentList(),
                 onScreenOnEnabledChanged = {},
                 onBack = {},
                 onNukeWallet = {},
-                onLogoPreferenceChanged = {}
+                onLogoPreferenceChanged = {},
+                onDarkThemePrefChanged = {}
             )
         }
     }
@@ -71,12 +73,14 @@ fun AdvanceSettingPreview() {
 fun AdvanceSetting(
     isScreenOnEnabled: Boolean?,
     isBanditAvailable: Boolean,
+    isDarkThemeEnabled: Boolean?,
     preferredLogo: AvailableLogo?,
     allAvailableLogo: PersistentList<AvailableLogo>,
     onScreenOnEnabledChanged: (isEnabled: Boolean) -> Unit,
     onBack: () -> Unit,
     onNukeWallet: () -> Unit,
-    onLogoPreferenceChanged: (availableLogo: AvailableLogo) -> Unit
+    onLogoPreferenceChanged: (availableLogo: AvailableLogo) -> Unit,
+    onDarkThemePrefChanged: (isEnabled: Boolean) -> Unit
 ) {
     Column(
         modifier = Modifier
@@ -161,11 +165,32 @@ fun AdvanceSetting(
                     BodyMedium(text = stringResource(id = logo.nameId))
                 }
             }
+
+            Spacer(modifier = Modifier.height(24.dp))
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = 40.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                TitleMedium(
+                    text = stringResource(id = R.string.enable_dark_theme),
+                    color = colorResource(
+                        id = co.electriccoin.zcash.ui.design.R.color.ns_parmaviolet
+                    )
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Switch(
+                    checked = isDarkThemeEnabled ?: false,
+                    onCheckedChange = { onDarkThemePrefChanged(it) },
+                )
+            }
         }
 
         Spacer(modifier = Modifier.height(24.dp))
         TitleMedium(
-            text = stringResource(id = R.string.nuke_wallet),
+            text = stringResource(id = R.string.delete_wallet),
             color = colorResource(
                 id = co.electriccoin.zcash.ui.design.R.color.ns_parmaviolet
             )
@@ -178,7 +203,7 @@ fun AdvanceSetting(
         Spacer(modifier = Modifier.height(8.dp))
         PrimaryButton(
             onClick = { showNukeWalletDialog = true },
-            text = stringResource(id = R.string.nuke_wallet).uppercase(),
+            text = stringResource(id = R.string.delete_wallet).uppercase(),
             modifier = Modifier
                 .align(Alignment.Start)
                 .sizeIn(
@@ -191,7 +216,7 @@ fun AdvanceSetting(
             AlertDialog(
                 title = stringResource(id = R.string.are_you_sure),
                 desc = stringResource(id = R.string.nuke_wallet_dialog_msg),
-                confirmText = stringResource(id = R.string.nuke_wallet),
+                confirmText = stringResource(id = R.string.delete_wallet),
                 dismissText = stringResource(id = R.string.ns_cancel),
                 onConfirm = {
                     onNukeWallet()

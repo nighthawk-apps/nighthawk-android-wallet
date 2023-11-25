@@ -16,9 +16,9 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material3.Divider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -36,6 +36,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -56,6 +57,7 @@ import co.electriccoin.zcash.ui.common.toFormattedString
 import co.electriccoin.zcash.ui.design.component.BalanceText
 import co.electriccoin.zcash.ui.design.component.BodyMedium
 import co.electriccoin.zcash.ui.design.component.DottedBorderTextButton
+import co.electriccoin.zcash.ui.design.component.MaxWidthHorizontalDivider
 import co.electriccoin.zcash.ui.design.component.TitleLarge
 import co.electriccoin.zcash.ui.design.theme.ZcashTheme
 import co.electriccoin.zcash.ui.screen.transactiondetails.model.TransactionDetailsUIModel
@@ -68,6 +70,31 @@ import kotlinx.datetime.toLocalDateTime
 @Composable
 fun TransactionDetailsPreview() {
     ZcashTheme(darkTheme = false) {
+        Surface {
+            val transactionDetailsUIModel = TransactionDetailsUIModel(
+                transactionOverview = TransactionOverviewFixture.new(),
+                transactionRecipient = TransactionRecipient.Address("jhasdgjhagsdjagsjadjhgasjhdgajshdgjahsgdjasgdjasgdjsad"),
+                network = ZcashNetwork.Mainnet,
+                networkHeight = BlockHeight.new(
+                    zcashNetwork = ZcashNetwork.Mainnet,
+                    blockHeight = ZcashNetwork.Mainnet.saplingActivationHeight.value + 10
+                )
+            )
+            TransactionDetails(
+                transactionDetailsUIModel = transactionDetailsUIModel,
+                balanceUIModel = BalanceUIModel("50", "ZEC", "154.92", "USD"),
+                onBack = {},
+                viewOnBlockExplorer = { _, _ -> },
+                isNavigateAwayFromAppWarningShown = false
+            )
+        }
+    }
+}
+
+@Preview
+@Composable
+fun TransactionDetailsDarkPreview() {
+    ZcashTheme(darkTheme = true) {
         Surface {
             val transactionDetailsUIModel = TransactionDetailsUIModel(
                 transactionOverview = TransactionOverviewFixture.new(),
@@ -134,7 +161,7 @@ fun TransactionDetails(
             text = stringResource(id = R.string.ns_transaction_details),
             textAlign = TextAlign.Center,
             modifier = Modifier.align(Alignment.CenterHorizontally),
-            color = ZcashTheme.colors.surfaceEnd
+            color = ZcashTheme.colors.secondaryTitleText
         )
         Spacer(modifier = Modifier.height(38.dp))
 
@@ -165,7 +192,7 @@ fun TransactionDetails(
                 Spacer(modifier = Modifier.width(4.dp))
                 BalanceText(
                     text = balanceUIModel.balanceUnit,
-                    color = ZcashTheme.colors.surfaceEnd
+                    color = MaterialTheme.colorScheme.primary
                 )
             }
             Spacer(modifier = Modifier.width(12.dp))
@@ -173,7 +200,7 @@ fun TransactionDetails(
                 text = "${balanceUIModel.fiatBalance} ${balanceUIModel.fiatUnit}",
                 textAlign = TextAlign.Center,
                 modifier = Modifier.align(Alignment.CenterHorizontally),
-                color = ZcashTheme.colors.surfaceEnd
+                color = ZcashTheme.colors.secondaryTitleText
             )
             Spacer(
                 modifier = Modifier.height(30.dp)
@@ -195,7 +222,7 @@ fun TransactionDetails(
                 modifier = Modifier
                     .align(Alignment.CenterHorizontally)
                     .height(40.dp),
-                borderColor = ZcashTheme.colors.surfaceEnd,
+                borderColor = ZcashTheme.colors.secondaryTitleText,
                 startIcon = transactionStateIconId
             )
 
@@ -207,7 +234,7 @@ fun TransactionDetails(
             if (transactionDetailsUIModel.memo.isNotBlank()) {
                 BodyMedium(
                     text = stringResource(id = R.string.ns_memo),
-                    color = ZcashTheme.colors.surfaceEnd
+                    color = ZcashTheme.colors.secondaryTitleText
                 )
                 Spacer(modifier = Modifier.height(10.dp))
                 BodyMedium(text = transactionDetailsUIModel.memo)
@@ -215,10 +242,7 @@ fun TransactionDetails(
             }
 
             // Time
-            Divider(
-                thickness = 1.dp,
-                color = ZcashTheme.colors.surfaceEnd
-            )
+            MaxWidthHorizontalDivider()
             Spacer(modifier = Modifier.height(10.dp))
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -226,23 +250,20 @@ fun TransactionDetails(
             ) {
                 BodyMedium(
                     text = stringResource(id = R.string.ns_time_utc),
-                    color = ZcashTheme.colors.surfaceEnd
+                    color = ZcashTheme.colors.secondaryTitleText
                 )
                 val timeText = transactionDetailsUIModel.transactionOverview.blockTimeEpochSeconds?.let {
                     Instant.fromEpochSeconds(it).toLocalDateTime(TimeZone.UTC).toString().replace("T", " ")
                 } ?: stringResource(id = R.string.ns_transaction_date_error)
                 BodyMedium(
                     text = timeText,
-                    color = ZcashTheme.colors.surfaceEnd
+                    color = ZcashTheme.colors.secondaryTitleText
                 )
             }
 
             // Network
             Spacer(modifier = Modifier.height(10.dp))
-            Divider(
-                thickness = 1.dp,
-                color = ZcashTheme.colors.surfaceEnd
-            )
+            MaxWidthHorizontalDivider()
             Spacer(modifier = Modifier.height(10.dp))
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -250,20 +271,17 @@ fun TransactionDetails(
             ) {
                 BodyMedium(
                     text = stringResource(id = R.string.ns_network),
-                    color = ZcashTheme.colors.surfaceEnd
+                    color = ZcashTheme.colors.secondaryTitleText
                 )
                 BodyMedium(
                     text = transactionDetailsUIModel.network?.networkName ?: "",
-                    color = ZcashTheme.colors.surfaceEnd
+                    color = ZcashTheme.colors.secondaryTitleText
                 )
             }
 
             // BlockId
             Spacer(modifier = Modifier.height(10.dp))
-            Divider(
-                thickness = 1.dp,
-                color = ZcashTheme.colors.surfaceEnd
-            )
+            MaxWidthHorizontalDivider()
             Spacer(modifier = Modifier.height(10.dp))
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -271,21 +289,18 @@ fun TransactionDetails(
             ) {
                 BodyMedium(
                     text = stringResource(id = R.string.ns_block_id),
-                    color = ZcashTheme.colors.surfaceEnd
+                    color = ZcashTheme.colors.secondaryTitleText
                 )
                 BodyMedium(
                     text = "${transactionDetailsUIModel.transactionOverview.minedHeight?.value}",
-                    color = ZcashTheme.colors.surfaceEnd
+                    color = ZcashTheme.colors.secondaryTitleText
                 )
             }
 
             // Confirmations
             val countText = getCountText(transactionDetailsUIModel)
             Spacer(modifier = Modifier.height(10.dp))
-            Divider(
-                thickness = 1.dp,
-                color = ZcashTheme.colors.surfaceEnd
-            )
+            MaxWidthHorizontalDivider()
             Spacer(modifier = Modifier.height(10.dp))
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -293,19 +308,16 @@ fun TransactionDetails(
             ) {
                 BodyMedium(
                     text = stringResource(id = R.string.ns_confirmations),
-                    color = ZcashTheme.colors.surfaceEnd
+                    color = ZcashTheme.colors.secondaryTitleText
                 )
-                BodyMedium(text = countText, color = ZcashTheme.colors.surfaceEnd)
+                BodyMedium(text = countText, color = ZcashTheme.colors.secondaryTitleText)
             }
 
             // TransactionId
             Spacer(modifier = Modifier.height(10.dp))
             val transactionId =
                 transactionDetailsUIModel.transactionOverview.rawId.byteArray.toFormattedString()
-            Divider(
-                thickness = 1.dp,
-                color = ZcashTheme.colors.surfaceEnd
-            )
+            MaxWidthHorizontalDivider()
             Spacer(modifier = Modifier.height(10.dp))
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -313,12 +325,12 @@ fun TransactionDetails(
             ) {
                 BodyMedium(
                     text = stringResource(id = R.string.ns_transaction_id),
-                    color = ZcashTheme.colors.surfaceEnd
+                    color = ZcashTheme.colors.secondaryTitleText
                 )
                 Spacer(modifier = Modifier.width(50.dp))
                 BodyMedium(
                     text = transactionId,
-                    color = ZcashTheme.colors.surfaceEnd,
+                    color = ZcashTheme.colors.secondaryTitleText,
                     textAlign = TextAlign.End
                 )
             }
@@ -345,7 +357,8 @@ fun TransactionDetails(
                 BodyMedium(
                     text = stringResource(id = R.string.ns_view_block_explorer),
                     color = ZcashTheme.colors.onBackgroundHeader,
-                    textAlign = TextAlign.End
+                    textAlign = TextAlign.End,
+                    textDecoration = TextDecoration.Underline
                 )
             }
 
@@ -357,10 +370,7 @@ fun TransactionDetails(
                 }
                 if (recipientAddress.isNotBlank()) {
                     Spacer(modifier = Modifier.height(10.dp))
-                    Divider(
-                        thickness = 1.dp,
-                        color = ZcashTheme.colors.surfaceEnd
-                    )
+                    MaxWidthHorizontalDivider()
                     Spacer(modifier = Modifier.height(10.dp))
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -368,11 +378,11 @@ fun TransactionDetails(
                     ) {
                         BodyMedium(
                             text = stringResource(id = R.string.ns_recipient),
-                            color = ZcashTheme.colors.surfaceEnd
+                            color = ZcashTheme.colors.secondaryTitleText
                         )
                         BodyMedium(
                             text = stringResource(id = recipientAddress.addressTypeNameId()),
-                            color = ZcashTheme.colors.surfaceEnd
+                            color = ZcashTheme.colors.secondaryTitleText
                         )
                     }
                     Spacer(modifier = Modifier.height(10.dp))
@@ -382,7 +392,7 @@ fun TransactionDetails(
                     ) {
                         BodyMedium(
                             text = stringResource(id = R.string.ns_address),
-                            color = ZcashTheme.colors.surfaceEnd
+                            color = ZcashTheme.colors.secondaryTitleText
                         )
                         Spacer(modifier = Modifier.width(50.dp))
                         BodyMedium(
@@ -391,7 +401,7 @@ fun TransactionDetails(
                                     withStyle(style = SpanStyle(color = Color.White)) {
                                         append(recipientAddress.take(10))
                                     }
-                                    withStyle(style = SpanStyle(color = ZcashTheme.colors.surfaceEnd)) {
+                                    withStyle(style = SpanStyle(color = ZcashTheme.colors.secondaryTitleText)) {
                                         append(
                                             recipientAddress.substring(
                                                 10,
@@ -403,7 +413,7 @@ fun TransactionDetails(
                                         append(recipientAddress.takeLast(10))
                                     }
                                 } else {
-                                    withStyle(style = SpanStyle(color = ZcashTheme.colors.surfaceEnd)) {
+                                    withStyle(style = SpanStyle(color = ZcashTheme.colors.secondaryTitleText)) {
                                         append(recipientAddress)
                                     }
                                 }
@@ -416,10 +426,7 @@ fun TransactionDetails(
 
             //Sub total
             Spacer(modifier = Modifier.height(10.dp))
-            Divider(
-                thickness = 1.dp,
-                color = ZcashTheme.colors.surfaceEnd
-            )
+            MaxWidthHorizontalDivider()
             Spacer(modifier = Modifier.height(10.dp))
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -427,13 +434,13 @@ fun TransactionDetails(
             ) {
                 BodyMedium(
                     text = stringResource(id = R.string.ns_subtotal),
-                    color = ZcashTheme.colors.surfaceEnd
+                    color = ZcashTheme.colors.secondaryTitleText
                 )
                 BodyMedium(
                     text = (transactionDetailsUIModel.transactionOverview.netValue - (transactionDetailsUIModel.transactionOverview.feePaid
                         ?: Zatoshi(0))).toZecString().removeTrailingZero() + " " + stringResource(
                         id = R.string.ns_zec
-                    ), color = ZcashTheme.colors.surfaceEnd
+                    ), color = ZcashTheme.colors.secondaryTitleText
                 )
             }
             // Fees paid
@@ -452,17 +459,14 @@ fun TransactionDetails(
                         text = "${
                             it.toZecString().removeTrailingZero()
                         } ${stringResource(id = R.string.ns_zec)}",
-                        color = ZcashTheme.colors.surfaceEnd, textAlign = TextAlign.End
+                        color = ZcashTheme.colors.secondaryTitleText, textAlign = TextAlign.End
                     )
                 }
             }
 
             // Total
             Spacer(modifier = Modifier.height(10.dp))
-            Divider(
-                thickness = 1.dp,
-                color = ZcashTheme.colors.surfaceEnd
-            )
+            MaxWidthHorizontalDivider()
             Spacer(modifier = Modifier.height(10.dp))
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -470,7 +474,7 @@ fun TransactionDetails(
             ) {
                 BodyMedium(
                     text = stringResource(id = R.string.ns_total_amount),
-                    color = ZcashTheme.colors.surfaceEnd
+                    color = ZcashTheme.colors.secondaryTitleText
                 )
                 BodyMedium(
                     text = "${
@@ -478,14 +482,11 @@ fun TransactionDetails(
                             .toZecString()
                             .removeTrailingZero()
                     } ${stringResource(id = R.string.ns_zec)}",
-                    color = ZcashTheme.colors.surfaceEnd
+                    color = ZcashTheme.colors.secondaryTitleText
                 )
             }
             Spacer(modifier = Modifier.height(10.dp))
-            Divider(
-                thickness = 1.dp,
-                color = ZcashTheme.colors.surfaceEnd
-            )
+            MaxWidthHorizontalDivider()
 
             if (showAppLeavingDialog.value) {
                 AlertDialog(
@@ -524,7 +525,8 @@ private fun getCountText(transactionDetailsUIModel: TransactionDetailsUIModel): 
 
 private fun isSufficientlyOld(tx: TransactionDetailsUIModel): Boolean {
     val threshold = 75 * 1000 * 25 // approx 25 blocks
-    val delta = System.currentTimeMillis() / 1000L - (tx.transactionOverview?.blockTimeEpochSeconds ?: threshold.toLong())
+    val delta = System.currentTimeMillis() / 1000L - (tx.transactionOverview?.blockTimeEpochSeconds
+        ?: threshold.toLong())
     return (tx.transactionOverview?.minedHeight?.value
         ?: Long.MIN_VALUE) > (tx.network?.saplingActivationHeight?.value ?: Long.MIN_VALUE) &&
             delta < threshold

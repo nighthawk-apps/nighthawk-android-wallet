@@ -13,7 +13,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.navigation.NavBackStackEntry
@@ -30,6 +29,7 @@ import co.electriccoin.zcash.ui.MainActivity
 import co.electriccoin.zcash.ui.NavigationArguments
 import co.electriccoin.zcash.ui.R
 import co.electriccoin.zcash.ui.design.component.BodySmall
+import co.electriccoin.zcash.ui.design.theme.ZcashTheme
 import co.electriccoin.zcash.ui.screen.about.nighthawk.AndroidAboutView
 import co.electriccoin.zcash.ui.screen.advancesetting.AndroidAdvancedSetting
 import co.electriccoin.zcash.ui.screen.changeserver.AndroidChangeServer
@@ -259,7 +259,7 @@ internal fun BottomNavigation(navController: NavController) {
     val showBottomNavBar = destinationsWithBottomBar.any { it.contentEquals(currentRoute, true) }
     if (showBottomNavBar) {
         NavigationBar(
-            containerColor = colorResource(id = co.electriccoin.zcash.ui.design.R.color.ns_navy)
+            containerColor = ZcashTheme.colors.navigationContainer
         ) {
             navItemList.forEach { bottomNavItem ->
                 NavigationBarItem(
@@ -280,6 +280,7 @@ internal fun BottomNavigation(navController: NavController) {
                     label = { BodySmall(text = stringResource(id = bottomNavItem.title)) },
                     alwaysShowLabel = true,
                     colors = NavigationBarItemDefaults.colors(
+                        selectedIconColor = ZcashTheme.colors.navigationIcon,
                         indicatorColor = MaterialTheme.colorScheme.primary,
                         unselectedIconColor = Color.White,
                         unselectedTextColor = Color.White

@@ -23,9 +23,11 @@ internal fun WrapAdvanceSetting(activity: ComponentActivity, onBack: () -> Unit)
     val isScreenOnEnabled = settingsViewModel.isKeepScreenOnWhileSyncing.collectAsStateWithLifecycle().value
     val isBanditAvailable = settingsViewModel.isBanditAvailable.collectAsStateWithLifecycle().value
     val preferredLogo = settingsViewModel.preferredLogo.collectAsStateWithLifecycle().value
+    val isDarkThemeEnabled = settingsViewModel.isDarkThemeEnabled.collectAsStateWithLifecycle().value
     AdvanceSetting(
         isScreenOnEnabled = isScreenOnEnabled,
         isBanditAvailable = isBanditAvailable,
+        isDarkThemeEnabled = isDarkThemeEnabled,
         preferredLogo = preferredLogo,
         allAvailableLogo = AvailableLogo.entries.toPersistentList(),
         onScreenOnEnabledChanged =
@@ -35,6 +37,7 @@ internal fun WrapAdvanceSetting(activity: ComponentActivity, onBack: () -> Unit)
             (activity.getSystemService(ACTIVITY_SERVICE) as ActivityManager)
                 .clearApplicationUserData()
         },
-        onLogoPreferenceChanged = settingsViewModel::setPreferredLogo
+        onLogoPreferenceChanged = settingsViewModel::setPreferredLogo,
+        onDarkThemePrefChanged = settingsViewModel::setDarkTheme
     )
 }

@@ -101,7 +101,7 @@ fun EnterZec(
                 Spacer(Modifier.height(dimensionResource(id = R.dimen.pageMargin)))
                 TitleLarge(text = stringResource(id = R.string.ns_nighthawk), textAlign = TextAlign.Center, modifier = Modifier.align(Alignment.CenterHorizontally))
                 Spacer(modifier = Modifier.height(dimensionResource(id = R.dimen.pageMargin)))
-                BodyMedium(text = stringResource(id = R.string.ns_choose_send), textAlign = TextAlign.Center, modifier = Modifier.align(Alignment.CenterHorizontally), color = ZcashTheme.colors.surfaceEnd)
+                BodyMedium(text = stringResource(id = R.string.ns_choose_send), textAlign = TextAlign.Center, modifier = Modifier.align(Alignment.CenterHorizontally), color = ZcashTheme.colors.secondaryTitleText)
                 BodyMedium(
                     text = stringResource(
                         id = R.string.ns_spendable_balance,
@@ -112,7 +112,7 @@ fun EnterZec(
                     modifier = Modifier
                         .align(Alignment.CenterHorizontally)
                         .clickable { onSendAllClicked(enterZecUIState.spendableBalance) },
-                    color = ZcashTheme.colors.surfaceEnd
+                    color = ZcashTheme.colors.secondaryTitleText
                 )
                 Spacer(modifier = Modifier.height(40.dp))
                 BalanceAmountRow(
@@ -132,7 +132,7 @@ fun EnterZec(
                             ),
                             textAlign = TextAlign.Center,
                             modifier = Modifier.align(Alignment.CenterHorizontally),
-                            color = ZcashTheme.colors.surfaceEnd
+                            color = ZcashTheme.colors.secondaryTitleText
                         )
                     }
                 }

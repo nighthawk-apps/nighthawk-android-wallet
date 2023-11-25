@@ -21,6 +21,7 @@ import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.TextUnitType
@@ -58,11 +59,11 @@ fun AboutView(onBack: () -> Unit, onViewSource: () -> Unit, onCredits: () -> Uni
         Spacer(modifier = Modifier.height(24.dp))
         BodyMedium(text = stringResource(id = R.string.ns_about_message))
         Spacer(modifier = Modifier.height(24.dp))
-        Reference(text = stringResource(id = R.string.ns_view_source), style = TextStyle(fontSize = TextUnit(12f, TextUnitType.Sp)), onClick = onViewSource)
+        Reference(text = stringResource(id = R.string.ns_view_source), style = TextStyle(fontSize = TextUnit(12f, TextUnitType.Sp), textDecoration = TextDecoration.Underline), onClick = onViewSource)
         Spacer(modifier = Modifier.height(10.dp))
-        Reference(text = stringResource(id = R.string.ns_credits), style = TextStyle(fontSize = TextUnit(12f, TextUnitType.Sp)), onClick = onCredits)
+        Reference(text = stringResource(id = R.string.ns_credits), style = TextStyle(fontSize = TextUnit(12f, TextUnitType.Sp), textDecoration = TextDecoration.Underline), onClick = onCredits)
         Spacer(modifier = Modifier.height(10.dp))
-        Reference(text = stringResource(id = R.string.ns_terms_conditions), style = TextStyle(fontSize = TextUnit(12f, TextUnitType.Sp)), onClick = onTermAndCondition)
+        Reference(text = stringResource(id = R.string.ns_terms_conditions), style = TextStyle(fontSize = TextUnit(12f, TextUnitType.Sp), textDecoration = TextDecoration.Underline), onClick = onTermAndCondition)
         Spacer(modifier = Modifier.weight(1f))
         PrimaryButton(
             onClick = onViewLicence,

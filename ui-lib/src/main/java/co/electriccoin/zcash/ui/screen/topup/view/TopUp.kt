@@ -77,9 +77,9 @@ fun TopUp(walletAddress: WalletAddresses?, onBack: () -> Unit, onLaunchUrl: (Str
         Spacer(Modifier.height(dimensionResource(id = R.dimen.pageMargin)))
         TitleLarge(text = stringResource(id = R.string.ns_nighthawk), textAlign = TextAlign.Center, modifier = Modifier.align(Alignment.CenterHorizontally))
         Spacer(modifier = Modifier.height(dimensionResource(id = R.dimen.pageMargin)))
-        BodyMedium(text = stringResource(id = R.string.ns_send_and_receive_zcash), textAlign = TextAlign.Center, modifier = Modifier.align(Alignment.CenterHorizontally), color = ZcashTheme.colors.surfaceEnd)
+        BodyMedium(text = stringResource(id = R.string.ns_send_and_receive_zcash), textAlign = TextAlign.Center, modifier = Modifier.align(Alignment.CenterHorizontally), color = ZcashTheme.colors.secondaryTitleText)
         Spacer(modifier = Modifier.height(40.dp))
-        BodyMedium(text = stringResource(id = R.string.ns_receive_money_securely), color = ZcashTheme.colors.surfaceEnd)
+        BodyMedium(text = stringResource(id = R.string.ns_receive_money_securely), color = ZcashTheme.colors.secondaryTitleText)
         Spacer(modifier = Modifier.height(13.dp))
 
         SettingsListItem(

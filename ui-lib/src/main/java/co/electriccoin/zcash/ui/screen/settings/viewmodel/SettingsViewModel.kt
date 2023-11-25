@@ -59,6 +59,9 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
         AvailableLogo.DEFAULT
     )
 
+    val isDarkThemeEnabled: StateFlow<Boolean?> = booleanStateFlow(StandardPreferenceKeys.IS_DARK_THEME_ENABLED)
+
+
     private fun booleanStateFlow(default: BooleanPreferenceDefault): StateFlow<Boolean?> =
         flow<Boolean?> {
             val preferenceProvider = StandardPreferenceSingleton.getInstance(getApplication())
@@ -79,9 +82,14 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
 
     fun setBanditStatus(enabled: Boolean) {
         setBooleanPreference(StandardPreferenceKeys.IS_BANDIT_AVAILABLE, enabled)
-        if (enabled.not()) { // reset logo
+        if (enabled.not()) { // reset logo, theme
             setPreferredLogo(availableLogo = AvailableLogo.DEFAULT)
+            setDarkTheme(enabled = false)
         }
+    }
+
+    fun setDarkTheme(enabled: Boolean) {
+        setBooleanPreference(StandardPreferenceKeys.IS_DARK_THEME_ENABLED, enabled)
     }
 
     fun setPreferredLogo(availableLogo: AvailableLogo) {

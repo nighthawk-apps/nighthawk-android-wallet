@@ -159,10 +159,10 @@ internal fun Zatoshi.toBalanceValueModel(
     if (isLocalCurrencySelectedAsPrimary) {
         balance = availableBalance.toFiatPrice(fiatCurrencyUiState).removeTrailingZero()
         balanceUnit = fiatCurrencyUiState.fiatCurrency.currencyName
-        fiatBalance = availableBalance.convertZatoshiToZecString(MAXIMUM_FRACTION_DIGIT).removeTrailingZero()
+        fiatBalance = availableBalance.convertZatoshiToZecString(MAXIMUM_FRACTION_DIGIT).removeTrailingZero().replace(",", ".")
         fiatUnit = selectedDenomination
     } else {
-        balance = availableBalance.convertZatoshiToZecString(MAXIMUM_FRACTION_DIGIT).removeTrailingZero()
+        balance = availableBalance.convertZatoshiToZecString(MAXIMUM_FRACTION_DIGIT).removeTrailingZero().replace(",", ".")
         balanceUnit = selectedDenomination
         fiatBalance = availableBalance.toFiatPrice(fiatCurrencyUiState).removeTrailingZero()
         fiatUnit = fiatCurrencyUiState.fiatCurrency.currencyName

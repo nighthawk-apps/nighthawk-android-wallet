@@ -227,7 +227,7 @@ fun DottedBorderTextButton(
         val stroke = Stroke(width = 2f, pathEffect = PathEffect.dashPathEffect(floatArrayOf(10f, 10f), 0f))
         Canvas(modifier = Modifier
             .matchParentSize()
-            .background(color = colorResource(id = R.color.ns_navy))
+            .background(color = ZcashTheme.colors.navigationContainer)
         ) {
             drawRoundRect(color = borderColor, style = stroke, cornerRadius = CornerRadius(x = 40f))
         }
@@ -241,7 +241,7 @@ fun DottedBorderTextButton(
                 Icon(painter = painterResource(id = startIcon), contentDescription = null, tint = borderColor)
                 Spacer(modifier = Modifier.width(8.dp))
             }
-            BodyMedium(text = text, textAlign = TextAlign.Center, color = ZcashTheme.colors.surfaceEnd)
+            BodyMedium(text = text, textAlign = TextAlign.Center, color = MaterialTheme.colorScheme.onBackground)
         }
     }
 }

@@ -28,6 +28,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.TextUnitType
@@ -104,7 +105,7 @@ fun GetStarted(
                 )
                 Reference(
                     text = stringResource(id = R.string.ns_terms_conditions),
-                    style = TextStyle(fontSize = TextUnit(12f, TextUnitType.Sp)),
+                    style = TextStyle(fontSize = TextUnit(12f, TextUnitType.Sp), textDecoration = TextDecoration.Underline),
                     onClick = onReference
                 )
                 Spacer(modifier = Modifier.weight(1f))

@@ -37,6 +37,7 @@ import co.electriccoin.zcash.ui.screen.warning.WrapNotEnoughSpace
 import co.electriccoin.zcash.ui.screen.warning.viewmodel.StorageCheckViewModel
 import co.electriccoin.zcash.work.WorkIds
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.map
@@ -47,7 +48,7 @@ import kotlin.time.Duration.Companion.seconds
 
 class MainActivity : FragmentActivity() {
 
-    val homeViewModel by viewModels<HomeViewModel>()
+    private val homeViewModel by viewModels<HomeViewModel>()
 
     val walletViewModel by viewModels<WalletViewModel>()
 
@@ -60,8 +61,6 @@ class MainActivity : FragmentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        window.statusBarColor = ContextCompat.getColor(this, co.electriccoin.zcash.ui.design.R.color.ns_dark_navy)
-        window.navigationBarColor = ContextCompat.getColor(this, co.electriccoin.zcash.ui.design.R.color.ns_dark_navy)
 
         setupSplashScreen()
 
@@ -81,6 +80,16 @@ class MainActivity : FragmentActivity() {
         val splashScreen = installSplashScreen()
         val start = SystemClock.elapsedRealtime().milliseconds
 
+        lifecycleScope.launch {
+            repeatOnLifecycle(Lifecycle.State.CREATED) {
+                homeViewModel.isDarkThemeEnabled.collectLatest {
+                    val colorId = if (it) R.color.splash_screen_background_night else co.electriccoin.zcash.ui.design.R.color.ns_dark_navy
+                    window.statusBarColor = ContextCompat.getColor(applicationContext, colorId)
+                    window.navigationBarColor = ContextCompat.getColor(applicationContext, colorId)
+                }
+            }
+        }
+
         splashScreen.setKeepOnScreenCondition {
             if (SPLASH_SCREEN_DELAY > Duration.ZERO) {
                 val now = SystemClock.elapsedRealtime().milliseconds
@@ -99,7 +108,7 @@ class MainActivity : FragmentActivity() {
     private fun setupUiContent() {
         setContent {
             Override(configurationOverrideFlow) {
-                ZcashTheme {
+                ZcashTheme(darkTheme = homeViewModel.isDarkThemeEnabled.collectAsStateWithLifecycle().value) {
                     Surface(
                         Modifier
                             .fillMaxWidth()

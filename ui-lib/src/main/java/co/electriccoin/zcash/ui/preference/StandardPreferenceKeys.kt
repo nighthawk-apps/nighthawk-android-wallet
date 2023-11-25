@@ -34,6 +34,8 @@ object StandardPreferenceKeys {
 
     val PREFERRED_LOGO = StringPreferenceDefault(PreferenceKey("preferred_logo"), "0")
 
+    val IS_DARK_THEME_ENABLED = BooleanPreferenceDefault(PreferenceKey("is_dark_theme_enabled"), false)
+
     /**
      * The fiat currency that the user prefers.
      */
