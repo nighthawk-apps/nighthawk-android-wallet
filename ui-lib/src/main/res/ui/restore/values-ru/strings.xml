@@ -288,4 +288,6 @@
     <string name="app_icon">Значок</string>
     <string name="default_name">По умолчанию</string>
     <string name="retro">Ретро</string>
+    <string name="delete_wallet">Delete Wallet</string>
+    <string name="enable_dark_theme">Switch to dark theme</string>
 </resources>
