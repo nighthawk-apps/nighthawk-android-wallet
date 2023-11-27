@@ -288,4 +288,6 @@
     <string name="app_icon">엡 아이콘</string>
     <string name="default_name">기본 설정</string>
     <string name="retro">레트로</string>
+    <string name="delete_wallet">Delete Wallet</string>
+    <string name="enable_dark_theme">Switch to dark theme</string>
 </resources>
