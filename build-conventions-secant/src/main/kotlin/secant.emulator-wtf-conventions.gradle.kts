@@ -9,7 +9,7 @@ val EMULATOR_WTF_MAX_SDK = 33
 
 internal val className = this::class.simpleName
 
-pluginManager.withPlugin("wtf.emulator.gradle") {
+/*pluginManager.withPlugin("wtf.emulator.gradle") {
     project.the<wtf.emulator.EwExtension>().apply {
         val tokenString = project.properties["ZCASH_EMULATOR_WTF_API_KEY"].toString()
         if (tokenString.isNotEmpty()) {
@@ -37,4 +37,4 @@ pluginManager.withPlugin("wtf.emulator.gradle") {
             )
         )
     }
-}
+}*/

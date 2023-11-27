@@ -2,8 +2,8 @@ plugins {
     id("com.android.test")
     kotlin("android")
     id("secant.android-build-conventions")
-    id("wtf.emulator.gradle")
-    id("secant.emulator-wtf-conventions")
+//    id("wtf.emulator.gradle")
+//    id("secant.emulator-wtf-conventions")
 }
 
 // Force orchestrator to be used for this module, because we need cleared state to generate screenshots
@@ -86,11 +86,11 @@ dependencies {
     }
 }
 
-emulatorwtf {
+/*emulatorwtf {
     directoriesToPull.set(listOf("/sdcard/googletest/test_outputfiles"))
 
     // Because screenshot tests can be flaky, allow this module to always re-run
     // which is helpful on GitHub Actions.  Once the tests are fully stabilized, this can be
     // removed.
     sideEffects.set(true)
-}
+}*/

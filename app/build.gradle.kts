@@ -7,8 +7,8 @@ plugins {
     kotlin("android")
     id("secant.android-build-conventions")
     id("com.github.triplet.play")
-    id("wtf.emulator.gradle")
-    id("secant.emulator-wtf-conventions")
+//    id("wtf.emulator.gradle")
+//    id("secant.emulator-wtf-conventions")
 }
 
 val packageName = project.property("ZCASH_RELEASE_PACKAGE_NAME").toString()

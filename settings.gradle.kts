@@ -19,9 +19,9 @@ pluginManagement {
         mavenCentral {
             if (isRepoRestrictionEnabled) {
                 content {
-                    wtfGroups.forEach {
+                    /*wtfGroups.forEach {
                         includeGroup(it)
-                    }
+                    }*/
                 }
             }
         }
@@ -40,7 +40,7 @@ pluginManagement {
         gradlePluginPortal {
             if (isRepoRestrictionEnabled) {
                 content {
-                    (wtfGroups + googleGroups).forEach {
+                    (/*wtfGroups + */googleGroups).forEach {
                         excludeGroup(it)
                     }
                     googleRegexes.forEach {
@@ -61,7 +61,7 @@ pluginManagement {
         id("com.github.ben-manes.versions") version (extra["GRADLE_VERSIONS_PLUGIN_VERSION"].toString()) apply (false)
         id("com.github.triplet.play") version (extra["PLAY_PUBLISHER_PLUGIN_VERSION"].toString()) apply (false)
         id("org.jetbrains.kotlinx.kover") version (extra["KOVER_VERSION"].toString()) apply (false)
-        id("wtf.emulator.gradle") version (extra["EMULATOR_WTF_GRADLE_PLUGIN_VERSION"].toString()) apply (false)
+//        id("wtf.emulator.gradle") version (extra["EMULATOR_WTF_GRADLE_PLUGIN_VERSION"].toString()) apply (false)
         id("com.mikepenz.aboutlibraries.plugin") version (extra["ABOUT_LIBRARIES_VERSION"].toString()) apply (false)
         kotlin("android") version (kotlinVersion) apply (false)
         kotlin("jvm") version (kotlinVersion)
@@ -109,7 +109,7 @@ dependencyResolutionManagement {
         mavenCentral {
             if (isRepoRestrictionEnabled) {
                 content {
-                    (wtfGroups + googleGroups).forEach {
+                    (/*wtfGroups + */googleGroups).forEach {
                         excludeGroup(it)
                     }
                     googleRegexes.forEach {
@@ -128,13 +128,13 @@ dependencyResolutionManagement {
                 }
             }
         }
-        maven("https://maven.emulator.wtf/releases/") {
+        /*maven("https://maven.emulator.wtf/releases/") {
             if (isRepoRestrictionEnabled) {
                 content {
                     includeGroup("wtf.emulator")
                 }
             }
-        }
+        }*/
         maven("https://jitpack.io") {
 
         }

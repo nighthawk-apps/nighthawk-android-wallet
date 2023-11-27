@@ -4,8 +4,8 @@ plugins {
     id("com.android.library")
     kotlin("android")
     id("secant.android-build-conventions")
-    id("wtf.emulator.gradle")
-    id("secant.emulator-wtf-conventions")
+//    id("wtf.emulator.gradle")
+//    id("secant.emulator-wtf-conventions")
     id("secant.jacoco-conventions")
     id("com.mikepenz.aboutlibraries.plugin")
 }

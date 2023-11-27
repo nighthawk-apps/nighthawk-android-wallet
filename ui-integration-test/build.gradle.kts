@@ -2,8 +2,8 @@ plugins {
     id("com.android.test")
     kotlin("android")
     id("secant.android-build-conventions")
-    id("wtf.emulator.gradle")
-    id("secant.emulator-wtf-conventions")
+//    id("wtf.emulator.gradle")
+//    id("secant.emulator-wtf-conventions")
     id("secant.jacoco-conventions")
 }
 
