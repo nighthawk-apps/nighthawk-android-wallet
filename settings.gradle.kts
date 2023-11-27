@@ -128,13 +128,6 @@ dependencyResolutionManagement {
                 }
             }
         }
-        /*maven("https://maven.emulator.wtf/releases/") {
-            if (isRepoRestrictionEnabled) {
-                content {
-                    includeGroup("wtf.emulator")
-                }
-            }
-        }*/
         maven("https://jitpack.io") {
 
         }
