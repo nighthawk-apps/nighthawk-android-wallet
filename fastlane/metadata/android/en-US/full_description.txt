@@ -1,7 +1,7 @@
-Nighthawk is a Shielded-by default light wallet for Zcash with support sending & receiving shielded transactions, memo support & optional T-addresses support with Auto-Shielding technology.
+Nighthawk is a Shielded-by-default light wallet for Zcash with support sending & receiving shielded transactions, memo support & optional T-addresses support with Auto-Shielding technology.
 
-Zcash is digital money:
-- Fast and confidential with low fees — built for Internet and Mobile transactions.
+Zcash Network:
+- Fast and confidential with low fees — built for the Internet and Mobile transactions.
 
 Shielded by Default:
 - Auto-shielding moves funds from transparent Zcash addresses to the shielded pool!
@@ -32,9 +32,6 @@ Export Seed Words to PDF:
 
 Need Help?:
 - Connect with us via X @NighthawkWallet or https://nighthawkwallet.com for email.
-
-Zcash is a digital currency, or cryptocurrency, like Bitcoin. (In fact, Zcash was built on the original Bitcoin code base) It was conceived by scientists at MIT, Johns Hopkins and other respected academic and scientific institutions.
-More info is available at https://z.cash
 
 NOTE: As a light wallet, Nighthawk requires trust in the lightwalletd server to display accurate transaction information. You can change the default lightwalletd server under Profile > Settings.
 TROUBLESHOOTING: In case of issues with syncing or missing transactions, please try the Rescan Wallet option.
