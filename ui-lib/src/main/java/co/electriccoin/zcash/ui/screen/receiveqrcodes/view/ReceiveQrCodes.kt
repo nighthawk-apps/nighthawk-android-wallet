@@ -175,7 +175,7 @@ fun ReceiveQrCodes(
                     },
                 shape = RoundedCornerShape(16.dp),
                 elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
-                colors = CardDefaults.cardColors(containerColor = colorResource(id = co.electriccoin.zcash.ui.design.R.color.ns_navy))
+                colors = CardDefaults.cardColors(containerColor = ZcashTheme.colors.navigationContainer)
             ) {
                 val qrAddressPagerItem = getQRAddressPagerItem(page = page, walletAddresses = walletAddresses)
                 if (qrAddressPagerItem is QRAddressPagerItem.TOP_UP) {

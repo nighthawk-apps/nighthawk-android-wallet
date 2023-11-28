@@ -34,7 +34,7 @@ internal object Dark {
 
     val navigationButton = Color(0xFFA7C0D9)
     val navigationButtonPressed = Color(0xFFC8DCEF)
-    val navigationIcon = Color(0xFFFE7757)
+    val navigationIcon = Color(0xD2000000)
 
     val progressStart = Color(0xFFF364CE)
     val progressEnd = Color(0xFFE91E63)
@@ -56,7 +56,7 @@ internal object Dark {
 
     val reference = Color(0xFF9AD9FF)
     val divider = Color(0xFF2B2551)
-    val navigationContainer = Color(0xFF131212)
+    val navigationContainer = Color(0xFF000000)
     val selectedPageIndicator = Color(0xFFFE7757)
     val secondaryTitleText = Color(0xFF93A4BE)
 }
