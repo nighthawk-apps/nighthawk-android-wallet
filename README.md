@@ -1,5 +1,5 @@
 # Nighthawk Wallet
-Shielded ZEC wallet using the Zcash Android SDK, maintained by [nighthawk apps](https://nighthawkapps.com)
+Privacy-preserving wallet maintained by [nighthawk apps](https://nighthawkapps.com)
 
 ## Download
 
@@ -26,7 +26,9 @@ General Zcash questions and/or support requests are best directed to either:
  * [Discord Community](https://discord.io/zcash-community)
 
 ## Contributing
-Contributions are very much welcomed!  Please read our [Contributing Guidelines](docs/CONTRIBUTING.md) to learn about our process.
+Contributions are very much welcomed! Please read our [Contributing Guidelines](docs/CONTRIBUTING.md) to learn about our process.
+
+Language translations are welcome at [Crowdin](https://crowdin.com/project/nighthawk-wallet/) [![Crowdin](https://badges.crowdin.net/nighthawk-wallet/localized.svg)](https://crowdin.com/project/nighthawk-wallet)
 
 ## Known Issues
 1. Intel-based machines may have trouble building in Android Studio.  The workaround is to add the following line to `~/.gradle/gradle.properties` `ZCASH_IS_DEPENDENCY_LOCKING_ENABLED=false`.  See [#420](https://github.com/zcash/secant-android-wallet/issues/420) for more information.
