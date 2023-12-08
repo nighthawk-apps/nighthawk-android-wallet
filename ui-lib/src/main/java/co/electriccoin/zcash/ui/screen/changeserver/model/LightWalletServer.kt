@@ -3,7 +3,6 @@ package co.electriccoin.zcash.ui.screen.changeserver.model
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.toImmutableList
 
-
 const val DEFAULT_REGION = "Default"
 sealed class LightWalletServer(val host: String, val port: Int, val region: String, val isSecure: Boolean)
 sealed class MainnetServer(host: String, port: Int, region: String, isSecure: Boolean) :
