@@ -1,0 +1,1 @@
+- Fix translations regression issue
