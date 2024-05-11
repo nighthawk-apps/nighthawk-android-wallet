@@ -4,6 +4,24 @@ import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.toImmutableList
 
 const val DEFAULT_REGION = "Default"
+
+private const val ZR_HOST = "zec.rocks" // NON-NLS
+private const val ZR_HOST_NA = "na.zec.rocks" // NON-NLS
+private const val ZR_HOST_SA = "sa.zec.rocks" // NON-NLS
+private const val ZR_HOST_EU = "eu.zec.rocks" // NON-NLS
+private const val ZR_HOST_AP = "ap.zec.rocks" // NON-NLS
+private const val ZR_PORT = 443
+
+private const val YW_HOST_1 = "lwd1.zcash-infra.com" // NON-NLS
+private const val YW_HOST_2 = "lwd2.zcash-infra.com" // NON-NLS
+private const val YW_HOST_3 = "lwd3.zcash-infra.com" // NON-NLS
+private const val YW_HOST_4 = "lwd4.zcash-infra.com" // NON-NLS
+private const val YW_HOST_5 = "lwd5.zcash-infra.com" // NON-NLS
+private const val YW_HOST_6 = "lwd6.zcash-infra.com" // NON-NLS
+private const val YW_HOST_7 = "lwd7.zcash-infra.com" // NON-NLS
+private const val YW_HOST_8 = "lwd8.zcash-infra.com" // NON-NLS
+private const val YW_PORT = 9067
+
 sealed class LightWalletServer(val host: String, val port: Int, val region: String, val isSecure: Boolean)
 sealed class MainnetServer(host: String, port: Int, region: String, isSecure: Boolean) :
     LightWalletServer(host, port, region, isSecure) {
@@ -54,3 +72,12 @@ sealed class TestnetServer(host: String, port: Int, region: String, isSecure: Bo
         }
     }
 }
+
+// This regex validates server URLs with ports in format: <hostname>:<port>
+// While ensuring:
+// - Valid hostname format (excluding spaces and special characters)
+// - Port numbers within the valid range (1-65535) and without leading zeros
+// - Note that this does not cover other URL components like paths or query strings
+val regex = "^(([^:/?#\\s]+)://)?([^/?#\\s]+):([1-9][0-9]{3}|[1-5][0-9]{2}|[0-9]{1,2})$".toRegex()
+
+fun validateCustomServerValue(customServer: String): Boolean = regex.matches(customServer)

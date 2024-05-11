@@ -21,8 +21,8 @@ import cash.z.ecc.android.sdk.model.WalletAddresses
 import cash.z.ecc.android.sdk.model.WalletBalance
 import cash.z.ecc.android.sdk.model.Zatoshi
 import cash.z.ecc.android.sdk.model.ZcashNetwork
-import cash.z.ecc.android.sdk.model.defaultForNetwork
 import cash.z.ecc.android.sdk.tool.DerivationTool
+import cash.z.ecc.sdk.extension.defaultForNetwork
 import cash.z.ecc.sdk.type.fromResources
 import co.electriccoin.lightwallet.client.model.LightWalletEndpoint
 import co.electriccoin.zcash.global.getInstance
@@ -481,22 +481,22 @@ private fun Synchronizer.toWalletSnapshot() =
         processorInfo, // 1
         orchardBalances, // 2
         saplingBalances, // 3
-        transparentBalances, // 4
+        transparentBalance, // 4
         progress, // 5
         toCommonError() // 6
     ) { flows ->
         val orchardBalance = flows[2] as WalletBalance?
         val saplingBalance = flows[3] as WalletBalance?
-        val transparentBalance = flows[4] as WalletBalance?
+        val transparentBalance = flows[4] as Zatoshi?
 
         val progressPercentDecimal = flows[5] as PercentDecimal
 
         WalletSnapshot(
             flows[0] as Synchronizer.Status,
             flows[1] as CompactBlockProcessor.ProcessorInfo,
-            orchardBalance ?: WalletBalance(Zatoshi(0), Zatoshi(0)),
-            saplingBalance ?: WalletBalance(Zatoshi(0), Zatoshi(0)),
-            transparentBalance ?: WalletBalance(Zatoshi(0), Zatoshi(0)),
+            orchardBalance ?: WalletBalance(Zatoshi(0), Zatoshi(0), Zatoshi(0)),
+            saplingBalance ?: WalletBalance(Zatoshi(0), Zatoshi(0), Zatoshi(0)),
+            transparentBalance ?: Zatoshi(0),
             progressPercentDecimal,
             flows[6] as SynchronizerError?
         )

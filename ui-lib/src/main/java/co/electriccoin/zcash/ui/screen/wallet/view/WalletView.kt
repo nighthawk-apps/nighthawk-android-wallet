@@ -224,7 +224,7 @@ fun WalletView(
             }
             isBalancePrivateMode.value = balanceViewType == BalanceViewType.SWIPE
             // Show shield now button in last if balanceViewType is Transparent and some transparentBalance is available 0.01 ZEC
-            if (balanceViewType == BalanceViewType.TRANSPARENT && walletSnapshot.transparentBalance.available > MIN_ZEC_FOR_SHIELDING.convertZecToZatoshi()) {
+            if (balanceViewType == BalanceViewType.TRANSPARENT && walletSnapshot.transparentBalance > MIN_ZEC_FOR_SHIELDING.convertZecToZatoshi()) {
                 Spacer(Modifier.height(dimensionResource(id = R.dimen.pageMargin)))
                 PrimaryButton(
                     onClick = onShieldNow,

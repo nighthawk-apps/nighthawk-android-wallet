@@ -119,7 +119,7 @@ internal fun WrapWallet(
                         onSendFromDeepLink()
                     }
                 }
-                checkForAutoShielding(walletSnapshot.transparentBalance.available, shieldViewModel)
+                checkForAutoShielding(walletSnapshot.transparentBalance, shieldViewModel)
             }
             if (homeViewModel.isAnyExpectingTransaction(walletSnapshot)) {
                 activity.showMessage(
@@ -156,7 +156,7 @@ internal fun WrapWallet(
         )
 
         val shieldUIState = shieldViewModel.shieldUIState.collectAsStateWithLifecycle().value
-        if (isEnoughBalanceForAutoShield(walletSnapshot.transparentBalance.available)) {
+        if (isEnoughBalanceForAutoShield(walletSnapshot.transparentBalance)) {
             ((shieldUIState is ShieldUIState.OnResult) && shieldUIState.destination == ShieldUiDestination.ShieldFunds)
                 .let {
                     if (it && isAutoShieldingInitiated.value.not()) {

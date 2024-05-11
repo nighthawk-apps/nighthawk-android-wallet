@@ -10,10 +10,15 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import cash.z.ecc.android.sdk.SdkSynchronizer
+import cash.z.ecc.android.sdk.model.Zatoshi
 import co.electriccoin.zcash.spackle.Twig
 import co.electriccoin.zcash.ui.MainActivity
+import co.electriccoin.zcash.ui.common.DEFAULT_SHIELDING_THRESHOLD
 import co.electriccoin.zcash.ui.common.onLaunchUrl
 import co.electriccoin.zcash.ui.screen.home.viewmodel.WalletViewModel
+import co.electriccoin.zcash.ui.screen.send.nighthawk.model.SubmitResult
+import co.electriccoin.zcash.ui.screen.send.nighthawk.viewmodel.CreateTransactionsViewModel
 import co.electriccoin.zcash.ui.screen.shield.model.ShieldUIState
 import co.electriccoin.zcash.ui.screen.shield.model.ShieldUiDestination
 import co.electriccoin.zcash.ui.screen.shield.model.ShieldingProcessState
@@ -31,6 +36,7 @@ internal fun MainActivity.AndroidShield(onBack: () -> Unit) {
 @Composable
 internal fun WrapShield(activity: ComponentActivity, onBack: () -> Unit) {
     val shieldViewModel = viewModel<ShieldViewModel>()
+    val createTransactionsViewModel = viewModel<CreateTransactionsViewModel>()
     val walletViewModel by activity.viewModels<WalletViewModel>()
     val scope = rememberCoroutineScope()
 
@@ -76,11 +82,44 @@ internal fun WrapShield(activity: ComponentActivity, onBack: () -> Unit) {
                             scope.launch(Dispatchers.IO) {
                                 runCatching {
                                     Twig.debug { "AutoShield onStarted" }
-                                    synchronizer.shieldFunds(spendingKey)
+                                    synchronizer.proposeShielding(
+                                        spendingKey.account,
+                                        Zatoshi(DEFAULT_SHIELDING_THRESHOLD)
+                                    )
                                 }
-                                    .onSuccess {
-                                        Twig.debug { "AutoShield onSuccess $it" }
-                                        shieldViewModel.updateShieldingProcessState(ShieldingProcessState.SUCCESS)
+                                    .onSuccess { newProposal ->
+                                        Twig.info { "Shielding proposal result: ${newProposal?.toPrettyString()}" }
+
+                                        if (newProposal == null) {
+                                            shieldViewModel.updateShieldingProcessState(ShieldingProcessState.FAILURE)
+                                        } else {
+                                            val result =
+                                                createTransactionsViewModel.runCreateTransactions(
+                                                    synchronizer = synchronizer,
+                                                    spendingKey = spendingKey,
+                                                    proposal = newProposal
+                                                )
+                                            when (result) {
+                                                SubmitResult.Success -> {
+                                                    Twig.info { "Shielding transaction done successfully" }
+                                                    shieldViewModel.updateShieldingProcessState(ShieldingProcessState.SUCCESS)
+                                                    // Triggering transaction history refresh to be notified about the newly created
+                                                    // transaction asap
+                                                    (synchronizer as SdkSynchronizer).refreshTransactions()
+
+                                                    // We could consider notifying UI with a change to emphasize the shielding action
+                                                    // was successful, or we could switch the selected tab to Account
+                                                }
+                                                is SubmitResult.SimpleTrxFailure -> {
+                                                    Twig.warn { "Shielding transaction failed ${result.errorDescription}" }
+                                                    shieldViewModel.updateShieldingProcessState(ShieldingProcessState.FAILURE)
+                                                }
+                                                is SubmitResult.MultipleTrxFailure -> {
+                                                    Twig.warn { "Shielding failed with multi-transactions-submission-error handling" }
+                                                    shieldViewModel.updateShieldingProcessState(ShieldingProcessState.FAILURE)
+                                                }
+                                            }
+                                        }
                                     }
                                     .onFailure {
                                         Twig.debug { "AutoShield onFailure $it" }

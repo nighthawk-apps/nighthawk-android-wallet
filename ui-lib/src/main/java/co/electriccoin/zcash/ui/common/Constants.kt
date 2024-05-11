@@ -23,3 +23,4 @@ const val MIN_ZEC_FOR_SHIELDING = 0.01
 const val MAXIMUM_FRACTION_DIGIT = 8
 const val BANDIT_MIN_AMOUNT_ZEC = 0.117
 const val BANDIT_NIGHTHAWK_ADDRESS = "zs1nhawkewaslscuey9qhnv9e4wpx77sp73kfu0l8wh9vhna7puazvfnutyq5ymg830hn5u2dmr0sf"
+const val DEFAULT_SHIELDING_THRESHOLD = 100000L

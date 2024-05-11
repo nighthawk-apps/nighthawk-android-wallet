@@ -4,7 +4,6 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import cash.z.ecc.android.sdk.Synchronizer
-import cash.z.ecc.android.sdk.ext.ZcashSdk
 import cash.z.ecc.android.sdk.ext.convertZatoshiToZecString
 import cash.z.ecc.android.sdk.ext.convertZecToZatoshi
 import cash.z.ecc.android.sdk.model.UnifiedSpendingKey
@@ -139,9 +138,7 @@ class SendViewModel(val context: Application) : AndroidViewModel(application = c
     fun updateEnterZecUiStateWithWalletSnapshot(walletSnapshot: WalletSnapshot) {
         Twig.debug { "SendVieModel walletSnapShot $walletSnapshot" }
         _enterZecUIState.getAndUpdate {
-            val availableZatoshi =
-                walletSnapshot.saplingBalance.available.takeIf { available -> available.value > ZcashSdk.MINERS_FEE.value }
-                    ?.let { available -> available - ZcashSdk.MINERS_FEE } ?: Zatoshi(0)
+            val availableZatoshi = walletSnapshot.saplingBalance.available
             val balanceValuesModel = (it.enteredAmount.toDoubleOrNull()
                 ?.toFiatZatoshi(fiatCurrencyUiState, isFiatCurrencyPreferredOverZec)
                 ?: Zatoshi(0)).toBalanceValueModel(
@@ -195,10 +192,8 @@ class SendViewModel(val context: Application) : AndroidViewModel(application = c
                 ),
                 receiverAddress = zecSend?.destination?.address ?: "",
                 subTotal = zecSend?.amount?.toZecString()?.removeTrailingZero() ?: "",
-                networkFees = ZcashSdk.MINERS_FEE.toZecString().removeTrailingZero(),
-                totalAmount = "${
-                    zecSend?.amount?.plus(ZcashSdk.MINERS_FEE)?.toZecString()?.removeTrailingZero()
-                }"
+                networkFees = "",
+                totalAmount = zecSend?.amount?.toZecString()?.removeTrailingZero() ?: ""
             )
     }
 
@@ -228,7 +223,7 @@ class SendViewModel(val context: Application) : AndroidViewModel(application = c
             }
                 .onSuccess {
                     Twig.debug { "Sending Zec: Sent successfully $it" }
-                    updateSendConfirmationState(SendConfirmationState.Success(it))
+                    updateSendConfirmationState(SendConfirmationState.Success)
                 }
                 .onFailure {
                     Twig.error { "Sending Zec: Send fail $it" }
