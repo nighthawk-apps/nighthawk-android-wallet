@@ -105,7 +105,10 @@ internal fun WrapShield(activity: ComponentActivity, onBack: () -> Unit) {
                                                     shieldViewModel.updateShieldingProcessState(ShieldingProcessState.SUCCESS)
                                                     // Triggering transaction history refresh to be notified about the newly created
                                                     // transaction asap
-                                                    (synchronizer as SdkSynchronizer).refreshTransactions()
+                                                    (synchronizer as SdkSynchronizer).run {
+                                                        refreshTransactions()
+                                                        refreshAllBalances()
+                                                    }
 
                                                     // We could consider notifying UI with a change to emphasize the shielding action
                                                     // was successful, or we could switch the selected tab to Account

@@ -3,6 +3,7 @@ package co.electriccoin.zcash.ui.screen.send.nighthawk.viewmodel
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import cash.z.ecc.android.sdk.SdkSynchronizer
 import cash.z.ecc.android.sdk.Synchronizer
 import cash.z.ecc.android.sdk.ext.convertZatoshiToZecString
 import cash.z.ecc.android.sdk.ext.convertZecToZatoshi
@@ -224,6 +225,10 @@ class SendViewModel(val context: Application) : AndroidViewModel(application = c
                 .onSuccess {
                     Twig.debug { "Sending Zec: Sent successfully $it" }
                     updateSendConfirmationState(SendConfirmationState.Success)
+                    (synchronizer as? SdkSynchronizer?)?.run {
+                        refreshTransactions()
+                        refreshAllBalances()
+                    }
                 }
                 .onFailure {
                     Twig.error { "Sending Zec: Send fail $it" }
