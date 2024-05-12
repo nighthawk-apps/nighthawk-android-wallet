@@ -5,10 +5,10 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import cash.z.ecc.android.sdk.model.ZcashNetwork
 import cash.z.ecc.sdk.type.fromResources
+import co.electriccoin.zcash.spackle.Twig
 import co.electriccoin.zcash.ui.common.ANDROID_STATE_FLOW_TIMEOUT
 import co.electriccoin.zcash.ui.preference.EncryptedPreferenceKeys
 import co.electriccoin.zcash.ui.preference.EncryptedPreferenceSingleton
-import co.electriccoin.zcash.ui.screen.changeserver.model.DEFAULT_REGION
 import co.electriccoin.zcash.ui.screen.changeserver.model.LightWalletServer
 import co.electriccoin.zcash.ui.screen.changeserver.model.MainnetServer
 import co.electriccoin.zcash.ui.screen.changeserver.model.TestnetServer
@@ -24,16 +24,17 @@ class ChangeServerViewModel(private val application: Application) : AndroidViewM
 
     val selectedServer = flow {
         val pref = EncryptedPreferenceSingleton.getInstance(application)
-        val isMainNet = ZcashNetwork.fromResources(application).isMainnet()
-        emit(
-            EncryptedPreferenceKeys.SELECTED_SERVER.getValue(pref).let {
-                if (isMainNet) {
-                    MainnetServer.getLightWalletServer(it)
-                } else {
-                    TestnetServer.getLightWalletServer(it)
-                }
+        var persistedEndPoint = EncryptedPreferenceKeys.LIGHT_WALLET_SERVER.getValue(pref)
+        if (persistedEndPoint == null) {
+            val isMainNet = ZcashNetwork.fromResources(application).isMainnet()
+            persistedEndPoint = if (isMainNet) {
+                MainnetServer.allServers()[0]
+            } else {
+                TestnetServer.allServers()[0]
             }
-        )
+        }
+        Twig.info { "locally saved serverEndPoint: $persistedEndPoint" }
+        emit(persistedEndPoint)
     }.stateIn(
         viewModelScope,
         SharingStarted.WhileSubscribed(ANDROID_STATE_FLOW_TIMEOUT),
@@ -52,7 +53,8 @@ class ChangeServerViewModel(private val application: Application) : AndroidViewM
     fun updateSelectedServer(lightWalletServer: LightWalletServer?) {
         viewModelScope.launch(Dispatchers.IO) {
             val pref = EncryptedPreferenceSingleton.getInstance(application)
-            EncryptedPreferenceKeys.SELECTED_SERVER.putValue(pref, lightWalletServer?.region ?: DEFAULT_REGION)
+            Twig.info { "locally saving serverEndPoint: $lightWalletServer" }
+            EncryptedPreferenceKeys.LIGHT_WALLET_SERVER.putValue(pref, lightWalletServer)
         }
     }
 

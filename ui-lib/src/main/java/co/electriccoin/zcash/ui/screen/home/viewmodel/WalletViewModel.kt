@@ -343,7 +343,7 @@ class WalletViewModel(application: Application) : AndroidViewModel(application) 
     private fun getLightWalletEndPoint(lightWalletServer: LightWalletServer): LightWalletEndpoint {
         val application = getApplication<Application>()
         val zcashNetwork = ZcashNetwork.fromResources(application)
-        return if (zcashNetwork.isMainnet() && lightWalletServer.region != DEFAULT_REGION) {
+        return if (zcashNetwork.isMainnet()) {
             LightWalletEndpoint(lightWalletServer.host, lightWalletServer.port, lightWalletServer.isSecure)
         } else {
             LightWalletEndpoint.defaultForNetwork(zcashNetwork)

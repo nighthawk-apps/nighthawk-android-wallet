@@ -20,6 +20,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.navigation.NavHostController
+import co.electriccoin.zcash.spackle.Twig
 import co.electriccoin.zcash.ui.common.BindCompLocalProvider
 import co.electriccoin.zcash.ui.common.ShortcutAction
 import co.electriccoin.zcash.ui.configuration.RemoteConfig
@@ -164,6 +165,7 @@ class MainActivity : FragmentActivity() {
                         )
                     }
                     is SecretState.Ready -> {
+                        Twig.info { "EndPoint ${secretState.persistableWallet.endpoint}" }
                         NavigationMainContent()
                     }
                     else -> {

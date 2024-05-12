@@ -22,16 +22,16 @@ private const val DEFAULT_PORT = 9067
 val LightWalletEndpoint.Companion.Mainnet
     get() =
         LightWalletEndpoint(
-            "mainnet.lightwalletd.com",
-            DEFAULT_PORT,
+            "zec.rocks",
+            443,
             isSecure = true
         )
 
 val LightWalletEndpoint.Companion.Testnet
     get() =
         LightWalletEndpoint(
-            "testnet.lightwalletd.com",
-            DEFAULT_PORT,
+            "lightwalletd.testnet.electriccoin.co",
+            9067,
             isSecure = true
         )
 
