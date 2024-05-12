@@ -38,8 +38,6 @@ import co.electriccoin.zcash.ui.preference.EncryptedPreferenceKeys
 import co.electriccoin.zcash.ui.preference.EncryptedPreferenceSingleton
 import co.electriccoin.zcash.ui.preference.StandardPreferenceKeys
 import co.electriccoin.zcash.ui.preference.StandardPreferenceSingleton
-import co.electriccoin.zcash.ui.screen.changeserver.model.DEFAULT_REGION
-import co.electriccoin.zcash.ui.screen.changeserver.model.LightWalletServer
 import co.electriccoin.zcash.ui.screen.history.state.TransactionHistorySyncState
 import co.electriccoin.zcash.ui.screen.home.model.WalletSnapshot
 import kotlinx.collections.immutable.ImmutableList
@@ -320,33 +318,17 @@ class WalletViewModel(application: Application) : AndroidViewModel(application) 
      * Update the [LightWalletEndpoint] by updating the [PersistableWallet]
      * PersistableWallet is async observed so it will change the end point in background
      */
-    fun updateLightWalletEndPoint(lightWalletServer: LightWalletServer?) {
-        if (lightWalletServer == null) return
+    fun updateLightWalletEndPoint(lightWalletEndpoint: LightWalletEndpoint) {
         val application = getApplication<Application>()
         viewModelScope.launch(Dispatchers.IO) {
             persistWalletMutex.withLock {
                 val preferenceProvider = EncryptedPreferenceSingleton.getInstance(application)
                 EncryptedPreferenceKeys.PERSISTABLE_WALLET.getValue(preferenceProvider)?.copy(
-                    endpoint = getLightWalletEndPoint(lightWalletServer)
+                    endpoint = lightWalletEndpoint
                 )?.let {
                     persistExistingWallet(it)
                 }
             }
-        }
-    }
-
-    /**
-     * @param lightWalletServer
-     * Now we have only option to change the end point for Mainnet. If [LightWalletServer.region] is also [DEFAULT_REGION] then we simply set the default network with existing sdk way
-     * @return LightWalletEndpoint
-     */
-    private fun getLightWalletEndPoint(lightWalletServer: LightWalletServer): LightWalletEndpoint {
-        val application = getApplication<Application>()
-        val zcashNetwork = ZcashNetwork.fromResources(application)
-        return if (zcashNetwork.isMainnet()) {
-            LightWalletEndpoint(lightWalletServer.host, lightWalletServer.port, lightWalletServer.isSecure)
-        } else {
-            LightWalletEndpoint.defaultForNetwork(zcashNetwork)
         }
     }
 

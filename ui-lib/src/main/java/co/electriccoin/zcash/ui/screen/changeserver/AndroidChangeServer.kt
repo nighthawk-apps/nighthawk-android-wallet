@@ -53,7 +53,7 @@ internal fun AndroidChangeServer(activity: ComponentActivity, onBack: () -> Unit
                         ServerValidation.Running -> {}
                         ServerValidation.Valid -> {
                             changeServerViewModel.updateSelectedServer(newServer)
-                            walletViewModel.updateLightWalletEndPoint(newServer)
+                            walletViewModel.updateLightWalletEndPoint(changeServerViewModel.getLightWalletEndPoint(newServer))
                             onBack()
                         }
                     }

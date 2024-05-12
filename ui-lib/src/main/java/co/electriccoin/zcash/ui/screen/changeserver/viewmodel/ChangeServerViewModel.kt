@@ -4,7 +4,9 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import cash.z.ecc.android.sdk.model.ZcashNetwork
+import cash.z.ecc.sdk.extension.defaultForNetwork
 import cash.z.ecc.sdk.type.fromResources
+import co.electriccoin.lightwallet.client.model.LightWalletEndpoint
 import co.electriccoin.zcash.spackle.Twig
 import co.electriccoin.zcash.ui.common.ANDROID_STATE_FLOW_TIMEOUT
 import co.electriccoin.zcash.ui.preference.EncryptedPreferenceKeys
@@ -55,6 +57,24 @@ class ChangeServerViewModel(private val application: Application) : AndroidViewM
             val pref = EncryptedPreferenceSingleton.getInstance(application)
             Twig.info { "locally saving serverEndPoint: $lightWalletServer" }
             EncryptedPreferenceKeys.LIGHT_WALLET_SERVER.putValue(pref, lightWalletServer)
+        }
+    }
+
+    /**
+     * @param lightWalletServer
+     * Now we have only option to change the end point for Mainnet.
+     * @return LightWalletEndpoint
+     */
+    fun getLightWalletEndPoint(lightWalletServer: LightWalletServer?): LightWalletEndpoint {
+        val application = getApplication<Application>()
+        val zcashNetwork = ZcashNetwork.fromResources(application)
+        if (lightWalletServer == null) {
+            return LightWalletEndpoint.defaultForNetwork(zcashNetwork)
+        }
+        return if (zcashNetwork.isMainnet()) {
+            LightWalletEndpoint(lightWalletServer.host, lightWalletServer.port, lightWalletServer.isSecure)
+        } else {
+            LightWalletEndpoint.defaultForNetwork(zcashNetwork)
         }
     }
 

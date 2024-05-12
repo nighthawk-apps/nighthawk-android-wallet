@@ -10,7 +10,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.core.content.ContextCompat
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
@@ -20,6 +22,10 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.navigation.NavHostController
+import cash.z.ecc.android.sdk.model.ZcashNetwork
+import cash.z.ecc.sdk.extension.defaultForNetwork
+import cash.z.ecc.sdk.type.fromResources
+import co.electriccoin.lightwallet.client.model.LightWalletEndpoint
 import co.electriccoin.zcash.spackle.Twig
 import co.electriccoin.zcash.ui.common.BindCompLocalProvider
 import co.electriccoin.zcash.ui.common.ShortcutAction
@@ -27,6 +33,7 @@ import co.electriccoin.zcash.ui.configuration.RemoteConfig
 import co.electriccoin.zcash.ui.design.component.ConfigurationOverride
 import co.electriccoin.zcash.ui.design.component.Override
 import co.electriccoin.zcash.ui.design.theme.ZcashTheme
+import co.electriccoin.zcash.ui.screen.changeserver.model.OLD_NIGHTHAWK_HOST_PATTERN
 import co.electriccoin.zcash.ui.screen.home.viewmodel.HomeViewModel
 import co.electriccoin.zcash.ui.screen.home.viewmodel.SecretState
 import co.electriccoin.zcash.ui.screen.home.viewmodel.WalletViewModel
@@ -138,6 +145,7 @@ class MainActivity : FragmentActivity() {
         walletViewModel.checkForOldAppMigration()
         val configuration = homeViewModel.configurationFlow.collectAsStateWithLifecycle().value
         val secretState = walletViewModel.secretState.collectAsStateWithLifecycle().value
+        val coroutineScope = rememberCoroutineScope()
 
         // Note this condition needs to be kept in sync with the condition in setupSplashScreen()
         if (null == configuration || secretState == SecretState.Loading) {
@@ -167,12 +175,25 @@ class MainActivity : FragmentActivity() {
                     is SecretState.Ready -> {
                         Twig.info { "EndPoint ${secretState.persistableWallet.endpoint}" }
                         NavigationMainContent()
+                        LaunchedEffect(key1 = Unit) {
+                            coroutineScope.launch {
+                                checkAndMigrateFromOldEndPoints(secretState.persistableWallet.endpoint)
+                            }
+                        }
                     }
                     else -> {
                         error("Unhandled secret state: $secretState")
                     }
                 }
             }
+        }
+    }
+
+    private fun checkAndMigrateFromOldEndPoints(existingEndPoint: LightWalletEndpoint) {
+        if (existingEndPoint.host.contains(OLD_NIGHTHAWK_HOST_PATTERN)) {
+            Twig.info { "Changing old NightHawk lightWalletEndPoint from $existingEndPoint" }
+            val zcashNetwork = ZcashNetwork.fromResources(this)
+            walletViewModel.updateLightWalletEndPoint(LightWalletEndpoint.defaultForNetwork(zcashNetwork))
         }
     }
 
