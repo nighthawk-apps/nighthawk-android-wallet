@@ -35,7 +35,7 @@ internal fun WrapReceive(
             ClipboardManagerUtil.copyToClipboard(
                 activity.applicationContext,
                 activity.getString(R.string.ns_private_address),
-                walletAddresses?.sapling?.address ?: ""
+                walletAddresses?.unified?.address ?: ""
             )
         },
         onTopUpWallet = onTopUpWallet,

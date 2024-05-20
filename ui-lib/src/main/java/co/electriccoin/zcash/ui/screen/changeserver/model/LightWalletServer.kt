@@ -119,14 +119,14 @@ sealed class MainnetServer(host: String, port: Int, region: String, isSecure: Bo
                 ZR_SA,
                 ZR_EU,
                 ZR_AP,
-                YW_1,
+                /*YW_1,
                 YW_2,
                 YW_3,
                 YW_4,
                 YW_5,
                 YW_6,
                 YW_7,
-                YW_8,
+                YW_8,*/
             ).toImmutableList()
         }
     }
