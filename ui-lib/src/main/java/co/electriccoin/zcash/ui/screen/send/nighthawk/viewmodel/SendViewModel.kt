@@ -26,6 +26,7 @@ import co.electriccoin.zcash.ui.preference.StandardPreferenceSingleton
 import co.electriccoin.zcash.ui.screen.fiatcurrency.model.FiatCurrency
 import co.electriccoin.zcash.ui.screen.fiatcurrency.model.FiatCurrencyUiState
 import co.electriccoin.zcash.ui.screen.home.model.WalletSnapshot
+import co.electriccoin.zcash.ui.screen.home.model.spendableBalance
 import co.electriccoin.zcash.ui.screen.send.nighthawk.model.EnterZecUIState
 import co.electriccoin.zcash.ui.screen.send.nighthawk.model.NumberPadValueTypes
 import co.electriccoin.zcash.ui.screen.send.nighthawk.model.SendAndReviewUiState
@@ -139,7 +140,7 @@ class SendViewModel(val context: Application) : AndroidViewModel(application = c
     fun updateEnterZecUiStateWithWalletSnapshot(walletSnapshot: WalletSnapshot) {
         Twig.debug { "SendVieModel walletSnapShot $walletSnapshot" }
         _enterZecUIState.getAndUpdate {
-            val availableZatoshi = walletSnapshot.saplingBalance.available
+            val availableZatoshi = walletSnapshot.spendableBalance()
             val balanceValuesModel = (it.enteredAmount.toDoubleOrNull()
                 ?.toFiatZatoshi(fiatCurrencyUiState, isFiatCurrencyPreferredOverZec)
                 ?: Zatoshi(0)).toBalanceValueModel(

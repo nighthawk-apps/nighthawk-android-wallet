@@ -16,15 +16,6 @@ private const val ZR_HOST_EU = "eu.zec.rocks" // NON-NLS
 private const val ZR_HOST_AP = "ap.zec.rocks" // NON-NLS
 private const val ZR_PORT = 443
 
-private const val YW_HOST_1 = "lwd1.zcash-infra.com" // NON-NLS
-private const val YW_HOST_2 = "lwd2.zcash-infra.com" // NON-NLS
-private const val YW_HOST_3 = "lwd3.zcash-infra.com" // NON-NLS
-private const val YW_HOST_4 = "lwd4.zcash-infra.com" // NON-NLS
-private const val YW_HOST_5 = "lwd5.zcash-infra.com" // NON-NLS
-private const val YW_HOST_6 = "lwd6.zcash-infra.com" // NON-NLS
-private const val YW_HOST_7 = "lwd7.zcash-infra.com" // NON-NLS
-private const val YW_HOST_8 = "lwd8.zcash-infra.com" // NON-NLS
-private const val YW_PORT = 9067
 
 sealed class LightWalletServer(
     val host: String,
@@ -82,16 +73,6 @@ sealed class MainnetServer(host: String, port: Int, region: String, isSecure: Bo
     data object ZR_EU : MainnetServer(ZR_HOST_EU, ZR_PORT, ZR_HOST_EU, true)
     data object ZR_AP : MainnetServer(ZR_HOST_AP, ZR_PORT, ZR_HOST_AP, true)
 
-    // infra
-    data object YW_1 : MainnetServer(YW_HOST_1, YW_PORT, YW_HOST_1, true)
-    data object YW_2 : MainnetServer(YW_HOST_2, YW_PORT, YW_HOST_2, true)
-    data object YW_3 : MainnetServer(YW_HOST_3, YW_PORT, YW_HOST_3, true)
-    data object YW_4 : MainnetServer(YW_HOST_4, YW_PORT, YW_HOST_4, true)
-    data object YW_5 : MainnetServer(YW_HOST_5, YW_PORT, YW_HOST_5, true)
-    data object YW_6 : MainnetServer(YW_HOST_6, YW_PORT, YW_HOST_6, true)
-    data object YW_7 : MainnetServer(YW_HOST_7, YW_PORT, YW_HOST_7, true)
-    data object YW_8 : MainnetServer(YW_HOST_8, YW_PORT, YW_HOST_8, true)
-
     companion object {
         fun getLightWalletServer(region: String): LightWalletServer {
             return when (region.lowercase()) {
@@ -100,14 +81,6 @@ sealed class MainnetServer(host: String, port: Int, region: String, isSecure: Bo
                 ZR_EU.region.lowercase() -> ZR_EU
                 ZR_AP.region.lowercase() -> ZR_AP
 
-                YW_1.region.lowercase() -> YW_1
-                YW_2.region.lowercase() -> YW_2
-                YW_3.region.lowercase() -> YW_3
-                YW_4.region.lowercase() -> YW_4
-                YW_5.region.lowercase() -> YW_5
-                YW_6.region.lowercase() -> YW_6
-                YW_7.region.lowercase() -> YW_7
-                YW_8.region.lowercase() -> YW_8
                 else -> DEFAULT
             }
         }
@@ -119,14 +92,6 @@ sealed class MainnetServer(host: String, port: Int, region: String, isSecure: Bo
                 ZR_SA,
                 ZR_EU,
                 ZR_AP,
-                /*YW_1,
-                YW_2,
-                YW_3,
-                YW_4,
-                YW_5,
-                YW_6,
-                YW_7,
-                YW_8,*/
             ).toImmutableList()
         }
     }

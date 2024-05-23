@@ -21,6 +21,7 @@ import co.electriccoin.zcash.ui.MainActivity
 import co.electriccoin.zcash.ui.R
 import co.electriccoin.zcash.ui.common.MIN_ZEC_FOR_SHIELDING
 import co.electriccoin.zcash.ui.common.ShortcutAction
+import co.electriccoin.zcash.ui.common.removeTrailingZero
 import co.electriccoin.zcash.ui.common.showMessage
 import co.electriccoin.zcash.ui.common.toFormattedString
 import co.electriccoin.zcash.ui.screen.home.viewmodel.HomeViewModel
@@ -125,7 +126,7 @@ internal fun WrapWallet(
                 activity.showMessage(
                     activity.getString(
                         R.string.ns_expecting_balance_snack_bar_msg,
-                        Zatoshi(homeViewModel.expectingZatoshi).toZecString()
+                        Zatoshi(homeViewModel.expectingZatoshi).toZecString().removeTrailingZero()
                     ))
                 }
         }

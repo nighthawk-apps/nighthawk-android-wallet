@@ -9,8 +9,12 @@ import co.electriccoin.zcash.ui.common.toBalanceUiModel
 import co.electriccoin.zcash.ui.common.toBalanceValueModel
 import co.electriccoin.zcash.ui.screen.fiatcurrency.model.FiatCurrencyUiState
 import co.electriccoin.zcash.ui.screen.home.model.WalletSnapshot
+import co.electriccoin.zcash.ui.screen.home.model.changePendingBalance
+import co.electriccoin.zcash.ui.screen.home.model.hasChangePending
+import co.electriccoin.zcash.ui.screen.home.model.hasValuePending
 import co.electriccoin.zcash.ui.screen.home.model.spendableBalance
 import co.electriccoin.zcash.ui.screen.home.model.totalBalance
+import co.electriccoin.zcash.ui.screen.home.model.valuePendingBalance
 
 data class BalanceDisplayValues(
     @DrawableRes val iconDrawableRes: Int,
@@ -54,13 +58,13 @@ data class BalanceDisplayValues(
                 BalanceViewType.SHIELDED -> {
                     iconDrawableRes = R.drawable.ic_icon_shielded
                     balanceType = context.getString(R.string.ns_shielded_balance)
-                    if (walletSnapshot.saplingBalance.total > walletSnapshot.saplingBalance.available) {
+                    if (walletSnapshot.hasValuePending() || walletSnapshot.hasChangePending()) {
                         msg = context.getString(
                             R.string.ns_expecting_balance_snack_bar_msg,
-                            (walletSnapshot.saplingBalance.total - walletSnapshot.saplingBalance.available).toZecString().removeTrailingZero()
+                            (walletSnapshot.valuePendingBalance() + walletSnapshot.changePendingBalance()).toZecString().removeTrailingZero()
                         )
                     }
-                    val availableBalance = walletSnapshot.saplingBalance.available
+                    val availableBalance = walletSnapshot.spendableBalance()
                     balanceUIModel = availableBalance.toBalanceValueModel(fiatCurrencyUiState, isFiatCurrencyPreferred).toBalanceUiModel(context)
                 }
                 BalanceViewType.TRANSPARENT -> {
