@@ -2,15 +2,14 @@ package co.electriccoin.zcash.ui.screen.send.nighthawk.viewmodel
 
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
-import androidx.lifecycle.viewModelScope
-import cash.z.ecc.android.sdk.SdkSynchronizer
 import cash.z.ecc.android.sdk.Synchronizer
 import cash.z.ecc.android.sdk.ext.convertZatoshiToZecString
 import cash.z.ecc.android.sdk.ext.convertZecToZatoshi
+import cash.z.ecc.android.sdk.model.Proposal
 import cash.z.ecc.android.sdk.model.UnifiedSpendingKey
 import cash.z.ecc.android.sdk.model.Zatoshi
 import cash.z.ecc.android.sdk.model.ZecSend
-import cash.z.ecc.android.sdk.model.send
+import cash.z.ecc.android.sdk.model.proposeSend
 import cash.z.ecc.android.sdk.model.toZecString
 import cash.z.ecc.android.sdk.type.AddressType
 import co.electriccoin.zcash.preference.api.PreferenceProvider
@@ -37,7 +36,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.getAndUpdate
 import kotlinx.coroutines.flow.update
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class SendViewModel(val context: Application) : AndroidViewModel(application = context) {
     private val _currentSendUiState = MutableStateFlow<SendUIState?>(SendUIState.ENTER_ZEC)
@@ -83,13 +82,13 @@ class SendViewModel(val context: Application) : AndroidViewModel(application = c
         onNextSendUiState()
     }
 
-    fun onSendZCash(
+    suspend fun onSendZCash(
         zecSend: ZecSend?,
         spendingKey: UnifiedSpendingKey?,
         synchronizer: Synchronizer?
-    ) {
+    ): Proposal? {
         onNextSendUiState()
-        initiateSend(zecSend, spendingKey, synchronizer)
+        return initiateSend(zecSend, spendingKey, synchronizer)
     }
 
     fun updateReceiverAddress(address: String) {
@@ -199,43 +198,42 @@ class SendViewModel(val context: Application) : AndroidViewModel(application = c
             )
     }
 
-    private fun initiateSend(
+    private suspend fun initiateSend(
         zecSend: ZecSend?,
         spendingKey: UnifiedSpendingKey?,
         synchronizer: Synchronizer?
-    ) {
-        viewModelScope.launch(Dispatchers.IO) {
+    ): Proposal? {
+        return withContext(Dispatchers.IO) {
             if (zecSend == null) {
                 Twig.error { "Sending Zec: Send zec is null" }
                 updateSendConfirmationState(SendConfirmationState.Failed)
-                return@launch
+                return@withContext null
             }
             if (spendingKey == null) {
                 Twig.error { "Sending Zec: spending key is null" }
                 updateSendConfirmationState(SendConfirmationState.Failed)
-                return@launch
+                return@withContext null
             }
             if (synchronizer == null) {
                 Twig.error { "Sending Zec: synchronizer is null" }
                 updateSendConfirmationState(SendConfirmationState.Failed)
-                return@launch
+                return@withContext null
             }
             runCatching {
-                synchronizer.send(spendingKey = spendingKey, send = zecSend)
+                synchronizer.proposeSend(account = spendingKey.account, send = zecSend)
             }
                 .onSuccess {
-                    Twig.debug { "Sending Zec: Sent successfully $it" }
-                    updateSendConfirmationState(SendConfirmationState.Success)
-                    (synchronizer as? SdkSynchronizer?)?.run {
-                        refreshTransactions()
-                        refreshAllBalances()
-                    }
+                    Twig.debug { "Sending Zec: proposal created successfully ${it.toPrettyString()}" }
                 }
                 .onFailure {
                     Twig.error { "Sending Zec: Send fail $it" }
                     updateSendConfirmationState(SendConfirmationState.Failed)
-                }
+                }.getOrNull()
         }
+    }
+
+    fun updateConfirmationState(sendConfirmationState: SendConfirmationState) {
+        updateSendConfirmationState(sendConfirmationState)
     }
 
     private fun onBackSpaceKeyPressed() {
