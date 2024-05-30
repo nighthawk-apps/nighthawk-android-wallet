@@ -1,0 +1,1 @@
+- Switch main-net block explorer to 3xpl.com and test-net to blockexplorer.one
