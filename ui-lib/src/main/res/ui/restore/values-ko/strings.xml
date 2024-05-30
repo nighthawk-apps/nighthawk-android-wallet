@@ -99,7 +99,7 @@
     <string name="ns_send_money">Send money</string>
     <string name="ns_send_money_text">Allow someone to scan the code to send money</string>
     <string name="ns_receive_money">Receive money</string>
-    <string name="ns_receive_money_text">Your wallet address will be copied to the clipboard</string>
+    <string name="ns_receive_money_text">Display your QR code or copy your address.</string>
     <string name="ns_top_up">Top up your wallet</string>
     <string name="ns_top_up_text">Securely buy Zcash through our partners.</string>
     <string name="ns_buy_moonpay">Buy from MoonPay</string>
@@ -108,16 +108,16 @@
     <string name="ns_swap_sideshift_text">30개 이상의 코인으로 교환하세요. 가입할 필요가 없습니다.</string>
     <string name="ns_swap_stealthex">Swap with StealthEx.io</string>
     <string name="ns_swap_stealthex_text">Swap transparent coins without limits.</string>
-    <string name="ns_receive_money_securely">Receive money securely</string>
+    <string name="ns_receive_money_securely">Receive money privately</string>
     <string name="ns_show_qr_code">Show QR Code</string>
-    <string name="ns_show_qr_code_text">Allow someone to scan the code to send money</string>
+    <string name="ns_show_qr_code_text">Let someone scan to send you money.</string>
     <string name="ns_copy_private_address">Copy private address</string>
     <string name="ns_copy_private_address_text">Your wallet address will be copied to the clipboard.</string>
     <string name="ns_receive_money_publicly">Receive money publicly</string>
     <string name="ns_copy_public_address">Copy a non-private address</string>
     <string name="ns_receive_money_publicly_text">This will copy your t-address.</string>
     <string name="ns_private_address">Private Address</string>
-    <string name="ns_non_private_address">Non-Private Address</string>
+    <string name="ns_non_private_address">Non-private address</string>
     <string name="ns_top_up_your_wallet">Top up your wallet</string>
     <string name="ns_top_up_your_wallet_msg">Buy or trade Zcash through our specially selected partners.</string>
     <string name="ns_see_more">See More</string>
@@ -142,7 +142,7 @@
     <string name="ns_fiat_currency_body">현지 통화를 선택하면 ZEC의 가치에 대한 대략적인 추정치를 보여드릴 수 있습니다.\n\n앱을 처음 열면 환율은 코인게코 API v3에서 가져와서 값을 계산하는 데 사용됩니다. 귀하의 자금 금액은 어떤 서버에도 공개되지 않습니다.</string>
     <string name="ns_change_server">Change server</string>
     <string name="ns_change_server_text">Change backend lightwalletd server.</string>
-    <string name="ns_change_server_body">해당 지역에서 가장 가까운 백엔드 lightwalletd 서버로 변경합니다.</string>
+    <string name="ns_change_server_body">Change to nearest available backend lightwalletd server around your region. \n\nThe servers are not operated by Nighthawk, and the privacy of communication and broadcasting transactions cannot be guaranteed. We recommend using a VPN or Tor for enhanced privacy before making transactions.</string>
     <string name="ns_external_services">외부 서비스</string>
     <string name="ns_external_services_text">파트너 서비스를 선택하세요.</string>
     <string name="ns_external_services_uns">Unstoppable 도메인 서비스 사용</string>
@@ -290,4 +290,6 @@
     <string name="retro">레트로</string>
     <string name="delete_wallet">Delete Wallet</string>
     <string name="enable_dark_theme">Switch to dark theme</string>
+    <string name="ns_host">Host</string>
+    <string name="ns_port">Port</string>
 </resources>

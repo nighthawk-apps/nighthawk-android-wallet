@@ -99,7 +99,7 @@
     <string name="ns_send_money">Send money</string>
     <string name="ns_send_money_text">Allow someone to scan the code to send money</string>
     <string name="ns_receive_money">Receive money</string>
-    <string name="ns_receive_money_text">Your wallet address will be copied to the clipboard</string>
+    <string name="ns_receive_money_text">Display your QR code or copy your address.</string>
     <string name="ns_top_up">Top up your wallet</string>
     <string name="ns_top_up_text">Securely buy Zcash through our partners.</string>
     <string name="ns_buy_moonpay">Buy from MoonPay</string>
@@ -108,16 +108,16 @@
     <string name="ns_swap_sideshift_text">Swap between 30+ coins. No sign-up is required.</string>
     <string name="ns_swap_stealthex">Swap with StealthEx.io</string>
     <string name="ns_swap_stealthex_text">Swap transparent coins without limits.</string>
-    <string name="ns_receive_money_securely">Receive money securely</string>
+    <string name="ns_receive_money_securely">Receive money privately</string>
     <string name="ns_show_qr_code">Show QR Code</string>
-    <string name="ns_show_qr_code_text">Allow someone to scan the code to send money</string>
+    <string name="ns_show_qr_code_text">Let someone scan to send you money.</string>
     <string name="ns_copy_private_address">Copy private address</string>
     <string name="ns_copy_private_address_text">Your wallet address will be copied to the clipboard.</string>
     <string name="ns_receive_money_publicly">Receive money publicly</string>
     <string name="ns_copy_public_address">Copy a non-private address</string>
     <string name="ns_receive_money_publicly_text">This will copy your t-address.</string>
     <string name="ns_private_address">Private Address</string>
-    <string name="ns_non_private_address">Non-Private Address</string>
+    <string name="ns_non_private_address">Non-private address</string>
     <string name="ns_top_up_your_wallet">Top up your wallet</string>
     <string name="ns_top_up_your_wallet_msg">Buy or trade Zcash through our specially selected partners.</string>
     <string name="ns_see_more">See More</string>
@@ -142,7 +142,7 @@
     <string name="ns_fiat_currency_body">Choose your local currency so that we can show you a close estimate of how much your ZEC is worth.\n\nWhen you first open the app, the exchange rate is fetched from CoinGecko API v3 and used to calculate values. Your fund amounts are never revealed to any server.</string>
     <string name="ns_change_server">Change server</string>
     <string name="ns_change_server_text">Change backend lightwalletd server.</string>
-    <string name="ns_change_server_body">Change to nearest available backend lightwalletd server around your region.</string>
+    <string name="ns_change_server_body">Change to nearest available backend lightwalletd server around your region. \n\nThe servers are not operated by Nighthawk, and the privacy of communication and broadcasting transactions cannot be guaranteed. We recommend using a VPN or Tor for enhanced privacy before making transactions.</string>
     <string name="ns_external_services">External services</string>
     <string name="ns_external_services_text">Opt-in to our partner services.</string>
     <string name="ns_external_services_uns">Enable Unstoppable Domain Service</string>
@@ -167,7 +167,7 @@
     <string name="ns_security_choose">Choose PIN code</string>
     <string name="ns_security_try_again">Please try again</string>
     <string name="ns_about">About</string>
-    <string name="ns_about_message">Nighthawk is a Shielded-by-Default wallet for Zcash with Spend-before-Sync support &amp; optional T-addresses support with Auto-Shielding technology.\n\nAs a non-custodial wallet for Zcash, you have sole responsibility over its funds. Please immediately and securely back up the seed words upon creating a wallet.\n\nZcash is a digital currency, or cryptocurrency, like Bitcoin. Zcash was built on the original Bitcoin code base. It was conceived by scientists at MIT, Johns Hopkins and other respected academic and scientific institutions.\n\nNighthawk Wallet requires trust in the default or custom lightwalletd server to display accurate transaction information and CoinGecko service for exchange rate feed. This software is provided \"as is\", without warranty of any kind, express or implied.</string>
+    <string name="ns_about_message">Nighthawk is a Shielded Zcash light-wallet with support for Z-addresses, including sending &amp; receiving shielded transactions, memo support &amp; optional t-addresses support with Auto-Shielding technology.\n\nAs a non-custodial wallet for Zcash, you have sole responsibility over its funds. Please immediately and securely back up the seed words upon creating a wallet.\n\nZcash is a digital currency, or cryptocurrency, like Bitcoin. Zcash was built on the original Bitcoin code base. It was conceived by scientists at MIT, Johns Hopkins and other respected academic and scientific institutions.\n\nNighthawk Wallet requires trust in the default or custom lightwalletd server to display accurate transaction information and CoinGecko service for exchange rate feed. This software is provided \"as is\", without warranty of any kind, express or implied.</string>
     <string name="ns_view_source">View Source</string>
     <string name="ns_credits">Nighthawk friends</string>
     <string name="ns_about_text">Nighthawk v%s &amp; Licenses</string>
@@ -290,4 +290,6 @@
     <string name="retro">Retro</string>
     <string name="delete_wallet">Delete Wallet</string>
     <string name="enable_dark_theme">Switch to dark theme</string>
+    <string name="ns_host">Host</string>
+    <string name="ns_port">Port</string>
 </resources>
