@@ -99,7 +99,7 @@
     <string name="ns_send_money">Enviar dinero</string>
     <string name="ns_send_money_text">Permitir que alguien escanee el código para enviar dinero</string>
     <string name="ns_receive_money">Recibir dinero</string>
-    <string name="ns_receive_money_text">La dirección de su billetera se copiará al portapapeles</string>
+    <string name="ns_receive_money_text">Display your QR code or copy your address.</string>
     <string name="ns_top_up">Recarga tu billetera</string>
     <string name="ns_top_up_text">Comprar Zcash de forma segura a través de nuestros socios.</string>
     <string name="ns_buy_moonpay">Comprar en MoonPay</string>
@@ -108,16 +108,16 @@
     <string name="ns_swap_sideshift_text">Intercambiar entre más de 30 monedas. No es necesario registrarse.</string>
     <string name="ns_swap_stealthex">Intercambiar con StealthEx.io</string>
     <string name="ns_swap_stealthex_text">Intercambiar monedas transparentes sin límites.</string>
-    <string name="ns_receive_money_securely">Recibir dinero de forma segura</string>
+    <string name="ns_receive_money_securely">Receive money privately</string>
     <string name="ns_show_qr_code">Mostrar código QR</string>
-    <string name="ns_show_qr_code_text">Permitir que alguien escanee el código para enviar dinero</string>
+    <string name="ns_show_qr_code_text">Let someone scan to send you money.</string>
     <string name="ns_copy_private_address">Copiar dirección privada</string>
     <string name="ns_copy_private_address_text">La dirección de su billetera se copiará al portapapeles.</string>
     <string name="ns_receive_money_publicly">Recibir dinero públicamente</string>
     <string name="ns_copy_public_address">Copiar una dirección no privada</string>
     <string name="ns_receive_money_publicly_text">Esto copiará su dirección t.</string>
     <string name="ns_private_address">Dirección Privada</string>
-    <string name="ns_non_private_address">Dirección No Privada</string>
+    <string name="ns_non_private_address">Non-private address</string>
     <string name="ns_top_up_your_wallet">Recarga tu billetera</string>
     <string name="ns_top_up_your_wallet_msg">Compra o comercia con Zcash a través de nuestros socios especialmente seleccionados.</string>
     <string name="ns_see_more">Ver más</string>
@@ -142,7 +142,7 @@
     <string name="ns_fiat_currency_body">Elija su moneda local para que podamos mostrarle una estimación aproximada de cuánto vale su ZEC.\n\nCuando abres la aplicación por primera vez, el tipo de cambio se obtiene de CoinGecko API v3 y se utiliza para calcular los valores. Las cantidades de tu fondo nunca se revelan a ningún servidor.</string>
     <string name="ns_change_server">Cambiar de servidor</string>
     <string name="ns_change_server_text">Cambiar servidor lightwalletd del backend.</string>
-    <string name="ns_change_server_body">Change to nearest available backend lightwalletd server around your region.</string>
+    <string name="ns_change_server_body">Change to nearest available backend lightwalletd server around your region. \n\nThe servers are not operated by Nighthawk, and the privacy of communication and broadcasting transactions cannot be guaranteed. We recommend using a VPN or Tor for enhanced privacy before making transactions.</string>
     <string name="ns_external_services">Servicio externo</string>
     <string name="ns_external_services_text">Optar por nuestros servicios asociados.</string>
     <string name="ns_external_services_uns">Habilitar Unstoppable Domain Service</string>
@@ -290,4 +290,6 @@
     <string name="retro">Retro</string>
     <string name="delete_wallet">Delete Wallet</string>
     <string name="enable_dark_theme">Switch to dark theme</string>
+    <string name="ns_host">Host</string>
+    <string name="ns_port">Port</string>
 </resources>
