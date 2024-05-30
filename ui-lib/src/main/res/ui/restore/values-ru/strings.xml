@@ -84,7 +84,7 @@
     <string name="ns_pending">Pending</string>
     <string name="ns_pending_confirmations">Pending %s</string>
     <string name="ns_confirmed">Confirmed</string>
-    <string name="ns_view_block_explorer">Просмотреть на ZcashBlockExplorer.com</string>
+    <string name="ns_view_block_explorer">Просмотреть на 3xpl.com</string>
     <string name="ns_view_on_explorer">View on explorer</string>
     <string name="ns_time_utc">Time (UTC)</string>
     <string name="ns_block_id">Block ID</string>
