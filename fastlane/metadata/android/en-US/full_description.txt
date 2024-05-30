@@ -1,12 +1,9 @@
-Nighthawk is a Shielded-by-default light wallet for Zcash with support sending & receiving shielded transactions, memo support & optional T-addresses support with Auto-Shielding technology.
-
-Zcash Network:
-- Fast and confidential with low fees — built for the Internet and Mobile transactions.
+Nighthawk is a Shielded-by-default light wallet with support sending & receiving shielded transactions, memo support & optional T-addresses support with Auto-Shielding technology.
 
 Shielded by Default:
-- Auto-shielding moves funds from transparent Zcash addresses to the shielded pool!
+- Auto-shielding moves funds from transparent addresses to the shielded pool!
 
-Powered by Zcash Mobile SDKs
+Powered by Native Mobile SDKs
 - Standardized SDKs with accurate protocol specification for a seamless experience.
 
 Privacy Preserving:
@@ -15,7 +12,7 @@ Privacy Preserving:
 Nighthawk is a light-wallet:
 - Requires trust in the lightwalletd server for displaying accurate transaction information.
 
-Self-custody wallet for Zcash:
+Self-custody:
 - Take sole responsibility for your funds on Nighthawk. Securely backup seed words immediately.
 
 Swap ZEC via SideShift.ai & StealthEx.io:
@@ -33,7 +30,8 @@ Export Seed Words to PDF:
 Need Help?:
 - Connect with us via X @NighthawkWallet or https://nighthawkwallet.com for email.
 
-NOTE: As a light wallet, Nighthawk requires trust in the lightwalletd server to display accurate transaction information. You can change the default lightwalletd server under Profile > Settings.
+NOTE: As a light wallet, the app requires trust in the lightwalletd server to display accurate transaction information. You can change the default lightwalletd server under Profile > Settings. The servers are not operated by Nighthawk, and the privacy of communication and broadcasting transactions cannot be guaranteed. We recommend using a VPN or Tor for enhanced privacy before making transactions.
+
 TROUBLESHOOTING: In case of issues with syncing or missing transactions, please try the Rescan Wallet option.
 
 This software is provided 'as is', without warranty of any kind, express or implied.

@@ -1,0 +1,2 @@
+- Update Zcash SDK to v2.1.1
+- Change server to zec.rocks after lightwalletd.com for Zcash was decommissioned
