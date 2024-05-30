@@ -61,7 +61,6 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
 
     val isDarkThemeEnabled: StateFlow<Boolean?> = booleanStateFlow(StandardPreferenceKeys.IS_DARK_THEME_ENABLED)
 
-
     private fun booleanStateFlow(default: BooleanPreferenceDefault): StateFlow<Boolean?> =
         flow<Boolean?> {
             val preferenceProvider = StandardPreferenceSingleton.getInstance(getApplication())
