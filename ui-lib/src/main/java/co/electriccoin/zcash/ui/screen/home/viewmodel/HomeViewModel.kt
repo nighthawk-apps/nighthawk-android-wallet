@@ -20,6 +20,8 @@ import co.electriccoin.zcash.ui.preference.StandardPreferenceSingleton
 import co.electriccoin.zcash.ui.screen.fiatcurrency.model.FiatCurrency
 import co.electriccoin.zcash.ui.screen.fiatcurrency.model.FiatCurrencyUiState
 import co.electriccoin.zcash.ui.screen.home.model.WalletSnapshot
+import co.electriccoin.zcash.ui.screen.home.model.spendableBalance
+import co.electriccoin.zcash.ui.screen.home.model.totalBalance
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -67,8 +69,8 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     var expectingZatoshi = 0L
 
     fun isAnyExpectingTransaction(walletSnapshot: WalletSnapshot): Boolean {
-        val totalBalance = walletSnapshot.saplingBalance.total + walletSnapshot.transparentBalance.total
-        val availableBalance = walletSnapshot.saplingBalance.available + walletSnapshot.transparentBalance.available
+        val totalBalance = walletSnapshot.totalBalance()
+        val availableBalance = walletSnapshot.spendableBalance()
         if (totalBalance != availableBalance && ((totalBalance - availableBalance).value != expectingZatoshi)) {
             expectingZatoshi = (totalBalance - availableBalance).value
             return true

@@ -168,7 +168,7 @@ fun ReviewAndSend(
             BodyMedium(text = stringResource(id = R.string.ns_subtotal), color = ZcashTheme.colors.secondaryTitleText)
             BodyMedium(text = sendAndReviewUiState.subTotal + " " + sendAndReviewUiState.amountUnit, color = ZcashTheme.colors.secondaryTitleText)
         }
-        Spacer(modifier = Modifier.height(10.dp))
+        /*Spacer(modifier = Modifier.height(10.dp))
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween
@@ -176,7 +176,7 @@ fun ReviewAndSend(
             BodyMedium(text = stringResource(id = R.string.ns_network_fee), color = ZcashTheme.colors.secondaryTitleText)
             Spacer(modifier = Modifier.width(50.dp))
             BodyMedium(text = sendAndReviewUiState.networkFees + " " + sendAndReviewUiState.amountUnit, color = ZcashTheme.colors.secondaryTitleText, textAlign = TextAlign.End)
-        }
+        }*/
 
         // Total
         Spacer(modifier = Modifier.height(10.dp))

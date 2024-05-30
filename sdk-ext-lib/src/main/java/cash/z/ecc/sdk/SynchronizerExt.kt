@@ -6,9 +6,12 @@ import cash.z.ecc.android.sdk.Synchronizer
 import cash.z.ecc.android.sdk.model.UnifiedSpendingKey
 import cash.z.ecc.android.sdk.model.ZecSend
 
-suspend fun Synchronizer.send(spendingKey: UnifiedSpendingKey, send: ZecSend) = sendToAddress(
-    spendingKey,
-    send.amount,
-    send.destination.address,
-    send.memo.value
+suspend fun Synchronizer.send(spendingKey: UnifiedSpendingKey, send: ZecSend) = createProposedTransactions(
+    proposeTransfer(
+        spendingKey.account,
+        send.destination.address,
+        send.amount,
+        send.memo.value
+    ),
+    spendingKey
 )

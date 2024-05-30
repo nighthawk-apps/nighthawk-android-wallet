@@ -1,6 +1,7 @@
 syntax: glob
 .DS_Store
 .gradle/
+.idea/
 .idea/caches
 .idea/compiler.xml
 .idea/dictionaries/

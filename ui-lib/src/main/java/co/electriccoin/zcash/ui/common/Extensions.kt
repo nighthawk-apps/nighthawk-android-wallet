@@ -28,6 +28,8 @@ import co.electriccoin.zcash.ui.screen.wallet.model.BalanceUIModel
 import co.electriccoin.zcash.ui.screen.wallet.model.BalanceValuesModel
 import java.math.BigDecimal
 import java.text.DecimalFormat
+import java.text.DecimalFormatSymbols
+import java.util.Locale
 
 internal fun ComponentActivity.onLaunchUrl(url: String) {
     try {
@@ -186,7 +188,7 @@ internal fun BalanceValuesModel.toBalanceUiModel(context: Context): BalanceUIMod
 internal fun String.removeTrailingZero(): String {
     return try {
         this.toDoubleOrNull()?.let {
-            DecimalFormat("0.########").format(it)
+            DecimalFormat("0.########", DecimalFormatSymbols.getInstance(Locale.US)).format(it) // check the value formatted
         } ?: this
     } catch (e: Exception) {
         Twig.error { "Exception in formatting value $this" }

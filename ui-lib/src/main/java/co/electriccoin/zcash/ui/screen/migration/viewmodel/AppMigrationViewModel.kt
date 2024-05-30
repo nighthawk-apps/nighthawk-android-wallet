@@ -8,7 +8,9 @@ import cash.z.ecc.android.sdk.model.BlockHeight
 import cash.z.ecc.android.sdk.model.PersistableWallet
 import cash.z.ecc.android.sdk.model.SeedPhrase
 import cash.z.ecc.android.sdk.model.ZcashNetwork
+import cash.z.ecc.sdk.extension.defaultForNetwork
 import cash.z.ecc.sdk.type.fromResources
+import co.electriccoin.lightwallet.client.model.LightWalletEndpoint
 import co.electriccoin.zcash.spackle.Twig
 import co.electriccoin.zcash.ui.common.BIRTHDAY_HEIGHT
 import co.electriccoin.zcash.ui.common.IS_BIO_METRIC_OR_FACE_ID_ENABLED
@@ -48,6 +50,7 @@ class AppMigrationViewModel(private val context: Application) : AndroidViewModel
                     AppMigrationState.DataRecovered(
                         PersistableWallet(
                             network = network,
+                            endpoint = LightWalletEndpoint.defaultForNetwork(network),
                             birthday = birthday,
                             seedPhrase = seedPhrase,
                             walletInitMode = WalletInitMode.RestoreWallet

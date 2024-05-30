@@ -9,6 +9,12 @@ import co.electriccoin.zcash.ui.common.toBalanceUiModel
 import co.electriccoin.zcash.ui.common.toBalanceValueModel
 import co.electriccoin.zcash.ui.screen.fiatcurrency.model.FiatCurrencyUiState
 import co.electriccoin.zcash.ui.screen.home.model.WalletSnapshot
+import co.electriccoin.zcash.ui.screen.home.model.changePendingBalance
+import co.electriccoin.zcash.ui.screen.home.model.hasChangePending
+import co.electriccoin.zcash.ui.screen.home.model.hasValuePending
+import co.electriccoin.zcash.ui.screen.home.model.spendableBalance
+import co.electriccoin.zcash.ui.screen.home.model.totalBalance
+import co.electriccoin.zcash.ui.screen.home.model.valuePendingBalance
 
 data class BalanceDisplayValues(
     @DrawableRes val iconDrawableRes: Int,
@@ -37,10 +43,8 @@ data class BalanceDisplayValues(
                 }
 
                 BalanceViewType.TOTAL -> {
-                    val totalBalance =
-                        walletSnapshot.saplingBalance.total.plus(walletSnapshot.transparentBalance.total)
-                    val availableBalance =
-                        walletSnapshot.saplingBalance.available.plus(walletSnapshot.transparentBalance.available)
+                    val totalBalance = walletSnapshot.totalBalance()
+                    val availableBalance = walletSnapshot.spendableBalance()
                     iconDrawableRes = R.drawable.ic_icon_total
                     balanceType = context.getString(R.string.ns_total_balance)
                     if (totalBalance > availableBalance) {
@@ -54,25 +58,25 @@ data class BalanceDisplayValues(
                 BalanceViewType.SHIELDED -> {
                     iconDrawableRes = R.drawable.ic_icon_shielded
                     balanceType = context.getString(R.string.ns_shielded_balance)
-                    if (walletSnapshot.saplingBalance.total > walletSnapshot.saplingBalance.available) {
+                    if (walletSnapshot.hasValuePending() || walletSnapshot.hasChangePending()) {
                         msg = context.getString(
                             R.string.ns_expecting_balance_snack_bar_msg,
-                            (walletSnapshot.saplingBalance.total - walletSnapshot.saplingBalance.available).toZecString().removeTrailingZero()
+                            (walletSnapshot.valuePendingBalance() + walletSnapshot.changePendingBalance()).toZecString().removeTrailingZero()
                         )
                     }
-                    val availableBalance = walletSnapshot.saplingBalance.available
+                    val availableBalance = walletSnapshot.spendableBalance()
                     balanceUIModel = availableBalance.toBalanceValueModel(fiatCurrencyUiState, isFiatCurrencyPreferred).toBalanceUiModel(context)
                 }
                 BalanceViewType.TRANSPARENT -> {
                     iconDrawableRes = R.drawable.ic_icon_transparent
                     balanceType = context.getString(R.string.ns_transparent_balance)
-                    if (walletSnapshot.transparentBalance.total > walletSnapshot.transparentBalance.available) {
+                    /*if (walletSnapshot.transparentBalance.total > walletSnapshot.transparentBalance.available) {
                         msg = context.getString(
                             R.string.ns_expecting_balance_snack_bar_msg,
                             (walletSnapshot.transparentBalance.total - walletSnapshot.transparentBalance.available).toZecString().removeTrailingZero()
                         )
-                    }
-                    val availableBalance = walletSnapshot.transparentBalance.available
+                    }*/
+                    val availableBalance = walletSnapshot.transparentBalance
                     balanceUIModel = availableBalance.toBalanceValueModel(fiatCurrencyUiState, isFiatCurrencyPreferred).toBalanceUiModel(context)
                 }
             }

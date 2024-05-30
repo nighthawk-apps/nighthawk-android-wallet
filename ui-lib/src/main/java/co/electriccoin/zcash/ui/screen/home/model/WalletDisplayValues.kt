@@ -34,7 +34,7 @@ data class WalletDisplayValues(
             val fiatCurrencyAmountState = walletSnapshot.saplingBalance.total.toFiatCurrencyState(
                 null,
                 Locale.current.toKotlinLocale(),
-                MonetarySeparators.current()
+                MonetarySeparators.current(java.util.Locale.US)
             )
             val fiatCurrencyAmountText = getFiatCurrencyRateValue(context, fiatCurrencyAmountState)
             var statusIconDrawable = R.drawable.ic_icon_connecting

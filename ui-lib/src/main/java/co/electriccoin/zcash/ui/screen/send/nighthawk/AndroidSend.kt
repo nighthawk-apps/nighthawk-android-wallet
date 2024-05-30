@@ -13,6 +13,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
+import cash.z.ecc.android.sdk.SdkSynchronizer
 import cash.z.ecc.android.sdk.ext.convertZatoshiToZecString
 import cash.z.ecc.android.sdk.model.MonetarySeparators
 import cash.z.ecc.android.sdk.model.Zatoshi
@@ -25,17 +27,21 @@ import co.electriccoin.zcash.ui.screen.home.viewmodel.WalletViewModel
 import co.electriccoin.zcash.ui.screen.navigation.BottomNavItem
 import co.electriccoin.zcash.ui.screen.send.ext.ABBREVIATION_INDEX
 import co.electriccoin.zcash.ui.screen.send.model.SendArgumentsWrapper
+import co.electriccoin.zcash.ui.screen.send.nighthawk.model.SendConfirmationState
 import co.electriccoin.zcash.ui.screen.send.nighthawk.model.SendUIState
+import co.electriccoin.zcash.ui.screen.send.nighthawk.model.SubmitResult
 import co.electriccoin.zcash.ui.screen.send.nighthawk.view.EnterMessage
 import co.electriccoin.zcash.ui.screen.send.nighthawk.view.EnterReceiverAddress
 import co.electriccoin.zcash.ui.screen.send.nighthawk.view.EnterZec
 import co.electriccoin.zcash.ui.screen.send.nighthawk.view.ReviewAndSend
 import co.electriccoin.zcash.ui.screen.send.nighthawk.view.SendConfirmation
+import co.electriccoin.zcash.ui.screen.send.nighthawk.viewmodel.CreateTransactionsViewModel
 import co.electriccoin.zcash.ui.screen.send.nighthawk.viewmodel.SendViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import java.util.Locale
 
 @Composable
 internal fun MainActivity.AndroidSend(
@@ -70,6 +76,9 @@ internal fun WrapAndroidSend(
     val homeViewModel by activity.viewModels<HomeViewModel>()
     val sendViewModel by activity.viewModels<SendViewModel>()
     val walletViewModel by activity.viewModels<WalletViewModel>()
+    val createTransactionsViewModel = viewModel<CreateTransactionsViewModel>()
+    val activityScope = rememberCoroutineScope()
+
 
     val fiatCurrencyUiState by homeViewModel.fiatCurrencyUiStateFlow.collectAsStateWithLifecycle()
     val isFiatCurrencyPreferred by homeViewModel.isFiatCurrencyPreferredOverZec.collectAsStateWithLifecycle()
@@ -184,7 +193,7 @@ internal fun WrapAndroidSend(
                         it,
                         sendViewModel.getEnteredAmountInZecString(),
                         sendViewModel.userEnteredMemo,
-                        MonetarySeparators.current().copy(decimal = '.')
+                        MonetarySeparators.current(Locale.US)
                     )
 
                     when (zecSendValidation) {
@@ -210,7 +219,44 @@ internal fun WrapAndroidSend(
                 sendAndReviewUiState = sendViewModel.sendAndReviewUiState(),
                 onBack = sendViewModel::onPreviousSendUiState,
                 onSendZCash = {
-                    sendViewModel.onSendZCash(sendViewModel.zecSend, spendingKey, synchronizer)
+                    activityScope.launch {
+                        val proposal = sendViewModel.onSendZCash(
+                            sendViewModel.zecSend,
+                            spendingKey,
+                            synchronizer
+                        )
+                        if (proposal == null || synchronizer == null || spendingKey == null) {
+                            sendViewModel.updateConfirmationState(SendConfirmationState.Failed)
+                        } else {
+                            val result = createTransactionsViewModel.runCreateTransactions(
+                                synchronizer = synchronizer,
+                                spendingKey = spendingKey,
+                                proposal = proposal
+                            )
+                            when (result) {
+                                SubmitResult.Success -> {
+                                    Twig.info { "Send transaction done successfully" }
+                                    sendViewModel.updateConfirmationState(SendConfirmationState.Success)
+                                    // Triggering transaction history refresh to be notified about the newly created
+                                    // transaction asap
+                                    (synchronizer as SdkSynchronizer).run {
+                                        refreshTransactions()
+                                        refreshAllBalances()
+                                    }
+                                }
+
+                                is SubmitResult.SimpleTrxFailure -> {
+                                    Twig.warn { "Send transaction failed ${result.errorDescription}" }
+                                    sendViewModel.updateConfirmationState(SendConfirmationState.Failed)
+                                }
+
+                                is SubmitResult.MultipleTrxFailure -> {
+                                    Twig.warn { "Send failed with multi-transactions-submission-error handling" }
+                                    sendViewModel.updateConfirmationState(SendConfirmationState.Failed)
+                                }
+                            }
+                        }
+                    }
                 }
             )
         }

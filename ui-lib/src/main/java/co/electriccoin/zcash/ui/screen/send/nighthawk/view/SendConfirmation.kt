@@ -35,7 +35,7 @@ import com.airbnb.lottie.compose.rememberLottieComposition
 fun SendConfirmationPreview() {
     ZcashTheme(darkTheme = false) {
         Surface {
-            SendConfirmation(sendConfirmationState = SendConfirmationState.Success(id = 10), onCancel = {}, onTryAgain = {}, onDone = {}/*, onMoreDetails = {}*/)
+            SendConfirmation(sendConfirmationState = SendConfirmationState.Success, onCancel = {}, onTryAgain = {}, onDone = {}/*, onMoreDetails = {}*/)
         }
     }
 }
