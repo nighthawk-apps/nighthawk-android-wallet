@@ -1,4 +1,3 @@
-
 import com.android.build.api.variant.BuildConfigField
 import java.util.Locale
 
@@ -6,7 +5,7 @@ plugins {
     id("com.android.application")
     kotlin("android")
     id("secant.android-build-conventions")
-    id("com.github.triplet.play")
+//    id("com.github.triplet.play")
 }
 
 val packageName = project.property("ZCASH_RELEASE_PACKAGE_NAME").toString()
@@ -135,11 +134,11 @@ android {
         resValue("string", "support_email_address", supportEmailAddress)
     }
 
-    playConfigs {
+    /*playConfigs {
         register(testNetFlavorName) {
             enabled.set(false)
         }
-    }
+    }*/
 
     testCoverage {
         jacocoVersion = project.property("JACOCO_VERSION").toString()
@@ -245,7 +244,7 @@ androidComponents {
     }
 }
 
-if (googlePlayServiceKeyFilePath.isNotEmpty()) {
+/*if (googlePlayServiceKeyFilePath.isNotEmpty()) {
     configure<com.github.triplet.gradle.play.PlayPublisherExtension> {
         serviceAccountCredentials.set(File(googlePlayServiceKeyFilePath))
 
@@ -264,4 +263,4 @@ if (googlePlayServiceKeyFilePath.isNotEmpty()) {
             releaseStatus.set(com.github.triplet.gradle.androidpublisher.ReleaseStatus.COMPLETED)
         }
     }
-}
+}*/
