@@ -393,6 +393,10 @@ sealed class SecretState {
 }
 
 /**
+ * This constant sets the default limitation on the length of the stack trace in the [SynchronizerError]
+ */
+const val STACKTRACE_LIMIT = 250
+/**
  * Represents all kind of Synchronizer errors
  */
 // TODO [#529]: Localize Synchronizer Errors
@@ -400,24 +404,36 @@ sealed class SecretState {
 sealed class SynchronizerError {
     abstract fun getCauseMessage(): String?
 
+    abstract fun getStackTrace(limit: Int = STACKTRACE_LIMIT): String?
+
     class Critical(val error: Throwable?) : SynchronizerError() {
         override fun getCauseMessage(): String? = error?.localizedMessage
+
+        override fun getStackTrace(limit: Int): String? = error?.stackTraceToString()?.substring(0..limit)
     }
 
     class Processor(val error: Throwable?) : SynchronizerError() {
         override fun getCauseMessage(): String? = error?.localizedMessage
+
+        override fun getStackTrace(limit: Int): String? = error?.stackTraceToString()?.substring(0..limit)
     }
 
     class Submission(val error: Throwable?) : SynchronizerError() {
         override fun getCauseMessage(): String? = error?.localizedMessage
+
+        override fun getStackTrace(limit: Int): String? = error?.stackTraceToString()?.substring(0..limit)
     }
 
     class Setup(val error: Throwable?) : SynchronizerError() {
         override fun getCauseMessage(): String? = error?.localizedMessage
+
+        override fun getStackTrace(limit: Int): String? = error?.stackTraceToString()?.substring(0..limit)
     }
 
     class Chain(val x: BlockHeight, val y: BlockHeight) : SynchronizerError() {
         override fun getCauseMessage(): String = "$x, $y"
+
+        override fun getStackTrace(limit: Int): String? = null
     }
 }
 

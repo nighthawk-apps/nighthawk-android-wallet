@@ -87,6 +87,7 @@ data class WalletDisplayValues(
                 statusText = context.getString(
                     R.string.home_status_error,
                     walletSnapshot.synchronizerError.getCauseMessage()
+                        ?: walletSnapshot.synchronizerError.getStackTrace()
                         ?: context.getString(R.string.home_status_error_unknown)
                 )
                 statusIconDrawable = R.drawable.ic_icon_reconnecting
