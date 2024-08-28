@@ -82,7 +82,7 @@ fun TopUp(walletAddress: WalletAddresses?, onBack: () -> Unit, onLaunchUrl: (Str
         BodyMedium(text = stringResource(id = R.string.ns_receive_money_securely), color = ZcashTheme.colors.secondaryTitleText)
         Spacer(modifier = Modifier.height(13.dp))
 
-        SettingsListItem(
+        /*SettingsListItem(
             iconRes = R.drawable.ic_icon_side_shift,
             title = stringResource(id = R.string.ns_swap_sideshift),
             desc = stringResource(id = R.string.ns_swap_sideshift_text),
@@ -95,7 +95,7 @@ fun TopUp(walletAddress: WalletAddresses?, onBack: () -> Unit, onLaunchUrl: (Str
                     showSideShiftDialog = true
                 }
         )
-        Spacer(modifier = Modifier.height(10.dp))
+        Spacer(modifier = Modifier.height(10.dp))*/
         SettingsListItem(
             iconRes = R.drawable.ic_icon_side_shift,
             title = stringResource(id = R.string.ns_swap_stealthex),
