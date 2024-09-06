@@ -1,0 +1,6 @@
+- Upgrade Zcash SDK v2.2.2
+- Update NDK version to 26.1.10909125
+- Update AGP version
+- Update lock files for updated versions and strict old versions added in files
+- Update error message in wallet snapshot from SDK
+- Remove SideShift integration as they dropped ZEC support
