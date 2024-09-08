@@ -262,7 +262,7 @@ fun TransactionDetails(
             }
 
             // Network
-            Spacer(modifier = Modifier.height(10.dp))
+           /* Spacer(modifier = Modifier.height(10.dp))
             MaxWidthHorizontalDivider()
             Spacer(modifier = Modifier.height(10.dp))
             Row(
@@ -277,7 +277,7 @@ fun TransactionDetails(
                     text = transactionDetailsUIModel.network?.networkName ?: "",
                     color = ZcashTheme.colors.secondaryTitleText
                 )
-            }
+            }*/
 
             // BlockId
             Spacer(modifier = Modifier.height(10.dp))

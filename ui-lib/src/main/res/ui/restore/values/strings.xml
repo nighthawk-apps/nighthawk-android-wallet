@@ -34,7 +34,7 @@
     <string name="ns_restore_from_backup">Restore from Backup</string>
     <string name="ns_restore_wallet_text">Enter your 24-word seed phrase below. If you do not have this phrase, you will need to create a new wallet.</string>
     <string name="ns_your_seed_phrase">Your seed phrase</string>
-    <string name="ns_wallet_birthday">Wallet Birthday: %s</string>
+    <string name="ns_wallet_birthday">Wallet birthday: %s</string>
     <string name="ns_birthday_height">Birthday Height (optional)</string>
     <string name="ns_your_seed_error">Error - This doesn\'t look like a valid seed phrase.</string>
     <string name="ns_continue">Continue</string>
@@ -105,7 +105,7 @@
     <string name="ns_transfer">Transfer</string>
     <string name="ns_transfer_title">Send and receive Zcash</string>
     <string name="ns_send_money">Send money</string>
-    <string name="ns_send_money_text">Allow someone to scan the code to send money</string>
+    <string name="ns_send_money_text">Scan someone\'s QR code to send them money</string>
     <string name="ns_receive_money">Receive money</string>
     <string name="ns_receive_money_text">Display your QR code or copy your address.</string>
     <string name="ns_top_up">Top up your wallet</string>
@@ -311,4 +311,5 @@
     <string name="enable_dark_theme">Switch to dark theme</string>
     <string name="ns_host">Host</string>
     <string name="ns_port">Port</string>
+    <string name="tex_address_support_error">Invalid Address, Tex Address is not supported</string>
 </resources>

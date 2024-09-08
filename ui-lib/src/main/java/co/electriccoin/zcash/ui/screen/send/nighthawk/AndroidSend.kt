@@ -19,9 +19,12 @@ import cash.z.ecc.android.sdk.ext.convertZatoshiToZecString
 import cash.z.ecc.android.sdk.model.MonetarySeparators
 import cash.z.ecc.android.sdk.model.Zatoshi
 import cash.z.ecc.android.sdk.model.ZecSendExt
+import cash.z.ecc.android.sdk.type.AddressType
 import co.electriccoin.zcash.spackle.Twig
 import co.electriccoin.zcash.ui.MainActivity
+import co.electriccoin.zcash.ui.R
 import co.electriccoin.zcash.ui.common.ShortcutAction
+import co.electriccoin.zcash.ui.common.showMessage
 import co.electriccoin.zcash.ui.screen.home.viewmodel.HomeViewModel
 import co.electriccoin.zcash.ui.screen.home.viewmodel.WalletViewModel
 import co.electriccoin.zcash.ui.screen.navigation.BottomNavItem
@@ -41,6 +44,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.util.Locale
 
 @Composable
@@ -158,6 +162,10 @@ internal fun WrapAndroidSend(
             var validateAddressJob: Job? = null
 
             fun validateAddress(address: String) {
+                if (address.isBlank()) {
+                    isContinueEnabled = false
+                    return
+                }
                 validateAddressJob?.let {
                     if (it.isCompleted.not() && it.isCancelled.not()) {
                         it.cancel()
@@ -165,8 +173,16 @@ internal fun WrapAndroidSend(
                 }
                 validateAddressJob = scope.launch(Dispatchers.IO) {
                     synchronizer?.let {
-                        isContinueEnabled =
-                            sendViewModel.validateAddress(address, it).isNotValid.not()
+                        val addressType = sendViewModel.validateAddress(address, it)
+                        isContinueEnabled = if (addressType is AddressType.Tex || addressType.isNotValid) {
+                            Twig.error { "Error in address validation, Address type is TEX which is not supported" }
+                            withContext(Dispatchers.Main) {
+                                activity.showMessage(activity.getString(R.string.tex_address_support_error))
+                            }
+                            false
+                        } else {
+                            true
+                        }
                     }
                 }
             }

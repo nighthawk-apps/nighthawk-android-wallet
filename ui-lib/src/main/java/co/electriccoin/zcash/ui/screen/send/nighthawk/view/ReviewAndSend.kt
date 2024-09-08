@@ -25,7 +25,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -35,8 +34,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import cash.z.ecc.android.sdk.model.ZcashNetwork
-import cash.z.ecc.sdk.type.fromResources
 import co.electriccoin.zcash.ui.R
 import co.electriccoin.zcash.ui.design.component.BalanceText
 import co.electriccoin.zcash.ui.design.component.Body
@@ -105,7 +102,7 @@ fun ReviewAndSend(
         }
 
         // Network
-        MaxWidthHorizontalDivider()
+        /*MaxWidthHorizontalDivider()
         Spacer(modifier = Modifier.height(10.dp))
         val network = ZcashNetwork.fromResources(LocalContext.current).networkName.replaceFirstChar { it.titlecase() }
         Row(
@@ -114,7 +111,7 @@ fun ReviewAndSend(
         ) {
             BodyMedium(text = stringResource(id = R.string.ns_network), color = ZcashTheme.colors.secondaryTitleText)
             BodyMedium(text = network, color = ZcashTheme.colors.secondaryTitleText)
-        }
+        }*/
 
         // Recipient
         Spacer(modifier = Modifier.height(10.dp))
