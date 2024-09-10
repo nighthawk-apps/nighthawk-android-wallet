@@ -31,7 +31,7 @@
     <string name="ns_restore_from_backup">Restaurar desde una copia de seguridad</string>
     <string name="ns_restore_wallet_text">Introduzca su frase semilla de 24 palabras. Si no tiene esta frase, necesitará crear una nueva billetera.</string>
     <string name="ns_your_seed_phrase">Tu frase semilla</string>
-    <string name="ns_wallet_birthday">Cumpleaños de la billetera: %s</string>
+    <string name="ns_wallet_birthday">Wallet birthday: %s</string>
     <string name="ns_birthday_height">Altura del cumpleaños (opcional)</string>
     <string name="ns_your_seed_error">Error - Esto no parece ser una frase de semilla válida.</string>
     <string name="ns_continue">Continuar</string>
@@ -97,7 +97,7 @@
     <string name="ns_transfer">Transferir</string>
     <string name="ns_transfer_title">Enviar y recibir Zcash</string>
     <string name="ns_send_money">Enviar dinero</string>
-    <string name="ns_send_money_text">Permitir que alguien escanee el código para enviar dinero</string>
+    <string name="ns_send_money_text">Scan someone\'s QR code to send them money</string>
     <string name="ns_receive_money">Recibir dinero</string>
     <string name="ns_receive_money_text">Display your QR code or copy your address.</string>
     <string name="ns_top_up">Recarga tu billetera</string>
@@ -292,4 +292,5 @@
     <string name="enable_dark_theme">Switch to dark theme</string>
     <string name="ns_host">Host</string>
     <string name="ns_port">Port</string>
+    <string name="tex_address_support_error">Invalid Address, Tex Address is not supported</string>
 </resources>
