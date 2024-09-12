@@ -8,7 +8,6 @@ import cash.z.ecc.android.sdk.model.Zatoshi
 import co.electriccoin.zcash.spackle.Twig
 import co.electriccoin.zcash.ui.common.AMOUNT_QUERY
 import co.electriccoin.zcash.ui.common.MEMO_QUERY
-import co.electriccoin.zcash.ui.common.ZEC_MAX_AMOUNT
 
 object DeepLinkUtil {
 
@@ -22,7 +21,7 @@ object DeepLinkUtil {
             if (queryData.isEmpty()) return null
             val amountString = queryData[0].replace("${AMOUNT_QUERY}=", "") // amount=0.001 -> 0.001
             val amount = amountString.toBigDecimal().convertZecToZatoshi()
-            if (amount > Zatoshi(ZEC_MAX_AMOUNT.toLong()) || amount < Zatoshi(0)) return null
+            if (amount > Zatoshi(Zatoshi.MAX_INCLUSIVE) || amount < Zatoshi(Zatoshi.MIN_INCLUSIVE.toLong())) return null
             var memo: String? = null
             if (queryData.size > 1) { // memo is also available -> memo=c2RrZmp3cw
                 memo = queryData[1].replace("${MEMO_QUERY}=", "")
