@@ -16,7 +16,6 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import cash.z.ecc.android.sdk.SdkSynchronizer
 import cash.z.ecc.android.sdk.ext.convertZatoshiToZecString
-import cash.z.ecc.android.sdk.model.MonetarySeparators
 import cash.z.ecc.android.sdk.model.Zatoshi
 import cash.z.ecc.android.sdk.model.ZecSendExt
 import cash.z.ecc.android.sdk.type.AddressType
@@ -45,7 +44,6 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import java.util.Locale
 
 @Composable
 internal fun MainActivity.AndroidSend(
@@ -208,8 +206,7 @@ internal fun WrapAndroidSend(
                         activity,
                         it,
                         sendViewModel.getEnteredAmountInZecString(),
-                        sendViewModel.userEnteredMemo,
-                        MonetarySeparators.current(Locale.US)
+                        sendViewModel.userEnteredMemo
                     )
 
                     when (zecSendValidation) {

@@ -139,7 +139,7 @@ private fun RequestMainContent(
 
         Spacer(Modifier.fillMaxHeight(MINIMAL_WEIGHT))
 
-        val zatoshi = Zatoshi.fromZecString(context, amountZecString, monetarySeparators)
+        val zatoshi = Zatoshi.fromZecString(context, amountZecString)
 
         PrimaryButton(
             onClick = {

@@ -342,8 +342,7 @@ private fun SendForm(
                     context,
                     recipientAddressString,
                     amountZecString,
-                    memoString,
-                    monetarySeparators
+                    memoString
                 )
 
                 when (zecSendValidation) {

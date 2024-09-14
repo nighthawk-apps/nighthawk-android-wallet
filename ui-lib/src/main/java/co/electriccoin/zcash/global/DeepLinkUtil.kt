@@ -29,14 +29,14 @@ object DeepLinkUtil {
             }
             var uriString = uri.toString()
             uriString = uriString.removePrefix("${uri.scheme}:")
-            if (!uriString.startsWith("z", ignoreCase = true)) return null
+//            if (!uriString.startsWith("z", ignoreCase = true)) return null // Let's accept all addresses and validate address while sending
             uriString = uriString.replace("?$query", "") // address
 
             Twig.debug { "DeepLinkUtil: uri is: $uri address is $uriString amount is $amount memo is $memo" }
 
             return SendDeepLinkData(address = uriString, amount = amount.value, memo = memo)
         } catch (e: Exception) {
-            Twig.debug {  "Error in parsing deep link $uri and error is $e" }
+            Twig.debug {  "DeepLinkUtil: Error in parsing deep link $uri and error is $e" }
             return null
         }
     }
