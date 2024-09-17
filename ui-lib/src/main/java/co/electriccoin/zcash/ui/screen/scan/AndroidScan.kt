@@ -62,7 +62,7 @@ fun WrapScan(
                             it.amount?.let { zatoshi -> sendViewModel.enteredZecFromDeepLink(Zatoshi(zatoshi).convertZatoshiToZecString()) }
                             it.memo?.let { memo -> sendViewModel.updateMemo(memo) }
                         }
-                        onScanValid(result)
+                        onScanValid(address)
                     } else {
                         snackbarHostState.showSnackbar(
                             message = activity.getString(R.string.scan_validation_invalid_address)

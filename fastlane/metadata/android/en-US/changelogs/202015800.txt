@@ -1,4 +1,4 @@
-- Upgrade Zcash SDK v2.2.2
+- Upgrade Zcash SDK v2.2.3
 - Update NDK version to 26.1.10909125
 - Update AGP version
 - Update lock files for updated versions and strict old versions added in files

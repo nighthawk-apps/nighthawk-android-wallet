@@ -5,7 +5,6 @@ import androidx.annotation.DrawableRes
 import androidx.compose.ui.text.intl.Locale
 import cash.z.ecc.android.sdk.Synchronizer
 import cash.z.ecc.android.sdk.model.FiatCurrencyConversionRateState
-import cash.z.ecc.android.sdk.model.MonetarySeparators
 import cash.z.ecc.android.sdk.model.PercentDecimal
 import cash.z.ecc.android.sdk.model.toFiatCurrencyState
 import cash.z.ecc.android.sdk.model.toZecString
@@ -33,8 +32,7 @@ data class WalletDisplayValues(
             // We'll ideally provide a "fresh" currencyConversion object here
             val fiatCurrencyAmountState = walletSnapshot.saplingBalance.total.toFiatCurrencyState(
                 null,
-                Locale.current.toKotlinLocale(),
-                MonetarySeparators.current(java.util.Locale.US)
+                Locale.current.toKotlinLocale()
             )
             val fiatCurrencyAmountText = getFiatCurrencyRateValue(context, fiatCurrencyAmountState)
             var statusIconDrawable = R.drawable.ic_icon_connecting
