@@ -18,12 +18,8 @@ If you wish to report a security issue, please follow our [Responsible Disclosur
 
 If you'd like to report a technical issue or feature request for the Android Wallet, please file a [GitHub issue](https://github.com/nighthawk-apps/nighthawk-android-wallet/issues/new/choose).
 
-General Zcash questions and/or support requests are best directed to either:
- * z2z memo - zs1nhawkewaslscuey9qhnv9e4wpx77sp73kfu0l8wh9vhna7puazvfnutyq5ymg830hn5u2dmr0sf
- * Nighthawk Wallet Support - nighthawkwallet@protonmail.com
+General questions and/or support requests are best directed to either:
  * [DM @NighthawkWallet on X](https://x.com/nighthawkwallet)
- * [Zcash Forum](https://forum.zcashcommunity.com/)
- * [Discord Community](https://discord.io/zcash-community)
 
 ## Contributing
 Contributions are very much welcomed! Please read our [Contributing Guidelines](docs/CONTRIBUTING.md) to learn about our process.
