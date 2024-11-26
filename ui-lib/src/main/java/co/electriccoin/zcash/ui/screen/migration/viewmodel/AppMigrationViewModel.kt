@@ -40,7 +40,7 @@ class AppMigrationViewModel(private val context: Application) : AndroidViewModel
                 val birthdayHeight = oldSecurePreference.getLong(BIRTHDAY_HEIGHT)
                 val seedPhraseString = oldSecurePreference.getString(SEED_PHRASE)
                 val network = ZcashNetwork.fromResources(context)
-                val birthday = birthdayHeight?.let { BlockHeight.new(network, birthdayHeight) }
+                val birthday = birthdayHeight?.let { BlockHeight.new(birthdayHeight) }
                 val seedPhrase = SeedPhrase.new(seedPhraseString)
                 val oldPin = oldSecurePreference.getString(PIN_CODE).removeSurrounding("[", "]")
                     .replace(",", "").replace(" ", "")

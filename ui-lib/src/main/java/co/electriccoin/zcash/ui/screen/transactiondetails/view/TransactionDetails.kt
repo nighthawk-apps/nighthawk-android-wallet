@@ -76,7 +76,6 @@ fun TransactionDetailsPreview() {
                 transactionRecipient = TransactionRecipient.Address("jhasdgjhagsdjagsjadjhgasjhdgajshdgjahsgdjasgdjasgdjsad"),
                 network = ZcashNetwork.Mainnet,
                 networkHeight = BlockHeight.new(
-                    zcashNetwork = ZcashNetwork.Mainnet,
                     blockHeight = ZcashNetwork.Mainnet.saplingActivationHeight.value + 10
                 )
             )
@@ -101,7 +100,6 @@ fun TransactionDetailsDarkPreview() {
                 transactionRecipient = TransactionRecipient.Address("jhasdgjhagsdjagsjadjhgasjhdgajshdgjahsgdjasgdjasgdjsad"),
                 network = ZcashNetwork.Mainnet,
                 networkHeight = BlockHeight.new(
-                    zcashNetwork = ZcashNetwork.Mainnet,
                     blockHeight = ZcashNetwork.Mainnet.saplingActivationHeight.value + 10
                 )
             )
