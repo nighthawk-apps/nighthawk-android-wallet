@@ -88,7 +88,7 @@ internal fun RestoreWallet(activity: ComponentActivity) {
             applicationContext,
             walletViewModel,
             SeedPhrase.new(seedPhrase),
-            birthdayHeight?.let { BlockHeight.new(network, it) },
+            birthdayHeight?.let { BlockHeight.new(it) },
             WalletInitMode.RestoreWallet,
             LightWalletEndpoint.defaultForNetwork(network)
         )

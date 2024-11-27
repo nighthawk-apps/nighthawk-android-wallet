@@ -579,7 +579,7 @@ private fun RestoreBirthday(
 
         PrimaryButton(
             onClick = {
-                setRestoreHeight(BlockHeight.new(zcashNetwork, height.toLong()))
+                setRestoreHeight(BlockHeight.new(height.toLong()))
                 onNext()
             },
             text = stringResource(R.string.restore_birthday_button_restore),

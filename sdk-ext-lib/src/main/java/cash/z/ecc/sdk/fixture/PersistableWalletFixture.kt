@@ -13,7 +13,7 @@ object PersistableWalletFixture {
     val NETWORK = ZcashNetwork.Mainnet
 
     @Suppress("MagicNumber")
-    val BIRTHDAY = BlockHeight.new(ZcashNetwork.Mainnet, 626603L)
+    val BIRTHDAY = BlockHeight.new(626603L)
 
     val SEED_PHRASE = SeedPhraseFixture.new()
 
