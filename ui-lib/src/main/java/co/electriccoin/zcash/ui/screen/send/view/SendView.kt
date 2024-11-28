@@ -12,7 +12,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.outlined.QrCodeScanner
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -136,7 +136,7 @@ private fun SendTopAppBar(
                     onClick = onBack
                 ) {
                     Icon(
-                        imageVector = Icons.Filled.ArrowBack,
+                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                         contentDescription = stringResource(R.string.send_back_content_description)
                     )
                 }
@@ -177,6 +177,7 @@ private fun SendMainContent(
                 modifier = modifier
             )
         }
+
         (sendStage == SendStage.Confirmation) -> {
             Confirmation(
                 zecSend = zecSend,
@@ -187,12 +188,14 @@ private fun SendMainContent(
                 modifier = modifier
             )
         }
+
         (sendStage == SendStage.Sending) -> {
             Sending(
                 zecSend = zecSend,
                 modifier = modifier
             )
         }
+
         (sendStage == SendStage.SendSuccessful) -> {
             SendSuccessful(
                 zecSend = zecSend,
@@ -200,6 +203,7 @@ private fun SendMainContent(
                 onDone = onBack
             )
         }
+
         (sendStage == SendStage.SendFailure) -> {
             SendFailure(
                 zecSend = zecSend,
@@ -273,17 +277,21 @@ private fun SendForm(
             onValueChange = { recipientAddressString = it },
             label = { Text(stringResource(id = R.string.send_to)) },
             modifier = Modifier.fillMaxWidth(),
-            trailingIcon = if (hasCameraFeature) { {
-                IconButton(
-                    onClick = onQrScannerOpen,
-                    content = {
-                        Icon(
-                            imageVector = Icons.Outlined.QrCodeScanner,
-                            contentDescription = stringResource(R.string.send_scan_content_description)
-                        )
-                    }
-                )
-            } } else { null }
+            trailingIcon = if (hasCameraFeature) {
+                {
+                    IconButton(
+                        onClick = onQrScannerOpen,
+                        content = {
+                            Icon(
+                                imageVector = Icons.Outlined.QrCodeScanner,
+                                contentDescription = stringResource(R.string.send_scan_content_description)
+                            )
+                        }
+                    )
+                }
+            } else {
+                null
+            }
         )
 
         Spacer(Modifier.size(dimens.spacingSmall))
@@ -347,7 +355,8 @@ private fun SendForm(
 
                 when (zecSendValidation) {
                     is ZecSendExt.ZecSendValidation.Valid -> onCreateZecSend(zecSendValidation.zecSend)
-                    is ZecSendExt.ZecSendValidation.Invalid -> validation = zecSendValidation.validationErrors
+                    is ZecSendExt.ZecSendValidation.Invalid -> validation =
+                        zecSendValidation.validationErrors
                 }
             },
             text = stringResource(id = R.string.send_create),

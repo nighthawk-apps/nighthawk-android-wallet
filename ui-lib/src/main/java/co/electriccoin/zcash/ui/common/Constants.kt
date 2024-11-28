@@ -6,6 +6,7 @@ import kotlin.time.Duration.Companion.seconds
 val ANDROID_STATE_FLOW_TIMEOUT = 5.seconds
 const val SIDE_SHIFT_AFFILIATE_LINK = "https://sideshift.ai/a/EqcQp4iUM"
 const val STEALTH_HEALTH_AFFILIATE_LINK = "https://stealthex.io/?ref=x80l5bu8wq"
+const val TOP_UP_EXCHANGE_URL = "https://z.cash/ecosystem/?exchanges=#tag-exchanges"
 const val ZEC_MAX_AMOUNT = 21000000
 const val AMOUNT_QUERY = "amount"
 const val MEMO_QUERY = "memo"

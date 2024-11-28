@@ -12,7 +12,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -110,7 +110,7 @@ private fun OnboardingTopAppBar(
             if (currentStage.hasPrevious()) {
                 IconButton(onboardingState::goPrevious) {
                     Icon(
-                        imageVector = Icons.Filled.ArrowBack,
+                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                         contentDescription = stringResource(R.string.onboarding_back)
                     )
                 }
@@ -188,7 +188,11 @@ private fun WalletStageBottomNav(
     onCreateWallet: () -> Unit,
     onImportWallet: () -> Unit
 ) {
-    PrimaryButton(onCreateWallet, stringResource(R.string.onboarding_4_create_new_wallet), Modifier.fillMaxWidth())
+    PrimaryButton(
+        onCreateWallet,
+        stringResource(R.string.onboarding_4_create_new_wallet),
+        Modifier.fillMaxWidth()
+    )
     TertiaryButton(
         onImportWallet,
         stringResource(R.string.onboarding_4_import_existing_wallet),
@@ -285,7 +289,11 @@ private fun Content(
                 bottom = paddingValues.calculateBottomPadding()
             )
         ) {
-            Image(modifier = Modifier.scale(imageScale), painter = image, contentDescription = imageContentDescription)
+            Image(
+                modifier = Modifier.scale(imageScale),
+                painter = image,
+                contentDescription = imageContentDescription
+            )
             Header(headline)
             Body(body)
         }

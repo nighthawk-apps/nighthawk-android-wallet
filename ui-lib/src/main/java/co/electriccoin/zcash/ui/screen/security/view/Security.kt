@@ -13,8 +13,8 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material3.Divider
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Surface
@@ -44,13 +44,28 @@ import co.electriccoin.zcash.ui.design.theme.ZcashTheme
 fun SecurityPreview() {
     ZcashTheme {
         Surface {
-            Security(onBack = {}, isPinEnabled = true, isTouchIdOrFaceEnabled = false, isBioMetricEnabledOnMobile = true, onDisablePin = {}, onSetPin = {}, onTouchIdToggleChanged = {})
+            Security(
+                onBack = {},
+                isPinEnabled = true,
+                isTouchIdOrFaceEnabled = false,
+                isBioMetricEnabledOnMobile = true,
+                onDisablePin = {},
+                onSetPin = {},
+                onTouchIdToggleChanged = {})
         }
     }
 }
 
 @Composable
-fun Security(onBack: () -> Unit, isPinEnabled: Boolean, isTouchIdOrFaceEnabled: Boolean, isBioMetricEnabledOnMobile: Boolean, onDisablePin: () -> Unit, onSetPin: () -> Unit, onTouchIdToggleChanged: (Boolean) -> Unit) {
+fun Security(
+    onBack: () -> Unit,
+    isPinEnabled: Boolean,
+    isTouchIdOrFaceEnabled: Boolean,
+    isBioMetricEnabledOnMobile: Boolean,
+    onDisablePin: () -> Unit,
+    onSetPin: () -> Unit,
+    onTouchIdToggleChanged: (Boolean) -> Unit
+) {
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -62,11 +77,20 @@ fun Security(onBack: () -> Unit, isPinEnabled: Boolean, isTouchIdOrFaceEnabled: 
             mutableStateOf(false)
         }
 
-        IconButton(onClick = onBack, modifier = Modifier.size(dimensionResource(id = R.dimen.back_icon_size))) {
-            Icon(imageVector = Icons.Filled.ArrowBack, contentDescription = stringResource(R.string.receive_back_content_description))
+        IconButton(
+            onClick = onBack,
+            modifier = Modifier.size(dimensionResource(id = R.dimen.back_icon_size))
+        ) {
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                contentDescription = stringResource(R.string.receive_back_content_description)
+            )
         }
         Spacer(modifier = Modifier.height(dimensionResource(id = R.dimen.offset)))
-        TitleMedium(text = stringResource(id = R.string.ns_security_text), color = colorResource(id = co.electriccoin.zcash.ui.design.R.color.ns_parmaviolet))
+        TitleMedium(
+            text = stringResource(id = R.string.ns_security_text),
+            color = colorResource(id = co.electriccoin.zcash.ui.design.R.color.ns_parmaviolet)
+        )
         Spacer(modifier = Modifier.height(24.dp))
         Row(
             modifier = Modifier
@@ -77,13 +101,20 @@ fun Security(onBack: () -> Unit, isPinEnabled: Boolean, isTouchIdOrFaceEnabled: 
             verticalAlignment = Alignment.CenterVertically
         ) {
             BodyMedium(text = stringResource(id = R.string.set_change_pin_code))
-            Icon(painter = painterResource(id = R.drawable.ic_arrow_right), contentDescription = null)
+            Icon(
+                painter = painterResource(id = R.drawable.ic_arrow_right),
+                contentDescription = null
+            )
         }
         if (isPinEnabled) {
-            PrimaryButton(onClick = onDisablePin, text = stringResource(id = R.string.ns_disable_pin).uppercase(), modifier = Modifier.align(Alignment.End))
+            PrimaryButton(
+                onClick = onDisablePin,
+                text = stringResource(id = R.string.ns_disable_pin).uppercase(),
+                modifier = Modifier.align(Alignment.End)
+            )
         }
         Spacer(modifier = Modifier.height(10.dp))
-        Divider(thickness = 1.dp, color = ZcashTheme.colors.surfaceEnd)
+        HorizontalDivider(thickness = 1.dp, color = ZcashTheme.colors.surfaceEnd)
         Spacer(modifier = Modifier.height(10.dp))
         Row(
             modifier = Modifier
@@ -98,7 +129,11 @@ fun Security(onBack: () -> Unit, isPinEnabled: Boolean, isTouchIdOrFaceEnabled: 
                 onCheckedChange = {
                     Twig.debug { "toggle value changed $it" }
                     if (isPinEnabled.not()) {
-                        Toast.makeText(context, context.getString(R.string.set_pin_code_request), Toast.LENGTH_SHORT).show()
+                        Toast.makeText(
+                            context,
+                            context.getString(R.string.set_pin_code_request),
+                            Toast.LENGTH_SHORT
+                        ).show()
                         return@Switch
                     }
                     if (isBioMetricEnabledOnMobile.not()) {

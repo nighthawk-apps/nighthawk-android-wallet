@@ -19,11 +19,13 @@ import co.electriccoin.zcash.global.DeepLinkUtil
 import co.electriccoin.zcash.spackle.Twig
 import co.electriccoin.zcash.ui.MainActivity
 import co.electriccoin.zcash.ui.R
+import co.electriccoin.zcash.ui.common.FlexaHelper
 import co.electriccoin.zcash.ui.common.MIN_ZEC_FOR_SHIELDING
 import co.electriccoin.zcash.ui.common.ShortcutAction
 import co.electriccoin.zcash.ui.common.removeTrailingZero
 import co.electriccoin.zcash.ui.common.showMessage
 import co.electriccoin.zcash.ui.common.toFormattedString
+import co.electriccoin.zcash.ui.screen.home.model.totalBalance
 import co.electriccoin.zcash.ui.screen.home.viewmodel.HomeViewModel
 import co.electriccoin.zcash.ui.screen.home.viewmodel.WalletViewModel
 import co.electriccoin.zcash.ui.screen.send.model.SendArgumentsWrapper
@@ -130,6 +132,11 @@ internal fun WrapWallet(
                     ))
                 }
         }
+
+        LaunchedEffect(walletSnapshot.totalBalance()) {
+            FlexaHelper.updateFlexaAccount(walletSnapshot.totalBalance())
+        }
+
         val onItemLongClickAction: (TransactionOverview) -> Unit = {
             clipboardManager.setText(AnnotatedString(it.rawId.byteArray.toFormattedString()))
             activity.showMessage(activity.getString(R.string.transaction_id_copied))

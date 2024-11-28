@@ -24,7 +24,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
@@ -74,7 +74,10 @@ import kotlin.math.roundToInt
 fun ReceiveQrCodesPreview() {
     ZcashTheme(darkTheme = false) {
         Surface {
-            ReceiveQrCodes(walletAddresses = runBlocking { WalletAddressesFixture.new() }, onBack = {}, onSeeMoreTopUpOption = {})
+            ReceiveQrCodes(
+                walletAddresses = runBlocking { WalletAddressesFixture.new() },
+                onBack = {},
+                onSeeMoreTopUpOption = {})
         }
     }
 }
@@ -140,7 +143,7 @@ fun ReceiveQrCodes(
             modifier = Modifier.size(dimensionResource(id = R.dimen.back_icon_size))
         ) {
             Icon(
-                imageVector = Icons.Filled.ArrowBack,
+                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                 contentDescription = stringResource(R.string.receive_back_content_description)
             )
         }
@@ -150,12 +153,21 @@ fun ReceiveQrCodes(
             modifier = Modifier.align(Alignment.CenterHorizontally)
         )
         Spacer(Modifier.height(dimensionResource(id = R.dimen.pageMargin)))
-        TitleLarge(text = stringResource(id = R.string.ns_nighthawk), textAlign = TextAlign.Center, modifier = Modifier.align(Alignment.CenterHorizontally))
+        TitleLarge(
+            text = stringResource(id = R.string.ns_nighthawk),
+            textAlign = TextAlign.Center,
+            modifier = Modifier.align(Alignment.CenterHorizontally)
+        )
         Spacer(modifier = Modifier.height(27.dp))
 
         val totalCards = 4
-        val state = rememberPagerState(initialPage = 1, initialPageOffsetFraction = 0f) { totalCards }
-        HorizontalPager(state = state, pageSpacing = 16.dp, contentPadding = PaddingValues(horizontal = 55.dp)) { page ->
+        val state =
+            rememberPagerState(initialPage = 1, initialPageOffsetFraction = 0f) { totalCards }
+        HorizontalPager(
+            state = state,
+            pageSpacing = 16.dp,
+            contentPadding = PaddingValues(horizontal = 55.dp)
+        ) { page ->
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -177,7 +189,8 @@ fun ReceiveQrCodes(
                 elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
                 colors = CardDefaults.cardColors(containerColor = ZcashTheme.colors.navigationContainer)
             ) {
-                val qrAddressPagerItem = getQRAddressPagerItem(page = page, walletAddresses = walletAddresses)
+                val qrAddressPagerItem =
+                    getQRAddressPagerItem(page = page, walletAddresses = walletAddresses)
                 if (qrAddressPagerItem is QRAddressPagerItem.TOP_UP) {
                     TopUpCardUi(topUp = qrAddressPagerItem, onSeeMore = onSeeMoreTopUpOption)
                 } else {
@@ -185,7 +198,11 @@ fun ReceiveQrCodes(
                         qrAddressPagerItem = qrAddressPagerItem,
                         onCopyAddress = {
                             clipboardManager.setText(AnnotatedString(it))
-                            Toast.makeText(context, context.getString(R.string.ns_copied), Toast.LENGTH_SHORT).show()
+                            Toast.makeText(
+                                context,
+                                context.getString(R.string.ns_copied),
+                                Toast.LENGTH_SHORT
+                            ).show()
                         }
                     )
                 }
@@ -205,9 +222,18 @@ fun QrAddressCardUi(qrAddressPagerItem: QRAddressPagerItem, onCopyAddress: (Stri
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
     ) {
-        QrCode(data = qrAddressPagerItem.body, logoId = qrAddressPagerItem.logoId, backGroundColor = qrAddressPagerItem.backgroundColor, DEFAULT_QR_CODE_SIZE, Modifier.align(Alignment.CenterHorizontally))
+        QrCode(
+            data = qrAddressPagerItem.body,
+            logoId = qrAddressPagerItem.logoId,
+            backGroundColor = qrAddressPagerItem.backgroundColor,
+            DEFAULT_QR_CODE_SIZE,
+            Modifier.align(Alignment.CenterHorizontally)
+        )
         Spacer(modifier = Modifier.height(18.dp))
-        BodyMedium(text = qrAddressPagerItem.title, color = colorResource(id = co.electriccoin.zcash.ui.design.R.color.ns_parmaviolet))
+        BodyMedium(
+            text = qrAddressPagerItem.title,
+            color = colorResource(id = co.electriccoin.zcash.ui.design.R.color.ns_parmaviolet)
+        )
         Spacer(modifier = Modifier.height(10.dp))
         BodySmall(text = qrAddressPagerItem.body)
         Spacer(modifier = Modifier.weight(1f))
@@ -216,7 +242,10 @@ fun QrAddressCardUi(qrAddressPagerItem: QRAddressPagerItem, onCopyAddress: (Stri
             text = qrAddressPagerItem.buttonText.uppercase(),
             modifier = Modifier
                 .align(Alignment.CenterHorizontally)
-                .sizeIn(minWidth = dimensionResource(id = R.dimen.button_min_width), minHeight = dimensionResource(id = R.dimen.button_height))
+                .sizeIn(
+                    minWidth = dimensionResource(id = R.dimen.button_min_width),
+                    minHeight = dimensionResource(id = R.dimen.button_height)
+                )
         )
     }
 }
@@ -228,21 +257,38 @@ fun TopUpCardUi(topUp: QRAddressPagerItem.TOP_UP, onSeeMore: () -> Unit) {
             .padding(16.dp)
             .fillMaxWidth()
     ) {
-        Icon(painter = painterResource(id = R.drawable.ic_icon_top_up), contentDescription = null, tint = colorResource(id = co.electriccoin.zcash.ui.design.R.color.ns_parmaviolet))
+        Icon(
+            painter = painterResource(id = R.drawable.ic_icon_top_up),
+            contentDescription = null,
+            tint = colorResource(id = co.electriccoin.zcash.ui.design.R.color.ns_parmaviolet)
+        )
         Spacer(modifier = Modifier.height(21.dp))
-        BodyMedium(text = topUp.title, color = colorResource(id = co.electriccoin.zcash.ui.design.R.color.ns_parmaviolet))
+        BodyMedium(
+            text = topUp.title,
+            color = colorResource(id = co.electriccoin.zcash.ui.design.R.color.ns_parmaviolet)
+        )
         Spacer(modifier = Modifier.height(10.dp))
         BodySmall(text = topUp.body)
         Spacer(modifier = Modifier.weight(1f))
-        PrimaryButton(onClick = onSeeMore, text = topUp.buttonText.uppercase(), modifier = Modifier
-            .align(Alignment.CenterHorizontally)
-            .sizeIn(minWidth = dimensionResource(id = R.dimen.button_min_width), minHeight = dimensionResource(id = R.dimen.button_height))
+        PrimaryButton(
+            onClick = onSeeMore, text = topUp.buttonText.uppercase(), modifier = Modifier
+                .align(Alignment.CenterHorizontally)
+                .sizeIn(
+                    minWidth = dimensionResource(id = R.dimen.button_min_width),
+                    minHeight = dimensionResource(id = R.dimen.button_height)
+                )
         )
     }
 }
 
 @Composable
-private fun QrCode(data: String, @DrawableRes logoId: Int, backGroundColor: Color, size: Dp, modifier: Modifier = Modifier) {
+private fun QrCode(
+    data: String,
+    @DrawableRes logoId: Int,
+    backGroundColor: Color,
+    size: Dp,
+    modifier: Modifier = Modifier
+) {
     Box(modifier = modifier, contentAlignment = Alignment.Center) {
         Column(modifier = modifier) {
             BrightenScreen()

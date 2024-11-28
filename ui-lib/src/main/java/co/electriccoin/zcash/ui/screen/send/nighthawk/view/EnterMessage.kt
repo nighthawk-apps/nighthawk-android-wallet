@@ -14,7 +14,7 @@ import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedTextField
@@ -62,10 +62,11 @@ fun EnterMessage(
     onBack: () -> Unit,
     onContinue: (String) -> Unit
 ) {
-    Column(modifier = Modifier
-        .fillMaxSize()
-        .padding(dimensionResource(id = R.dimen.screen_standard_margin))
-        .verticalScroll(rememberScrollState())
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(dimensionResource(id = R.dimen.screen_standard_margin))
+            .verticalScroll(rememberScrollState())
     ) {
         val context = LocalContext.current
         val message = remember {
@@ -76,14 +77,34 @@ fun EnterMessage(
                 if (message.value.isBlank()) R.string.ns_skip else R.string.ns_continue
             }
         }
-        IconButton(onClick = onBack, modifier = Modifier.size(dimensionResource(id = R.dimen.back_icon_size))) {
-            Icon(imageVector = Icons.Filled.ArrowBack, contentDescription = stringResource(R.string.receive_back_content_description))
+        IconButton(
+            onClick = onBack,
+            modifier = Modifier.size(dimensionResource(id = R.dimen.back_icon_size))
+        ) {
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                contentDescription = stringResource(R.string.receive_back_content_description)
+            )
         }
-        Image(painter = painterResource(id = R.drawable.ic_nighthawk_logo), contentDescription = "logo", contentScale = ContentScale.Inside, modifier = Modifier.align(Alignment.CenterHorizontally))
+        Image(
+            painter = painterResource(id = R.drawable.ic_nighthawk_logo),
+            contentDescription = "logo",
+            contentScale = ContentScale.Inside,
+            modifier = Modifier.align(Alignment.CenterHorizontally)
+        )
         Spacer(Modifier.height(dimensionResource(id = R.dimen.pageMargin)))
-        TitleLarge(text = stringResource(id = R.string.ns_nighthawk), textAlign = TextAlign.Center, modifier = Modifier.align(Alignment.CenterHorizontally))
+        TitleLarge(
+            text = stringResource(id = R.string.ns_nighthawk),
+            textAlign = TextAlign.Center,
+            modifier = Modifier.align(Alignment.CenterHorizontally)
+        )
         Spacer(modifier = Modifier.height(dimensionResource(id = R.dimen.pageMargin)))
-        BodyMedium(text = stringResource(id = R.string.ns_add_message), textAlign = TextAlign.Center, modifier = Modifier.align(Alignment.CenterHorizontally), color = ZcashTheme.colors.secondaryTitleText)
+        BodyMedium(
+            text = stringResource(id = R.string.ns_add_message),
+            textAlign = TextAlign.Center,
+            modifier = Modifier.align(Alignment.CenterHorizontally),
+            color = ZcashTheme.colors.secondaryTitleText
+        )
         Spacer(modifier = Modifier.height(45.dp))
         OutlinedTextField(
             value = message.value,
@@ -91,14 +112,21 @@ fun EnterMessage(
                 if (Memo.isWithinMaxLength(it)) {
                     message.value = it
                 } else {
-                    Toast.makeText(context, context.getString(R.string.memo_max_length_msg), Toast.LENGTH_SHORT).show()
+                    Toast.makeText(
+                        context,
+                        context.getString(R.string.memo_max_length_msg),
+                        Toast.LENGTH_SHORT
+                    ).show()
                 }
             },
             modifier = Modifier
                 .fillMaxWidth()
                 .heightIn(min = 105.dp),
             placeholder = {
-                BodyMedium(text = stringResource(id = R.string.ns_write_something), color = ZcashTheme.colors.secondaryTitleText)
+                BodyMedium(
+                    text = stringResource(id = R.string.ns_write_something),
+                    color = ZcashTheme.colors.secondaryTitleText
+                )
             },
             colors = TextFieldDefaults.customColors(),
             maxLines = 4
@@ -109,7 +137,10 @@ fun EnterMessage(
             text = stringResource(id = continueBtnText.value).uppercase(),
             modifier = Modifier
                 .align(Alignment.CenterHorizontally)
-                .sizeIn(minWidth = dimensionResource(id = R.dimen.button_min_width), minHeight = dimensionResource(id = R.dimen.button_height))
+                .sizeIn(
+                    minWidth = dimensionResource(id = R.dimen.button_min_width),
+                    minHeight = dimensionResource(id = R.dimen.button_height)
+                )
         )
     }
 }

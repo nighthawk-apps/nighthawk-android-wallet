@@ -16,7 +16,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedTextField
@@ -83,7 +83,9 @@ fun ChangeServer(
         mutableStateOf(if (isCustomServerOptionSelected) selectedServer?.host ?: "" else "")
     }
     var customServerPortNo by remember(isCustomServerOptionSelected) {
-        mutableStateOf(if (isCustomServerOptionSelected) selectedServer?.port?.toString() ?: "" else "")
+        mutableStateOf(
+            if (isCustomServerOptionSelected) selectedServer?.port?.toString() ?: "" else ""
+        )
     }
 
 
@@ -100,7 +102,7 @@ fun ChangeServer(
             modifier = Modifier.size(dimensionResource(id = R.dimen.back_icon_size))
         ) {
             Icon(
-                imageVector = Icons.Filled.ArrowBack,
+                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                 contentDescription = stringResource(R.string.receive_back_content_description)
             )
         }

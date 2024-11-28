@@ -1,3 +1,6 @@
+import java.io.FileInputStream
+import java.util.Properties
+
 enableFeaturePreview("TYPESAFE_PROJECT_ACCESSORS")
 
 pluginManagement {
@@ -14,7 +17,7 @@ pluginManagement {
             "com\\.android.*",
             "com\\.android\\.tools.*"
         )
-        val wtfGroups = listOf("wtf.emulator")
+//        val wtfGroups = listOf("wtf.emulator")
 
         mavenCentral {
             if (isRepoRestrictionEnabled) {
@@ -92,7 +95,7 @@ dependencyResolutionManagement {
             "com\\.android.*",
             "com\\.android\\.tools.*"
         )
-        val wtfGroups = listOf("wtf.emulator")
+//        val wtfGroups = listOf("wtf.emulator")
 
         google {
             if (isRepoRestrictionEnabled) {
@@ -130,6 +133,19 @@ dependencyResolutionManagement {
         }
         maven("https://jitpack.io") {
 
+        }
+
+        maven {
+            name = "GitHubPackages"
+            url = uri("https://maven.pkg.github.com/flexa/flexa-android")
+            credentials {
+                val propertiesFile = file("local.properties")
+                val localProperties = Properties()
+                localProperties.load(FileInputStream(propertiesFile))
+
+                username = localProperties.getProperty("gpr.user")
+                password = localProperties.getProperty("gpr.key")
+            }
         }
     }
 
@@ -180,6 +196,7 @@ dependencyResolutionManagement {
             val retrofitVersion = extra["RETROFIT_VERSION"].toString()
             val okHttpVersion = extra["OKHTTP_VERSION"].toString()
             val secureStorageVersion = extra["SECURE_STORAGE_VERSION"].toString()
+            val flexaVersion = extra["FLEXA_VERSION"].toString()
 
             // Standalone versions
             version("flank", flankVersion)
@@ -238,6 +255,9 @@ dependencyResolutionManagement {
             library("square-okhttp", "com.squareup.okhttp3:okhttp:$okHttpVersion")
             library("square-okhttp-logging-interceptor", "com.squareup.okhttp3:logging-interceptor:$okHttpVersion")
             library("secure-storage", "com.github.gmale:secure-storage-android:$secureStorageVersion")
+            library("flexa-core", "com.flexa:core:$flexaVersion")
+            library("flexa-scan", "com.flexa:scan:$flexaVersion")
+            library("flexa-spend", "com.flexa:spend:$flexaVersion")
 
             // Test libraries
             library("androidx-compose-test-junit", "androidx.compose.ui:ui-test-junit4:$androidxComposeVersion")

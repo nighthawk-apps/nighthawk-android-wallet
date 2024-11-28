@@ -20,7 +20,7 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -175,9 +175,11 @@ fun RestoreWallet(
                         focusRequester = focusRequester
                     )
                 }
+
                 RestoreStage.Birthday -> {
                     // No content
                 }
+
                 RestoreStage.Complete -> {
                     // No content
                 }
@@ -208,6 +210,7 @@ fun RestoreWallet(
                         modifier = commonModifier
                     )
                 }
+
                 RestoreStage.Birthday -> {
                     RestoreBirthday(
                         zcashNetwork = zcashNetwork,
@@ -217,6 +220,7 @@ fun RestoreWallet(
                         modifier = commonModifier
                     )
                 }
+
                 RestoreStage.Complete -> {
                     // In some cases we need to hide the software keyboard manually, as it stays shown after
                     // input on prior screens
@@ -242,7 +246,7 @@ private fun RestoreTopAppBar(onBack: () -> Unit, isShowClear: Boolean, onClear: 
                 onClick = onBack
             ) {
                 Icon(
-                    imageVector = Icons.Filled.ArrowBack,
+                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                     contentDescription = stringResource(R.string.restore_back_content_description)
                 )
             }
@@ -280,7 +284,8 @@ private fun RestoreSeedMainContent(
         userWordList.append(parseResult.words)
     }
 
-    val isSeedValid = userWordList.wordValidation().collectAsState(null).value is SeedPhraseValidation.Valid
+    val isSeedValid =
+        userWordList.wordValidation().collectAsState(null).value is SeedPhraseValidation.Valid
 
     Column(
         Modifier
@@ -342,7 +347,8 @@ private fun RestoreSeedBottomBar(
     focusRequester: FocusRequester,
     modifier: Modifier = Modifier
 ) {
-    val isSeedValid = userWordList.wordValidation().collectAsState(null).value is SeedPhraseValidation.Valid
+    val isSeedValid =
+        userWordList.wordValidation().collectAsState(null).value is SeedPhraseValidation.Valid
     // Hide the field once the user has completed the seed phrase; if they need the field back then
     // the user can hit the clear button
     if (!isSeedValid) {
@@ -422,10 +428,10 @@ private fun NextWordTextField(
             value = text,
             onValueChange = setText,
             keyboardOptions = KeyboardOptions(
-                KeyboardCapitalization.None,
-                autoCorrect = false,
-                imeAction = ImeAction.Done,
-                keyboardType = KeyboardType.Password
+                capitalization = KeyboardCapitalization.None,
+                autoCorrectEnabled = false,
+                keyboardType = KeyboardType.Password,
+                imeAction = ImeAction.Done
             ),
             keyboardActions = KeyboardActions(onAny = {}),
             shape = RoundedCornerShape(8.dp),
@@ -558,10 +564,10 @@ private fun RestoreBirthday(
                 .testTag(RestoreTag.BIRTHDAY_TEXT_FIELD),
             label = { Text(stringResource(id = R.string.restore_birthday_hint)) },
             keyboardOptions = KeyboardOptions(
-                KeyboardCapitalization.None,
-                autoCorrect = false,
-                imeAction = ImeAction.Done,
-                keyboardType = KeyboardType.Number
+                capitalization = KeyboardCapitalization.None,
+                autoCorrectEnabled = false,
+                keyboardType = KeyboardType.Number,
+                imeAction = ImeAction.Done
             ),
             keyboardActions = KeyboardActions(onAny = {}),
             shape = RoundedCornerShape(8.dp),

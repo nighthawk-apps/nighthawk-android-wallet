@@ -15,7 +15,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Cancel
 import androidx.compose.material.icons.outlined.ArrowCircleDown
 import androidx.compose.material.icons.outlined.ArrowCircleUp
@@ -106,7 +106,7 @@ private fun HistoryTopBar(onBack: () -> Unit) {
                 onClick = onBack
             ) {
                 Icon(
-                    imageVector = Icons.Filled.ArrowBack,
+                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                     contentDescription = stringResource(R.string.history_back_content_description)
                 )
             }
@@ -128,6 +128,7 @@ private fun HistoryMainContent(
                         .testTag(HistoryTag.PROGRESS)
                 )
             }
+
             is TransactionHistorySyncState.Syncing -> {
                 Column(
                     modifier = Modifier.align(alignment = TopCenter)
@@ -154,6 +155,7 @@ private fun HistoryMainContent(
                     )
                 }
             }
+
             is TransactionHistorySyncState.Done -> {
                 if (transactionState.hasNoTransactions()) {
                     Body(
@@ -205,18 +207,22 @@ fun HistoryItem(
                 transactionText = stringResource(id = R.string.history_item_sent)
                 transactionIcon = Icons.TwoTone.ArrowCircleUp
             }
+
             TransactionExtendedState.SENDING -> {
                 transactionText = stringResource(id = R.string.history_item_sending)
                 transactionIcon = Icons.Outlined.ArrowCircleUp
             }
+
             TransactionExtendedState.RECEIVED -> {
                 transactionText = stringResource(id = R.string.history_item_received)
                 transactionIcon = Icons.TwoTone.ArrowCircleDown
             }
+
             TransactionExtendedState.RECEIVING -> {
                 transactionText = stringResource(id = R.string.history_item_receiving)
                 transactionIcon = Icons.Outlined.ArrowCircleDown
             }
+
             TransactionExtendedState.EXPIRED -> {
                 transactionText = stringResource(id = R.string.history_item_expired)
                 transactionIcon = Icons.Filled.Cancel
@@ -279,6 +285,7 @@ private fun TransactionOverview.getExtendedState(): TransactionExtendedState {
         TransactionState.Expired -> {
             TransactionExtendedState.EXPIRED
         }
+
         TransactionState.Confirmed -> {
             if (isSentTransaction) {
                 TransactionExtendedState.SENT
@@ -286,6 +293,7 @@ private fun TransactionOverview.getExtendedState(): TransactionExtendedState {
                 TransactionExtendedState.RECEIVED
             }
         }
+
         TransactionState.Pending -> {
             if (isSentTransaction) {
                 TransactionExtendedState.SENDING
@@ -293,6 +301,7 @@ private fun TransactionOverview.getExtendedState(): TransactionExtendedState {
                 TransactionExtendedState.RECEIVING
             }
         }
+
         else -> {
             error("Unexpected transaction state found while calculating its extended state.")
         }

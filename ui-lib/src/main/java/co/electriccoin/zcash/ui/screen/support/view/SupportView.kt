@@ -9,8 +9,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.Send
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -65,7 +65,7 @@ fun Support(
         floatingActionButton = {
             FloatingActionButton(onClick = { setShowDialog(true) }) {
                 Icon(
-                    imageVector = Icons.Filled.Send,
+                    imageVector = Icons.AutoMirrored.Filled.Send,
                     contentDescription = stringResource(id = R.string.support_send)
                 )
             }
@@ -101,7 +101,7 @@ private fun SupportTopAppBar(onBack: () -> Unit) {
                 onClick = onBack
             ) {
                 Icon(
-                    imageVector = Icons.Filled.ArrowBack,
+                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                     contentDescription = stringResource(R.string.support_back_content_description)
                 )
             }
@@ -165,7 +165,12 @@ private fun SupportConfirmationDialog(
             }
         },
         text = {
-            Text(stringResource(id = R.string.support_confirmation_explanation, stringResource(id = R.string.app_name)))
+            Text(
+                stringResource(
+                    id = R.string.support_confirmation_explanation,
+                    stringResource(id = R.string.app_name)
+                )
+            )
         }
     )
 }

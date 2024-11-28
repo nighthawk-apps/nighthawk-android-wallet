@@ -2,6 +2,7 @@
 
 package co.electriccoin.zcash.ui.screen.home.view
 
+//import co.electriccoin.zcash.crash.android.GlobalCrashReporter
 import android.content.res.Configuration
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -16,7 +17,7 @@ import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ContactSupport
+import androidx.compose.material.icons.automirrored.filled.ContactSupport
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.MoreVert
@@ -34,6 +35,7 @@ import androidx.compose.material3.ModalDrawerSheet
 import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.NavigationDrawerItem
 import androidx.compose.material3.NavigationDrawerItemDefaults
+import androidx.compose.material3.ProgressIndicatorDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -56,7 +58,6 @@ import androidx.compose.ui.unit.dp
 import cash.z.ecc.android.sdk.Synchronizer
 import cash.z.ecc.android.sdk.model.FiatCurrencyConversionRateState
 import cash.z.ecc.android.sdk.model.PercentDecimal
-//import co.electriccoin.zcash.crash.android.GlobalCrashReporter
 import co.electriccoin.zcash.ui.R
 import co.electriccoin.zcash.ui.common.DisableScreenTimeout
 import co.electriccoin.zcash.ui.common.closeDrawerMenu
@@ -266,7 +267,7 @@ private fun HomeDrawer(
             modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
         )
         NavigationDrawerItem(
-            icon = { Icon(Icons.Default.ContactSupport, contentDescription = null) },
+            icon = { Icon(Icons.AutoMirrored.Filled.ContactSupport, contentDescription = null) },
             label = { Text(stringResource(id = R.string.home_menu_support)) },
             selected = false,
             onClick = {
@@ -309,7 +310,12 @@ private fun HomeMainContent(
             )
             .then(modifier)
     ) {
-        Status(walletSnapshot, isUpdateAvailable, isFiatConversionEnabled, isCircularProgressBarEnabled)
+        Status(
+            walletSnapshot,
+            isUpdateAvailable,
+            isFiatConversionEnabled,
+            isCircularProgressBarEnabled
+        )
 
         if (isSyncing(walletSnapshot.status)) {
             Spacer(modifier = Modifier.height(ZcashTheme.dimens.spacingLarge))
@@ -356,11 +362,12 @@ private fun Status(
     isCircularProgressBarEnabled: Boolean
 ) {
     val configuration = LocalConfiguration.current
-    val contentSizeRatioRatio = if (configuration.orientation == Configuration.ORIENTATION_LANDSCAPE) {
-        0.45f
-    } else {
-        0.9f
-    }
+    val contentSizeRatioRatio =
+        if (configuration.orientation == Configuration.ORIENTATION_LANDSCAPE) {
+            0.45f
+        } else {
+            0.9f
+        }
 
     // UI parts sizes
     val progressCircleStroke = 12.dp
@@ -391,13 +398,14 @@ private fun Status(
             if (isCircularProgressBarEnabled) {
                 if (walletDisplayValues.progress.decimal > PercentDecimal.ZERO_PERCENT.decimal) {
                     CircularProgressIndicator(
-                        progress = walletDisplayValues.progress.decimal,
-                        color = Color.Gray,
-                        strokeWidth = progressCircleStroke,
+                        progress = { walletDisplayValues.progress.decimal },
                         modifier = Modifier
                             .matchParentSize()
                             .padding(progressCirclePadding)
-                            .testTag(HomeTag.PROGRESS)
+                            .testTag(HomeTag.PROGRESS),
+                        color = Color.Gray,
+                        strokeWidth = progressCircleStroke,
+                        trackColor = ProgressIndicatorDefaults.circularIndeterminateTrackColor,
                     )
                 }
             }
@@ -424,12 +432,14 @@ private fun Status(
                                     amount = walletDisplayValues.fiatCurrencyAmountText
                                 )
                             }
+
                             is FiatCurrencyConversionRateState.Stale -> {
                                 // Note: we should show information about staleness too
                                 BodyWithFiatCurrencySymbol(
                                     amount = walletDisplayValues.fiatCurrencyAmountText
                                 )
                             }
+
                             is FiatCurrencyConversionRateState.Unavailable -> {
                                 Body(text = walletDisplayValues.fiatCurrencyAmountText)
                             }

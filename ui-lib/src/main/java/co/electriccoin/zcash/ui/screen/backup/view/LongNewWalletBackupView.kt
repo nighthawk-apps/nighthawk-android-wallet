@@ -15,7 +15,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.Card
 import androidx.compose.material3.DropdownMenu
@@ -150,6 +150,7 @@ fun BackupMainContent(
                 splitSeedPhrase = wallet.seedPhrase.split.toPersistentList(),
                 backupState = backupState
             )
+
             is BackupStage.Failure -> TestFailure()
             is BackupStage.Complete -> TestComplete()
             is BackupStage.ReviewSeed -> SeedPhrase(wallet)
@@ -336,22 +337,28 @@ private fun BackupTopAppBar(
         is BackupStage.EducationOverview -> {
             R.string.new_wallet_1_header
         }
+
         is BackupStage.EducationRecoveryPhrase -> {
             R.string.new_wallet_2_header
         }
+
         is BackupStage.Seed -> {
             showCopySeedMenu = true
             R.string.new_wallet_3_header
         }
+
         is BackupStage.Test -> {
             R.string.new_wallet_4_header
         }
+
         is BackupStage.Failure -> {
             R.string.new_wallet_4_header_ouch
         }
+
         is BackupStage.Complete -> {
             R.string.new_wallet_5_header
         }
+
         is BackupStage.ReviewSeed -> {
             showCopySeedMenu = true
             R.string.new_wallet_3_header
@@ -373,7 +380,7 @@ private fun BackupTopAppBar(
                 BackHandler(enabled = true) { onBackClickListener() }
                 IconButton(onBackClickListener) {
                     Icon(
-                        imageVector = Icons.Filled.ArrowBack,
+                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                         contentDescription = stringResource(
                             R.string.new_wallet_navigation_back_button_content_description
                         )
@@ -430,15 +437,22 @@ private fun BackupBottomNav(
             is BackupStage.EducationOverview -> {
                 PrimaryButton(onClick = onNext, text = stringResource(R.string.new_wallet_1_button))
             }
+
             is BackupStage.EducationRecoveryPhrase -> {
                 PrimaryButton(onClick = onNext, text = stringResource(R.string.new_wallet_2_button))
             }
+
             is BackupStage.Seed -> {
-                PrimaryButton(onClick = onNext, text = stringResource(R.string.new_wallet_3_button_finished))
+                PrimaryButton(
+                    onClick = onNext,
+                    text = stringResource(R.string.new_wallet_3_button_finished)
+                )
             }
+
             is BackupStage.Test -> {
                 // no bottom navigation button placed
             }
+
             is BackupStage.Failure -> {
                 PrimaryButton(
                     onClick = {
@@ -449,12 +463,23 @@ private fun BackupBottomNav(
                     text = stringResource(R.string.new_wallet_4_button_retry)
                 )
             }
+
             is BackupStage.Complete -> {
-                PrimaryButton(onClick = onComplete, text = stringResource(R.string.new_wallet_5_button_finished))
-                TertiaryButton(onClick = onBackToSeedPhrase, text = stringResource(R.string.new_wallet_5_button_back))
+                PrimaryButton(
+                    onClick = onComplete,
+                    text = stringResource(R.string.new_wallet_5_button_finished)
+                )
+                TertiaryButton(
+                    onClick = onBackToSeedPhrase,
+                    text = stringResource(R.string.new_wallet_5_button_back)
+                )
             }
+
             is BackupStage.ReviewSeed -> {
-                PrimaryButton(onClick = onBack, text = stringResource(R.string.new_wallet_3_button_finished))
+                PrimaryButton(
+                    onClick = onBack,
+                    text = stringResource(R.string.new_wallet_3_button_finished)
+                )
             }
         }
     }

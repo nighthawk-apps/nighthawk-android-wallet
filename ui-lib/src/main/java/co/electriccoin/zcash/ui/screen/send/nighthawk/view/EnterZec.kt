@@ -16,7 +16,7 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Surface
@@ -82,9 +82,10 @@ fun EnterZec(
     onSendAllClicked: (String) -> Unit,
     onFlipCurrency: () -> Unit
 ) {
-    Column(modifier = Modifier
-        .fillMaxSize()
-        .padding(dimensionResource(id = R.dimen.screen_standard_margin))
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(dimensionResource(id = R.dimen.screen_standard_margin))
     ) {
         val context = LocalContext.current
 
@@ -94,14 +95,34 @@ fun EnterZec(
                 .weight(1f)
         ) {
             Column(modifier = Modifier.fillMaxWidth()) {
-                IconButton(onClick = onBack, modifier = Modifier.size(dimensionResource(id = R.dimen.back_icon_size))) {
-                    Icon(imageVector = Icons.Filled.ArrowBack, contentDescription = stringResource(R.string.receive_back_content_description))
+                IconButton(
+                    onClick = onBack,
+                    modifier = Modifier.size(dimensionResource(id = R.dimen.back_icon_size))
+                ) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                        contentDescription = stringResource(R.string.receive_back_content_description)
+                    )
                 }
-                Image(painter = painterResource(id = R.drawable.ic_nighthawk_logo), contentDescription = "logo", contentScale = ContentScale.Inside, modifier = Modifier.align(Alignment.CenterHorizontally))
+                Image(
+                    painter = painterResource(id = R.drawable.ic_nighthawk_logo),
+                    contentDescription = "logo",
+                    contentScale = ContentScale.Inside,
+                    modifier = Modifier.align(Alignment.CenterHorizontally)
+                )
                 Spacer(Modifier.height(dimensionResource(id = R.dimen.pageMargin)))
-                TitleLarge(text = stringResource(id = R.string.ns_nighthawk), textAlign = TextAlign.Center, modifier = Modifier.align(Alignment.CenterHorizontally))
+                TitleLarge(
+                    text = stringResource(id = R.string.ns_nighthawk),
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.align(Alignment.CenterHorizontally)
+                )
                 Spacer(modifier = Modifier.height(dimensionResource(id = R.dimen.pageMargin)))
-                BodyMedium(text = stringResource(id = R.string.ns_choose_send), textAlign = TextAlign.Center, modifier = Modifier.align(Alignment.CenterHorizontally), color = ZcashTheme.colors.secondaryTitleText)
+                BodyMedium(
+                    text = stringResource(id = R.string.ns_choose_send),
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.align(Alignment.CenterHorizontally),
+                    color = ZcashTheme.colors.secondaryTitleText
+                )
                 BodyMedium(
                     text = stringResource(
                         id = R.string.ns_spendable_balance,
@@ -185,7 +206,11 @@ fun EnterZec(
                 items(numberPadKeys) {
                     TextButton(onClick = {
                         if ((it is NumberPadValueTypes.BackSpace).not() && enterZecUIState.isEnoughBalance.not()) {
-                            Toast.makeText(context, context.getString(R.string.insufficient_msg), Toast.LENGTH_SHORT).show()
+                            Toast.makeText(
+                                context,
+                                context.getString(R.string.insufficient_msg),
+                                Toast.LENGTH_SHORT
+                            ).show()
                             return@TextButton
                         }
                         onKeyPressed(it)

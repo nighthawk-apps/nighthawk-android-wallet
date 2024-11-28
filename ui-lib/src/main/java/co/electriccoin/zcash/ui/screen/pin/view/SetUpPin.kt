@@ -14,7 +14,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Surface
@@ -54,14 +54,16 @@ fun SetUpPinPreview() {
 
 @Composable
 fun SetUpPin(onBack: () -> Unit, onPinSelected: (String) -> Unit) {
-    Column(modifier = Modifier
-        .fillMaxSize()
-        .padding(dimensionResource(id = R.dimen.screen_standard_margin))
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(dimensionResource(id = R.dimen.screen_standard_margin))
     ) {
         val context = LocalContext.current
 
         val vibrator = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            val vibratorManager = context.getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as VibratorManager
+            val vibratorManager =
+                context.getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as VibratorManager
             vibratorManager.defaultVibrator
         } else {
             @Suppress("DEPRECATION")
@@ -95,12 +97,21 @@ fun SetUpPin(onBack: () -> Unit, onPinSelected: (String) -> Unit) {
                 if (vibrator.hasVibrator()) {
                     vibrator.vibrate(VibrationEffect.createWaveform(SUCCESS_VIBRATION_PATTERN, -1))
                 }
-                Toast.makeText(context, context.getString(R.string.pin_code_setup_done), Toast.LENGTH_SHORT).show()
+                Toast.makeText(
+                    context,
+                    context.getString(R.string.pin_code_setup_done),
+                    Toast.LENGTH_SHORT
+                ).show()
                 onPinSelected(firstTimeEnteredPassword.value)
             } else {
                 LaunchedEffect(key1 = firstTimeEnteredPassword.value) {
                     if (vibrator.hasVibrator()) {
-                        vibrator.vibrate(VibrationEffect.createWaveform(WRONG_VIBRATION_PATTERN, -1))
+                        vibrator.vibrate(
+                            VibrationEffect.createWaveform(
+                                WRONG_VIBRATION_PATTERN,
+                                -1
+                            )
+                        )
                     }
                     delay(1000)
                     firstTimeEnteredPassword.value = ""
@@ -108,13 +119,28 @@ fun SetUpPin(onBack: () -> Unit, onPinSelected: (String) -> Unit) {
                 }
             }
         }
-        
-        IconButton(onClick = onBack, modifier = Modifier.size(dimensionResource(id = R.dimen.back_icon_size))) {
-            Icon(imageVector = Icons.Filled.ArrowBack, contentDescription = stringResource(R.string.receive_back_content_description))
+
+        IconButton(
+            onClick = onBack,
+            modifier = Modifier.size(dimensionResource(id = R.dimen.back_icon_size))
+        ) {
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                contentDescription = stringResource(R.string.receive_back_content_description)
+            )
         }
-        Image(painter = painterResource(id = R.drawable.ic_nighthawk_logo), contentDescription = "logo", contentScale = ContentScale.Inside, modifier = Modifier.align(Alignment.CenterHorizontally))
+        Image(
+            painter = painterResource(id = R.drawable.ic_nighthawk_logo),
+            contentDescription = "logo",
+            contentScale = ContentScale.Inside,
+            modifier = Modifier.align(Alignment.CenterHorizontally)
+        )
         Spacer(Modifier.height(dimensionResource(id = R.dimen.pageMargin)))
-        TitleLarge(text = stringResource(id = R.string.ns_nighthawk), textAlign = TextAlign.Center, modifier = Modifier.align(Alignment.CenterHorizontally))
+        TitleLarge(
+            text = stringResource(id = R.string.ns_nighthawk),
+            textAlign = TextAlign.Center,
+            modifier = Modifier.align(Alignment.CenterHorizontally)
+        )
         Spacer(modifier = Modifier.height(35.dp))
 
         val messageId = when {
@@ -123,7 +149,8 @@ fun SetUpPin(onBack: () -> Unit, onPinSelected: (String) -> Unit) {
             else -> R.string.choose_pin_code
         }
 
-        val currentPasswordState = if (isFirstFullPasswordEntered.value) secondEnteredPassword else firstTimeEnteredPassword
+        val currentPasswordState =
+            if (isFirstFullPasswordEntered.value) secondEnteredPassword else firstTimeEnteredPassword
 
         EnterPinCommonUI(
             incorrectPassword = incorrectPassword.value,

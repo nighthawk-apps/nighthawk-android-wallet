@@ -1,4 +1,6 @@
 import com.android.build.api.variant.BuildConfigField
+import java.io.FileInputStream
+import java.util.Properties
 
 plugins {
     id("com.android.library")
@@ -15,6 +17,7 @@ android {
 
     defaultConfig {
         testInstrumentationRunner = "co.electriccoin.zcash.test.ZcashUiTestRunner"
+        multiDexEnabled = true
     }
 
     buildFeatures {
@@ -64,6 +67,16 @@ androidComponents {
                         comment = "Whether is the SecureScreen sensitive data protection enabled"
                 )
         )
+
+        // Flexa publishable key
+        variant.buildConfigFields.put(
+            "FEXA_PUBLISHABLE_KEY",
+            BuildConfigField(
+                type = "String",
+                value = project.property("FEXA_PUBLISHABLE_KEY")?.toString().orEmpty(),
+                comment = "Flexa publishable key for sdk"
+            )
+        )
     }
 }
 
@@ -99,6 +112,11 @@ dependencies {
     implementation(libs.square.okhttp)
     implementation(libs.square.okhttp.logging.interceptor)
     implementation(libs.secure.storage)
+
+//    implementation(libs.desugaring)
+    implementation(libs.flexa.core)
+//    implementation(libs.flexa.scan)
+    implementation(libs.flexa.spend)
 
     implementation(projects.buildInfoLib)
     implementation(projects.configurationApiLib)

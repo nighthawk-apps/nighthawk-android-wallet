@@ -20,10 +20,10 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowDropDownCircle
-import androidx.compose.material3.Divider
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -101,7 +101,7 @@ private fun WalletDetailTopAppBar(onBack: () -> Unit) {
                 onClick = onBack
             ) {
                 Icon(
-                    imageVector = Icons.Filled.ArrowBack,
+                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                     contentDescription = stringResource(R.string.wallet_address_back_content_description)
                 )
             }
@@ -141,7 +141,7 @@ private fun WalletDetailAddresses(
                 )
 
                 Box(Modifier.height(IntrinsicSize.Min)) {
-                    Divider(modifier = Modifier.fillMaxHeight())
+                    HorizontalDivider(modifier = Modifier.fillMaxHeight())
                     ListHeader(
                         text = stringResource(R.string.wallet_address_header_includes),
                         modifier = Modifier.padding(all = ZcashTheme.dimens.spacingSmall)
