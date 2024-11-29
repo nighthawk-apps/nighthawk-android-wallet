@@ -11,7 +11,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Surface
@@ -38,7 +38,10 @@ import kotlinx.collections.immutable.toPersistentList
 fun TransactionHistoryPreview() {
     ZcashTheme(darkTheme = false) {
         Surface {
-            val list = listOf(TransactionOverviewFixture.new(memoCount = 2, isSentTransaction = true), TransactionOverviewFixture.new())
+            val list = listOf(
+                TransactionOverviewFixture.new(memoCount = 2, isSentTransaction = true),
+                TransactionOverviewFixture.new()
+            )
             TransactionHistory(
                 transactionSnapshot = list.toPersistentList(),
                 fiatCurrencyUiState = FiatCurrencyUiState(FiatCurrency.USD, 25.25),
@@ -70,7 +73,7 @@ fun TransactionHistory(
                 modifier = Modifier.size(dimensionResource(id = R.dimen.back_icon_size))
             ) {
                 Icon(
-                    imageVector = Icons.Filled.ArrowBack,
+                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                     contentDescription = stringResource(R.string.receive_back_content_description)
                 )
             }

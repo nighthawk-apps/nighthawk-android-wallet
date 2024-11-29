@@ -11,7 +11,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Surface
@@ -34,23 +34,39 @@ import co.electriccoin.zcash.ui.design.theme.ZcashTheme
 fun ExternalServicesPreview() {
     ZcashTheme(darkTheme = false) {
         Surface {
-            ExternalServices(onBack = {}, isUnstoppableChecked = true, onUnstoppableCheckStateChanged = {})
+            ExternalServices(
+                onBack = {},
+                isUnstoppableChecked = true,
+                onUnstoppableCheckStateChanged = {})
         }
     }
 }
 
 @Composable
-fun ExternalServices(onBack: () -> Unit, isUnstoppableChecked: Boolean, onUnstoppableCheckStateChanged: (Boolean) -> Unit) {
+fun ExternalServices(
+    onBack: () -> Unit,
+    isUnstoppableChecked: Boolean,
+    onUnstoppableCheckStateChanged: (Boolean) -> Unit
+) {
     Column(
         modifier = Modifier
             .fillMaxSize()
             .padding(dimensionResource(id = R.dimen.screen_standard_margin))
     ) {
-        IconButton(onClick = onBack, modifier = Modifier.size(dimensionResource(id = R.dimen.back_icon_size))) {
-            Icon(imageVector = Icons.Filled.ArrowBack, contentDescription = stringResource(R.string.receive_back_content_description))
+        IconButton(
+            onClick = onBack,
+            modifier = Modifier.size(dimensionResource(id = R.dimen.back_icon_size))
+        ) {
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                contentDescription = stringResource(R.string.receive_back_content_description)
+            )
         }
         Spacer(modifier = Modifier.height(dimensionResource(id = R.dimen.offset)))
-        TitleMedium(text = stringResource(id = R.string.ns_external_services), color = colorResource(id = co.electriccoin.zcash.ui.design.R.color.ns_parmaviolet))
+        TitleMedium(
+            text = stringResource(id = R.string.ns_external_services),
+            color = colorResource(id = co.electriccoin.zcash.ui.design.R.color.ns_parmaviolet)
+        )
         Spacer(modifier = Modifier.height(24.dp))
         Row(
             modifier = Modifier
@@ -59,7 +75,10 @@ fun ExternalServices(onBack: () -> Unit, isUnstoppableChecked: Boolean, onUnstop
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            BodyMedium(text = stringResource(id = R.string.ns_external_services_uns), modifier = Modifier.weight(1f))
+            BodyMedium(
+                text = stringResource(id = R.string.ns_external_services_uns),
+                modifier = Modifier.weight(1f)
+            )
             Switch(
                 checked = isUnstoppableChecked,
                 onCheckedChange = { onUnstoppableCheckStateChanged(it) },

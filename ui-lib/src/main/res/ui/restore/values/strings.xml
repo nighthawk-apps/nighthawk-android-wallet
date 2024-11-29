@@ -109,7 +109,7 @@
     <string name="ns_receive_money">Receive money</string>
     <string name="ns_receive_money_text">Display your QR code or copy your address.</string>
     <string name="ns_top_up">Top up your wallet</string>
-    <string name="ns_top_up_text">Securely buy Zcash through our partners.</string>
+    <string name="ns_top_up_text">Discover Zcash Exchanges</string>
     <string name="ns_buy_moonpay">Buy from MoonPay</string>
     <string name="ns_buy_moonpay_text">Buy ZEC with a credit card.</string>
     <string name="ns_swap_sideshift">Swap with SideShift.ai</string>
@@ -130,6 +130,8 @@
     <string name="ns_top_up_your_wallet_msg">Buy or trade Zcash through our specially selected partners.</string>
     <string name="ns_see_more">See More</string>
     <string name="ns_copied">Copied</string>
+    <string name="flexa_setting_item_title">Pay with flexa</string>
+    <string name="flexa_setting_item_desc">Instantly spend your Zcash anywhere Flexa is accepted</string>
 
     <!-- Settings Screen -->
     <string name="ns_settings">Settings</string>

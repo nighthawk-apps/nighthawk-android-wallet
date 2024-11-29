@@ -16,7 +16,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -77,7 +77,8 @@ internal fun RestoreWallet(activity: ComponentActivity) {
     val onBoardingViewModel by activity.viewModels<OnboardingViewModel>()
     val restoreViewModel by activity.viewModels<RestoreViewModel>()
     val applicationContext = LocalContext.current.applicationContext
-    val isSeedValid = restoreViewModel.userWordList.wordValidation().collectAsState(initial = null).value is SeedPhraseValidation.Valid
+    val isSeedValid = restoreViewModel.userWordList.wordValidation()
+        .collectAsState(initial = null).value is SeedPhraseValidation.Valid
 
     val onSeedValueChanged = { seedPhrase: String ->
         restoreViewModel.userWordList.set(seedPhrase.split(" "))
@@ -123,7 +124,7 @@ internal fun Restore(
             modifier = Modifier.size(dimensionResource(id = R.dimen.back_icon_size))
         ) {
             Icon(
-                imageVector = Icons.Filled.ArrowBack,
+                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                 contentDescription = stringResource(R.string.receive_back_content_description)
             )
         }
@@ -133,21 +134,31 @@ internal fun Restore(
             modifier = Modifier.align(Alignment.CenterHorizontally)
         )
         Spacer(Modifier.height(dimensionResource(id = R.dimen.top_margin_back_btn)))
-        TitleLarge(text = stringResource(id = R.string.ns_nighthawk), textAlign = TextAlign.Center, modifier = Modifier.align(Alignment.CenterHorizontally))
+        TitleLarge(
+            text = stringResource(id = R.string.ns_nighthawk),
+            textAlign = TextAlign.Center,
+            modifier = Modifier.align(Alignment.CenterHorizontally)
+        )
         Spacer(modifier = Modifier.height(dimensionResource(id = R.dimen.offset)))
-        TitleMedium(text = stringResource(id = R.string.ns_restore_from_backup), textAlign = TextAlign.Center, modifier = Modifier.align(Alignment.CenterHorizontally))
+        TitleMedium(
+            text = stringResource(id = R.string.ns_restore_from_backup),
+            textAlign = TextAlign.Center,
+            modifier = Modifier.align(Alignment.CenterHorizontally)
+        )
         Spacer(modifier = Modifier.height(dimensionResource(id = R.dimen.text_margin)))
         BodyMedium(
             text = stringResource(id = R.string.ns_restore_wallet_text),
             textAlign = TextAlign.Center,
             modifier = Modifier
                 .fillMaxWidth(0.7f)
-                .align(Alignment.CenterHorizontally))
+                .align(Alignment.CenterHorizontally)
+        )
         Spacer(modifier = Modifier.height(24.dp))
-        OutlinedTextField(value = seeds, onValueChange = {
-            seeds = it
-            onSeedValueChanged(seeds)
-        },
+        OutlinedTextField(
+            value = seeds, onValueChange = {
+                seeds = it
+                onSeedValueChanged(seeds)
+            },
             modifier = Modifier
                 .fillMaxWidth()
                 .heightIn(min = 109.dp),
@@ -184,7 +195,10 @@ internal fun Restore(
             text = stringResource(id = R.string.ns_continue).uppercase(),
             modifier = Modifier
                 .align(Alignment.CenterHorizontally)
-                .sizeIn(minWidth = dimensionResource(id = R.dimen.button_min_width), minHeight = dimensionResource(id = R.dimen.button_height)),
+                .sizeIn(
+                    minWidth = dimensionResource(id = R.dimen.button_min_width),
+                    minHeight = dimensionResource(id = R.dimen.button_height)
+                ),
             enabled = isSeedValid
         )
     }

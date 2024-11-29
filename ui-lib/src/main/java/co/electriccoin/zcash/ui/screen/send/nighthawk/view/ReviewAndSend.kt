@@ -16,7 +16,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Surface
@@ -49,7 +49,10 @@ import co.electriccoin.zcash.ui.screen.send.nighthawk.model.SendAndReviewUiState
 fun ReviewAndSendPreview() {
     ZcashTheme(darkTheme = false) {
         Surface {
-            ReviewAndSend(sendAndReviewUiState = SendAndReviewUiState(), onBack = {}, onSendZCash = {})
+            ReviewAndSend(
+                sendAndReviewUiState = SendAndReviewUiState(),
+                onBack = {},
+                onSendZCash = {})
         }
     }
 }
@@ -60,19 +63,40 @@ fun ReviewAndSend(
     onBack: () -> Unit,
     onSendZCash: () -> Unit
 ) {
-    Column(modifier = Modifier
-        .fillMaxSize()
-        .padding(dimensionResource(id = R.dimen.screen_standard_margin))
-        .verticalScroll(rememberScrollState())
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(dimensionResource(id = R.dimen.screen_standard_margin))
+            .verticalScroll(rememberScrollState())
     ) {
-        IconButton(onClick = onBack, modifier = Modifier.size(dimensionResource(id = R.dimen.back_icon_size))) {
-            Icon(imageVector = Icons.Filled.ArrowBack, contentDescription = stringResource(R.string.receive_back_content_description))
+        IconButton(
+            onClick = onBack,
+            modifier = Modifier.size(dimensionResource(id = R.dimen.back_icon_size))
+        ) {
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                contentDescription = stringResource(R.string.receive_back_content_description)
+            )
         }
-        Image(painter = painterResource(id = R.drawable.ic_nighthawk_logo), contentDescription = "logo", contentScale = ContentScale.Inside, modifier = Modifier.align(Alignment.CenterHorizontally))
+        Image(
+            painter = painterResource(id = R.drawable.ic_nighthawk_logo),
+            contentDescription = "logo",
+            contentScale = ContentScale.Inside,
+            modifier = Modifier.align(Alignment.CenterHorizontally)
+        )
         Spacer(Modifier.height(dimensionResource(id = R.dimen.pageMargin)))
-        TitleLarge(text = stringResource(id = R.string.ns_nighthawk), textAlign = TextAlign.Center, modifier = Modifier.align(Alignment.CenterHorizontally))
+        TitleLarge(
+            text = stringResource(id = R.string.ns_nighthawk),
+            textAlign = TextAlign.Center,
+            modifier = Modifier.align(Alignment.CenterHorizontally)
+        )
         Spacer(modifier = Modifier.height(dimensionResource(id = R.dimen.pageMargin)))
-        BodyMedium(text = stringResource(id = R.string.ns_review_and_send), textAlign = TextAlign.Center, modifier = Modifier.align(Alignment.CenterHorizontally), color = ZcashTheme.colors.secondaryTitleText)
+        BodyMedium(
+            text = stringResource(id = R.string.ns_review_and_send),
+            textAlign = TextAlign.Center,
+            modifier = Modifier.align(Alignment.CenterHorizontally),
+            color = ZcashTheme.colors.secondaryTitleText
+        )
         Spacer(modifier = Modifier.height(45.dp))
 
         // Amount section
@@ -81,11 +105,22 @@ fun ReviewAndSend(
         ) {
             BalanceText(text = sendAndReviewUiState.amountToSend)
             Spacer(modifier = Modifier.width(4.dp))
-            BalanceText(text = sendAndReviewUiState.amountUnit, color = ZcashTheme.colors.secondaryTitleText)
+            BalanceText(
+                text = sendAndReviewUiState.amountUnit,
+                color = ZcashTheme.colors.secondaryTitleText
+            )
         }
         Spacer(modifier = Modifier.width(12.dp))
         if (sendAndReviewUiState.convertedAmountWithCurrency.isNotBlank()) {
-            BodyMedium(text = stringResource(id = R.string.ns_around, sendAndReviewUiState.convertedAmountWithCurrency), textAlign = TextAlign.Center, modifier = Modifier.align(Alignment.CenterHorizontally), color = ZcashTheme.colors.secondaryTitleText)
+            BodyMedium(
+                text = stringResource(
+                    id = R.string.ns_around,
+                    sendAndReviewUiState.convertedAmountWithCurrency
+                ),
+                textAlign = TextAlign.Center,
+                modifier = Modifier.align(Alignment.CenterHorizontally),
+                color = ZcashTheme.colors.secondaryTitleText
+            )
         }
         Spacer(
             modifier = Modifier
@@ -95,7 +130,10 @@ fun ReviewAndSend(
 
         //Memo
         if (sendAndReviewUiState.memo.isNotBlank()) {
-            BodyMedium(text = stringResource(id = R.string.ns_memo), color = ZcashTheme.colors.secondaryTitleText)
+            BodyMedium(
+                text = stringResource(id = R.string.ns_memo),
+                color = ZcashTheme.colors.secondaryTitleText
+            )
             Spacer(modifier = Modifier.height(10.dp))
             Body(text = sendAndReviewUiState.memo)
             Spacer(modifier = Modifier.height(40.dp))
@@ -121,15 +159,24 @@ fun ReviewAndSend(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            BodyMedium(text = stringResource(id = R.string.ns_recipient), color = ZcashTheme.colors.secondaryTitleText)
-            BodyMedium(text = sendAndReviewUiState.recipientType, color = ZcashTheme.colors.secondaryTitleText)
+            BodyMedium(
+                text = stringResource(id = R.string.ns_recipient),
+                color = ZcashTheme.colors.secondaryTitleText
+            )
+            BodyMedium(
+                text = sendAndReviewUiState.recipientType,
+                color = ZcashTheme.colors.secondaryTitleText
+            )
         }
         Spacer(modifier = Modifier.height(10.dp))
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            BodyMedium(text = stringResource(id = R.string.ns_address), color = ZcashTheme.colors.secondaryTitleText)
+            BodyMedium(
+                text = stringResource(id = R.string.ns_address),
+                color = ZcashTheme.colors.secondaryTitleText
+            )
             Spacer(modifier = Modifier.width(50.dp))
             val receiverAddress = sendAndReviewUiState.receiverAddress
             BodyMedium(
@@ -162,8 +209,14 @@ fun ReviewAndSend(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            BodyMedium(text = stringResource(id = R.string.ns_subtotal), color = ZcashTheme.colors.secondaryTitleText)
-            BodyMedium(text = sendAndReviewUiState.subTotal + " " + sendAndReviewUiState.amountUnit, color = ZcashTheme.colors.secondaryTitleText)
+            BodyMedium(
+                text = stringResource(id = R.string.ns_subtotal),
+                color = ZcashTheme.colors.secondaryTitleText
+            )
+            BodyMedium(
+                text = sendAndReviewUiState.subTotal + " " + sendAndReviewUiState.amountUnit,
+                color = ZcashTheme.colors.secondaryTitleText
+            )
         }
         /*Spacer(modifier = Modifier.height(10.dp))
         Row(
@@ -183,8 +236,14 @@ fun ReviewAndSend(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            BodyMedium(text = stringResource(id = R.string.ns_total_amount), color = ZcashTheme.colors.secondaryTitleText)
-            BodyMedium(text = sendAndReviewUiState.totalAmount + " " + sendAndReviewUiState.amountUnit, color = ZcashTheme.colors.secondaryTitleText)
+            BodyMedium(
+                text = stringResource(id = R.string.ns_total_amount),
+                color = ZcashTheme.colors.secondaryTitleText
+            )
+            BodyMedium(
+                text = sendAndReviewUiState.totalAmount + " " + sendAndReviewUiState.amountUnit,
+                color = ZcashTheme.colors.secondaryTitleText
+            )
         }
 
         Spacer(modifier = Modifier.weight(1f))
@@ -193,7 +252,10 @@ fun ReviewAndSend(
             text = stringResource(id = R.string.ns_continue).uppercase(),
             modifier = Modifier
                 .align(Alignment.CenterHorizontally)
-                .sizeIn(minWidth = dimensionResource(id = R.dimen.button_min_width), minHeight = dimensionResource(id = R.dimen.button_height)),
+                .sizeIn(
+                    minWidth = dimensionResource(id = R.dimen.button_min_width),
+                    minHeight = dimensionResource(id = R.dimen.button_height)
+                ),
         )
     }
 }

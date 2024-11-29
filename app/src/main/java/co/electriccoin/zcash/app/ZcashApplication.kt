@@ -2,6 +2,7 @@ package co.electriccoin.zcash.app
 
 import co.electriccoin.zcash.spackle.StrictModeCompat
 import co.electriccoin.zcash.spackle.Twig
+import co.electriccoin.zcash.ui.common.FlexaHelper
 
 @Suppress("unused")
 class ZcashApplication : CoroutineApplication() {
@@ -12,6 +13,8 @@ class ZcashApplication : CoroutineApplication() {
         configureLogging()
 
         configureStrictMode()
+
+        FlexaHelper.initFlexaSdk(this)
     }
 
     private fun configureLogging() {

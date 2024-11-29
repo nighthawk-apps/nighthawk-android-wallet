@@ -11,7 +11,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.RadioButton
@@ -41,7 +41,11 @@ import com.google.accompanist.permissions.shouldShowRationale
 fun SyncNotificationPreview() {
     ZcashTheme(darkTheme = false) {
         Surface {
-            SyncNotification(selectedSyncOption = SyncNotificationViewModel.SyncIntervalOption.OFF, onBack = {}, onSyncOptionSelected = {}, openSettings = {})
+            SyncNotification(
+                selectedSyncOption = SyncNotificationViewModel.SyncIntervalOption.OFF,
+                onBack = {},
+                onSyncOptionSelected = {},
+                openSettings = {})
         }
     }
 }
@@ -82,17 +86,28 @@ fun SyncNotification(
             }
         }
 
-        IconButton(onClick = onBack, modifier = Modifier.size(dimensionResource(id = R.dimen.back_icon_size))) {
-            Icon(imageVector = Icons.Filled.ArrowBack, contentDescription = stringResource(R.string.receive_back_content_description))
+        IconButton(
+            onClick = onBack,
+            modifier = Modifier.size(dimensionResource(id = R.dimen.back_icon_size))
+        ) {
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                contentDescription = stringResource(R.string.receive_back_content_description)
+            )
         }
         Spacer(modifier = Modifier.height(dimensionResource(id = R.dimen.offset)))
-        TitleMedium(text = stringResource(id = R.string.ns_sync_notifications), color = colorResource(id = co.electriccoin.zcash.ui.design.R.color.ns_parmaviolet))
+        TitleMedium(
+            text = stringResource(id = R.string.ns_sync_notifications),
+            color = colorResource(id = co.electriccoin.zcash.ui.design.R.color.ns_parmaviolet)
+        )
         Spacer(modifier = Modifier.height(24.dp))
         BodyMedium(text = stringResource(id = R.string.ns_sync_notifications_body))
         Spacer(modifier = Modifier.height(24.dp))
         SyncNotificationViewModel.SyncIntervalOption.values().forEach {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                RadioButton(selected = it == selectedSyncOption, onClick = { onSyncOptionSelected(it) })
+                RadioButton(
+                    selected = it == selectedSyncOption,
+                    onClick = { onSyncOptionSelected(it) })
                 Spacer(modifier = Modifier.width(8.dp))
                 BodyMedium(text = it.text)
             }

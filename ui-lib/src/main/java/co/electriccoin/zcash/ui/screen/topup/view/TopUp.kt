@@ -10,7 +10,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Surface
@@ -65,7 +65,7 @@ fun TopUp(walletAddress: WalletAddresses?, onBack: () -> Unit, onLaunchUrl: (Str
             modifier = Modifier.size(dimensionResource(id = R.dimen.back_icon_size))
         ) {
             Icon(
-                imageVector = Icons.Filled.ArrowBack,
+                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                 contentDescription = stringResource(R.string.receive_back_content_description)
             )
         }
@@ -75,11 +75,23 @@ fun TopUp(walletAddress: WalletAddresses?, onBack: () -> Unit, onLaunchUrl: (Str
             modifier = Modifier.align(Alignment.CenterHorizontally)
         )
         Spacer(Modifier.height(dimensionResource(id = R.dimen.pageMargin)))
-        TitleLarge(text = stringResource(id = R.string.ns_nighthawk), textAlign = TextAlign.Center, modifier = Modifier.align(Alignment.CenterHorizontally))
+        TitleLarge(
+            text = stringResource(id = R.string.ns_nighthawk),
+            textAlign = TextAlign.Center,
+            modifier = Modifier.align(Alignment.CenterHorizontally)
+        )
         Spacer(modifier = Modifier.height(dimensionResource(id = R.dimen.pageMargin)))
-        BodyMedium(text = stringResource(id = R.string.ns_send_and_receive_zcash), textAlign = TextAlign.Center, modifier = Modifier.align(Alignment.CenterHorizontally), color = ZcashTheme.colors.secondaryTitleText)
+        BodyMedium(
+            text = stringResource(id = R.string.ns_send_and_receive_zcash),
+            textAlign = TextAlign.Center,
+            modifier = Modifier.align(Alignment.CenterHorizontally),
+            color = ZcashTheme.colors.secondaryTitleText
+        )
         Spacer(modifier = Modifier.height(40.dp))
-        BodyMedium(text = stringResource(id = R.string.ns_receive_money_securely), color = ZcashTheme.colors.secondaryTitleText)
+        BodyMedium(
+            text = stringResource(id = R.string.ns_receive_money_securely),
+            color = ZcashTheme.colors.secondaryTitleText
+        )
         Spacer(modifier = Modifier.height(13.dp))
 
         /*SettingsListItem(

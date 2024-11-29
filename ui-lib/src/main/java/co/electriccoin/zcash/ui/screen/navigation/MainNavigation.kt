@@ -28,6 +28,8 @@ import co.electriccoin.zcash.spackle.Twig
 import co.electriccoin.zcash.ui.MainActivity
 import co.electriccoin.zcash.ui.NavigationArguments
 import co.electriccoin.zcash.ui.R
+import co.electriccoin.zcash.ui.common.TOP_UP_EXCHANGE_URL
+import co.electriccoin.zcash.ui.common.onLaunchUrl
 import co.electriccoin.zcash.ui.design.component.BodySmall
 import co.electriccoin.zcash.ui.design.theme.ZcashTheme
 import co.electriccoin.zcash.ui.screen.about.nighthawk.AndroidAboutView
@@ -70,6 +72,8 @@ import co.electriccoin.zcash.ui.screen.transactiondetails.AndroidTransactionDeta
 import co.electriccoin.zcash.ui.screen.transactionhistory.AndroidTransactionHistory
 import co.electriccoin.zcash.ui.screen.transfer.AndroidTransfer
 import co.electriccoin.zcash.ui.screen.wallet.AndroidWallet
+import com.flexa.core.Flexa
+import com.flexa.spend.buildSpend
 import kotlinx.collections.immutable.persistentListOf
 
 @Composable
@@ -83,7 +87,10 @@ internal fun MainActivity.MainNavigation(navHostController: NavHostController, p
                 onTransactionDetail = { navHostController.navigateJustOnce(NavigationTargets.navigationRouteTransactionDetails(transactionId = it)) },
                 onViewTransactionHistory = { navHostController.navigateJustOnce(TRANSACTION_HISTORY) },
                 onSendFromDeepLink = { navHostController.navigateJustOnce(SEND_MONEY) },
-                onScanToSend = { navHostController.navigateJustOnce(SCAN) }
+                onScanToSend = {
+//                    navHostController.navigateJustOnce(SCAN)
+                    Flexa.buildSpend().open(this@MainNavigation)
+                }
             )
             removeScanSavedData(backStackEntry = backStackEntry)
         }
@@ -91,7 +98,11 @@ internal fun MainActivity.MainNavigation(navHostController: NavHostController, p
             AndroidTransfer(
                 onSendMoney = { navHostController.navigateJustOnce(SEND_MONEY) },
                 onReceiveMoney = { navHostController.navigateJustOnce(RECEIVE_MONEY) },
-                onTopUp = { navHostController.navigateJustOnce(TOP_UP) }
+                onTopUp = {
+//                    navHostController.navigateJustOnce(TOP_UP)
+                    onLaunchUrl(TOP_UP_EXCHANGE_URL)
+                },
+                onPayWithFlexa = { Flexa.buildSpend().open(this@MainNavigation) }
             )
         }
         composable(BottomNavItem.Settings.route) {
@@ -110,8 +121,9 @@ internal fun MainActivity.MainNavigation(navHostController: NavHostController, p
             AndroidSend(
                 onBack = { navHostController.popBackStackJustOnce(SEND_MONEY) },
                 onTopUpWallet = {
-                    navHostController.popBackStackJustOnce(SEND_MONEY)
-                    navHostController.navigateJustOnce(TOP_UP)
+                    /*navHostController.popBackStackJustOnce(SEND_MONEY)
+                    navHostController.navigateJustOnce(TOP_UP)*/
+                    onLaunchUrl(TOP_UP_EXCHANGE_URL)
                 },
                 navigateTo = { navHostController.popBackStack(it, false) },
                /* onMoreDetails = {
@@ -127,7 +139,10 @@ internal fun MainActivity.MainNavigation(navHostController: NavHostController, p
             AndroidReceive(
                 onBack = { navHostController.popBackStackJustOnce(RECEIVE_MONEY) },
                 onShowQrCode = { navHostController.navigateJustOnce(RECEIVE_QR_CODES) },
-                onTopUpWallet = { navHostController.navigateJustOnce(TOP_UP) }
+                onTopUpWallet = {
+//                    navHostController.navigateJustOnce(TOP_UP)
+                    onLaunchUrl(TOP_UP_EXCHANGE_URL)
+                }
             )
         }
         composable(TOP_UP) {
@@ -152,7 +167,10 @@ internal fun MainActivity.MainNavigation(navHostController: NavHostController, p
         composable(RECEIVE_QR_CODES) {
             AndroidReceiveQrCodes(
                 onBack = { navHostController.popBackStackJustOnce(RECEIVE_QR_CODES) },
-                onSeeMoreTopUpOption = { navHostController.navigateJustOnce(TOP_UP) }
+                onSeeMoreTopUpOption = {
+//                    navHostController.navigateJustOnce(TOP_UP)
+                    onLaunchUrl(TOP_UP_EXCHANGE_URL)
+                }
             )
         }
         composable(SCAN) {

@@ -32,13 +32,18 @@ import co.electriccoin.zcash.ui.design.theme.ZcashTheme
 fun WalletPreview() {
     ZcashTheme(darkTheme = false) {
         Surface {
-            TransferMainView(onSendMoney = {}, onReceiveMoney = {}, onTopUp = {})
+            TransferMainView(onSendMoney = {}, onReceiveMoney = {}, onTopUp = {}, onPayWithFlexa = {})
         }
     }
 }
 
 @Composable
-fun TransferMainView(onSendMoney: () -> Unit, onReceiveMoney: () -> Unit, onTopUp: () -> Unit) {
+fun TransferMainView(
+    onSendMoney: () -> Unit,
+    onReceiveMoney: () -> Unit,
+    onTopUp: () -> Unit,
+    onPayWithFlexa: () -> Unit
+) {
     Column(modifier = Modifier
         .fillMaxSize()
         .verticalScroll(rememberScrollState())
@@ -85,5 +90,16 @@ fun TransferMainView(onSendMoney: () -> Unit, onReceiveMoney: () -> Unit, onTopU
                     onTopUp.invoke()
                 }
         )
+        Spacer(modifier = Modifier.height(10.dp))
+        SettingsListItem(
+            iconRes = com.flexa.R.drawable.ic_flexa,
+            title = stringResource(id = R.string.flexa_setting_item_title),
+            desc = stringResource(id = R.string.flexa_setting_item_desc),
+            modifier = Modifier.heightIn(min = dimensionResource(id = R.dimen.setting_list_item_min_height))
+                .clickable {
+                    onPayWithFlexa.invoke()
+                }
+        )
+
     }
 }

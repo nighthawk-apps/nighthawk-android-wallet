@@ -12,6 +12,7 @@
 -dontwarn com.gemalto.jp2.JP2Decoder
 -dontwarn com.gemalto.jp2.JP2Encoder
 
+-dontwarn com.google.j2objc.annotations.ReflectionSupport$Level
 -dontwarn com.google.j2objc.annotations.ReflectionSupport
 -dontwarn com.google.j2objc.annotations.RetainedWith
 

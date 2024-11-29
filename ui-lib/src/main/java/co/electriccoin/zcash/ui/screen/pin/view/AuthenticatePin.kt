@@ -13,7 +13,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Surface
@@ -52,12 +52,14 @@ fun AuthenticatePinPreview() {
 
 @Composable
 fun AuthenticatePin(lastPin: String, onBack: () -> Unit, onAuthentication: (Boolean) -> Unit) {
-    Column(modifier = Modifier
-        .fillMaxSize()
-        .padding(dimensionResource(id = R.dimen.screen_standard_margin))
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(dimensionResource(id = R.dimen.screen_standard_margin))
     ) {
         val vibrator = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            val vibratorManager = LocalContext.current.getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as VibratorManager
+            val vibratorManager =
+                LocalContext.current.getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as VibratorManager
             vibratorManager.defaultVibrator
         } else {
             @Suppress("DEPRECATION")
@@ -83,7 +85,12 @@ fun AuthenticatePin(lastPin: String, onBack: () -> Unit, onAuthentication: (Bool
             } else {
                 LaunchedEffect(key1 = isFullPasswordEntered.value) {
                     if (vibrator.hasVibrator()) {
-                        vibrator.vibrate(VibrationEffect.createWaveform(WRONG_VIBRATION_PATTERN, -1))
+                        vibrator.vibrate(
+                            VibrationEffect.createWaveform(
+                                WRONG_VIBRATION_PATTERN,
+                                -1
+                            )
+                        )
                     }
                     delay(1000)
                     enteredPassword.value = ""
@@ -91,12 +98,27 @@ fun AuthenticatePin(lastPin: String, onBack: () -> Unit, onAuthentication: (Bool
             }
         }
 
-        IconButton(onClick = onBack, modifier = Modifier.size(dimensionResource(id = R.dimen.back_icon_size))) {
-            Icon(imageVector = Icons.Filled.ArrowBack, contentDescription = stringResource(R.string.receive_back_content_description))
+        IconButton(
+            onClick = onBack,
+            modifier = Modifier.size(dimensionResource(id = R.dimen.back_icon_size))
+        ) {
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                contentDescription = stringResource(R.string.receive_back_content_description)
+            )
         }
-        Image(painter = painterResource(id = R.drawable.ic_nighthawk_logo), contentDescription = "logo", contentScale = ContentScale.Inside, modifier = Modifier.align(Alignment.CenterHorizontally))
+        Image(
+            painter = painterResource(id = R.drawable.ic_nighthawk_logo),
+            contentDescription = "logo",
+            contentScale = ContentScale.Inside,
+            modifier = Modifier.align(Alignment.CenterHorizontally)
+        )
         Spacer(Modifier.height(dimensionResource(id = R.dimen.pageMargin)))
-        TitleLarge(text = stringResource(id = R.string.ns_nighthawk), textAlign = TextAlign.Center, modifier = Modifier.align(Alignment.CenterHorizontally))
+        TitleLarge(
+            text = stringResource(id = R.string.ns_nighthawk),
+            textAlign = TextAlign.Center,
+            modifier = Modifier.align(Alignment.CenterHorizontally)
+        )
         Spacer(modifier = Modifier.height(35.dp))
 
         EnterPinCommonUI(

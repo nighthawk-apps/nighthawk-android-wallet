@@ -71,7 +71,6 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import kotlin.time.Duration.Companion.seconds
-import kotlin.time.ExperimentalTime
 
 // To make this more multiplatform compatible, we need to remove the dependency on Context
 // for loading the preferences.
@@ -202,7 +201,7 @@ class WalletViewModel(application: Application) : AndroidViewModel(application) 
             null
         )
 
-    @OptIn(ExperimentalCoroutinesApi::class, ExperimentalTime::class)
+    @OptIn(ExperimentalCoroutinesApi::class)
     val walletSnapshot: StateFlow<WalletSnapshot?> = synchronizer
         .flatMapLatest {
             it?.toWalletSnapshot() ?: flowOf(null)

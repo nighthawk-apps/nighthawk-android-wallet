@@ -1,6 +1,7 @@
 package co.electriccoin.zcash.ui.common
 
 import androidx.annotation.DrawableRes
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -9,8 +10,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.material3.Divider
-import androidx.compose.material3.Icon
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -48,7 +48,7 @@ fun SettingsListItem(@DrawableRes iconRes: Int, title: String, desc: String, mod
                 .fillMaxWidth()
                 .then(modifier)
         ) {
-            Icon(painter = painterResource(id = iconRes), contentDescription = "null", modifier = Modifier.size(24.dp).rotate(rotateByDegree))
+            Image(painter = painterResource(id = iconRes), contentDescription = "null", modifier = Modifier.size(24.dp).rotate(rotateByDegree))
             Spacer(modifier = Modifier.width(14.dp))
             Column(modifier = Modifier.weight(1f)) {
                 TitleMedium(text = title)
@@ -57,7 +57,7 @@ fun SettingsListItem(@DrawableRes iconRes: Int, title: String, desc: String, mod
             }
         }
         if (showDivider) {
-            Divider(
+            HorizontalDivider(
                 modifier = Modifier.fillMaxWidth(),
                 thickness = 1.dp,
                 color = colorResource(id = co.electriccoin.zcash.ui.design.R.color.ns_navy)

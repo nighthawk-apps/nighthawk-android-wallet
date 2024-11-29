@@ -15,7 +15,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -138,7 +138,7 @@ fun TransactionDetails(
             modifier = Modifier.size(dimensionResource(id = R.dimen.back_icon_size))
         ) {
             Icon(
-                imageVector = Icons.Filled.ArrowBack,
+                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                 contentDescription = stringResource(R.string.receive_back_content_description)
             )
         }
@@ -250,9 +250,11 @@ fun TransactionDetails(
                     text = stringResource(id = R.string.ns_time_utc),
                     color = ZcashTheme.colors.secondaryTitleText
                 )
-                val timeText = transactionDetailsUIModel.transactionOverview.blockTimeEpochSeconds?.let {
-                    Instant.fromEpochSeconds(it).toLocalDateTime(TimeZone.UTC).toString().replace("T", " ")
-                } ?: stringResource(id = R.string.ns_transaction_date_error)
+                val timeText =
+                    transactionDetailsUIModel.transactionOverview.blockTimeEpochSeconds?.let {
+                        Instant.fromEpochSeconds(it).toLocalDateTime(TimeZone.UTC).toString()
+                            .replace("T", " ")
+                    } ?: stringResource(id = R.string.ns_transaction_date_error)
                 BodyMedium(
                     text = timeText,
                     color = ZcashTheme.colors.secondaryTitleText
@@ -260,22 +262,22 @@ fun TransactionDetails(
             }
 
             // Network
-           /* Spacer(modifier = Modifier.height(10.dp))
-            MaxWidthHorizontalDivider()
-            Spacer(modifier = Modifier.height(10.dp))
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                BodyMedium(
-                    text = stringResource(id = R.string.ns_network),
-                    color = ZcashTheme.colors.secondaryTitleText
-                )
-                BodyMedium(
-                    text = transactionDetailsUIModel.network?.networkName ?: "",
-                    color = ZcashTheme.colors.secondaryTitleText
-                )
-            }*/
+            /* Spacer(modifier = Modifier.height(10.dp))
+             MaxWidthHorizontalDivider()
+             Spacer(modifier = Modifier.height(10.dp))
+             Row(
+                 modifier = Modifier.fillMaxWidth(),
+                 horizontalArrangement = Arrangement.SpaceBetween
+             ) {
+                 BodyMedium(
+                     text = stringResource(id = R.string.ns_network),
+                     color = ZcashTheme.colors.secondaryTitleText
+                 )
+                 BodyMedium(
+                     text = transactionDetailsUIModel.network?.networkName ?: "",
+                     color = ZcashTheme.colors.secondaryTitleText
+                 )
+             }*/
 
             // BlockId
             Spacer(modifier = Modifier.height(10.dp))

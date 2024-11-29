@@ -16,7 +16,7 @@ import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CheckboxDefaults
 import androidx.compose.material3.Icon
@@ -69,8 +69,19 @@ fun SeedFeedBackPreview() {
 }
 
 @Composable
-internal fun SeedBackup(persistableWallet: PersistableWallet, navigationFromSettings: Boolean = false, onBackupComplete: () -> Unit = {}, onBack: () -> Unit = {}) {
-    SeedBackupContent(persistableWallet.seedPhrase, persistableWallet.birthday, navigationFromSettings = navigationFromSettings, onContinue = onBackupComplete, onBack = onBack)
+internal fun SeedBackup(
+    persistableWallet: PersistableWallet,
+    navigationFromSettings: Boolean = false,
+    onBackupComplete: () -> Unit = {},
+    onBack: () -> Unit = {}
+) {
+    SeedBackupContent(
+        persistableWallet.seedPhrase,
+        persistableWallet.birthday,
+        navigationFromSettings = navigationFromSettings,
+        onContinue = onBackupComplete,
+        onBack = onBack
+    )
 }
 
 @Composable
@@ -93,8 +104,14 @@ fun SeedBackupContent(
             val checkedState = remember { mutableStateOf(false) }
 
             if (navigationFromSettings) {
-                IconButton(onClick = onBack, modifier = Modifier.size(dimensionResource(id = R.dimen.back_icon_size))) {
-                    Icon(imageVector = Icons.Filled.ArrowBack, contentDescription = stringResource(R.string.receive_back_content_description))
+                IconButton(
+                    onClick = onBack,
+                    modifier = Modifier.size(dimensionResource(id = R.dimen.back_icon_size))
+                ) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                        contentDescription = stringResource(R.string.receive_back_content_description)
+                    )
                 }
             } else {
                 Spacer(modifier = Modifier.height(dimensionResource(id = R.dimen.back_icon_size)))
@@ -105,7 +122,10 @@ fun SeedBackupContent(
                 modifier = Modifier.align(Alignment.CenterHorizontally)
             )
             Spacer(modifier = Modifier.height(dimensionResource(id = R.dimen.screen_standard_margin)))
-            BodyMedium(text = stringResource(id = R.string.ns_create_wallet_title), color = colorResource(id = co.electriccoin.zcash.ui.design.R.color.ns_parmaviolet))
+            BodyMedium(
+                text = stringResource(id = R.string.ns_create_wallet_title),
+                color = colorResource(id = co.electriccoin.zcash.ui.design.R.color.ns_parmaviolet)
+            )
             Spacer(modifier = Modifier.height(11.dp))
             BodySmall(text = stringResource(id = R.string.ns_create_wallet_text))
             Spacer(modifier = Modifier.height(25.dp))
@@ -116,7 +136,12 @@ fun SeedBackupContent(
                 SeedItemRow(startingIndex = i, seedItems = seedList.subList(i, i + 3))
             }
             Spacer(modifier = Modifier.height(20.dp))
-            BodyMedium(text = stringResource(id = R.string.ns_wallet_birthday, "${birthday?.value ?: ""}"))
+            BodyMedium(
+                text = stringResource(
+                    id = R.string.ns_wallet_birthday,
+                    "${birthday?.value ?: ""}"
+                )
+            )
             Spacer(modifier = Modifier.height(20.dp))
             if (!navigationFromSettings) {
                 Row(
@@ -128,7 +153,10 @@ fun SeedBackupContent(
                         modifier = Modifier.size(24.dp),
                         colors = CheckboxDefaults.colors(uncheckedColor = Color.White)
                     )
-                    BodyMedium(text = stringResource(id = R.string.ns_create_wallet_confirm_text), modifier = Modifier.padding(start = 11.dp))
+                    BodyMedium(
+                        text = stringResource(id = R.string.ns_create_wallet_confirm_text),
+                        modifier = Modifier.padding(start = 11.dp)
+                    )
                 }
             }
             Spacer(modifier = Modifier.weight(1f))
@@ -138,7 +166,10 @@ fun SeedBackupContent(
                     text = stringResource(id = R.string.ns_continue).uppercase(),
                     modifier = Modifier
                         .align(Alignment.CenterHorizontally)
-                        .sizeIn(minWidth = dimensionResource(id = R.dimen.button_min_width), minHeight = dimensionResource(id = R.dimen.button_height)),
+                        .sizeIn(
+                            minWidth = dimensionResource(id = R.dimen.button_min_width),
+                            minHeight = dimensionResource(id = R.dimen.button_height)
+                        ),
                     enabled = checkedState.value
                 )
             }
@@ -152,7 +183,11 @@ fun SeedBackupContent(
             if (navigationFromSettings) {
                 PrimaryButton(onClick = onExportClick, text = exportText, modifier = exportModifier)
             } else {
-                TertiaryButton(onClick = onExportClick, text = exportText, modifier = exportModifier)
+                TertiaryButton(
+                    onClick = onExportClick,
+                    text = exportText,
+                    modifier = exportModifier
+                )
             }
             Spacer(modifier = Modifier.weight(1f))
         }
@@ -185,7 +220,11 @@ internal fun SeedItemRow(startingIndex: Int, seedItems: ImmutableList<String>) {
         modifier = Modifier.fillMaxWidth()
     ) {
         seedItems.forEachIndexed { seedIndex, seedWord ->
-            SeedItem(modifier = Modifier.weight(0.3f), seedIndex = startingIndex + seedIndex + 1, seedWord = seedWord)
+            SeedItem(
+                modifier = Modifier.weight(0.3f),
+                seedIndex = startingIndex + seedIndex + 1,
+                seedWord = seedWord
+            )
         }
     }
     Spacer(modifier = Modifier.height(8.dp))
@@ -194,7 +233,10 @@ internal fun SeedItemRow(startingIndex: Int, seedItems: ImmutableList<String>) {
 @Composable
 internal fun SeedItem(modifier: Modifier = Modifier, seedIndex: Int, seedWord: String) {
     Row(modifier = modifier) {
-        BodyMedium(text = "$seedIndex.", color = colorResource(id = co.electriccoin.zcash.ui.design.R.color.ns_parmaviolet))
+        BodyMedium(
+            text = "$seedIndex.",
+            color = colorResource(id = co.electriccoin.zcash.ui.design.R.color.ns_parmaviolet)
+        )
         BodyMedium(text = " $seedWord")
     }
 }

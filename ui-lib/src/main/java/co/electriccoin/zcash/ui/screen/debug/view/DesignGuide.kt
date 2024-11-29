@@ -3,7 +3,7 @@ package co.electriccoin.zcash.ui.screen.debug.view
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.List
+import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Shield
 import androidx.compose.runtime.Composable
@@ -46,7 +46,7 @@ fun DesignGuide() {
             TertiaryButton(onClick = { }, text = "Tertiary button")
             Callout(Icons.Filled.Shield, contentDescription = "Shield")
             Callout(Icons.Filled.Person, contentDescription = "Person")
-            Callout(Icons.Filled.List, contentDescription = "List")
+            Callout(Icons.AutoMirrored.Filled.List, contentDescription = "List")
             PinkProgress(progress = Progress(Index(1), Index(4)), Modifier.fillMaxWidth())
             Chip(Index(1), "edict")
         }

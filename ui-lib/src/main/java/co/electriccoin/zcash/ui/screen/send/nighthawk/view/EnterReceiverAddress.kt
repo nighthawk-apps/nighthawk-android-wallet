@@ -14,7 +14,7 @@ import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -48,31 +48,65 @@ import co.electriccoin.zcash.ui.design.theme.ZcashTheme
 fun EnterReceiverAddressPreview() {
     ZcashTheme(darkTheme = false) {
         Surface {
-            EnterReceiverAddress(receiverAddress = "", isContinueBtnEnabled = false, onBack = {}, onValueChanged = {}, onContinue = {}, onScan = {})
+            EnterReceiverAddress(
+                receiverAddress = "",
+                isContinueBtnEnabled = false,
+                onBack = {},
+                onValueChanged = {},
+                onContinue = {},
+                onScan = {})
         }
     }
 }
 
 @Composable
-fun EnterReceiverAddress(receiverAddress: String, isContinueBtnEnabled: Boolean, onBack: () -> Unit, onValueChanged: (String) -> Unit, onContinue: (String) -> Unit, onScan: () -> Unit) {
-    Column(modifier = Modifier
-        .fillMaxSize()
-        .padding(dimensionResource(id = R.dimen.screen_standard_margin))
-        .verticalScroll(rememberScrollState())
+fun EnterReceiverAddress(
+    receiverAddress: String,
+    isContinueBtnEnabled: Boolean,
+    onBack: () -> Unit,
+    onValueChanged: (String) -> Unit,
+    onContinue: (String) -> Unit,
+    onScan: () -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(dimensionResource(id = R.dimen.screen_standard_margin))
+            .verticalScroll(rememberScrollState())
     ) {
         val address = remember {
             mutableStateOf(receiverAddress)
         }
         val clipboardManager = LocalClipboardManager.current
 
-        IconButton(onClick = onBack, modifier = Modifier.size(dimensionResource(id = R.dimen.back_icon_size))) {
-            Icon(imageVector = Icons.Filled.ArrowBack, contentDescription = stringResource(R.string.receive_back_content_description))
+        IconButton(
+            onClick = onBack,
+            modifier = Modifier.size(dimensionResource(id = R.dimen.back_icon_size))
+        ) {
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                contentDescription = stringResource(R.string.receive_back_content_description)
+            )
         }
-        Image(painter = painterResource(id = R.drawable.ic_nighthawk_logo), contentDescription = "logo", contentScale = ContentScale.Inside, modifier = Modifier.align(Alignment.CenterHorizontally))
+        Image(
+            painter = painterResource(id = R.drawable.ic_nighthawk_logo),
+            contentDescription = "logo",
+            contentScale = ContentScale.Inside,
+            modifier = Modifier.align(Alignment.CenterHorizontally)
+        )
         Spacer(Modifier.height(dimensionResource(id = R.dimen.pageMargin)))
-        TitleLarge(text = stringResource(id = R.string.ns_nighthawk), textAlign = TextAlign.Center, modifier = Modifier.align(Alignment.CenterHorizontally))
+        TitleLarge(
+            text = stringResource(id = R.string.ns_nighthawk),
+            textAlign = TextAlign.Center,
+            modifier = Modifier.align(Alignment.CenterHorizontally)
+        )
         Spacer(modifier = Modifier.height(dimensionResource(id = R.dimen.pageMargin)))
-        BodyMedium(text = stringResource(id = R.string.ns_choose_who), textAlign = TextAlign.Center, modifier = Modifier.align(Alignment.CenterHorizontally), color = ZcashTheme.colors.secondaryTitleText)
+        BodyMedium(
+            text = stringResource(id = R.string.ns_choose_who),
+            textAlign = TextAlign.Center,
+            modifier = Modifier.align(Alignment.CenterHorizontally),
+            color = ZcashTheme.colors.secondaryTitleText
+        )
         Spacer(modifier = Modifier.height(45.dp))
         OutlinedTextField(
             value = address.value,
@@ -85,18 +119,30 @@ fun EnterReceiverAddress(receiverAddress: String, isContinueBtnEnabled: Boolean,
                 .fillMaxWidth()
                 .heightIn(min = 55.dp),
             placeholder = {
-                BodyMedium(text = stringResource(id = R.string.ns_add_address_hint), modifier = Modifier.align(Alignment.CenterHorizontally), color = ZcashTheme.colors.secondaryTitleText)
+                BodyMedium(
+                    text = stringResource(id = R.string.ns_add_address_hint),
+                    modifier = Modifier.align(Alignment.CenterHorizontally),
+                    color = ZcashTheme.colors.secondaryTitleText
+                )
             },
             trailingIcon = {
                 if (address.value.isNotBlank()) {
-                    Icon(imageVector = Icons.Default.Close, contentDescription = "", tint = Color.White, modifier = Modifier.clickable {
-                        address.value = ""
-                        onValueChanged("")
-                    })
+                    Icon(
+                        imageVector = Icons.Default.Close,
+                        contentDescription = "",
+                        tint = Color.White,
+                        modifier = Modifier.clickable {
+                            address.value = ""
+                            onValueChanged("")
+                        })
                 } else {
-                    Icon(painter = painterResource(id = R.drawable.ic_qr_scan), contentDescription = "", tint = Color.White, modifier = Modifier.clickable {
-                        onScan()
-                    })
+                    Icon(
+                        painter = painterResource(id = R.drawable.ic_qr_scan),
+                        contentDescription = "",
+                        tint = Color.White,
+                        modifier = Modifier.clickable {
+                            onScan()
+                        })
                 }
             },
             colors = TextFieldDefaults.customColors(),
@@ -125,7 +171,10 @@ fun EnterReceiverAddress(receiverAddress: String, isContinueBtnEnabled: Boolean,
             text = stringResource(id = R.string.ns_continue).uppercase(),
             modifier = Modifier
                 .align(Alignment.CenterHorizontally)
-                .sizeIn(minWidth = dimensionResource(id = R.dimen.button_min_width), minHeight = dimensionResource(id = R.dimen.button_height)),
+                .sizeIn(
+                    minWidth = dimensionResource(id = R.dimen.button_min_width),
+                    minHeight = dimensionResource(id = R.dimen.button_height)
+                ),
             enabled = isContinueBtnEnabled
         )
     }

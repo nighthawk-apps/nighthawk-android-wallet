@@ -22,7 +22,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -45,7 +45,6 @@ import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
@@ -176,7 +175,7 @@ private fun ScanTopAppBar(onBack: () -> Unit) {
                 onClick = onBack
             ) {
                 Icon(
-                    imageVector = Icons.Filled.ArrowBack,
+                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                     contentDescription = stringResource(R.string.scan_back_content_description)
                 )
             }
@@ -247,6 +246,7 @@ private fun ScanMainContent(
                 // keep initial ui state
                 onScanStateChanged(ScanState.Permission)
             }
+
             ScanState.Scanning -> {
                 // TODO [#437]: Scan QR Screen Frame Analysing
                 // TODO [#437]: https://github.com/zcash/secant-android-wallet/issues/437
@@ -275,6 +275,7 @@ private fun ScanMainContent(
                     ScanFrame(frameActualSize)
                 }
             }
+
             ScanState.Failed -> {
                 onScanStateChanged(ScanState.Failed)
                 LaunchedEffect(key1 = true) {
@@ -327,7 +328,7 @@ fun ScanCameraView(
     permissionState: PermissionState
 ) {
     val context = LocalContext.current
-    val lifecycleOwner = LocalLifecycleOwner.current
+    val lifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
 
     // we check the permission first, as the ProcessCameraProvider's emit won't be called again after
     // recomposition with the permission granted

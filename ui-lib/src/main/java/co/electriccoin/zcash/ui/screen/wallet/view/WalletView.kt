@@ -126,7 +126,6 @@ fun BalanceViewPreview() {
     }
 }
 
-@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun WalletView(
     walletSnapshot: WalletSnapshot,

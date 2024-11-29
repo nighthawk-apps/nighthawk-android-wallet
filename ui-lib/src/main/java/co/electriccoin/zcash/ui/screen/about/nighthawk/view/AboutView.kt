@@ -10,7 +10,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Surface
@@ -52,7 +52,7 @@ fun AboutView(onBack: () -> Unit, onViewSource: () -> Unit, onCredits: () -> Uni
             .verticalScroll(rememberScrollState())
     ) {
         IconButton(onClick = onBack, modifier = Modifier.size(dimensionResource(id = R.dimen.back_icon_size))) {
-            Icon(imageVector = Icons.Filled.ArrowBack, contentDescription = stringResource(R.string.receive_back_content_description))
+            Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.receive_back_content_description))
         }
         Spacer(modifier = Modifier.height(40.dp))
         TitleMedium(text = stringResource(id = R.string.ns_about), color = colorResource(id = co.electriccoin.zcash.ui.design.R.color.ns_parmaviolet))
