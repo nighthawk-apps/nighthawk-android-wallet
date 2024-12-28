@@ -1,6 +1,4 @@
 import com.android.build.api.variant.BuildConfigField
-import java.io.FileInputStream
-import java.util.Properties
 
 plugins {
     id("com.android.library")
