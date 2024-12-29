@@ -130,8 +130,8 @@
     <string name="ns_top_up_your_wallet_msg">Buy or trade Zcash through our specially selected partners.</string>
     <string name="ns_see_more">See More</string>
     <string name="ns_copied">Copied</string>
-    <string name="flexa_setting_item_title">Pay with flexa</string>
-    <string name="flexa_setting_item_desc">Instantly spend your Zcash anywhere Flexa is accepted</string>
+    <string name="flexa_setting_item_title" translatable="false">Pay with Flexa</string>
+    <string name="flexa_setting_item_desc" translatable="false">Instantly spend your Zcash anywhere Flexa is accepted</string>
 
     <!-- Settings Screen -->
     <string name="ns_settings">Settings</string>
