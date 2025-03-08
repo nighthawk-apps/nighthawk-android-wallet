@@ -35,3 +35,9 @@ files:
     translation: /ui-lib/src/main/res/ui/wallet_address/values-%two_letters_code%/strings.xml
   - source: /ui-lib/src/main/res/ui/warning/values/strings.xml
     translation: /ui-lib/src/main/res/ui/warning/values-%two_letters_code%/strings.xml
+  - source: /fastlane/metadata/android/en-US/full_description.txt
+    translation: /fastlane/metadata/android/%locale%/full_description.txt
+  - source: /fastlane/metadata/android/en-US/short_description.txt
+    translation: /fastlane/metadata/android/%locale%/short_description.txt
+  - source: /fastlane/metadata/android/en-US/title.txt
+    translation: /fastlane/metadata/android/%locale%/title.txt
