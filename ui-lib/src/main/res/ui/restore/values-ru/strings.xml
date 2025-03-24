@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="restore_header">Создать кошелек</string>
+    <string name="restore_header">Создать кошелёк</string>
     <string name="restore_title">Импорт кошелька</string>
     <string name="restore_back_content_description">Назад</string>
     <string name="restore_button_clear">Очистить</string>
-    <string name="restore_seed_instructions">Вы можете импортировать ваш резервный кошелек, введя сейчас вашу резервную копию фразы (Seed-фраза, начальная фраза).</string>
-    <string name="restore_seed_button_restore">Восстановить кошелек</string>
+    <string name="restore_seed_instructions">Вы можете импортировать ваш резервный кошелёк, введя сейчас вашу сид-фразу для восстановления.</string>
+    <string name="restore_seed_button_restore">Восстановить кошелёк</string>
     <string name="restore_seed_warning_suggestions">Это слово не входит в словарь фразы. Пожалуйста, выберите из предложенного.</string>
     <string name="restore_seed_warning_no_suggestions">Этого слова нет в словаре фразы восстановления.</string>
     <string name="restore_birthday_header">Знаете ли вы дату создания кошелька?</string>
@@ -29,7 +29,7 @@
     <string name="ns_create_wallet_text">If you lose access to your phone or Nighthawk wallet, the only way you can regain access to your Zcash is if you have this 24 word phrase and wallet birthday code.\n\nWrite it down on paper and store it somewhere safe.</string>
     <string name="ns_create_wallet_confirm_text">I confirm I have written down my seed phrase.</string>
     <string name="ns_restore_from_backup">Restore from Backup</string>
-    <string name="ns_restore_wallet_text">Введите 24 слова фразы восстановления. Если у вас нет такой фразы, вы можете создать новый кошелек.</string>
+    <string name="ns_restore_wallet_text">Введите 24 слова сид-фразы восстановления. Если у вас нет такой фразы, вы можете создать новый кошелёк.</string>
     <string name="ns_your_seed_phrase">Your seed phrase</string>
     <string name="ns_wallet_birthday">День рождения кошелька: %s</string>
     <string name="ns_birthday_height">Блок создания (необязательно)</string>
@@ -142,7 +142,7 @@
     <string name="ns_fiat_currency_body">Выберите валюту, чтобы кошелёк отображал точную стоимость ваших ZEC-активов.\n\nПри открытии приложения обменный курс подгружается через API сайта CoinGecko и используется для расчёта суммы. Стоимость ваших активов известна только вам. Кошелёк хранит это в секрете.</string>
     <string name="ns_change_server">Change server</string>
     <string name="ns_change_server_text">Change backend lightwalletd server.</string>
-    <string name="ns_change_server_body">Change to nearest available backend lightwalletd server around your region. \n\nThe servers are not operated by Nighthawk, and the privacy of communication and broadcasting transactions cannot be guaranteed. We recommend using a VPN or Tor for enhanced privacy before making transactions.</string>
+    <string name="ns_change_server_body">Переключится на ближайший доступный бекенд сервер lightwalletd в вашем регионе. \n\nСерверы не управляются Nighthawk, и конфиденциальность транзакций не может быть гарантирована. Перед совершением сделок мы рекомендуем использовать VPN или Tor для повышенной конфиденциальности.</string>
     <string name="ns_external_services">Внешние сервисы</string>
     <string name="ns_external_services_text">Здесь список наших партнеров.</string>
     <string name="ns_external_services_uns">Включить доменный сервис Unstoppable</string>
@@ -253,7 +253,7 @@
     <string name="ns_include_reply_to">include reply-to</string>
     <string name="ns_migration_app_title">Миграция формы старой версии приложения</string>
     <string name="ns_migration_app_error">Мы приносим извинения за причиненные неудобства, но, похоже, что при импорте данных из предыдущего хранилища произошла ошибка. Для обеспечения бесперебойного процесса резервного копирования мы рекомендуем выполнить следующие действия:\n\n1) Удалите приложение или очистите данные, чтобы удалить всю противоречивую информацию.\n2) Вручную введите начальные слова из резервной копии, чтобы запустить процесс резервного копирования.</string>
-    <string name="ns_migration_app_info">Мы внедрили усовершенствованный безопасный метод локального хранения данных. Чтобы обеспечить целостность вашего кошелька, нам необходимо перенести ваши начальные слова. У вас есть два варианта:\n\n A) Действовать автоматически: Ваши начальные слова будут без проблем перенесены в новое хранилище. Никаких дополнительных действий с вашей стороны не требуется.\n B) Выбрать ручную миграцию: Если вы предпочитаете отказаться от автоматической миграции, удалите приложение или очистите его данные. После этого вы сможете восстановить свой кошелек, вручную введя начальные слова.\n\n Вы хотите продолжить автоматическую миграцию?</string>
+    <string name="ns_migration_app_info">Мы внедрили усовершенствованный безопасный метод локального хранения данных. Чтобы обеспечить целостность вашего кошелька, нам необходимо перенести ваши начальные слова сид-фразу. У вас есть два варианта:\n\n A) Действовать автоматически: Ваши начальные слова будут без проблем перенесены в новое хранилище. Никаких дополнительных действий с вашей стороны не требуется.\n B) Выбрать ручную миграцию: Если вы предпочитаете отказаться от автоматической миграции, удалите приложение или очистите его данные. После этого вы сможете восстановить свой кошелёк, вручную введя начальные слова.\n\n Вы хотите продолжить автоматическую миграцию?</string>
     <string name="buy_zec_dialog_title">Купить ZEC на MoonPay</string>
     <string name="buy_zec_dialog_msg">Клиенты, не являющиеся жителями США, могут приобрести Zcash (ZEC), зарегистрировавшись в MoonPay.\n\nВаш T-адрес Zcash был скопирован в буфер обмена.\nВыберите \"Открыть браузер\" ниже, выберите \'Zcash (ZEC)\' в качестве принимаемой монеты после загрузки MoonPay, а затем вставьте ваш T-адрес.</string>
     <string name="open_browser">Open Browser</string>
@@ -278,7 +278,7 @@
     <string name="dialog_first_use_view_tx_positive">View Tx</string>
     <string name="dialog_first_use_view_tx_title">Potential Privacy Risk</string>
     <string name="keep_screen_on">Держите экран включенным</string>
-    <string name="keep_screen_on_detail_msg">Если вы давно не открывали кошелек, процесс синхронизации может занять некоторое время. Установите режим экрана на \"Продолжить\", чтобы телефон не \"засыпал\" во время синхронизации.</string>
+    <string name="keep_screen_on_detail_msg">Если вы давно не открывали кошелёк, процесс синхронизации может занять некоторое время. Установите режим экрана на \"Не выключать\", чтобы телефон не \"засыпал\" во время синхронизации.</string>
     <string name="advanced">Расширенные</string>
     <string name="advanced_msg">Менее популярные настройки</string>
     <string name="nuke_wallet">Уничтожить кошелёк</string>
@@ -288,9 +288,9 @@
     <string name="app_icon">Значок</string>
     <string name="default_name">По умолчанию</string>
     <string name="retro">Ретро</string>
-    <string name="delete_wallet">Delete Wallet</string>
-    <string name="enable_dark_theme">Switch to dark theme</string>
-    <string name="ns_host">Host</string>
-    <string name="ns_port">Port</string>
-    <string name="tex_address_support_error">Invalid Address, Tex Address is not supported</string>
+    <string name="delete_wallet">Удалить кошелёк</string>
+    <string name="enable_dark_theme">Переключить на тёмную тему</string>
+    <string name="ns_host">Хост</string>
+    <string name="ns_port">Порт</string>
+    <string name="tex_address_support_error">Недопустимый адрес, Tex адрес не поддерживается</string>
 </resources>
