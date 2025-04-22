@@ -255,9 +255,9 @@ dependencyResolutionManagement {
             library("square-okhttp", "com.squareup.okhttp3:okhttp:$okHttpVersion")
             library("square-okhttp-logging-interceptor", "com.squareup.okhttp3:logging-interceptor:$okHttpVersion")
             library("secure-storage", "com.github.gmale:secure-storage-android:$secureStorageVersion")
-            library("flexa-core", "com.flexa:core:$flexaVersion")
-            library("flexa-scan", "com.flexa:scan:$flexaVersion")
-            library("flexa-spend", "com.flexa:spend:$flexaVersion")
+            library("flexa-core", "co.flexa:core:$flexaVersion")
+            library("flexa-scan", "co.flexa:scan:$flexaVersion")
+            library("flexa-spend", "co.flexa:spend:$flexaVersion")
 
             // Test libraries
             library("androidx-compose-test-junit", "androidx.compose.ui:ui-test-junit4:$androidxComposeVersion")
