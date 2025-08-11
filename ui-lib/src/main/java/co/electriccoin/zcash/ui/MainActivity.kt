@@ -88,16 +88,6 @@ class MainActivity : FragmentActivity() {
         val splashScreen = installSplashScreen()
         val start = SystemClock.elapsedRealtime().milliseconds
 
-        lifecycleScope.launch {
-            repeatOnLifecycle(Lifecycle.State.CREATED) {
-                homeViewModel.isDarkThemeEnabled.collectLatest {
-                    val colorId = if (it) R.color.splash_screen_background_night else co.electriccoin.zcash.ui.design.R.color.ns_dark_navy
-                    window.statusBarColor = ContextCompat.getColor(applicationContext, colorId)
-                    window.navigationBarColor = ContextCompat.getColor(applicationContext, colorId)
-                }
-            }
-        }
-
         splashScreen.setKeepOnScreenCondition {
             if (SPLASH_SCREEN_DELAY > Duration.ZERO) {
                 val now = SystemClock.elapsedRealtime().milliseconds
