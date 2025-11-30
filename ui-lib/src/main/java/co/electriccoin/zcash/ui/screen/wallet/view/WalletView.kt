@@ -194,7 +194,7 @@ fun WalletView(
         )
         Spacer(Modifier.height(dimensionResource(id = R.dimen.pageMargin)))
         TitleLarge(
-            text = stringResource(id = R.string.ns_nighthawk),
+            text = stringResource(id = R.string.ns_nighthawk_news),
             textAlign = TextAlign.Center,
             modifier = Modifier.align(Alignment.CenterHorizontally)
         )

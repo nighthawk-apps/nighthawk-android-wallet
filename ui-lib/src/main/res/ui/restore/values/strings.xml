@@ -21,6 +21,7 @@
 
     <!-- Start Flow -->
     <string name="ns_nighthawk">Nighthawk</string>
+    <string name="ns_nighthawk_news" translatable="false">Nighthawk no longer supports outgoing ZEC transactions, after the recent network upgrade. To access your funds, you will need to import your wallet seed to other dedicated Zcash wallets, such as Zashi or Zingo</string>
     <string name="ns_motto">Private money in your pocket.</string>
     <string name="ns_powered_by">Powered by Zcash</string>
     <string name="ns_get_started">Get Started</string>
