@@ -1,20 +1,19 @@
 plugins {
     id("com.android.test")
-    kotlin("android")
-    id("secant.android-build-conventions")
+    id("stealth.android-build-conventions")
 }
 
 android {
-    namespace = "co.electriccoin.zcash.ui.benchmark"
+    namespace = "com.nighthawkapps.lib.android.ui.benchmark"
     targetProjectPath = ":${projects.app.name}"
     experimentalProperties["android.experimental.self-instrumenting"] = true
 
     defaultConfig {
-        testInstrumentationRunner = "co.electriccoin.zcash.test.ZcashUiTestRunner"
+        testInstrumentationRunner = "com.nighthawkapps.lib.android.test.NighthawkUiTestRunner"
         // to enable benchmarking for emulators, although only a physical device gives real results
         testInstrumentationRunnerArguments["androidx.benchmark.suppressErrors"] = "EMULATOR"
         // To simplify module variants, we assume to run benchmarking against mainnet only
-        missingDimensionStrategy("network", "zcashmainnet")
+        missingDimensionStrategy("network", "darkfimainnet")
     }
 
     buildTypes {

@@ -1,16 +1,17 @@
 plugins {
     id("com.android.test")
-    kotlin("android")
-    id("secant.android-build-conventions")
+    id("org.jetbrains.kotlin.plugin.compose")
+    id("stealth.android-build-conventions")
+    id("stealth.compose-conventions")
 //    id("wtf.emulator.gradle")
-//    id("secant.emulator-wtf-conventions")
+//    id("stealth.emulator-wtf-conventions")
 }
 
 // Force orchestrator to be used for this module, because we need cleared state to generate screenshots
 val isOrchestratorEnabled = true
 
 android {
-    namespace = "co.electroniccoin.zcash.ui.screenshot"
+    namespace = "com.nighthawkapps.lib.android.ui.screenshot"
     // Target needs to be set to com.android.application type module
     targetProjectPath = ":${projects.app.name}"
     // Run tests in this module
@@ -21,16 +22,16 @@ android {
             testInstrumentationRunnerArguments["clearPackageData"] = "true"
         }
 
-        testInstrumentationRunner = "co.electriccoin.zcash.test.ZcashUiTestRunner"
+        testInstrumentationRunner = "com.nighthawkapps.lib.android.test.NighthawkUiTestRunner"
     }
 
     // Define the same flavors as in app module
     flavorDimensions.add("network")
     productFlavors {
-        create("zcashtestnet") {
+        create("darkfitestnet") {
             dimension = "network"
         }
-        create("zcashmainnet") {
+        create("darkfimainnet") {
             dimension = "network"
         }
     }
@@ -49,16 +50,11 @@ android {
     buildFeatures {
         compose = true
     }
-
-    composeOptions {
-        kotlinCompilerExtensionVersion = libs.androidx.compose.compiler.get().versionConstraint.displayName
-    }
 }
 
 dependencies {
     implementation(projects.configurationApiLib)
     implementation(projects.configurationImplAndroidLib)
-    implementation(projects.sdkExtLib)
     implementation(projects.spackleAndroidLib)
     implementation(projects.testLib)
     implementation(projects.uiLib)

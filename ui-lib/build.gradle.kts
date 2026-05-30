@@ -2,19 +2,20 @@ import com.android.build.api.variant.BuildConfigField
 
 plugins {
     id("com.android.library")
-    kotlin("android")
-    id("secant.android-build-conventions")
+    id("org.jetbrains.kotlin.plugin.compose")
+    id("stealth.android-build-conventions")
+    id("stealth.compose-conventions")
 //    id("wtf.emulator.gradle")
-//    id("secant.emulator-wtf-conventions")
-    id("secant.jacoco-conventions")
+//    id("stealth.emulator-wtf-conventions")
+    id("stealth.jacoco-conventions")
     id("com.mikepenz.aboutlibraries.plugin")
 }
 
 android {
-    namespace = "co.electriccoin.zcash.ui"
+    namespace = "com.nighthawkapps.lib.android.ui"
 
     defaultConfig {
-        testInstrumentationRunner = "co.electriccoin.zcash.test.ZcashUiTestRunner"
+        testInstrumentationRunner = "com.nighthawkapps.lib.android.test.NighthawkUiTestRunner"
         multiDexEnabled = true
     }
 
@@ -23,14 +24,10 @@ android {
         buildConfig = true
     }
 
-    composeOptions {
-        kotlinCompilerExtensionVersion = libs.androidx.compose.compiler.get().versionConstraint.displayName
-    }
-
     sourceSets {
         getByName("main").apply {
-            res.setSrcDirs(
-                setOf(
+            res.directories.addAll(
+                listOf(
                     "src/main/res/ui/about",
                     "src/main/res/ui/backup",
                     "src/main/res/ui/common",
@@ -57,23 +54,13 @@ android {
 androidComponents {
     onVariants { variant ->
         // Configure SecureScreen for protecting screens with sensitive data in runtime
-        variant.buildConfigFields.put(
+        variant.buildConfigFields!!.put(
                 "IS_SECURE_SCREEN_ENABLED",
                 BuildConfigField(
                         type = "boolean",
                         value = project.property("IS_SECURE_SCREEN_PROTECTION_ACTIVE").toString(),
                         comment = "Whether is the SecureScreen sensitive data protection enabled"
                 )
-        )
-
-        // Flexa publishable key
-        variant.buildConfigFields.put(
-            "FEXA_PUBLISHABLE_KEY",
-            BuildConfigField(
-                type = "String",
-                value = project.property("FEXA_PUBLISHABLE_KEY")?.toString().orEmpty(),
-                comment = "Flexa publishable key for sdk"
-            )
         )
     }
 }
@@ -97,9 +84,7 @@ dependencies {
     implementation(libs.kotlinx.coroutines.guava)
     implementation(libs.kotlinx.datetime)
     implementation(libs.kotlinx.immutable)
-    implementation(libs.zcash.sdk)
-    implementation(libs.zcash.sdk.incubator)
-    implementation(libs.zcash.bip39)
+    implementation(projects.darkfiAndroidSdk)
     implementation(libs.zxing)
     implementation(libs.pdfbox)
     implementation(libs.lottie)
@@ -111,17 +96,11 @@ dependencies {
     implementation(libs.square.okhttp.logging.interceptor)
     implementation(libs.secure.storage)
 
-//    implementation(libs.desugaring)
-    implementation(libs.flexa.core)
-//    implementation(libs.flexa.scan)
-    implementation(libs.flexa.spend)
-
     implementation(projects.buildInfoLib)
     implementation(projects.configurationApiLib)
     implementation(projects.configurationImplAndroidLib)
     implementation(projects.preferenceApiLib)
     implementation(projects.preferenceImplAndroidLib)
-    implementation(projects.sdkExtLib)
     implementation(projects.spackleAndroidLib)
     api(projects.uiDesignLib)
 

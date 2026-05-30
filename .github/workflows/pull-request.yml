@@ -190,7 +190,7 @@ jobs:
           # Disable minify, since it makes lint run faster
           ORG_GRADLE_PROJECT_IS_MINIFY_ENABLED: false
         run: |
-          ./gradlew :app:lintZcashmainnetRelease
+          ./gradlew :app:lintDarkfimainnetRelease
       - name: Collect Artifacts
         if: ${{ always() }}
         timeout-minutes: 1
@@ -231,7 +231,7 @@ jobs:
         timeout-minutes: 4
         run: |
           # Note that we explicitly check just the Kotlin modules, to avoid compiling the Android modules here
-          ./gradlew :configuration-api-lib:check :crash-lib:check :preference-api-lib:check :spackle-lib:check
+          ./gradlew :configuration-api-lib:check :preference-api-lib:check :spackle-lib:check
       - name: Collect Artifacts
         if: ${{ always() }}
         timeout-minutes: 1
@@ -274,7 +274,7 @@ jobs:
       - name: Build
         timeout-minutes: 20
         run: |
-          ./gradlew assembleDebug assembleAndroidTest assembleZcashmainnetDebug assembleZcashtestnetDebug
+          ./gradlew assembleDebug assembleAndroidTest assembleDarkfimainnetDebug assembleDarkfitestnetDebug
       - name: Authenticate to Google Cloud for Firebase Test Lab
         id: auth_test_lab
         uses: google-github-actions/auth@35b0e87d162680511bf346c299f71c9c5c379033
@@ -287,12 +287,12 @@ jobs:
       - name: Test
         timeout-minutes: 30
         env:
-          ORG_GRADLE_PROJECT_ZCASH_SUPPORT_EMAIL_ADDRESS: ${{ vars.SUPPORT_EMAIL_ADDRESS }}
+          ORG_GRADLE_PROJECT_WALLET_SUPPORT_EMAIL_ADDRESS: ${{ vars.SUPPORT_EMAIL_ADDRESS }}
           # Force blank suffix for screenshot tests
-          ORG_GRADLE_PROJECT_ZCASH_DEBUG_APP_NAME_SUFFIX: ""
+          ORG_GRADLE_PROJECT_WALLET_DEBUG_APP_NAME_SUFFIX: ""
           # Used by Flank, since the temporary token is missing the project name
           GOOGLE_CLOUD_PROJECT: ${{ vars.FIREBASE_TEST_LAB_PROJECT }}
-          ORG_GRADLE_PROJECT_ZCASH_FIREBASE_TEST_LAB_API_KEY_PATH: ${{ steps.auth_test_lab.outputs.credentials_file_path }}
+          ORG_GRADLE_PROJECT_WALLET_FIREBASE_TEST_LAB_API_KEY_PATH: ${{ steps.auth_test_lab.outputs.credentials_file_path }}
           # Because Fulladle doesn't allow Test Orchestrator to be enabled/disabled for a specific submodule, it must be enabled for all modules
           ORG_GRADLE_PROJECT_IS_USE_TEST_ORCHESTRATOR: true
         run: |
@@ -337,13 +337,13 @@ jobs:
       - name: Build and test
         timeout-minutes: 30
         env:
-          ORG_GRADLE_PROJECT_ZCASH_SUPPORT_EMAIL_ADDRESS: ${{ vars.SUPPORT_EMAIL_ADDRESS }}
+          ORG_GRADLE_PROJECT_WALLET_SUPPORT_EMAIL_ADDRESS: ${{ vars.SUPPORT_EMAIL_ADDRESS }}
           # Force blank suffix for screenshot tests
-          ORG_GRADLE_PROJECT_ZCASH_DEBUG_APP_NAME_SUFFIX: ""
-          ORG_GRADLE_PROJECT_ZCASH_EMULATOR_WTF_API_KEY: ${{ secrets.EMULATOR_WTF_API_KEY }}
+          ORG_GRADLE_PROJECT_WALLET_DEBUG_APP_NAME_SUFFIX: ""
+          ORG_GRADLE_PROJECT_WALLET_EMULATOR_WTF_API_KEY: ${{ secrets.EMULATOR_WTF_API_KEY }}
           ORG_GRADLE_PROJECT_IS_ANDROID_INSTRUMENTATION_TEST_COVERAGE_ENABLED: true
         run: |
-          ./gradlew testDebugWithEmulatorWtf :ui-integration-test:testZcashmainnetDebugWithEmulatorWtf
+          ./gradlew :ui-integration-test:assembleDarkfimainnetDebug :app:assembleDarkfimainnetDebugAndroidTest
       - name: Collect Artifacts
         if: ${{ always() }}
         timeout-minutes: 1
@@ -384,13 +384,13 @@ jobs:
       - name: Build and test
         timeout-minutes: 30
         env:
-          ORG_GRADLE_PROJECT_ZCASH_SUPPORT_EMAIL_ADDRESS: ${{ vars.SUPPORT_EMAIL_ADDRESS }}
+          ORG_GRADLE_PROJECT_WALLET_SUPPORT_EMAIL_ADDRESS: ${{ vars.SUPPORT_EMAIL_ADDRESS }}
           # Force blank suffix for screenshot tests
-          ORG_GRADLE_PROJECT_ZCASH_DEBUG_APP_NAME_SUFFIX: ""
-          ORG_GRADLE_PROJECT_ZCASH_EMULATOR_WTF_API_KEY: ${{ secrets.EMULATOR_WTF_API_KEY }}
+          ORG_GRADLE_PROJECT_WALLET_DEBUG_APP_NAME_SUFFIX: ""
+          ORG_GRADLE_PROJECT_WALLET_EMULATOR_WTF_API_KEY: ${{ secrets.EMULATOR_WTF_API_KEY }}
           ORG_GRADLE_PROJECT_IS_ANDROID_INSTRUMENTATION_TEST_COVERAGE_ENABLED: false
         run: |
-          ./gradlew :app:testZcashmainnetDebugWithEmulatorWtf :ui-screenshot-test:testZcashmainnetDebugWithEmulatorWtf
+          ./gradlew :app:assembleDarkfimainnetDebugAndroidTest :ui-screenshot-test:assembleDarkfimainnetDebug
       - name: Collect Artifacts
         if: ${{ always() }}
         timeout-minutes: 1
@@ -445,7 +445,7 @@ jobs:
       - name: Build
         timeout-minutes: 20
         env:
-          ORG_GRADLE_PROJECT_ZCASH_SUPPORT_EMAIL_ADDRESS: ${{ vars.SUPPORT_EMAIL_ADDRESS }}
+          ORG_GRADLE_PROJECT_WALLET_SUPPORT_EMAIL_ADDRESS: ${{ vars.SUPPORT_EMAIL_ADDRESS }}
           ORG_GRADLE_PROJECT_IS_CRASH_ON_STRICT_MODE_VIOLATION: true
         run: |
           ./gradlew :app:assembleDebug
@@ -463,7 +463,7 @@ jobs:
         env:
           # This first environment variable is used by Flank, since the temporary token is missing the project name
           GOOGLE_CLOUD_PROJECT: ${{ vars.FIREBASE_TEST_LAB_PROJECT }}
-          ORG_GRADLE_PROJECT_ZCASH_FIREBASE_TEST_LAB_API_KEY_PATH: ${{ steps.auth_test_lab.outputs.credentials_file_path }}
+          ORG_GRADLE_PROJECT_WALLET_FIREBASE_TEST_LAB_API_KEY_PATH: ${{ steps.auth_test_lab.outputs.credentials_file_path }}
         run: |
           ./gradlew :app:runFlankSanityConfigDebug
 
@@ -510,13 +510,13 @@ jobs:
       - name: Build
         timeout-minutes: 20
         env:
-          ORG_GRADLE_PROJECT_ZCASH_SUPPORT_EMAIL_ADDRESS: ${{ vars.SUPPORT_EMAIL_ADDRESS }}
-          ORG_GRADLE_PROJECT_ZCASH_RELEASE_KEYSTORE_PATH: ${{ format('{0}/release.jks', env.home) }}
-          ORG_GRADLE_PROJECT_ZCASH_RELEASE_KEYSTORE_PASSWORD: android
-          ORG_GRADLE_PROJECT_ZCASH_RELEASE_KEY_ALIAS: androiddebugkey
-          ORG_GRADLE_PROJECT_ZCASH_RELEASE_KEY_ALIAS_PASSWORD: android
+          ORG_GRADLE_PROJECT_WALLET_SUPPORT_EMAIL_ADDRESS: ${{ vars.SUPPORT_EMAIL_ADDRESS }}
+          ORG_GRADLE_PROJECT_WALLET_RELEASE_KEYSTORE_PATH: ${{ format('{0}/release.jks', env.home) }}
+          ORG_GRADLE_PROJECT_WALLET_RELEASE_KEYSTORE_PASSWORD: android
+          ORG_GRADLE_PROJECT_WALLET_RELEASE_KEY_ALIAS: androiddebugkey
+          ORG_GRADLE_PROJECT_WALLET_RELEASE_KEY_ALIAS_PASSWORD: android
         run: |
-          ./gradlew :app:assembleDebug :app:bundleRelease :app:packageZcashmainnetReleaseUniversalApk
+          ./gradlew :app:assembleDebug :app:bundleRelease :app:packageDarkfimainnetReleaseUniversalApk
       - name: Collect Artifacts
         timeout-minutes: 1
         env:
@@ -578,7 +578,7 @@ jobs:
           BINARIES_ZIP_PATH: binaries.zip
           # This first environment variable is used by Flank, since the temporary token is missing the project name
           GOOGLE_CLOUD_PROJECT: ${{ vars.FIREBASE_TEST_LAB_PROJECT }}
-          ORG_GRADLE_PROJECT_ZCASH_FIREBASE_TEST_LAB_API_KEY_PATH: ${{ steps.auth_test_lab.outputs.credentials_file_path }}
+          ORG_GRADLE_PROJECT_WALLET_FIREBASE_TEST_LAB_API_KEY_PATH: ${{ steps.auth_test_lab.outputs.credentials_file_path }}
         run: |
           unzip ${BINARIES_ZIP_PATH}
           ./gradlew :app:runFlankSanityConfigRelease

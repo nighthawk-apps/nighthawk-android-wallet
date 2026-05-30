@@ -1,33 +1,33 @@
 import com.android.build.api.variant.BuildConfigField
+import com.android.build.api.variant.ResValue
 import java.util.Locale
 
 plugins {
     id("com.android.application")
-    kotlin("android")
-    id("secant.android-build-conventions")
-//    id("com.github.triplet.play")
+    id("stealth.android-build-conventions")
+    id("com.mikepenz.aboutlibraries.plugin")
 }
 
-val packageName = project.property("ZCASH_RELEASE_PACKAGE_NAME").toString()
+val packageName = project.property("WALLET_RELEASE_PACKAGE_NAME").toString()
 
 val testnetNetworkName = "Testnet"
 
 android {
-    namespace = "co.electriccoin.zcash.app"
+    namespace = "com.nighthawkwallet.android"
 
     defaultConfig {
         applicationId = packageName
 
         // If Google Play deployment is triggered, then these are placeholders which are overwritten
         // when the deployment runs
-        versionCode = project.property("ZCASH_VERSION_CODE").toString().toInt()
-        versionName = project.property("ZCASH_VERSION_NAME").toString()
+        versionCode = project.property("WALLET_VERSION_CODE").toString().toInt()
+        versionName = project.property("WALLET_VERSION_NAME").toString()
 
         if (project.property("IS_USE_TEST_ORCHESTRATOR").toString().toBoolean()) {
             testInstrumentationRunnerArguments["clearPackageData"] = "true"
         }
 
-        testInstrumentationRunner = "co.electriccoin.zcash.test.ZcashUiTestRunner"
+        testInstrumentationRunner = "com.nighthawkapps.lib.android.test.NighthawkUiTestRunner"
     }
 
     if (project.property("IS_USE_TEST_ORCHESTRATOR").toString().toBoolean()) {
@@ -38,31 +38,34 @@ android {
 
     buildFeatures {
         buildConfig = true
+        resValues = true
     }
 
     flavorDimensions.add("network")
 
-    val testNetFlavorName = "zcashtestnet"
+    val testNetFlavorName = "darkfitestnet"
     productFlavors {
         // would rather name them "testnet" and "mainnet" but product flavor names cannot start with the word "test"
         create(testNetFlavorName) {
             dimension = "network"
             applicationId = "$packageName.testnet" // allow to be installed alongside mainnet
-            matchingFallbacks.addAll(listOf("zcashtestnet", "debug"))
+            matchingFallbacks.addAll(listOf("darkfitestnet", "debug"))
         }
 
-        create("zcashmainnet") {
+        create("darkfimainnet") {
             dimension = "network"
             applicationId = packageName
-            matchingFallbacks.addAll(listOf("zcashmainnet", "release"))
+            matchingFallbacks.addAll(listOf("darkfimainnet", "release"))
+            // Extra shrinking when minifying mainnet release: drop android.util.Log from merged code paths.
+            proguardFile("proguard-mainnet-strip-log.pro")
         }
     }
 
-    val releaseKeystorePath = project.property("ZCASH_RELEASE_KEYSTORE_PATH").toString()
-    val releaseKeystorePassword = project.property("ZCASH_RELEASE_KEYSTORE_PASSWORD").toString()
-    val releaseKeyAlias = project.property("ZCASH_RELEASE_KEY_ALIAS").toString()
+    val releaseKeystorePath = project.property("WALLET_RELEASE_KEYSTORE_PATH").toString()
+    val releaseKeystorePassword = project.property("WALLET_RELEASE_KEYSTORE_PASSWORD").toString()
+    val releaseKeyAlias = project.property("WALLET_RELEASE_KEY_ALIAS").toString()
     val releaseKeyAliasPassword =
-        project.property("ZCASH_RELEASE_KEY_ALIAS_PASSWORD").toString()
+        project.property("WALLET_RELEASE_KEY_ALIAS_PASSWORD").toString()
     val isReleaseSigningConfigured = listOf(
         releaseKeystorePath,
         releaseKeystorePassword,
@@ -87,8 +90,8 @@ android {
             // Note that the build-conventions defines the res configs
             isPseudoLocalesEnabled = true
 
-            // Suffixing app package name and version to avoid collisions with other installed Zcash
-            // apps (e.g. from Google Play)
+            // Suffixing app package name and version to avoid collisions with other installed
+            // wallet variants installed side-by-side
             // versionNameSuffix = "-debug"
             // applicationIdSuffix = ".debug"
         }
@@ -112,28 +115,6 @@ android {
         }
     }
 
-    // Resolve final app name
-    applicationVariants.all {
-        val defaultAppName = project.property("ZCASH_RELEASE_APP_NAME").toString()
-        val debugAppNameSuffix = project.property("ZCASH_DEBUG_APP_NAME_SUFFIX").toString()
-        val supportEmailAddress = project.property("ZCASH_SUPPORT_EMAIL_ADDRESS").toString()
-        when (this.name) {
-            "zcashtestnetDebug" -> {
-                resValue("string", "app_name", "$defaultAppName ($testnetNetworkName)$debugAppNameSuffix")
-            }
-            "zcashmainnetDebug" -> {
-                resValue("string", "app_name", "$defaultAppName$debugAppNameSuffix")
-            }
-            "zcashtestnetRelease" -> {
-                resValue("string", "app_name", "$defaultAppName ($testnetNetworkName)")
-            }
-            "zcashmainnetRelease" -> {
-                resValue("string", "app_name", defaultAppName)
-            }
-        }
-        resValue("string", "support_email_address", supportEmailAddress)
-    }
-
     /*playConfigs {
         register(testNetFlavorName) {
             enabled.set(false)
@@ -154,7 +135,8 @@ dependencies {
     implementation(libs.kotlin.stdlib)
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.kotlinx.coroutines.core)
-    implementation(libs.zcash.sdk) // just to configure logging
+    implementation(libs.about.libraries)
+    implementation(projects.darkfiAndroidSdk)
     implementation(projects.preferenceApiLib)
     implementation(projects.preferenceImplAndroidLib)
     implementation(projects.spackleAndroidLib)
@@ -177,12 +159,40 @@ dependencies {
     }
 }
 
-val googlePlayServiceKeyFilePath = project.property("ZCASH_GOOGLE_PLAY_SERVICE_KEY_FILE_PATH").toString()
+val googlePlayServiceKeyFilePath = project.property("WALLET_GOOGLE_PLAY_SERVICE_KEY_FILE_PATH").toString()
 
 androidComponents {
     onVariants { variant ->
+        val defaultAppName = project.property("WALLET_RELEASE_APP_NAME").toString()
+        val debugAppNameSuffix = project.property("WALLET_DEBUG_APP_NAME_SUFFIX").toString()
+        val supportEmailAddress = project.property("WALLET_SUPPORT_EMAIL_ADDRESS").toString()
+        val appDisplayName =
+            when (variant.name) {
+                "darkfitestnetDebug" -> "$defaultAppName ($testnetNetworkName)$debugAppNameSuffix"
+                "darkfimainnetDebug" -> "$defaultAppName$debugAppNameSuffix"
+                "darkfitestnetRelease" -> "$defaultAppName ($testnetNetworkName)"
+                "darkfimainnetRelease" -> defaultAppName
+                else -> null
+            }
+        if (appDisplayName != null) {
+            variant.resValues.put(variant.makeResValueKey("string", "app_name"), ResValue(appDisplayName, ""))
+        }
+        variant.resValues.put(
+            variant.makeResValueKey("string", "support_email_address"),
+            ResValue(supportEmailAddress, ""),
+        )
+
+        variant.buildConfigFields!!.put(
+            "LOGCAT_ENABLED",
+            BuildConfigField(
+                type = "boolean",
+                value = (variant.name != "darkfimainnetRelease").toString(),
+                comment = "Production mainnet APK must not emit diagnostics to logcat.",
+            ),
+        )
+
         for (output in variant.outputs) {
-            variant.buildConfigFields.put(
+            variant.buildConfigFields!!.put(
                 "IS_STRICT_MODE_CRASH_ENABLED",
                 BuildConfigField(
                     type = "boolean",
@@ -197,7 +207,7 @@ androidComponents {
                 val versionCodeOffset = 0  // Change this to zero the final digit of the versionName
 
                 val processedVersionCode = output.versionCode.map { playVersionCode ->
-                    val defaultVersionName = project.property("ZCASH_VERSION_NAME").toString()
+                    val defaultVersionName = project.property("WALLET_VERSION_NAME").toString()
                     // Version names will look like `myCustomVersionName.123`
                     @Suppress("UNNECESSARY_SAFE_CALL")
                     playVersionCode?.let {
@@ -254,7 +264,7 @@ androidComponents {
         // Automatically manage version incrementing
         resolutionStrategy.set(com.github.triplet.gradle.androidpublisher.ResolutionStrategy.AUTO)
 
-        val deployMode = project.property("ZCASH_GOOGLE_PLAY_DEPLOY_MODE").toString()
+        val deployMode = project.property("WALLET_GOOGLE_PLAY_DEPLOY_MODE").toString()
         if ("build" == deployMode) {
             releaseStatus.set(com.github.triplet.gradle.androidpublisher.ReleaseStatus.DRAFT)
             // Prevent upload; only generates a build with the correct version number

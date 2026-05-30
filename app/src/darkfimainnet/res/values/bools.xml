@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Mirrors Rust/desktop darkfi mainnet flavor; overrides merged default when building darkfimainnet. -->
+    <bool name="darkfi_is_testnet">false</bool>
+</resources>

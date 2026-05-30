@@ -1,10 +1,9 @@
 plugins {
     id("com.android.library")
-    kotlin("android")
-    id("secant.android-build-conventions")
+    id("stealth.android-build-conventions")
 //    id("wtf.emulator.gradle")
-//    id("secant.emulator-wtf-conventions")
-    id("secant.jacoco-conventions")
+//    id("stealth.emulator-wtf-conventions")
+    id("stealth.jacoco-conventions")
 }
 
 // Force orchestrator to be used for this module, because we need the preference files
@@ -12,7 +11,7 @@ plugins {
 val isOrchestratorEnabled = true
 
 android {
-    namespace = "co.electriccoin.zcash.preference"
+    namespace = "com.nighthawkapps.lib.android.preference"
 
     if (isOrchestratorEnabled) {
         defaultConfig {

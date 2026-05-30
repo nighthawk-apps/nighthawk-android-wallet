@@ -1,0 +1,82 @@
+namespace darkfi_mobile_ffi {
+    string bridge_version();
+    string bridge_ping();
+
+    sequence<string> generate_darkfi_mnemonic();
+    boolean validate_darkfi_mnemonic(sequence<string> phrase);
+
+    sequence<string> generate_bip39_chat_mnemonic();
+    sequence<u8>? decode_chat_entropy(sequence<string> phrase);
+
+    [Throws=DarkfiWalletNativeError]
+    string chacha_encrypt_dm(sequence<u8> my_secret, sequence<u8> their_public, string plaintext);
+
+    [Throws=DarkfiWalletNativeError]
+    string chacha_decrypt_dm(sequence<u8> my_secret, sequence<u8> their_public, string ciphertext_b58);
+};
+
+dictionary DrkBootstrapConfig {
+    string network;
+    sequence<string> mnemonic;
+    string wallet_db_path;
+    string cache_path;
+    string wallet_pass;
+    string darkfid_endpoint_url;
+    i64 birthday_height;
+};
+
+dictionary DrkSyncSnapshot {
+    i64 scanned_blocks;
+    i64 chain_tip;
+};
+
+dictionary DrkTransactionRecord {
+    string tx_hash;
+    string status;
+    i64 block_height;
+    i64 fee_atomic;
+    boolean is_sent;
+    i64 net_value_atomic;
+};
+
+[Error]
+enum DarkfiWalletNativeError {
+    "WalletNotInitialized",
+    "InvalidBootstrapConfig",
+    "NativeDrkUnavailable",
+};
+
+interface DarkfiWalletHandle {
+    [Throws=DarkfiWalletNativeError]
+    constructor(DrkBootstrapConfig config);
+
+    [Throws=DarkfiWalletNativeError]
+    i64 confirmed_balance_atomic();
+
+    [Throws=DarkfiWalletNativeError]
+    string primary_deposit_address();
+
+    [Throws=DarkfiWalletNativeError]
+    DrkSyncSnapshot refresh_now();
+
+    [Throws=DarkfiWalletNativeError]
+    DrkSyncSnapshot sync_snapshot();
+
+    [Throws=DarkfiWalletNativeError]
+    sequence<u8> build_transfer(string recipient_address, string amount, string? token_id);
+
+    [Throws=DarkfiWalletNativeError]
+    i64 estimate_transfer_fee(string recipient_address, string amount, string? token_id);
+
+    [Throws=DarkfiWalletNativeError]
+    string broadcast_transfer(sequence<u8> tx_bytes);
+
+    [Throws=DarkfiWalletNativeError]
+    sequence<DrkTransactionRecord> list_transactions();
+
+    [Throws=DarkfiWalletNativeError]
+    sequence<string> list_addresses();
+
+    [Throws=DarkfiWalletNativeError]
+    string generate_new_address();
+};

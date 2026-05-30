@@ -5,21 +5,22 @@
     <string name="onboarding_skip">Saltar</string>
     <string name="onboarding_next">Siguiente</string>
     <string name="onboarding_1_header">¡Bienvenido!</string>
-    <string name="onboarding_1_body">Como billetera centrada en la privacidad, protegemos de forma predeterminada. Su billetera utiliza la dirección protegida para enviar y mueve fondos transparentes a esa dirección automáticamente.\n\nEn otras palabras, la señal de \"privacidad-por favor\" está en la puerta.</string>
+    <string name="onboarding_1_body">DarkFi liquida las transferencias de forma privada por defecto. Esta cartera muestra un único saldo DRK desde tu punto de sincronización — sin totales separados transparentes y confidenciales.\n\nElige servidores en los que confíes y guarda tu frase de recuperación.</string>
     <string name="onboarding_1_image_content_description"></string>
-    <string name="onboarding_2_header">Direcciones unificadas</string>
-    <string name="onboarding_2_body">Ahora tiene una dirección unificada que incluye una dirección protegida actualizada y una dirección de transparencia para los sistemas antiguos.\n\nEsto hace que tu billetera sea más amigable, y te da una dirección que no tendrás que actualizar de nuevo.</string>
+    <string name="onboarding_2_header">Formatos para recibir</string>
+    <string name="onboarding_2_body">Puedes compartir distintas codificaciones para recibir (cadena de depósito, QR, códigos opcionales de estilo público). Acreditan la misma cartera DarkFi cuando la sincronización está conectada.\n\nUsa el formato que espere quien te paga.</string>
     <string name="onboarding_2_image_content_description"></string>
-    <string name="onboarding_3_header">y mucho más…</string>
-    <string name="onboarding_3_body">Debido al aumento de popularidad de Zcash, ¡estamos optimizando nuestros esquemas de sincronización para ser más rápido y eficiente!\n\n¡El futuro es rápido!</string>
+    <string name="onboarding_3_header">Y mucho más…</string>
+    <string name="onboarding_3_body">Seguimos mejorando la sincronización más rápida y herramientas más claras centradas en DarkFi y DRK.\n\nEspera mejoras continuas.</string>
     <string name="onboarding_3_image_content_description"></string>
-    <string name="onboarding_4_header">¡Comencemos!</string>
-    <string name="onboarding_4_body">Elija entre crear una nueva billetera e importar una frase de recuperación secreta existente.</string>
+    <string name="onboarding_4_header">¡Empecemos!</string>
+    <string name="onboarding_4_body">Elige entre crear una cartera nueva e importar una frase de recuperación secreta existente.</string>
     <string name="onboarding_4_image_content_description"></string>
-    <string name="onboarding_4_create_new_wallet">Crear nueva billetera</string>
-    <string name="onboarding_4_import_existing_wallet">Importar una billetera existente</string>
-    <string name="onboarding_short_header">Es hora de configurar tu billetera sin frills con Zcash</string>
-    <string name="onboarding_short_information">Necesitamos crear una nueva billetera o restaurar una existente. Seleccione su ruta:</string>
-    <string name="onboarding_short_create_new_wallet">Crear nueva billetera</string>
-    <string name="onboarding_short_import_existing_wallet">Importar una billetera existente</string>
+    <string name="onboarding_4_create_new_wallet">Crear cartera nueva</string>
+    <string name="onboarding_4_import_existing_wallet">Importar cartera existente</string>
+
+    <string name="onboarding_short_header">Configura tu cartera orientada a Stealth / DarkFi</string>
+    <string name="onboarding_short_information">Crea una cartera nueva o restaura una frase de respaldo existente:</string>
+    <string name="onboarding_short_create_new_wallet">Crear cartera nueva</string>
+    <string name="onboarding_short_import_existing_wallet">Importar cartera existente</string>
 </resources>

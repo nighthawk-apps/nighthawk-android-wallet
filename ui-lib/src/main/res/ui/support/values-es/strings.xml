@@ -6,7 +6,7 @@
     <string name="support_send">Enviar</string>
     <string name="support_confirmation_dialog_ok">Ok</string>
     <string name="support_confirmation_dialog_cancel">Cancelar</string>
-    <string name="support_confirmation_explanation"><xliff:g id="app_name" example="Zcash">%1$s</xliff:g> está a punto de abrir tu aplicación de correo electrónico con un mensaje prerellenado.\n\nAsegúrate de pulsar enviar desde tu aplicación de correo electrónico.</string>
+    
     <!-- This is replaced by a resource overlay via app/build.gradle.kts -->
     <string name="support_email_address"></string>
     <string name="support_information">Por favor, háganos saber sobre cualquier problema que haya tenido, o características que desee ver en el futuro.</string>

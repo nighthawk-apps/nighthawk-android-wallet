@@ -1,0 +1,5 @@
+16177d55572b24e64f6b030f068925147a7ad75a
+# Pinned commit on https://github.com/darkrenaissance/darkfi (branch master).
+# Wallet CLI/library: bin/drk (no separate wallet repo). Bump after auditing
+# bin/darkfid/src/rpc/*.rs, bin/drk/drk_config.toml, bin/darkirc/darkirc_config.toml
+# (scripts/fetch-darkfi-upstream-reference.sh, update Kotlin/docs).

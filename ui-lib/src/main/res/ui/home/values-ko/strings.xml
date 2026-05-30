@@ -16,8 +16,8 @@
     <string name="home_status_syncing_additional_information">자금을 발견하면 알려드리겠습니다.</string>
     <string name="home_status_up_to_date">최신 상태</string>
     <string name="home_status_sending_format" formatted="true">보내는 중 <xliff:g id="sending_amount" example=".023">%1$s</xliff:g></string>
-    <string name="home_status_receiving_format" formatted="true">받는 중 <xliff:g id="receiving_amount" example=".023">%1$s</xliff:g> ZEC</string>
-    <string name="home_status_shielding_format" formatted="true">차폐화 중 <xliff:g id="shielding_amount" example=".023">%1$s</xliff:g> ZEC</string>
+    
+    
     <string name="home_status_update">업데이트를 하십시오</string>
     <string name="home_status_error" formatted="true">에러: <xliff:g id="error_type" example="Lost connection">%1$s</xliff:g></string>
     <string name="home_status_error_connection">연결이 끊어짐</string>

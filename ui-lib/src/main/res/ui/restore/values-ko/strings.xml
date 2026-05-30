@@ -19,14 +19,14 @@
     <!-- Start Flow -->
     <string name="ns_nighthawk">Nighthawk</string>
     <string name="ns_motto">Private money in your pocket.</string>
-    <string name="ns_powered_by">Powered by Zcash</string>
+    
     <string name="ns_get_started">Get Started</string>
     <string name="ns_landing_text">If it\'s your first time using Nighthawk, you\'ll need to create a wallet. If you are returning to Nighthawk, you can try to restore your previous wallet.</string>
     <string name="ns_landing_footer">이 앱을 사용함으로써 귀하는 당사의</string>
     <string name="ns_terms_conditions">Terms and Conditions</string>
     <string name="ns_create_wallet">Create Wallet</string>
     <string name="ns_create_wallet_title">Write down your backup seed</string>
-    <string name="ns_create_wallet_text">If you lose access to your phone or Nighthawk wallet, the only way you can regain access to your Zcash is if you have this 24 word phrase and wallet birthday code.\n\nWrite it down on paper and store it somewhere safe.</string>
+    
     <string name="ns_create_wallet_confirm_text">I confirm I have written down my seed phrase.</string>
     <string name="ns_restore_from_backup">Restore from Backup</string>
     <string name="ns_restore_wallet_text">아래에 24단어 시드 문구를 입력합니다. 복구 문구가 없는 경우 새 지갑을 만들어야 합니다.</string>
@@ -42,10 +42,10 @@
     <string name="ns_receive">Receive</string>
     <string name="ns_transaction_history">Transactions History</string>
     <string name="ns_copy">Copy</string>
-    <string name="ns_unified_address">통합주소 (Unified address)</string>
-    <string name="ns_shielded_address">Shielded address</string>
-    <string name="ns_legacy_shielded_address">레거시 보호 주소</string>
-    <string name="ns_transparent_address">Transparent address</string>
+    <string name="ns_primary_deposit_address">통합주소 (Unified address)</string>
+    <string name="ns_shielded_address">Confidential deposit address</string>
+    <string name="ns_confidential_receive_address">레거시 보호 주소</string>
+    <string name="ns_public_receive_address">Transparent address</string>
     <string name="ns_restore_dialog_title">계속하기 전에</string>
     <string name="ns_restore_dialog_primary_action">계속</string>
     <string name="ns_restore_dialog_body">나이트호크에서 처음 생성한 시드 문구만 가져오시기 바랍니다. 다른 지갑은 다르게 작동하므로 거래 자금이 부정확하게 보고될 수 있습니다.</string>
@@ -61,30 +61,30 @@
     <string name="ns_scanning">Scanning…%1$d%%</string>
     <string name="ns_finalizing">Finalizing</string>
     <string name="ns_swipe_left">Swipe left to show your balance</string>
-    <string name="ns_zec">ZEC</string>
+    
     <string name="ns_around">around %s</string>
     <string name="ns_total_balance">Total balance</string>
-    <string name="ns_shielded_balance">Shielded balance</string>
-    <string name="ns_sapling_balance">Sapling balance</string>
-    <string name="ns_transparent_balance">Transparent balance</string>
+    <string name="ns_shielded_balance">Wallet balance</string>
+    <string name="ns_sapling_balance">Wallet balance</string>
+    <string name="ns_transparent_balance">Wallet balance</string>
     <string name="ns_shield_now">Shield Now</string>
-    <string name="ns_zec_empty">--- ZEC</string>
-    <string name="ns_expecting_balance_snack_bar_msg">Expecting %s ZEC</string>
+    
+    
     <string name="ns_recent_activity">Recent activity</string>
     <string name="ns_received">Received</string>
     <string name="ns_sent">Sent</string>
-    <string name="ns_auto_shielded_funds">Auto-shielded funds</string>
+    <string name="ns_auto_shielded_funds">Incoming DRK</string>
     <!-- Transaction Details Screen -->
     <string name="ns_transaction_details">Transaction details</string>
     <string name="ns_show_memo">Show memo</string>
     <string name="ns_received_from">Received from %s</string>
     <string name="ns_sent_from">Sent from %s</string>
-    <string name="ns_transparent_wallet">transparent wallet</string>
-    <string name="ns_shielded_wallet">shielded wallet</string>
+    <string name="ns_transparent_wallet">public-style wallet encoding</string>
+    <string name="ns_shielded_wallet">confidential-format wallet</string>
     <string name="ns_pending">Pending</string>
     <string name="ns_pending_confirmations">Pending %s</string>
     <string name="ns_confirmed">Confirmed</string>
-    <string name="ns_view_block_explorer">3xpl.com 보기</string>
+    
     <string name="ns_view_on_explorer">View on explorer</string>
     <string name="ns_time_utc">Time (UTC)</string>
     <string name="ns_block_id">Block ID</string>
@@ -95,31 +95,31 @@
     <string name="ns_transaction_date_error">사용할 수 없음</string>
     <!-- Transfer Screen -->
     <string name="ns_transfer">Transfer</string>
-    <string name="ns_transfer_title">Send and receive Zcash</string>
+    
     <string name="ns_send_money">Send money</string>
     <string name="ns_send_money_text">Scan someone\'s QR code to send them money</string>
     <string name="ns_receive_money">Receive money</string>
     <string name="ns_receive_money_text">Display your QR code or copy your address.</string>
     <string name="ns_top_up">Top up your wallet</string>
-    <string name="ns_top_up_text">Securely buy Zcash through our partners.</string>
-    <string name="ns_buy_moonpay">Buy from MoonPay</string>
-    <string name="ns_buy_moonpay_text">Buy ZEC with a credit card.</string>
-    <string name="ns_swap_sideshift">Swap with SideShift.ai</string>
-    <string name="ns_swap_sideshift_text">30개 이상의 코인으로 교환하세요. 가입할 필요가 없습니다.</string>
-    <string name="ns_swap_stealthex">Swap with StealthEx.io</string>
-    <string name="ns_swap_stealthex_text">Swap transparent coins without limits.</string>
+    
+    
+    
+    
+    
+    
+    
     <string name="ns_receive_money_securely">Receive money privately</string>
     <string name="ns_show_qr_code">Show QR Code</string>
     <string name="ns_show_qr_code_text">Let someone scan to send you money.</string>
     <string name="ns_copy_private_address">Copy private address</string>
     <string name="ns_copy_private_address_text">Your wallet address will be copied to the clipboard.</string>
-    <string name="ns_receive_money_publicly">Receive money publicly</string>
-    <string name="ns_copy_public_address">Copy a non-private address</string>
+    <string name="ns_receive_money_publicly">Share public receive encoding</string>
+    <string name="ns_copy_public_address">Copy public receive encoding</string>
     <string name="ns_receive_money_publicly_text">This will copy your t-address.</string>
     <string name="ns_private_address">Private Address</string>
     <string name="ns_non_private_address">Non-private address</string>
     <string name="ns_top_up_your_wallet">Top up your wallet</string>
-    <string name="ns_top_up_your_wallet_msg">Buy or trade Zcash through our specially selected partners.</string>
+    
     <string name="ns_see_more">See More</string>
     <string name="ns_copied">복사 완료</string>
     <!-- Settings Screen -->
@@ -130,7 +130,7 @@
     <string name="ns_backup_wallet">Backup your wallet</string>
     <string name="ns_backup_wallet_text">Keep your wallet safe in case you lose your phone</string>
     <string name="ns_backup_wallet_heading">Write down your backup seed</string>
-    <string name="ns_backup_wallet_body">휴대폰이나 나이트호크 지갑에 액세스할 수 없는 경우, 이 24단어 문구와 지갑 생성일 코드가 있어야만 Zcash에 다시 액세스할 수 있습니다.\n\n종이에 적어서 안전한 곳에 보관하세요.</string>
+    
     <string name="ns_backup_wallet_pdf">Save as PDF</string>
     <string name="ns_rescan_wallet">Rescan wallet</string>
     <string name="ns_rescan_wallet_text">Rescan wallet balances to troubleshoot issues.</string>
@@ -139,10 +139,10 @@
     <string name="ns_rescan_wallet_wipe">Wipe &amp; restart</string>
     <string name="ns_fiat_currency">Fiat Currency</string>
     <string name="ns_fiat_currency_text">Choose your local currency</string>
-    <string name="ns_fiat_currency_body">현지 통화를 선택하면 ZEC의 가치에 대한 대략적인 추정치를 보여드릴 수 있습니다.\n\n앱을 처음 열면 환율은 코인게코 API v3에서 가져와서 값을 계산하는 데 사용됩니다. 귀하의 자금 금액은 어떤 서버에도 공개되지 않습니다.</string>
-    <string name="ns_change_server">Change server</string>
-    <string name="ns_change_server_text">Change backend lightwalletd server.</string>
-    <string name="ns_change_server_body">Change to nearest available backend lightwalletd server around your region. \n\nThe servers are not operated by Nighthawk, and the privacy of communication and broadcasting transactions cannot be guaranteed. We recommend using a VPN or Tor for enhanced privacy before making transactions.</string>
+    
+    <string name="ns_change_server">Add servers</string>
+    
+    
     <string name="ns_external_services">외부 서비스</string>
     <string name="ns_external_services_text">파트너 서비스를 선택하세요.</string>
     <string name="ns_external_services_uns">Unstoppable 도메인 서비스 사용</string>
@@ -167,7 +167,7 @@
     <string name="ns_security_choose">Choose PIN code</string>
     <string name="ns_security_try_again">Please try again</string>
     <string name="ns_about">About</string>
-    <string name="ns_about_message">Nighthawk is a Shielded Zcash light-wallet with support for Z-addresses, including sending &amp; receiving shielded transactions, memo support &amp; optional t-addresses support with Auto-Shielding technology.\n\nAs a non-custodial wallet for Zcash, you have sole responsibility over its funds. Please immediately and securely back up the seed words upon creating a wallet.\n\nZcash is a digital currency, or cryptocurrency, like Bitcoin. Zcash was built on the original Bitcoin code base. It was conceived by scientists at MIT, Johns Hopkins and other respected academic and scientific institutions.\n\nNighthawk Wallet requires trust in the default or custom lightwalletd server to display accurate transaction information and CoinGecko service for exchange rate feed. This software is provided \"as is\", without warranty of any kind, express or implied.</string>
+    
     <string name="ns_view_source">View Source</string>
     <string name="ns_credits">Nighthawk friends</string>
     <string name="ns_about_text">Nighthawk v%s &amp; Licenses</string>
@@ -207,17 +207,17 @@
     <string name="ns_scan_payment_request">Scan a Payment Request</string>
     <string name="ns_scan_payment_request_text">If you have a payment request, you can scan the QR code here to auto-fill all the details.</string>
     <string name="ns_choose_send">Choose how much to send</string>
-    <string name="ns_spendable_balance">사용 가능한 잔액(송금 수수료 포함) 은 %1s %2s입니다.</string>
+    <string name="ns_spendable_balance">사용 가능한 잔액(송금 수수료 포함) 은 %1$s %2$s입니다.</string>
     <string name="ns_scan_payment_code">Scan a payment code</string>
     <string name="ns_top_up_wallet">Top up wallet</string>
-    <string name="ns_not_enough_zcash">Not enough Zcash</string>
+    
     <string name="ns_add_message">Add a message to your payment</string>
     <string name="ns_write_something">Write something…</string>
     <string name="ns_skip">Skip</string>
     <string name="ns_choose_who">Choose who to send it to</string>
     <string name="ns_review_and_send">Review and send</string>
     <string name="ns_network_fee">Network Fee</string>
-    <string name="ns_send_zcash">Send Zcash</string>
+    
     <string name="ns_sending">Sending</string>
     <string name="ns_pending_confirmation">Pending confirmation</string>
     <string name="ns_expired">Expired</string>
@@ -228,47 +228,44 @@
     <string name="ns_more_details">More Details</string>
     <string name="ns_failed">Failed</string>
     <string name="ns_try_again">Try Again</string>
-    <string name="ns_zec_amount">%1s ZEC</string>
-    <string name="ns_amount_with_unit">%1s %2s</string>
+    
+    <string name="ns_amount_with_unit">%1$s %2$s</string>
     <string name="ns_format_date_time">dd/MM/yyyy</string>
     <string name="ns_view_all_transactions">View transaction history</string>
-    <string name="ns_downloading_block">Downloading\n\nBlock %1s of %2s</string>
+    <string name="ns_downloading_block">Downloading\n\nBlock %1$s of %2$s</string>
     <string name="ns_downloading_wallet">다운로드 중…%1d%%</string>
     <string name="ns_syncing_wallet">동기화 중…%1$.2f%%</string>
-    <string name="ns_syncing_block">Syncing\n\nBlock %1s of %2s</string>
-    <string name="ns_send_and_receive_zcash">Send and receive Zcash</string>
+    <string name="ns_syncing_block">Syncing\n\nBlock %1$s of %2$s</string>
+    
     <string name="ns_add_address_hint">Add address here</string>
     <string name="ns_paste_from_clip_board">Paste from clipboard</string>
     <string name="ns_clipboard_wrong_text_paste_error">마지막으로 복사한 주소가 유효한 지캐시 주소가 아닌 것 같습니다.</string>
     <string name="ns_memo">Memo</string>
-    <string name="ns_pool">Pool</string>
+    <string name="ns_pool">Details</string>
     <string name="ns_network">Network</string>
     <string name="ns_recipient">Recipient</string>
     <string name="ns_address">Address</string>
     <string name="ns_subtotal">Subtotal</string>
     <string name="ns_total_amount">Total amount</string>
-    <string name="ns_shielded">Shielded</string>
+    <string name="ns_shielded">Confidential</string>
     <string name="ns_legacy_shielded_sapling"> 레거시 차폐</string>
-    <string name="ns_transparent">Transparent</string>
+    <string name="ns_transparent">Public receive</string>
     <string name="ns_include_reply_to">include reply-to</string>
-    <string name="ns_migration_app_title">이전 앱 버전에서 양식 마이그레이션</string>
-    <string name="ns_migration_app_error">불편을 드려 죄송합니다만, 이전 저장소에서 데이터를 가져오는 과정에서 오류가 발생한 것 같습니다. 원활한 백업 프로세스를 위해 다음 단계를 수행하는 것이 좋습니다.\n\n1) 앱을 제거하거나 데이터를 삭제하여 충돌하는 정보를 제거합니다.\n2) 백업에서 시드 단어를 수동으로 입력하여 백업 프로세스를 시작합니다.</string>
-    <string name="ns_migration_app_info">데이터를 로컬에 저장하기 위해 보안이 강화된 방법을 구현했습니다. 지갑의 무결성을 보장하기 위해 시드 단어를 마이그레이션해야 합니다. 두 가지 옵션이 있습니다.\n\n A) 자동으로 진행: 시드 단어가 새 저장소로 원활하게 마이그레이션됩니다. 추가 조치가 필요하지 않습니다.\n B) 수동 마이그레이션을 선택합니다: 자동 마이그레이션을 원하지 않는 경우, 앱을 삭제하거나 앱의 데이터를 지우세요. 그 후 시드 단어를 수동으로 입력하여 지갑을 복원할 수 있습니다.\n\n 자동 마이그레이션을 진행하시겠습니까?</string>
-    <string name="buy_zec_dialog_title">Buy ZEC from MoonPay</string>
-    <string name="buy_zec_dialog_msg">미국 거주자가 아닌 고객은 문페이에 등록하여 지캐시(ZEC)를 구매할 수 있습니다.\n\n지캐시 T-주소가 클립보드에 복사되었습니다.\n아래에서 \'브라우저 열기\'를 선택하고 문페이가 로드되면 수령 코인으로 \'지캐시(ZEC)\'를 선택한 후 T-주소를 붙여넣으세요.</string>
+    
+    
     <string name="open_browser">Open Browser</string>
-    <string name="fund_wallet_sideshift_title">Fund wallet with SideShift.ai?</string>
-    <string name="fund_wallet_sideshift_description">Your Z-Address has been copied to the clipboard.\n\nChoose \"Open Browser\" below, select \'Zcash (Shielded)\' as the receiving coin on the SideShift site, and then paste your Z-address.</string>
-    <string name="fund_wallet_stealthex_title">Fund wallet with StealthEx.io?</string>
-    <string name="fund_wallet_stealthex_description">Your T-Address has been copied to the clipboard.\n\nChoose \"Open Browser\" below, select \'Zcash\' as the receiving coin on the StealthEx site, and then paste your T-address.</string>
+    
+    
+    
+    
     <string name="insufficient_msg">송금할 잔액이 충분하지 않습니다.</string>
     <string name="memo_max_length_msg">메시지를 보낼 수 있는 최대 길이를 작성했습니다.</string>
     <string name="autoshielding_title_text">나이트호크 월렛은 <b>기본적으로 보호됩니다</b>. 저희는 귀하의 자금에 대해 최고 수준의 기밀성을 보장하기 위한 조치를 구현했습니다.</string>
     <string name="autoshielding_body_text"><b>자동 차폐</b>는 투명 주소로 들어오는 모든 자금이 자동으로 차폐 주소로 이동됨을 의미합니다.\n\n당사는 최신 개인정보 보호 모범 사례 및 권장 사항에 대한 정기적인 업데이트를 제공하여 사용자에게 최신 정보를 제공하기 위해 최선을 다하고 있습니다.</string>
     <string name="autoshielding_button_positive">좋습니다!</string>
     <string name="autoshielding_button_neutral">자세히 알아보기</string>
-    <string name="link_to_ecc_title">Redirecting to ElectricCoin.co</string>
-    <string name="link_to_ecc_description">Please confirm opening your device browser to learn more about Unified Addresses.</string>
+    
+    
     <string name="shielding">보호화 중!</string>
     <string name="open_settings">설정 열기</string>
     <string name="notification_permission_dialog_title">경고</string>

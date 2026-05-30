@@ -2,22 +2,25 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
+    <uses-permission android:name="android.permission.INTERNET" />
+
     <application
-        android:name="co.electriccoin.zcash.app.ZcashApplication"
+        android:name="com.nighthawkwallet.android.NighthawkWalletApplication"
         android:allowBackup="false"
-        android:label="@string/app_name">
+        android:label="@string/app_name"
+        android:networkSecurityConfig="@xml/network_security_config">
 
         <!-- Alias acts as the entrypoint to the application.
              Using an alias ensures we can refactor the actual Activity without breaking
              clients. -->
         <activity-alias
-            android:name="co.electriccoin.zcash.ui.screen.advancesetting.model.OneLauncherAlias"
+            android:name="com.nighthawkapps.lib.android.ui.screen.advancesetting.model.OneLauncherAlias"
             android:exported="true"
             android:enabled="true"
             android:icon="@mipmap/ic_launcher"
             android:roundIcon="@mipmap/ic_launcher_round"
             android:label="@string/app_name"
-            android:targetActivity="co.electriccoin.zcash.ui.MainActivity">
+            android:targetActivity="com.nighthawkapps.lib.android.ui.MainActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
@@ -29,7 +32,7 @@
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
 
-                <data android:scheme="zcash" />
+                <data android:scheme="drk" />
             </intent-filter>
 
             <meta-data
@@ -39,13 +42,13 @@
         </activity-alias>
 
         <activity-alias
-            android:name="co.electriccoin.zcash.ui.screen.advancesetting.model.TwoLauncherAlias"
+            android:name="com.nighthawkapps.lib.android.ui.screen.advancesetting.model.TwoLauncherAlias"
             android:enabled="false"
             android:exported="true"
             android:icon="@mipmap/ic_launcher_legacy"
             android:label="@string/app_name"
             android:roundIcon="@mipmap/ic_launcher_round_legacy"
-            android:targetActivity="co.electriccoin.zcash.ui.MainActivity">
+            android:targetActivity="com.nighthawkapps.lib.android.ui.MainActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
@@ -57,7 +60,7 @@
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
 
-                <data android:scheme="zcash" />
+                <data android:scheme="drk" />
             </intent-filter>
 
             <meta-data
@@ -65,11 +68,6 @@
                 android:resource="@xml/shortcuts" />
 
         </activity-alias>
-
-        <!-- Enable profiling by benchmark -->
-        <profileable
-            android:shell="true"
-            tools:targetApi="29" />
 
     </application>
 

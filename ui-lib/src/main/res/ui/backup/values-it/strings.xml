@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="new_wallet_clipboard_tag">Frase seme di Zcash</string>
+    
     <string name="new_wallet_navigation_back_button_content_description">Indietro</string>
     <string name="new_wallet_toolbar_more_button_content_description">Altro</string>
     <string name="new_wallet_short_header">La mia frase segreta</string>

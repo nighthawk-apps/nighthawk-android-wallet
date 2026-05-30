@@ -2,11 +2,11 @@
 <resources>
     <string name="wallet_address_title">I miei indirizzi del portafoglio</string>
     <string name="wallet_address_back_content_description">Indietro</string>
-    <string name="wallet_address_unified">Il tuo Indirizzo Unificato</string>
+    <string name="wallet_address_primary_deposit">Il tuo Indirizzo Unificato</string>
     <string name="wallet_address_header_includes">che comprende</string>
-    <string name="wallet_address_sapling">Schermata Sapling (NU1)</string>
-    <string name="wallet_address_transparent">Transparent</string>
+    <string name="wallet_address_confidential_receive">Schermata Sapling (NU1)</string>
+    <string name="wallet_address_public_receive">Transparent</string>
     <string name="wallet_address_show">Visualizza indirizzo</string>
     <string name="wallet_address_hide">Nascondi indirizzo</string>
-    <string name="wallet_address_clipboard_tag">Indirizzo del portafoglio Zcash</string>
+    
 </resources>

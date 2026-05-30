@@ -5,6 +5,10 @@ Workflows exist for:
  * Pull request - On pull request, static analysis and testing is performed.
  * Deploy - On merge to the main branch, a release build is automatically deployed.  Concurrency limits are in place, to ensure that only one release deployment can happen at a time.
 
+## Native / UniFFI libraries
+
+GitHub Actions workflows run **Gradle only**; they do **not** invoke **`cargo-ndk`** or regenerate **`libdarkfi_mobile_ffi.so`**. CI APKs therefore ship UniFFI native code only if **`darkfi-android-sdk/src/main/jniLibs/<abi>/libdarkfi_mobile_ffi.so`** is added by a workflow step or cache restore (none today). For local parity with production native behavior, build the Rust library as described in the repository **`README`** section **Build the project**.
+
 ## Setup
 When forking this repository, some variables/secrets need to be defined to set up new continuous integration builds.
 
@@ -14,7 +18,7 @@ To enhance security, [OpenID Connect](https://docs.github.com/en/actions/deploym
 
 ### Pull request
 * Variables
-    * `ZCASH_SUPPORT_EMAIL_ADDRESS` - Email address for user support requests.
+    * GitHub Actions variable `SUPPORT_EMAIL_ADDRESS` — passed through as Gradle property `WALLET_SUPPORT_EMAIL_ADDRESS` (environment `ORG_GRADLE_PROJECT_WALLET_SUPPORT_EMAIL_ADDRESS`).
     * `FIREBASE_TEST_LAB_PROJECT` - Firebase Test Lab project name.
 * Secrets
     * `EMULATOR_WTF_API_KEY` - API key for [Emulator.wtf](https://emulator.wtf)
@@ -37,7 +41,7 @@ Note that `FIREBASE_DEBUG_JSON_BASE64` and `FIREBASE_RELEASE_JSON_BASE64` are no
 
 ### Release deployment
 * Variables
-    * `ZCASH_SUPPORT_EMAIL_ADDRESS` - Email address for user support requests.
+    * GitHub Actions variable `SUPPORT_EMAIL_ADDRESS` — passed through as Gradle property `WALLET_SUPPORT_EMAIL_ADDRESS` (environment `ORG_GRADLE_PROJECT_WALLET_SUPPORT_EMAIL_ADDRESS`).
 * Secrets
     * `GOOGLE_PLAY_CLOUD_PROJECT` - Google Cloud project associated with Google Play.
     * `GOOGLE_PLAY_SERVICE_ACCOUNT` - Email address of service account.

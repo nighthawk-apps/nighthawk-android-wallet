@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="scan_header">Zcash QR을 스캔하세요</string>
+    
     <string name="scan_back_content_description">돌아가기</string>
     <string name="scan_preview_content_description">카메라</string>
-    <string name="scan_hint">당신은 모든 Zcash QR 코드를 스캔할 수 있습니다.</string>
+    
     <string name="scan_settings_button">카메라 권한 활성화</string>
     <string name="scan_settings_open_failed">설정 앱을 시작할 수 없습니다.</string>
     <string name="scan_setup_failed">QR 스캐너를 실행할 수 없습니다.</string>

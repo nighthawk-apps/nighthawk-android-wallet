@@ -4,7 +4,7 @@
     <application>
         <provider
             android:name=".process.internal.DefaultProcessContentProvider"
-            android:authorities="${applicationId}.co.electriccoin.zcash.spackle"
+            android:authorities="${applicationId}.com.nighthawkapps.lib.android.spackle"
             android:exported="false" />
     </application>
 

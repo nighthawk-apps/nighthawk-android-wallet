@@ -1,5 +1,5 @@
 <resources>
-    <string name="new_wallet_clipboard_tag">Zcash Seed Phrase</string>
+    <string name="new_wallet_clipboard_tag">DRK recovery phrase</string>
 
     <string name="new_wallet_navigation_back_button_content_description">Back</string>
     <string name="new_wallet_toolbar_more_button_content_description">More</string>

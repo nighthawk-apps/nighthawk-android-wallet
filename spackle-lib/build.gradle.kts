@@ -1,10 +1,10 @@
 plugins {
     kotlin("multiplatform")
-    id("secant.kotlin-multiplatform-build-conventions")
-    id("secant.dependency-conventions")
+    id("stealth.kotlin-multiplatform-build-conventions")
+    id("stealth.dependency-conventions")
 
     id("org.jetbrains.kotlinx.kover")
-    id("secant.kover-conventions")
+    id("stealth.kover-conventions")
 }
 
 kotlin {

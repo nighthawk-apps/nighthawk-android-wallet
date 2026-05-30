@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<lint>
+    <!-- UniFFI-generated Kotlin lives under .../uniffi/; do not Lint it (generator-owned output). -->
+    <issue id="all">
+        <ignore path="src/main/java/**/uniffi/**" />
+    </issue>
+</lint>

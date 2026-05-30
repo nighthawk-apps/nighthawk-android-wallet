@@ -1,0 +1,84 @@
+package com.nighthawkapps.lib.android.ui.design.component
+
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
+import com.nighthawkapps.lib.android.spackle.model.Index
+import com.nighthawkapps.lib.android.ui.design.theme.WalletTheme
+
+@Preview
+@Composable
+private fun ComposablePreview() {
+    WalletTheme(darkTheme = false) {
+        Chip(Index(0), "edict")
+    }
+}
+
+@Composable
+fun Chip(
+    index: Index,
+    text: String,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        modifier = modifier.then(Modifier.padding(4.dp)),
+        shape = RoundedCornerShape(8.dp),
+        color = MaterialTheme.colorScheme.secondary,
+        shadowElevation = 8.dp
+    ) {
+        Row(
+            modifier =
+                Modifier
+                    .padding(8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Text(
+                text = (index.value + 1).toString(),
+                style = WalletTheme.typography.chipIndex,
+                color = WalletTheme.colors.chipIndex
+            )
+            Text(
+                text = text,
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSecondary,
+                modifier = Modifier.testTag(CommonTag.CHIP)
+            )
+            Spacer(modifier = Modifier.padding(horizontal = 2.dp, vertical = 0.dp))
+        }
+    }
+}
+
+@Composable
+fun Chip(
+    text: String,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        modifier = modifier.padding(4.dp),
+        shape = RoundedCornerShape(8.dp),
+        color = MaterialTheme.colorScheme.secondary,
+        shadowElevation = 8.dp
+    ) {
+        Text(
+            text = text,
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.onSecondary,
+            modifier =
+                Modifier
+                    .padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 8.dp)
+                    .testTag(CommonTag.CHIP)
+        )
+    }
+}

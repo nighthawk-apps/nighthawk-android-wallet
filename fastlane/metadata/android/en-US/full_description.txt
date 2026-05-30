@@ -1,37 +1,20 @@
-Nighthawk is a Shielded-by-default light wallet with support sending & receiving shielded transactions, memo support & optional T-addresses support with Auto-Shielding technology.
+Nighthawk Wallet is a work-in-progress non-custodial Android wallet built on DarkFi-oriented architecture. Native sync, transfers, and daemon RPC are staged behind an explicit Kotlin façade until UniFFI/`darkfid` backing ships. Note: This is currently a `-test` release intended for F-Droid and development preview.
 
-Shielded by Default:
-- Auto-shielding moves funds from transparent addresses to the shielded pool!
+What you get today
+- Self-custodial 22-word DarkFi recovery phrase backup (PDF export supported).
+- A 1:1 privacy-first architecture: Your wallet generates a single DarkFi address from your phrase.
+- Navigation surfaces for transfers (mock until JNI lands), receive, settings, and experimental DarkIRC-aligned chat diagnostics.
 
-Powered by Native Mobile SDKs
-- Standardized SDKs with accurate protocol specification for a seamless experience.
+Important limitations
+- Integrated exchange, card-on-ramp, referral flows, and vendor-specific funding shortcuts were intentionally removed.
+- Chat performs Kotlin-side seed/Tor diagnostics only until the Rust `darkirc` stack from DarkFi `bin/` is JNI-linked.
+- Fiat hints rely on public spot APIs (`darkfi` slug on CoinGecko today—confirm before relying on numbers).
 
-Privacy Preserving:
-- Nighthawk wallet ensures funds can only be sent via your Shielded Address.
+Operational notes
+- Wallet networking targets configurable DarkFi-style RPC endpoints (`darkfid`-style host/port); defaults point at loopback / emulator-friendly addresses for development.
+- Store URLs in README/marketing materials are placeholders until listings go live.
 
-Nighthawk is a light-wallet:
-- Requires trust in the lightwalletd server for displaying accurate transaction information.
+Support
+- Reach maintainers via channels linked from the repository README.
 
-Self-custody:
-- Take sole responsibility for your funds on Nighthawk. Securely backup seed words immediately.
-
-Swap ZEC via SideShift.ai & StealthEx.io:
-- Easily exchange ZEC for supported cryptocurrencies. KYC, Terms & Conditions apply.
-
-Unstoppable Domains Support
-- Opt-in to UNS support under Settings > External Services for worry-free ZEC transactions.
-
-PIN protection:
-- Set a 6 digit pin and even enable Face Id/Touch Id to open the wallet.
-
-Export Seed Words to PDF:
-- Securely generate a password-protected PDF with wallet seed words for backing up on a secure platform of your choice.
-
-Need Help?:
-- Connect with us via X @NighthawkWallet or https://nighthawkwallet.com for email.
-
-NOTE: As a light wallet, the app requires trust in the lightwalletd server to display accurate transaction information. You can change the default lightwalletd server under Profile > Settings. The servers are not operated by Nighthawk, and the privacy of communication and broadcasting transactions cannot be guaranteed. We recommend using a VPN or Tor for enhanced privacy before making transactions.
-
-TROUBLESHOOTING: In case of issues with syncing or missing transactions, please try the Rescan Wallet option.
-
-This software is provided 'as is', without warranty of any kind, express or implied.
+Disclaimer: software is provided "as is", without warranty.

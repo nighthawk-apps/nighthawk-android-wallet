@@ -1,17 +1,18 @@
 plugins {
     id("com.android.test")
-    kotlin("android")
-    id("secant.android-build-conventions")
+    id("org.jetbrains.kotlin.plugin.compose")
+    id("stealth.android-build-conventions")
+    id("stealth.compose-conventions")
 //    id("wtf.emulator.gradle")
-//    id("secant.emulator-wtf-conventions")
-    id("secant.jacoco-conventions")
+//    id("stealth.emulator-wtf-conventions")
+    id("stealth.jacoco-conventions")
 }
 
 // Force orchestrator to be used for this module, because we need cleared state before each test
 val isOrchestratorEnabled = true
 
 android {
-    namespace = "co.electriccoin.zcash.ui.integration"
+    namespace = "com.nighthawkapps.lib.android.ui.integration"
     // Target needs to be set to com.android.application type module
     targetProjectPath = ":${projects.app.name}"
     // Run tests in this module
@@ -22,16 +23,16 @@ android {
             testInstrumentationRunnerArguments["clearPackageData"] = "true"
         }
 
-        testInstrumentationRunner = "co.electriccoin.zcash.test.ZcashUiTestRunner"
+        testInstrumentationRunner = "com.nighthawkapps.lib.android.test.NighthawkUiTestRunner"
     }
 
     // Define the same flavors as in app module
     flavorDimensions.add("network")
     productFlavors {
-        create("zcashtestnet") {
+        create("darkfitestnet") {
             dimension = "network"
         }
-        create("zcashmainnet") {
+        create("darkfimainnet") {
             dimension = "network"
         }
     }
@@ -49,10 +50,6 @@ android {
 
     buildFeatures {
         compose = true
-    }
-
-    composeOptions {
-        kotlinCompilerExtensionVersion = libs.androidx.compose.compiler.get().versionConstraint.displayName
     }
 }
 

@@ -1,15 +1,14 @@
 plugins {
     id("com.android.library")
-    kotlin("android")
-    id("secant.android-build-conventions")
+    id("stealth.android-build-conventions")
 //    id("wtf.emulator.gradle")
-//    id("secant.emulator-wtf-conventions")
-    id("secant.jacoco-conventions")
+//    id("stealth.emulator-wtf-conventions")
+    id("stealth.jacoco-conventions")
 }
 
 android {
-    namespace = "co.electriccoin.zcash.spackle"
-    testNamespace = "co.electriccoin.zcash.spackle.test"
+    namespace = "com.nighthawkapps.lib.android.spackle"
+    testNamespace = "com.nighthawkapps.lib.android.spackle.test"
     // Force orchestrator to be used for this module, because we need the process name to be purged between tests
     defaultConfig {
         testInstrumentationRunnerArguments["clearPackageData"] = "true"

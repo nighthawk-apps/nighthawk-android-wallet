@@ -116,15 +116,15 @@ jobs:
       - name: Upload to Play Store
         timeout-minutes: 25
         env:
-          ORG_GRADLE_PROJECT_ZCASH_SUPPORT_EMAIL_ADDRESS: ${{ vars.SUPPORT_EMAIL_ADDRESS }}
-          ORG_GRADLE_PROJECT_ZCASH_GOOGLE_PLAY_SERVICE_KEY_FILE_PATH: ${{ steps.auth_google_play.outputs.credentials_file_path }}
-          ORG_GRADLE_PROJECT_ZCASH_RELEASE_KEYSTORE_PATH: ${{ format('{0}/release.jks', env.home) }}
-          ORG_GRADLE_PROJECT_ZCASH_RELEASE_KEYSTORE_PASSWORD: ${{ secrets.UPLOAD_KEYSTORE_PASSWORD }}
-          ORG_GRADLE_PROJECT_ZCASH_RELEASE_KEY_ALIAS: ${{ secrets.UPLOAD_KEY_ALIAS }}
-          ORG_GRADLE_PROJECT_ZCASH_RELEASE_KEY_ALIAS_PASSWORD: ${{ secrets.UPLOAD_KEY_ALIAS_PASSWORD }}
-          ORG_GRADLE_PROJECT_ZCASH_GOOGLE_PLAY_DEPLOY_MODE: deploy
+          ORG_GRADLE_PROJECT_WALLET_SUPPORT_EMAIL_ADDRESS: ${{ vars.SUPPORT_EMAIL_ADDRESS }}
+          ORG_GRADLE_PROJECT_WALLET_GOOGLE_PLAY_SERVICE_KEY_FILE_PATH: ${{ steps.auth_google_play.outputs.credentials_file_path }}
+          ORG_GRADLE_PROJECT_WALLET_RELEASE_KEYSTORE_PATH: ${{ format('{0}/release.jks', env.home) }}
+          ORG_GRADLE_PROJECT_WALLET_RELEASE_KEYSTORE_PASSWORD: ${{ secrets.UPLOAD_KEYSTORE_PASSWORD }}
+          ORG_GRADLE_PROJECT_WALLET_RELEASE_KEY_ALIAS: ${{ secrets.UPLOAD_KEY_ALIAS }}
+          ORG_GRADLE_PROJECT_WALLET_RELEASE_KEY_ALIAS_PASSWORD: ${{ secrets.UPLOAD_KEY_ALIAS_PASSWORD }}
+          ORG_GRADLE_PROJECT_WALLET_GOOGLE_PLAY_DEPLOY_MODE: deploy
         run: |
-          ./gradlew :app:assembleDebug :app:publishBundle :app:packageZcashmainnetReleaseUniversalApk
+          ./gradlew :app:assembleDebug :app:publishBundle :app:packageDarkfimainnetReleaseUniversalApk
       - name: Collect Artifacts
         timeout-minutes: 1
         env:

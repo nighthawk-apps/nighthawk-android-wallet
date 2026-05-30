@@ -1,13 +1,12 @@
 plugins {
     id("com.android.library")
-    kotlin("android")
-    id("secant.android-build-conventions")
-    id("secant.jacoco-conventions")
+    id("stealth.android-build-conventions")
+    id("stealth.jacoco-conventions")
 }
 
 android {
-    namespace = "co.electriccoin.zcash.test"
-    resourcePrefix = "co_electriccoin_zcash_"
+    namespace = "com.nighthawkapps.lib.android.test"
+    resourcePrefix = "darkfi_wallet_test_"
 }
 
 dependencies {

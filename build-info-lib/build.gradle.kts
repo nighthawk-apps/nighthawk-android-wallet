@@ -4,17 +4,17 @@ import java.util.TimeZone
 
 plugins {
     kotlin("multiplatform")
-    id("secant.kotlin-multiplatform-build-conventions")
-    id("secant.dependency-conventions")
+    id("stealth.kotlin-multiplatform-build-conventions")
+    id("stealth.dependency-conventions")
 }
 
 // Injects build information
 // Note timestamp is not currently injected because it effectively disables the cache since it
 // changes with every build
-val generateBuildConfigTask = tasks.create("buildConfig") {
+val generateBuildConfigTask = tasks.register("buildConfig") {
     val generatedDir = layout.buildDirectory.dir("generated").get().asFile
 
-    val gitInfo = co.electriccoin.zcash.Git.newInfo(parent!!.projectDir)
+    val gitInfo = com.nighthawkapps.lib.android.Git.newInfo(parent!!.projectDir)
     //val buildTimestamp = newIso8601Timestamp()
 
     inputs.property("gitSha", gitInfo.sha)
@@ -24,7 +24,7 @@ val generateBuildConfigTask = tasks.create("buildConfig") {
     outputs.dir(generatedDir)
 
     doLast {
-        val outputFile = File("$generatedDir/co/electriccoin/zcash/build/BuildConfig.kt")
+        val outputFile = File("$generatedDir/org/darkfi/wallet/android/build/BuildConfig.kt")
         outputFile.parentFile.mkdirs()
 
         // To add timestamp, add this to the output below
@@ -34,7 +34,7 @@ val generateBuildConfigTask = tasks.create("buildConfig") {
         outputFile.writeText(
             """
 // Generated file
-package co.electriccoin.zcash.build
+package com.nighthawkapps.lib.android.build
 
 const val gitSha: String = "${gitInfo.sha}"
 const val gitCommitCount: Int = ${gitInfo.commitCount}
@@ -49,7 +49,6 @@ kotlin {
         getByName("commonMain") {
             dependencies {
                 kotlin.srcDir(generateBuildConfigTask)
-                //api(libs.kotlinx.datetime)
             }
         }
         getByName("commonTest") {

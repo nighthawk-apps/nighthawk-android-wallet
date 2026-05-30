@@ -13,9 +13,14 @@
 default_platform(:android)
 
 platform :android do
+  desc "Build for F-Droid (test)"
+  lane :fdroid do
+    gradle(task: "clean assembleDarkfimainnetRelease")
+  end
+
   desc "Submit Build"
   lane :build do |options|
-    gradle(task: "clean assembleZcashMainnetRelease")
+    gradle(task: "clean assembleDarkfimainnetRelease")
     upload_to_app_center(api_token: options[:api_token], app_name: options[:app_name], notes: "Author: #{commit[:author]}, changes: #{commit[:message]}")
   end
 

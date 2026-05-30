@@ -8,7 +8,7 @@
 
     <!-- For test coverage on API 29 only -->
     <application
-        android:label="zcash-preference-test"
+        android:label="darkfi-preference-test"
         android:requestLegacyExternalStorage="true" />
 
 </manifest>

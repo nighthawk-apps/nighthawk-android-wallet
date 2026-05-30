@@ -2,11 +2,11 @@
 <resources>
     <string name="wallet_address_title">나의 지갑 주소</string>
     <string name="wallet_address_back_content_description">돌아가기</string>
-    <string name="wallet_address_unified">통합주소 (Unified address)</string>
+    <string name="wallet_address_primary_deposit">통합주소 (Unified address)</string>
     <string name="wallet_address_header_includes">다음을 포함합니다.</string>
-    <string name="wallet_address_sapling">Shielded Sapling (NU1)</string>
-    <string name="wallet_address_transparent">Transparent</string>
+    <string name="wallet_address_confidential_receive">Shielded Sapling (NU1)</string>
+    <string name="wallet_address_public_receive">Transparent</string>
     <string name="wallet_address_show">주소 보기</string>
     <string name="wallet_address_hide">주소 숨기기</string>
-    <string name="wallet_address_clipboard_tag">Zcash Wallet 주소</string>
+    
 </resources>

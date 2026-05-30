@@ -16,8 +16,8 @@
     <string name="home_status_syncing_additional_information">Ti mostreremo i fondi man mano che li individuiamo.</string>
     <string name="home_status_up_to_date">Aggiornato</string>
     <string name="home_status_sending_format" formatted="true">Invio <xliff:g id="sending_amount" example=".023">%1$s</xliff:g></string>
-    <string name="home_status_receiving_format" formatted="true">Ricezione di <xliff:g id="receiving_amount" example=".023">%1$s</xliff:g> ZEC</string>
-    <string name="home_status_shielding_format" formatted="true">Schermatura di <xliff:g id="shielding_amount" example=".023">%1$s</xliff:g> ZEC</string>
+    
+    
     <string name="home_status_update">Perfavore aggiorna</string>
     <string name="home_status_error" formatted="true">Errore: <xliff:g id="error_type" example="Lost connection">%1$s</xliff:g></string>
     <string name="home_status_error_connection">Disconnesso</string>

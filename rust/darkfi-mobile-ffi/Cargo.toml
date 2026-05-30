@@ -1,0 +1,36 @@
+[package]
+name = "darkfi-mobile-ffi"
+version = "0.1.0"
+edition = "2021"
+description = "UniFFI cdylib for DarkFi-backed Android APIs (incremental rollout)."
+license = "MIT"
+publish = false
+
+[lib]
+name = "darkfi_mobile_ffi"
+crate-type = ["lib", "cdylib"]
+
+[dependencies]
+drk = { path = "../../third_party/darkfi/bin/drk" }
+darkfi = { path = "../../third_party/darkfi", features = ["bs58"] }
+darkfi-sdk = { path = "../../third_party/darkfi/src/sdk", features = ["async"] }
+darkfi-serial = { path = "../../third_party/darkfi/src/serial" }
+crypto_box = {version = "0.9.1", features = ["std", "chacha20"]}
+bs58 = "0.5.1"
+bip39 = "2.0.0"
+rand = "0.8.5"
+blake3 = "1.8.5"
+futures = "0.3.32"
+smol = "2.0.2"
+url = "2.5.8"
+uniffi = { version = "0.31.1", features = ["scaffolding-ffi-buffer-fns", "cli"] }
+thiserror = "2"
+pbkdf2 = "0.11.0"
+hmac = "0.12.1"
+sha2 = "0.10.6"
+num-bigint = {version = "0.4.6", features = ["rand"]}
+num-traits = "0.2.19"
+unicode-normalization = "0.1.25"
+
+[build-dependencies]
+uniffi = { version = "0.31.1", features = ["build", "scaffolding-ffi-buffer-fns"] }

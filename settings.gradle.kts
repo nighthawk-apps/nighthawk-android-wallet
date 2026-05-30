@@ -1,6 +1,3 @@
-import java.io.FileInputStream
-import java.util.Properties
-
 enableFeaturePreview("TYPESAFE_PROJECT_ACCESSORS")
 
 pluginManagement {
@@ -66,9 +63,11 @@ pluginManagement {
         id("org.jetbrains.kotlinx.kover") version (extra["KOVER_VERSION"].toString()) apply false
 //        id("wtf.emulator.gradle") version (extra["EMULATOR_WTF_GRADLE_PLUGIN_VERSION"].toString()) apply false
         id("com.mikepenz.aboutlibraries.plugin") version (extra["ABOUT_LIBRARIES_VERSION"].toString()) apply (false)
-        kotlin("android") version (kotlinVersion) apply false
+        // kotlin("android") version (kotlinVersion) apply false
         kotlin("jvm") version (kotlinVersion) apply false
         kotlin("multiplatform") version (kotlinVersion) apply false
+        id("org.jetbrains.kotlin.plugin.compose") version (kotlinVersion) apply false
+        kotlin("plugin.serialization") version (kotlinVersion) apply false
     }
 }
 
@@ -121,31 +120,16 @@ dependencyResolutionManagement {
                 }
             }
         }
-        maven("https://oss.sonatype.org/content/repositories/snapshots") {
-            mavenContent {
-                snapshotsOnly()
-            }
-            if (isRepoRestrictionEnabled) {
-                content {
-                    includeGroup("cash.z.ecc.android")
-                }
+        // Explicit resolver for ktlint CLI (same coordinates as Maven Central; handy for mirrors / restricted repos).
+        maven(url = uri("https://repo.maven.apache.org/maven2/")) {
+            name = "MavenCentralApacheMirror"
+            content {
+                includeGroup("com.pinterest.ktlint")
+                includeGroupByRegex("com\\.pinterest\\.ktlint(\\..*)?")
             }
         }
         maven("https://jitpack.io") {
 
-        }
-
-        maven {
-            name = "GitHubPackages"
-            url = uri("https://maven.pkg.github.com/flexa/flexa-android")
-            credentials {
-                val propertiesFile = file("local.properties")
-                val localProperties = Properties()
-                localProperties.load(FileInputStream(propertiesFile))
-
-                username = localProperties.getProperty("gpr.user")
-                password = localProperties.getProperty("gpr.key")
-            }
         }
     }
 
@@ -157,7 +141,7 @@ dependencyResolutionManagement {
             val androidxAnnotationVersion = extra["ANDROIDX_ANNOTATION_VERSION"].toString()
             val androidxAppcompatVersion = extra["ANDROIDX_APPCOMPAT_VERSION"].toString()
             val androidxCameraVersion = extra["ANDROIDX_CAMERA_VERSION"].toString()
-            val androidxComposeCompilerVersion = extra["ANDROIDX_COMPOSE_COMPILER_VERSION"].toString()
+            // val androidxComposeCompilerVersion = extra["ANDROIDX_COMPOSE_COMPILER_VERSION"].toString()
             val androidxComposeMaterial3Version = extra["ANDROIDX_COMPOSE_MATERIAL3_VERSION"].toString()
             val androidxComposeMaterialIconsVersion = extra["ANDROIDX_COMPOSE_MATERIAL_ICONS_VERSION"].toString()
             val androidxComposeVersion = extra["ANDROIDX_COMPOSE_VERSION"].toString()
@@ -186,8 +170,6 @@ dependencyResolutionManagement {
             val kotlinxDateTimeVersion = extra["KOTLINX_DATETIME_VERSION"].toString()
             val kotlinxCoroutinesVersion = extra["KOTLINX_COROUTINES_VERSION"].toString()
             val kotlinxImmutableCollectionsVersion = extra["KOTLINX_IMMUTABLE_COLLECTIONS_VERSION"].toString()
-            val zcashBip39Version = extra["ZCASH_BIP39_VERSION"].toString()
-            val zcashSdkVersion = extra["ZCASH_SDK_VERSION"].toString()
             val zxingVersion = extra["ZXING_VERSION"].toString()
             val pdfBoxVersion = extra["PDF_BOX_VERSION"].toString()
             val lottieVersion = extra["LOTTIE_VERSION"].toString()
@@ -196,7 +178,7 @@ dependencyResolutionManagement {
             val retrofitVersion = extra["RETROFIT_VERSION"].toString()
             val okHttpVersion = extra["OKHTTP_VERSION"].toString()
             val secureStorageVersion = extra["SECURE_STORAGE_VERSION"].toString()
-            val flexaVersion = extra["FLEXA_VERSION"].toString()
+            val mockitoVersion = extra["MOCKITO_VERSION"].toString()
 
             // Standalone versions
             version("flank", flankVersion)
@@ -218,9 +200,9 @@ dependencyResolutionManagement {
             library("androidx-compose-material-icons-extended", "androidx.compose.material:material-icons-extended:$androidxComposeMaterialIconsVersion")
             library("androidx-compose-tooling", "androidx.compose.ui:ui-tooling:$androidxComposeVersion")
             library("androidx-compose-ui", "androidx.compose.ui:ui:$androidxComposeVersion")
-            library("androidx-compose-ui", "androidx.compose.ui:ui-util:$androidxComposeVersion")
+            library("androidx-compose-ui-util", "androidx.compose.ui:ui-util:$androidxComposeVersion")
             library("androidx-compose-ui-fonts", "androidx.compose.ui:ui-text-google-fonts:$androidxComposeVersion")
-            library("androidx-compose-compiler", "androidx.compose.compiler:compiler:$androidxComposeCompilerVersion")
+            //library("androidx-compose-compiler", "androidx.compose.compiler:compiler:$androidxComposeCompilerVersion")
             library("androidx-core", "androidx.core:core-ktx:$androidxCoreVersion")
             library("androidx-constraintlayout", "androidx.constraintlayout:constraintlayout-compose:$androidxConstraintLayoutVersion")
             library("androidx-lifecycle-livedata", "androidx.lifecycle:lifecycle-livedata-ktx:$androidxLifecycleVersion")
@@ -241,10 +223,6 @@ dependencyResolutionManagement {
             library("kotlinx-coroutines-guava", "org.jetbrains.kotlinx:kotlinx-coroutines-guava:$kotlinxCoroutinesVersion")
             library("kotlinx-datetime", "org.jetbrains.kotlinx:kotlinx-datetime:$kotlinxDateTimeVersion")
             library("kotlinx-immutable", "org.jetbrains.kotlinx:kotlinx-collections-immutable:$kotlinxImmutableCollectionsVersion")
-            library("zcash-sdk", "cash.z.ecc.android:zcash-android-sdk:$zcashSdkVersion")
-            library("zcash-sdk-incubator", "cash.z.ecc.android:zcash-android-sdk-incubator:$zcashSdkVersion")
-            library("zcash-bip39", "cash.z.ecc.android:kotlin-bip39:$zcashBip39Version")
-            library("zcash-walletplgns", "cash.z.ecc.android:zcash-android-wallet-plugins:$zcashBip39Version")
             library("zxing", "com.google.zxing:core:$zxingVersion")
             library("pdfbox", "com.tom-roush:pdfbox-android:$pdfBoxVersion")
             library("lottie", "com.airbnb.android:lottie-compose:$lottieVersion")
@@ -255,9 +233,7 @@ dependencyResolutionManagement {
             library("square-okhttp", "com.squareup.okhttp3:okhttp:$okHttpVersion")
             library("square-okhttp-logging-interceptor", "com.squareup.okhttp3:logging-interceptor:$okHttpVersion")
             library("secure-storage", "com.github.gmale:secure-storage-android:$secureStorageVersion")
-            library("flexa-core", "co.flexa:core:$flexaVersion")
-            library("flexa-scan", "co.flexa:scan:$flexaVersion")
-            library("flexa-spend", "co.flexa:spend:$flexaVersion")
+            library("mockito-core", "org.mockito:mockito-core:$mockitoVersion")
 
             // Test libraries
             library("androidx-compose-test-junit", "androidx.compose.ui:ui-test-junit4:$androidxComposeVersion")
@@ -286,11 +262,11 @@ dependencyResolutionManagement {
             bundle(
                 "androidx-compose-core",
                 listOf(
-                    "androidx-compose-compiler",
                     "androidx-compose-foundation",
                     "androidx-compose-material3",
                     "androidx-compose-tooling",
                     "androidx-compose-ui",
+                    "androidx-compose-ui-util",
                     "androidx-compose-ui-fonts"
                 )
             )
@@ -320,9 +296,9 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "zcash-android-app"
+rootProject.name = "darkfi-nighthawk-wallet-android"
 
-includeBuild("build-conventions-secant")
+includeBuild("build-conventions-stealth")
 
 include("app")
 include("build-info-lib")
@@ -330,7 +306,7 @@ include("configuration-api-lib")
 include("configuration-impl-android-lib")
 include("preference-api-lib")
 include("preference-impl-android-lib")
-include("sdk-ext-lib")
+include("darkfi-android-sdk")
 include("spackle-lib")
 include("spackle-android-lib")
 include("test-lib")
@@ -339,26 +315,3 @@ include("ui-design-lib")
 include("ui-integration-test")
 include("ui-lib")
 include("ui-screenshot-test")
-
-val zcashSdkIncludedBuildPath = extra["SDK_INCLUDED_BUILD_PATH"].toString()
-
-if (zcashSdkIncludedBuildPath.isNotEmpty()) {
-    logger.lifecycle("The SDK will be used from $zcashSdkIncludedBuildPath instead of Maven Central.")
-    includeBuild(zcashSdkIncludedBuildPath) {
-        dependencySubstitution {
-            substitute(module("cash.z.ecc.android:zcash-android-sdk")).using(project(":sdk-lib"))
-            substitute(module("cash.z.ecc.android:zcash-android-sdk-incubator")).using(project(":sdk-incubator-lib"))
-        }
-    }
-}
-
-val bip39IncludedBuildPath = extra["BIP_39_INCLUDED_BUILD_PATH"].toString()
-
-if (bip39IncludedBuildPath.isNotEmpty()) {
-    logger.lifecycle("BIP-39 will be used from $bip39IncludedBuildPath instead of Maven Central.")
-    includeBuild(bip39IncludedBuildPath) {
-        dependencySubstitution {
-            substitute(module("cash.z.ecc.android:kotlin-bip39")).using(project(":bip39-lib"))
-        }
-    }
-}

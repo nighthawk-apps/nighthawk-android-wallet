@@ -1,6 +1,6 @@
 ---
 name: Bug report
-about: Create a report about a bug in Secant Android Wallet.
+about: Report a bug in Nighthawk Wallet (DarkFi-oriented).
 title: ''
 labels: 'bug'
 assignees: ''
@@ -8,13 +8,9 @@ assignees: ''
 ---
 
 <!--
-This issue tracker is only for technical issues related to Secant Android Wallet.
+Technical issues for this Android repo belong here.
 
-General Zcash questions and/or support requests and are best directed to either:
- * Zcash Forum: https://forum.zcashcommunity.com/)
- * Discord Community: https://discord.io/zcash-community
-
-If you wish to report a security issue, please follow our Responsible Disclosure Guidelines: https://github.com/zcash/ZcashLightClientKit/blob/master/responsible_disclosure.md
+Security-sensitive reports should use GitHub Security Advisories for this repository (see SECURITY guidance in the README) instead of public issues.
 -->
 
 ### Describe the issue
@@ -42,4 +38,3 @@ information like addresses, usernames, amounts or anything other that you might 
 ### Any extra information that might be useful in the debugging process.
 <!-- Note: please do not include sensitive information. blur, scratch or annotate any
 information like addresses, usernames, amounts or anything other that you might consider sensitive and it's not relevant to the problem you are reporting.-->
-

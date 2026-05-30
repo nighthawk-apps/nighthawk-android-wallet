@@ -8,10 +8,10 @@
 
     <!-- Legacy external storage is for coverage on API 29 -->
     <application
-        android:label="zcash-ui-test"
+        android:label="darkfi-ui-test"
         android:requestLegacyExternalStorage="true" >
         <activity
-            android:name="co.electriccoin.zcash.ui.common.UiTestingActivity"
+            android:name="com.nighthawkapps.lib.android.ui.common.UiTestingActivity"
             android:exported="false" />
     </application>
 

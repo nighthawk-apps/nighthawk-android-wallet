@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="darkirc_fg_channel_name">DarkIRC background</string>
+    <string name="darkirc_fg_notif_title">DarkIRC</string>
+    <string name="darkirc_fg_notif_body">Node running for in-app chat (127.0.0.1:6667)</string>
+</resources>

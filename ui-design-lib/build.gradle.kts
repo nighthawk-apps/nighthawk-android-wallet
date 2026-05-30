@@ -2,27 +2,24 @@ import com.android.build.api.variant.BuildConfigField
 
 plugins {
     id("com.android.library")
-    kotlin("android")
-    id("secant.android-build-conventions")
-    id("secant.jacoco-conventions")
+    id("org.jetbrains.kotlin.plugin.compose")
+    id("stealth.android-build-conventions")
+    id("stealth.compose-conventions")
+    id("stealth.jacoco-conventions")
 }
 
 android {
-    namespace = "co.electriccoin.zcash.ui.design"
+    namespace = "com.nighthawkapps.lib.android.ui.design"
 
     buildFeatures {
         compose = true
         buildConfig = true
     }
 
-    composeOptions {
-        kotlinCompilerExtensionVersion = libs.androidx.compose.compiler.get().versionConstraint.displayName
-    }
-
     sourceSets {
         getByName("main").apply {
-            res.setSrcDirs(
-                setOf(
+            res.directories.addAll(
+                listOf(
                     "src/main/res/ui/common",
                 )
             )
@@ -33,7 +30,7 @@ android {
 androidComponents {
     onVariants { variant ->
         // Configure dark mode support for the app runtime
-        variant.buildConfigFields.put(
+        variant.buildConfigFields!!.put(
                 "IS_APP_DARK_MODE_ENABLED",
                 BuildConfigField(
                         type = "boolean",

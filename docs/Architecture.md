@@ -3,10 +3,10 @@ _Note: This document will continue to be updated as the app is implemented._
 
 # Gradle
  * Versions are declared in [gradle.properties](../gradle.properties).  There's still enough inconsistency in how versions are handled in Gradle, that this is as close as we can get to a universal system.  A version catalog is used for dependencies and is configured in [settings.gradle.kts](../settings.gradle.kts), but other versions like Gradle Plug-ins, the NDK version, Java version, and Android SDK versions don't fit into the version catalog model and are read directly from the properties
- * Much of the Gradle configuration lives in [build-conventions-secant](../build-conventions-secant/) to prevent repetitive configuration as additional modules are added to the project
+ * Much of the Gradle configuration lives in [build-conventions-stealth](../build-conventions-stealth/) to prevent repetitive configuration as additional modules are added to the project
  * Build scripts are written in Kotlin, so that a single language is used across build and the app code bases
  * Only Gradle, Google, and JetBrains plug-ins are included in the critical path.  Third party plug-ins can be used, but they're outside the critical path.  For example, the Gradle Versions Plugin could be removed and wouldn't negatively impact local building, testing, or releasing the app
- * Repository restrictions are enabled in [build-conventions-secant](../build-conventions-secant/settings.gradle.kts), [settings.gradle.kts](../settings.gradle.kts), and [build.gradle.kts](../build.gradle.kts) to reduce likelihood of pulling in an incorrect dependency.  If adding a new dependency, these restrictions may need to be changed otherwise an error that the dependency cannot be found will be displayed
+ * Repository restrictions are enabled in [build-conventions-stealth](../build-conventions-stealth/settings.gradle.kts), [settings.gradle.kts](../settings.gradle.kts), and [build.gradle.kts](../build.gradle.kts) to reduce likelihood of pulling in an incorrect dependency.  If adding a new dependency, these restrictions may need to be changed otherwise an error that the dependency cannot be found will be displayed
 
 # Multiplatform
 While this repository is for an Android application, efforts are made to give multiplatform flexibility in the future.  Specific adaptions that are being made:
@@ -18,13 +18,13 @@ Note: Test coverage for multiplatform modules behaves differently than coverage 
 
 # App
 The main entrypoints of the application are:
- * [ZcashApplication.kt](../app/src/main/java/co/electriccoin/zcash/app/ZcashApplication.kt) - The root Application object defined in the app module
- * [MainActivity.kt](../ui-lib/src/main/java/co/electriccoin/zcash/ui/MainActivity.kt) - The main Activity, defined in ui-lib.  Note that the Activity is NOT exported.  Instead, the app module defines an activity-alias in the AndroidManifest which is what presents the actual icon on the Android home screen.
+ * [NighthawkWalletApplication.kt](../app/src/main/java/com/nighthawkwallet/android/NighthawkWalletApplication.kt) — Root `Application` type (`DarkFi`/wallet bootstrap hooks land here).
+ * [MainActivity.kt](../ui-lib/src/main/java/com/nighthawkapps/lib/android/ui/MainActivity.kt) — Primary Compose Activity (hosted in `ui-lib`; launcher aliases reference this class).
 
 # Modules
-The logical components of the app are implemented as a number of Gradle modules.
+The logical components of the app are implemented as Gradle modules.
 
- * `app` — Compiles all the modules together into the final application.  This module contains minimal actual code.  Note that the Java package structure for this module is under `co.electriccoin.zcash.app` while the Android package name is `co.electriccoin.zcash`.
+ * `app` — Packages modules into the final APK/AAB. Kotlin sources live under `com.nighthawkwallet.android`; `applicationId` comes from `WALLET_RELEASE_PACKAGE_NAME` in [gradle.properties](../gradle.properties).
  * `build-info-lib` — Collects information from the build environment (e.g. Git SHA, Git commit count) and compiles them into the application.  Can also be used for injection of API keys or other secrets.
  * configuration
      * `configuration-api-lib` — Multiplatform interfaces for remote configuration.
@@ -42,23 +42,21 @@ The logical components of the app are implemented as a number of Gradle modules.
  * preference
      * `preference-api-lib` — Multiplatform interfaces for key-value storage of preferences.
      * `preference-impl-android-lib` — Android-specific implementation for preference storage.
- * sdk
-     * `sdk-ext-lib` — Contains extensions on top of the to the Zcash SDK.  Some of these extensions might be migrated into the SDK eventually, while others might represent Android-centric idioms.  Depending on how this module evolves, it could adopt another name such as `wallet-lib` or be split into two.
+ * wallet façade
+     * `darkfi-android-sdk` — Kotlin wallet/session/sync façade (`PersistableDarkfiWallet`, coordinators, stub synchronizer); **UniFFI** bindings + JNA ship in this module—**`jniLibs` must contain `libdarkfi_mobile_ffi.so` per ABI** for native calls (built with **`cargo-ndk`**; **`.so` files are not committed**). Real **`darkfid`/chain** integration remains follow-up work.
+     * `rust/darkfi-mobile-ffi` — UniFFI `cdylib` for the supported native API surface.
+     * `rust/darkfi-android-bridge` — Legacy minimal crate (optional experiments; not used by the UniFFI path).
  * spackle — Random utilities, to fill in the cracks in the frameworks.
      * `spackle-lib` — Multiplatform implementation for Kotlin and JVM
      * `spackle-android-lib` — Android-specific additions.
 
-The following diagram shows a rough depiction of dependencies between the modules.  Two notes on this diagram:
- * `sdk-lib` is in a [different repository](https://github.com/zcash/zcash-android-wallet-sdk)
- * Although effort goes into ensuring this diagram stays up-to-date, Gradle build files are the authoritative source on dependencies
+The following diagram shows a rough depiction of dependencies between the modules.  Gradle build files are the authoritative source on dependencies.
 
 ```mermaid
   flowchart TB;
-      subgraph sdk
-          sdkLib[[sdk-lib]];
-          sdkExtLib[[sdk-ext-lib]];
+      subgraph walletFacade
+          darkfiSdk[[darkfi-android-sdk]];
       end
-      sdkLib[[sdk-lib]] --> sdkExtLib[[sdk-ext-lib]];
       subgraph configuration
           configurationApiLib[[configuration-api-lib]];
           configurationImplAndroidLib[[configuration-impl-android-lib]];
@@ -79,6 +77,7 @@ The following diagram shows a rough depiction of dependencies between the module
           uiLib[[ui-lib]];
       end
       uiDesignLib[[ui-design-lib]] --> uiLib[[ui-lib]];
+      darkfiSdk[[darkfi-android-sdk]] --> uiLib[[ui-lib]];
       subgraph ui-test
           uiIntegrationTest[[ui-integration-test]];
           uiScreenshotTest[[ui-screenshot-test]];
@@ -91,7 +90,7 @@ The following diagram shows a rough depiction of dependencies between the module
       spackleLib[[spackle-lib]] --> spackleAndroidLib[[spackle-android-lib]];
       configuration --> ui[[ui]];
       preference --> ui[[ui]];
-      sdk --> ui[[ui]];
+      walletFacade --> ui[[ui]];
       spackle[[spackle]] --> ui[[ui]];
       ui[[ui]] --> ui-test[[ui-test]]; 
       ui[[ui]] --> app{app};
@@ -106,24 +105,24 @@ The application has support for remote configuration (aka feature toggles), whic
 
 Debug builds allow for manual override of feature toggle entries, which can be set by command line invocations.  These overrides last for the lifetime of the process, so they will reset if the process dies.  Pressing the home button on Android does not necessarily stop the process, so the best way to ensure process death is to choose Force Stop in the Android settings.
 
-To set a configuration value manually, run the following shell command replacing `$SOME_KEY` and `$SOME_VALUE` with the key-value pair you'd like to set.  The change will take effect immediately.
+To set a configuration value manually, run the following shell command replacing `$SOME_KEY` and `$SOME_VALUE` with the key-value pair you'd like to set. Use your installed app's **application id** as `$APP_ID` (for example `com.nighthawkwallet.android.testnet` for the `darkfitestnet` flavor, or `com.nighthawkwallet.android` for mainnet). The change takes effect immediately when debug receivers are enabled.
 
-`adb shell am broadcast -n co.electriccoin.zcash.debug/co.electriccoin.zcash.configuration.internal.intent.IntentConfigurationReceiver --es key "$SOME_KEY" --es value "$NEW_VALUE"`
+`adb shell am broadcast -n $APP_ID/com.nighthawkapps.lib.android.configuration.internal.intent.IntentConfigurationReceiver --es key "$SOME_KEY" --es value "$NEW_VALUE"`
 
-As a specific example, the "Request ZEC" button on the home screen is currently disabled because the underlying functionality is not available yet.  The button can be shown by running the command:
+As an example, the payment-request surface may remain gated behind feature toggles. Your project's debug toggle keys should match what `configuration-api-lib` exposes; replace `$FEATURE_REQUEST_PAYMENTS_ENABLED` with the actual key from source:
 
-`adb shell am broadcast -n co.electriccoin.zcash.debug/co.electriccoin.zcash.configuration.internal.intent.IntentConfigurationReceiver --es key "is_request_zec_enabled" --es value "true"`
+`adb shell am broadcast -n $APP_ID/com.nighthawkapps.lib.android.configuration.internal.intent.IntentConfigurationReceiver --es key "$FEATURE_REQUEST_PAYMENTS_ENABLED" --es value "true"`
 
 # Shared Resources
 There are some app-wide resources that share a common namespace, and these should be documented here to make it easy to ensure there are no collisions.
 
 * SharedPreferences
-    * "co.electriccoin.zcash.encrypted" is defined as a preference file in `EncryptedPreferenceSingleton.kt`
+    * "com.nighthawkapps.lib.android.encrypted" is defined as a preference file in `EncryptedPreferenceSingleton.kt`
 * Databases
-    * Some databases are defined by the SDK
+    * Wallet persistence today uses encrypted preferences / files managed by `darkfi-android-sdk`; native-backed databases arrive with JNI integration.
 * Notification IDs
     * No notification IDs are currently defined
 * Notification Channels
     * No notification channels are currently defined
 * WorkManager Tags
-    * "co.electriccoin.zcash.background_sync" is defined in `WorkIds.kt`
+    * "com.nighthawkapps.lib.android.background_sync" is defined in `WorkIds.kt`

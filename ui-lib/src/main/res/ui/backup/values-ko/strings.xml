@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="new_wallet_clipboard_tag">Zcash Wallet 복구 문구</string>
+    
     <string name="new_wallet_navigation_back_button_content_description">돌아가기</string>
     <string name="new_wallet_toolbar_more_button_content_description">더보기</string>
     <string name="new_wallet_short_header">비밀 문구</string>

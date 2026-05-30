@@ -1,0 +1,12 @@
+[package]
+name = "darkfi-android-bridge"
+version = "0.1.0"
+edition = "2021"
+description = "Thin Rust facade for DarkFi Android wallet (expand toward darkfi workspace crates)."
+license = "MIT"
+
+[lib]
+crate-type = ["lib", "cdylib", "staticlib"]
+name = "darkfi_android_bridge"
+
+[dependencies]

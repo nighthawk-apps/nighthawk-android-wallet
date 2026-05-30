@@ -1,0 +1,8 @@
+[workspace]
+members = ["darkfi-android-bridge", "darkfi-mobile-ffi"]
+resolver = "2"
+
+[patch.crates-io]
+halo2_proofs = { git = "https://github.com/parazyd/halo2", branch = "v032" }
+halo2_gadgets = { git = "https://github.com/parazyd/halo2", branch = "v032" }
+url = { git = "https://github.com/darkrenaissance/rust-url", branch = "v258" }

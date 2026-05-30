@@ -2,7 +2,9 @@
 
 The majority of the contents of this Git repository are covered under the [LICENSE](../LICENSE).  However certain items, as described below, are under different license.
 
-## Electric Coin Company copyrights trademarks
+## Nighthawk Apps notices
+
+Fork-specific branding, artwork, and packaging may carry additional trademark guidance from Nighthawk Apps; coordinate with maintainers before redistribution.
 
 
 ## Rubik Font

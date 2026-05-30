@@ -2,11 +2,11 @@
 <resources>
     <string name="wallet_address_title">Адреса моего кошелька</string>
     <string name="wallet_address_back_content_description">Назад</string>
-    <string name="wallet_address_unified">Ваш Унифицированный Адрес</string>
+    <string name="wallet_address_primary_deposit">Ваш Унифицированный Адрес</string>
     <string name="wallet_address_header_includes">который включает в себя</string>
-    <string name="wallet_address_sapling">Экранированный Sapling-адрес</string>
-    <string name="wallet_address_transparent">Transparent</string>
+    <string name="wallet_address_confidential_receive">Экранированный Sapling-адрес</string>
+    <string name="wallet_address_public_receive">Transparent</string>
     <string name="wallet_address_show">Показать адрес</string>
     <string name="wallet_address_hide">Скрыть адрес</string>
-    <string name="wallet_address_clipboard_tag">Адрес кошелька Zcash</string>
+    
 </resources>

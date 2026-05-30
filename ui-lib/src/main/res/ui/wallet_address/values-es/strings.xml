@@ -2,11 +2,11 @@
 <resources>
     <string name="wallet_address_title">Mis direcciones</string>
     <string name="wallet_address_back_content_description">Volver</string>
-    <string name="wallet_address_unified">Tu dirección unificada</string>
+    <string name="wallet_address_primary_deposit">Tu dirección unificada</string>
     <string name="wallet_address_header_includes">que incluye</string>
-    <string name="wallet_address_sapling">Sapling Blindado (NU1)</string>
-    <string name="wallet_address_transparent">Transparente</string>
+    <string name="wallet_address_confidential_receive">Sapling Blindado (NU1)</string>
+    <string name="wallet_address_public_receive">Transparente</string>
     <string name="wallet_address_show">Mostrar direcciones</string>
     <string name="wallet_address_hide">Ocultar direcciones</string>
-    <string name="wallet_address_clipboard_tag">Dirección de la billetera Zcash</string>
+    
 </resources>

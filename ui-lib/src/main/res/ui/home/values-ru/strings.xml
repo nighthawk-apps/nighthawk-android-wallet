@@ -16,8 +16,8 @@
     <string name="home_status_syncing_additional_information">Средства показаны по мере их обнаружения.</string>
     <string name="home_status_up_to_date">Актуально</string>
     <string name="home_status_sending_format" formatted="true">Отправка <xliff:g id="sending_amount" example=".023">%1$s</xliff:g></string>
-    <string name="home_status_receiving_format" formatted="true">Получение <xliff:g id="receiving_amount" example=".023">%1$s</xliff:g> ZEC</string>
-    <string name="home_status_shielding_format" formatted="true">Экранирование <xliff:g id="shielding_amount" example=".023">%1$s</xliff:g> ZEC</string>
+    
+    
     <string name="home_status_update">Пожалуйста, обновитесь</string>
     <string name="home_status_error" formatted="true">Ошибка: <xliff:g id="error_type" example="Lost connection">%1$s</xliff:g></string>
     <string name="home_status_error_connection">Нет подключения</string>

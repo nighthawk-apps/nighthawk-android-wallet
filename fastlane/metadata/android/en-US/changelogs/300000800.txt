@@ -1,0 +1,2 @@
+- Nighthawk is moving to DarkFi.
+- Preview the work-in-progress wallet and chat app.

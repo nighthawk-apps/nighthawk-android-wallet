@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="scan_header">Сканировать QR-код Zcash</string>
+    
     <string name="scan_back_content_description">Назад</string>
     <string name="scan_preview_content_description">Камера</string>
-    <string name="scan_hint">Вы можете сканировать любой QR-код Zcash.</string>
+    
     <string name="scan_settings_button">Разрешить доступ к камере</string>
     <string name="scan_settings_open_failed">Не удалось запустить приложение \"Настройки\".</string>
     <string name="scan_setup_failed">Не удается запустить QR-сканер.</string>
@@ -11,5 +11,5 @@
     <string name="scan_state_permission">Необходимо разрешение для камеры.</string>
     <string name="scan_state_scanning">Сканирование…</string>
     <string name="scan_state_failed">Ошибка сканирования!</string>
-    <string name="scan_validation_invalid_address">Этот QR не соответствует адресу Zcash.</string>
+    
 </resources>

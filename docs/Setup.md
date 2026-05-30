@@ -15,7 +15,7 @@ Start by making sure the command line with Gradle works first, because **all the
        JVM distributions are available and should work, we have settled on recommending [Adoptium/Temurin](https://adoptium.net), because this is the default distribution used by Gradle toolchains.  For Windows or Linux, be sure that the `JAVA_HOME` environment variable points to the right Java version.  Note: If you switch from a newer to an older JVM version, you may see an error like the following `> com.android.ide.common.signing.KeytoolException: Failed to read key AndroidDebugKey from store "~/.android/debug.keystore": Integrity check failed: java.security.NoSuchAlgorithmException: Algorithm HmacPBESHA256 not available`.  A solution is to delete the debug keystore and allow it to be re-generated.
     1. Android Studio has an embedded JVM, although running Gradle tasks from the command line requires a separate JVM to be installed.  Our Gradle scripts are configured to use toolchains to automatically install the correct JVM version.
 1. Install Android Studio and the Android SDK
-    1. Download [Android Studio](https://developer.android.com/studio/preview).  As of September 2022, we recommend Android Studio Electric Eel preview because it is more robust with Kotlin Multiplatform.  Also note that due to issue #420 Intel-based machines may have trouble building in Android Studio.  If you experience this, the workaround is to add the following line to `~/.gradle/gradle.properties` `ZCASH_IS_DEPENDENCY_LOCKING_ENABLED=false`.
+    1. Install the latest stable [Android Studio](https://developer.android.com/studio). Some setups hit flaky Gradle locking during IDE sync; if dependency locking causes persistent failures on Intel hosts, add `WALLET_IS_DEPENDENCY_LOCKING_ENABLED=false` to `~/.gradle/gradle.properties` (see repo Gradle docs).
     1. During the Android Studio setup wizard, choose the "Standard" setup option
     1. Note the file path where Android Studio will install the Android developer tools, as you will need this path later
     1. Continue and let Android Studio download and install the rest of the Android developer tools
@@ -47,10 +47,11 @@ Start by making sure the command line with Gradle works first, because **all the
     1. To check out a git repo from GitHub, there are three authentication methods: SSH, HTTPS, and GitHub API.  We recommend SSH.
     1. Create a new SSH key, following [GitHub's instructions](https://docs.github.com/en/authentication/connecting-to-github-with-ssh/generating-a-new-ssh-key-and-adding-it-to-the-ssh-agent)
     1. Add the SSH key under [GitHub account settings](https://github.com/settings/keys)
-    1. Clone repo in a terminal on your computer `git clone git@github.com:zcash/secant-android-wallet.git`
+    1. Clone repo in a terminal on your computer `git clone git@github.com:nighthawk-apps/nighthawk-android-wallet.git`
 1. Compile from the command line
     1. Navigate to the repo checkout in a terminal
-    1. Compile the application with the gradle command `./gradlew assemble`
+    1. **Full project (Kotlin + UniFFI `.so`):** Follow **[Build the project](../README.md#build-the-project)** in the repository `README.md` (Rust **`cargo-ndk`**, then `./gradlew :app:assemble…`). **`libdarkfi_mobile_ffi.so`** is Git-ignored—you must produce it locally or from CI before first native run (see **`darkfi-android-sdk/src/main/jniLibs/README.md`**). If those files already exist on disk, Gradle alone is enough.
+    1. **Gradle-only (after native libs are present):** `./gradlew assemble` or a specific variant (e.g. `./gradlew :app:assembleDarkfimainnetDebug`).
 1. Compile from Android Studio
     1. Open Android Studio
     1. From within Android Studio, choose to open an existing project and navigate to the root of the checked out repo.  Point Android Studio to the root of the git repo as (do not point it to the `app` module, as that is just a subset of the project and cannot be opened by itself)
@@ -75,7 +76,7 @@ Start by making sure the command line with Gradle works first, because **all the
 ## Gradle Tasks
 A variety of Gradle tasks are set up within the project, and these tasks are also accessible in Android Studio as run configurations.
  * `assemble` - Compiles the application but does not deploy it
- * `assembleAndroidTest` - Compiles the application and tests, but does not deploy the application or run the tests.  The Android Studio run configuration actually runs all of these tasks because the debug APKs are necessary to run the tests: `assembleDebug assembleZcashmainnetDebug assembleZcashtestnetDebug assembleAndroidTest`
+ * `assembleAndroidTest` - Compiles the application and tests, but does not deploy the application or run the tests. Studio configurations typically assemble debug APKs for both network flavors first—for example `assembleDarkfitestnetDebug assembleDarkfimainnetDebug assembleAndroidTest` alongside root `assembleDebug`.
  * `check` - Runs tests of Kotlin-only modules
  * `connectedCheck` - Runs tests of Android-only modules on any running Android virtual device or connected physical Android device 
  * `detektAll` - Performs static analysis with Detekt
@@ -93,18 +94,18 @@ Gradle Managed Devices are also configured with our build scripts.  We have foun
 A variety of Gradle properties can be used to configure the build.  Most of these properties are optional and help with advanced configuration.  If you're just doing local development or making a small pull request contribution, you likely do not need to worry about these.
 
 ### Debug Signing
-By default, the application is signed by the developers automatically generated debug signing key.  In a team of developers, it may be advantageous to share a debug key so that debug builds can access key-restricted services such as Firebase or Google Maps.  For such a setup, the path to a shared debug signing key can be set with the property `ZCASH_DEBUG_KEYSTORE_PATH`.
+By default, the application is signed by the developers automatically generated debug signing key.  In a team of developers, it may be advantageous to share a debug key so that debug builds can access key-restricted services such as Firebase or Google Maps.  For such a setup, the path to a shared debug signing key can be set with the property `WALLET_DEBUG_KEYSTORE_PATH`.
 
 ### Release Signing
 This section is optional.
 
 To enable release signing, a release keystore needs to be provided during the build.  This can be injected securely by setting the following Gradle properties.
-* `ZCASH_RELEASE_KEYSTORE_PATH`
-* `ZCASH_RELEASE_KEYSTORE_PASSWORD`
-* `ZCASH_RELEASE_KEY_ALIAS`
-* `ZCASH_RELEASE_KEY_ALIAS_PASSWORD`
+* `WALLET_RELEASE_KEYSTORE_PATH`
+* `WALLET_RELEASE_KEYSTORE_PASSWORD`
+* `WALLET_RELEASE_KEY_ALIAS`
+* `WALLET_RELEASE_KEY_ALIAS_PASSWORD`
 
-On a developer machine, these might be set under the user's global properties (e.g. `~/.gradle/gradle.properties` on macOS and Linux).  On a continuous integration machine, these can also be set using environment variables with the prefix `ORG_GRADLE_PROJECT_` (e.g. `ORG_GRADLE_PROJECT_ZCASH_RELEASE_KEYSTORE_PATH`).  DO NOT set these in the gradle.properties inside the Git repository, as this will leak your keystore password.
+On a developer machine, these might be set under the user's global properties (e.g. `~/.gradle/gradle.properties` on macOS and Linux).  On a continuous integration machine, these can also be set using environment variables with the prefix `ORG_GRADLE_PROJECT_` (e.g. `ORG_GRADLE_PROJECT_WALLET_RELEASE_KEYSTORE_PATH`).  DO NOT set these in the gradle.properties inside the Git repository, as this will leak your keystore password.
 
 ### Build variants
 Android apps can have build types (`debug`, `release`), build flavors (`mainnet`, `testnet`), and their combination gives us build variants.  
@@ -113,42 +114,29 @@ Debug builds are up to 10x slower due to JIT being disabled by Android's runtime
 
 "mainnet" (main network) and "testnet" (test network) are terms used in the blockchain ecosystem to describe different blockchain networks.  Mainnet is responsible for executing actual transactions within the network and storing them on the blockchain. In contrast, the testnet provides an alternative environment that mimics the mainnet's functionality to allow developers to build and test projects without needing to facilitate live transactions or the use of cryptocurrencies, for example.
 
-Currently, we support 4 build variants for the `app` module: `zcashmainnetDebug`, `zcashtestnetDebug`, `zcashmainnetRelease`, `zcashtestnetRelease`. Library modules like `ui-lib`, `test-lib`, etc. support only `debug` and `release` variants. UI test modules like `ui-integration-test`, `ui-screenshot-test` provide variants extended by the network dimension similarly as app module does. Moreover, the `ui-benchmark-test` introduces a `benchmark` build type, which is supposed to be used only for benchmarking. 
+Currently, the `app` module exposes DarkFi-oriented network flavors (`darkfitestnet`, `darkfimainnet`) crossed with `debug`/`release`, for example `darkfitestnetDebug`, `darkfimainnetRelease`. Library modules (`ui-lib`, `test-lib`, …) primarily publish `debug`/`release`; composite/UI-test modules mirror the network dimension where needed. Benchmark-only targets keep their own build types.
 
-App module build variants:
-- `zcashtestnetDebug` - build variant is built upon testnet network and with debug build type. You usually use this variant for development
-- `zcashmainnetDebug` - same as previous, but is built upon mainnet network
-- `zcashmainnetRelease` and `zcashtestnetRelease` - are usually used by our CI jobs to prepare binaries for testing and releasing to the Google Play Store
+Typical `app` variants:
+- `darkfitestnetDebug` — default day-to-day development against mock/test-oriented endpoints (`applicationId` suffix `.testnet`).
+- `darkfimainnetDebug` — main-network packaging while still on debug tooling.
+- `darkfitestnetRelease` / `darkfimainnetRelease` — CI/release pipelines matching Google Play bundle expectations.
 
 ### Included builds
-This section is optional.
-
-To simplify implementation of Zcash SDK or BIP-39 features in conjunction with changes to the app, a Gradle [Included Build](https://docs.gradle.org/current/userguide/composite_builds.html) can be configured.
-
-1. Check out the SDK 
-1. Verify that the `zcash-android-wallet-sdk` builds correctly on its own (e.g. `./gradlew assemble`)
-1. In the `secant-android-wallet` repo, modify property `SDK_INCLUDED_BUILD_PATH` to be the absolute path to the `zcash-android-wallet-sdk` checkout.  (You can also use a relative path, but it will be relative to the root of `secant-android-wallet`).  A similar property also exists for BIP-39 `BIP_39_INCLUDED_BUILD_PATH`
-1. Build `secant-android-wallet`
-
-There are some limitations of included builds:
-1. If `secant-android-wallet` is using a newer version of the Android Gradle plugin compared to `zcash-android-wallet-sdk`, the build will fail.  If this happens, you may need to modify the `zcash-android-wallet-sdk` gradle.properties so that the Android Gradle Plugin version matches that of `secant-android-wallet`.  After making this change, it will be necessary to run a build from the command line with the flag `--write-locks` e.g. `./gradlew assemble --write-locks` in order to update the dependency locks.  Similar problems can occur if projects are using different versions of Kotlin or different versions of Gradle
-1. Modules in each project cannot share the same name.  For this reason, build-conventions have different names in each repo (`zcash-android-wallet-sdk/build-conventions` vs `secant-android-wallet/build-conventions-secant`)
+Gradle [composite builds](https://docs.gradle.org/current/userguide/composite_builds.html) are optional and wired through `settings.gradle.kts` when you need to iterate on local copies of shared convention plugins or SDK modules. Day-to-day development consumes published `darkfi-android-sdk` artifacts from this workspace—no external wallet SDK checkout is required.
 
 ### Firebase Test Lab
 This section is optional.
 
 For Continuous Integration, see [CI.md](CI.md).  The rest of this section is regarding local development.
 
-1. Configure or request access to a Firebase Test Lab project
-    1. If you are an Electric Coin Co team member: Make an IT request to add your Google account to the existing Firebase Test Lab project 
-    2. If you are an open source contributor: set up your own Firebase project for the purpose of running Firebase Test Lab
-1. Set the Firebase Google Cloud project name as a global Gradle property `ZCASH_FIREBASE_TEST_LAB_PROJECT` under `~/.gradle/gradle.properties`
+1. Configure or request access to a Firebase Test Lab–enabled Google Cloud project maintained by Nighthawk maintainers, or provision your own Firebase project if you are iterating privately.
+1. Set the Firebase Google Cloud project name as a global Gradle property `WALLET_FIREBASE_TEST_LAB_PROJECT` under `~/.gradle/gradle.properties`
 1. Run the Gradle task `flankAuth` to generate a Firebase authentication token on your machine
 
 Tests can now be run on Firebase Test Lab from your local machine.
 
 The Firebase Test Lab tasks DO NOT build the app, so they rely on existing build outputs.  This means you should:
-1. Build the debug and test APKs: `./gradlew assembleDebug assembleZcashmainnetDebug assembleZcashtestnetDebug assembleAndroidTest`
+1. Build the debug and test APKs your pipeline expects (for example `./gradlew assembleDarkfitestnetDebug assembleDarkfimainnetDebug assembleAndroidTest`).
 1. Run the tests: `./gradlew runFlank`
 
 ### Emulator WTF
@@ -156,22 +144,20 @@ This section is optional.
 
 For Continuous Integration, see [CI.md](CI.md).  The rest of this section is regarding local development.
 
-1. Configure or request access to emulator.wtf
-    1. If you are an Electric Coin Co team member: We are still setting up a process for this, because emulator.wtf does not yet support individual API tokens
-    1. If you are an open source contributor: Visit http://emulator.wtf and request an API key
-1. Set the emulator.wtf API key as a global Gradle property `ZCASH_EMULATOR_WTF_API_KEY` under `~/.gradle/gradle.properties`
-1. Run the Gradle task `./gradlew testDebugWithEmulatorWtf :app:testZcashmainnetDebugWithEmulatorWtf :ui-integration-test:testDebugWithEmulatorWtf :ui-screenshot-test:testDebugWithEmulatorWtf` (emulator.wtf tasks do build the app, so you don't need to build them beforehand)
+1. Configure emulator.wtf credentials via https://emulator.wtf (individual tokens vary by org policy—coordinate with maintainers if CI keys are required).
+1. Set `WALLET_EMULATOR_WTF_API_KEY` under `~/.gradle/gradle.properties`.
+1. Invoke whatever `:app:test*WithEmulatorWtf` targets remain enabled in `docs/CI.md` / Gradle scripts—names drift as flavors change, so prefer copying commands from active workflows.
 
-## Testnet funds
+## Testnet DRK (development)
 
-The Zcash testnet is an alternative blockchain that attempts to mimic the mainnet (main Zcash network) for testing purposes. Testnet coins are distinct from actual ZEC and do not have value. Developers and users can experiment with the testnet without having to use valuable currency. The testnet is also used to test network upgrades and their activation before committing to the upgrade on the main Zcash network. For more information on how to add testnet funds visit [Testnet Guide](https://zcash.readthedocs.io/en/latest/rtd_pages/testnet_guide.html) or go right to the [Testnet Faucet](https://faucet.zecpages.com/).
+DarkFi-style test assets wired through this repo’s mock synchronizer have **no real-world value**. Funding instructions depend entirely on the DarkFi deployment you target once JNI/`darkfid` integration lands; until then rely on local mocks rather than external faucets from unrelated chains.
 
 # Sideloading
 Although the goal of this document is to enable readers to build the app from source, it is also possible to sideload debug builds created by Continuous Integration.
 
 1. Go through the first two setup steps above, "Install Java" and "Install Android Studio and the Android SDK"
 1. Obtain binary
-    1. Look under the [GitHub Actions tab](https://github.com/zcash/secant-android-wallet/actions).  Every pull request and merge to the main branch will trigger a workflow that generates builds of the app.  The workflows are called Pull Request and Deploy.
+    1. Look under the [GitHub Actions tab](https://github.com/nighthawk-apps/nighthawk-android-wallet/actions).  Every pull request and merge to the main branch will trigger a workflow that generates builds of the app.  The workflows are called Pull Request and Deploy.
     1. Click on a successful workflow
     1. Scroll down the workflow results page to find an attached build output called Binaries
     1. Download the Binaries file

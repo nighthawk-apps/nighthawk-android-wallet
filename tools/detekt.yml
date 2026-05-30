@@ -8,8 +8,31 @@ naming:
     ignoreAnnotated:
       - 'Composable'
 
+# Embedded Guardian tor-android runner — keep lint noise low for leaf packages.
+complexity:
+  NestedBlockDepth:
+    active: true
+    excludes: ['**/tor/embedded/**']
+
+exceptions:
+  TooGenericExceptionCaught:
+    active: true
+    excludes:
+      - '**/tor/embedded/**'
+      - '**/chat/darkirc/**'
+  TooGenericExceptionThrown:
+    active: true
+    excludes: ['**/tor/embedded/**']
+
 style:
-  active: true
+  MagicNumber:
+    excludes:
+      - '**/tor/embedded/**'
+      - '**/test/**'
+      - '**/androidTest/**'
+      - '**/commonTest/**'
+      - '**/jvmTest/**'
+      - '**/*.gradle.kts'
   ForbiddenComment:
     active: true
     comments:

@@ -1,0 +1,13 @@
+# DarkFi Android SDK — consumer ProGuard / R8 rules
+
+# Public façade used by the app (actual package namespace).
+-keep class com.nighthawkapps.lib.android.sdk.chat.** { *; }
+-keep class com.nighthawkapps.lib.android.sdk.wallet.** { *; }
+-keep class com.nighthawkapps.lib.android.sdk.tor.embedded.** { *; }
+
+# Guardian Project Tor control (jtorctl)
+-keep class net.freehaven.tor.control.** { *; }
+
+# Legacy placeholder paths (harmless if absent).
+-keep class org.darkfi.wallet.android.sdk.api.** { *; }
+-keep class org.darkfi.wallet.android.sdk.native.** { *; }

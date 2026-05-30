@@ -4,8 +4,6 @@ This documentation outlines our approach to testing. By running tests against ou
 ## Automated testing
 
 - TBD
-<!-- TODO [#682]: Testing documentation update --> 
-<!-- TODO [#682]: https://github.com/zcash/secant-android-wallet/issues/682 --> 
 
 ## Manual testing
 

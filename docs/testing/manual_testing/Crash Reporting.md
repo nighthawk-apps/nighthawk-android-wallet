@@ -1,22 +1,17 @@
-The application will log crashes to external storage and can also include some information about these when a user contacts us for support.
+# Crash reporting
 
-# Crashes Reported to External Storage
-1. Uninstall the app, to clear external storage
-2. Install a debug build of the app
-3. Get past the onboarding to reach the Home screen
-4. Under the debug menu, choose Report Caught Exception
-5. Look under the app's external storage directory `/sdcard/Android/data/co.electroiccoin.zcash/files/log/exception/`
-6. Confirm that a new exception file exists in this directory
-7. Repeat this with the "Throw Uncaught Exception" under the debug menu
+Debug builds may persist structured crash traces locally **and** optionally forward to Firebase Crashlytics when keys are present.
 
-# Crashes reported to Crashlytics
-1. Compile a debug build of the app with Firebase API keys
-    1. Download Firebase JSON configuration files from https://console.firebase.google.com and place them in app/src/debug and app/src/release
-    1. OR download an APK built by GitHub Actions which has the API keys set up
-1. Get past the onboarding to reach the Home screen
-1. Under the debug menu, choose Report Caught Exception
-1. Log onto the Firebase project and confirm the exception is reported
-1. Repeat this with the "Throw Uncaught Exception" under the debug menu
+## Local files (debug)
+1. Install a clean debug build, finish onboarding to reach Home.
+2. Trigger **Report Caught Exception** / **Throw Uncaught Exception** from the debug menu (when compiled in).
+3. Inspect app-specific external storage under  
+   `/sdcard/Android/data/<applicationId>/files/`  
+   (exact subdirectory names depend on `crash-android-lib` configuration—confirm with current sources rather than legacy paths).
 
-# Crashes Reported in Contact Support
-1. See the Contact Support test cases
+## Crashlytics (optional)
+1. Provide `google-services.json` for your Firebase project or install a CI-produced APK with keys baked in.
+2. Repeat the synthetic crash steps and verify events appear in the Firebase console.
+
+## Support email attachment
+1. Follow **Contact Support.md** to ensure crash excerpts propagate into outgoing mail when that integration is enabled.

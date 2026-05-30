@@ -16,8 +16,8 @@
     <string name="home_status_syncing_additional_information">Te mostraremos los fondos a medida que los descubramos.</string>
     <string name="home_status_up_to_date">Al día</string>
     <string name="home_status_sending_format" formatted="true">Sincronizando - <xliff:g id="sending_amount" example=".023">%1$s</xliff:g></string>
-    <string name="home_status_receiving_format" formatted="true">Sincronizando - <xliff:g id="receiving_amount" example=".023">%1$s</xliff:g></string>
-    <string name="home_status_shielding_format" formatted="true">Sincronizando - <xliff:g id="shielding_amount" example=".023">%1$s</xliff:g></string>
+    <string name="home_status_receiving_format" formatted="true">Recibiendo <xliff:g id="receiving_amount" example=".023">%1$s</xliff:g> DRK</string>
+    <string name="home_status_shielding_format" formatted="true">Actualizando saldo <xliff:g id="shielding_amount" example=".023">%1$s</xliff:g> DRK</string>
     <string name="home_status_update">Por favor, actualiza</string>
     <string name="home_status_error" formatted="true">Error: <xliff:g id="error_type" example="Lost connection">%1$s</xliff:g></string>
     <string name="home_status_error_connection">Desconectado</string>

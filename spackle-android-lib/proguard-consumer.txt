@@ -1,5 +1,5 @@
 # Strip out log messages
--assumenosideeffects public class co.electriccoin.zcash.spackle.Twig {
+-assumenosideeffects public class com.nighthawkapps.lib.android.spackle.Twig {
     public static *** verbose(...);
     public static *** debug(...);
     public static *** info(...);

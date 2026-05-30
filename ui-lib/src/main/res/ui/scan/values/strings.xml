@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="scan_header">Scan a Zcash QR</string>
+    <string name="scan_header">Scan a DRK payment QR</string>
     <string name="scan_back_content_description">Back</string>
     <string name="scan_preview_content_description">Camera</string>
 
-    <string name="scan_hint">You can scan any Zcash QR code.</string>
+    <string name="scan_hint">Scan DarkFi-style payment URIs or DRK addresses presented as QR codes.</string>
 
     <string name="scan_settings_button">Enable camera permission</string>
     <string name="scan_settings_open_failed">Unable to launch Settings app.</string>
@@ -16,5 +16,5 @@
     <string name="scan_state_scanning">Scanning…</string>
     <string name="scan_state_failed">Scanning failed!</string>
 
-    <string name="scan_validation_invalid_address">Invalid Zcash address scanned.</string>
+    <string name="scan_validation_invalid_address">Invalid DRK address scanned.</string>
 </resources>
