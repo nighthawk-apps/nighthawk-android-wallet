@@ -1,0 +1,293 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="restore_header">Crea una billetera</string>
+    <string name="restore_title">Importar billetera</string>
+    <string name="restore_back_content_description">Volver</string>
+    <string name="restore_button_clear">Borrar</string>
+    <string name="restore_seed_instructions">Puede importar la copia de seguridad de su billetera introduciendo su frase de recuperación de copia de seguridad (frase semilla) ahora.</string>
+    <string name="restore_seed_button_restore">Restaurar wallet</string>
+    <string name="restore_seed_warning_suggestions">Esta palabra no está en el diccionario de frase de semilla. Por favor, seleccione la correcta de las sugerencias.</string>
+    <string name="restore_seed_warning_no_suggestions">Esta palabra no está en el diccionario de la frase semilla.</string>
+    <string name="restore_birthday_header">¿Conoces el cumpleaños de la billetera?</string>
+    <string name="restore_birthday_body">Esto permitirá una sincronización más rápida. Si no conoce el cumpleaños de la billetera, no se preocupe.</string>
+    <string name="restore_birthday_hint">Altura de Cumpleaños</string>
+    <string name="restore_birthday_button_restore">Restaurar con este cumpleaños</string>
+    <string name="restore_birthday_button_skip">No conozco el cumpleaños</string>
+    <string name="restore_complete_header">¡Frase de semilla importada!</string>
+    <string name="restore_complete_info">Ahora escanearemos la blockchain para encontrar sus transacciones y balance.</string>
+    <string name="restore_button_see_wallet">¡Ir a mi billetera!</string>
+    <!-- Start Flow -->
+    <string name="ns_nighthawk">Nighthawk</string>
+    <string name="ns_motto">Where privacy is proven, not promised.</string>
+    
+    <string name="ns_get_started">Comenzar</string>
+    <string name="ns_landing_text">Si es tu primera vez usando Nighthawk, tendrás que crear una billetera. Si regresas a Nighthawk, puedes intentar restaurar tu billetera anterior.</string>
+    <string name="ns_landing_footer">Al usar esta aplicación aceptas nuestra</string>
+    <string name="ns_terms_conditions">Términos y Condiciones</string>
+    <string name="ns_create_wallet">Crear billetera</string>
+    <string name="ns_create_wallet_title">Escribe tu semilla de respaldo</string>
+    
+    <string name="ns_create_wallet_confirm_text">Confirmo que he escrito mi frase semilla.</string>
+    <string name="ns_restore_from_backup">Restaurar desde una copia de seguridad</string>
+    <string name="ns_restore_wallet_text">Introduzca su frase semilla de 24 palabras. Si no tiene esta frase, necesitará crear una nueva billetera.</string>
+    <string name="ns_your_seed_phrase">Tu frase semilla</string>
+    <string name="ns_wallet_birthday">Wallet birthday: %s</string>
+    <string name="ns_birthday_height">Altura del cumpleaños (opcional)</string>
+    <string name="ns_your_seed_error">Error - Esto no parece ser una frase de semilla válida.</string>
+    <string name="ns_continue">Continuar</string>
+    <string name="ns_export_as_pdf">Exportar como PDF</string>
+    <string name="ns_pdf_dialog_sub_heading">Exportar las palabras de semilla a un PDF protegido por contraseña que puede ser respaldado a dispositivos de almacenamiento portátiles asegurados por el usuario.</string>
+    <string name="ns_please_enter_password">Introduce la contraseña</string>
+    <string name="ns_export_pdf">Exportar PDF</string>
+    <string name="ns_receive">Recibir</string>
+    <string name="ns_transaction_history">Historial de Transacciones</string>
+    <string name="ns_copy">Copiar</string>
+    <string name="ns_primary_deposit_address">Dirección de depósito principal</string>
+    <string name="ns_shielded_address">Dirección de depósito confidencial</string>
+    <string name="ns_confidential_receive_address">Dirección de recepción confidencial (opcional)</string>
+    <string name="ns_public_receive_address">Dirección de recepción pública</string>
+    <string name="ns_restore_dialog_title">Antes de continuar</string>
+    <string name="ns_restore_dialog_primary_action">Continuar</string>
+    <string name="ns_restore_dialog_body">Por favor, importa sólo una frase de semilla que fue inicialmente generada por Nighthawk. Otras billeteras operan de forma diferente, lo que puede llevar a una notificación inprecisa de los fondos para sus transacciones.</string>
+    <!-- Wallet Screen -->
+    <string name="ns_wallet">Billetera</string>
+    <string name="ns_connecting">Conectando</string>
+    <string name="ns_reconnecting">Reconectando</string>
+    <string name="ns_preparing_download">Preparando para descargar</string>
+    <string name="ns_downloading">Descargando</string>
+    <string name="ns_validating">Validando</string>
+    <string name="ns_enhancing">Mejorando</string>
+    <string name="ns_preparing_scan">Preparando para escanear</string>
+    <string name="ns_scanning">Escaneando…%1$d%%</string>
+    <string name="ns_finalizing">Finalizando</string>
+    <string name="ns_swipe_left">Deslice a la izquierda para mostrar su balance</string>
+    
+    <string name="ns_around">Cerca de %s</string>
+    <string name="ns_total_balance">Balance total</string>
+    <string name="ns_shielded_balance">Saldo de la billetera</string>
+    <string name="ns_sapling_balance">Saldo de la billetera</string>
+    <string name="ns_transparent_balance">Saldo de la billetera</string>
+    <string name="ns_shield_now">Continuar</string>
+    
+    
+    <string name="ns_recent_activity">Actividad reciente</string>
+    <string name="ns_received">Recibido</string>
+    <string name="ns_sent">Enviado</string>
+    <string name="ns_auto_shielded_funds">DRK entrantes</string>
+    <!-- Transaction Details Screen -->
+    <string name="ns_transaction_details">Detalles de la transacción</string>
+    <string name="ns_show_memo">Mostrar memo</string>
+    <string name="ns_received_from">Recibido de %s</string>
+    <string name="ns_sent_from">Enviado desde %s</string>
+    <string name="ns_transparent_wallet">codificación de recepción pública</string>
+    <string name="ns_shielded_wallet">formato confidencial</string>
+    <string name="ns_pending">Pendiente</string>
+    <string name="ns_pending_confirmations">Pendiente %s</string>
+    <string name="ns_confirmed">Confirmado</string>
+    
+    <string name="ns_view_on_explorer">Ver en el explorador</string>
+    <string name="ns_time_utc">Tiempo (UTC)</string>
+    <string name="ns_block_id">Bloque ID</string>
+    <string name="ns_confirmations">Confirmaciones</string>
+    <string name="ns_transaction_id">ID de la Transacción</string>
+    <string name="ns_processing">Procesando</string>
+    <string name="ns_transaction_details_error_msg">Transaction details are currently unavailable. Please wait until the scanning process is complete.</string>
+    <string name="ns_transaction_date_error">Not available</string>
+    <!-- Transfer Screen -->
+    <string name="ns_transfer">Transferir</string>
+    
+    <string name="ns_send_money">Enviar dinero</string>
+    <string name="ns_send_money_text">Scan someone\'s QR code to send them money</string>
+    <string name="ns_receive_money">Recibir dinero</string>
+    <string name="ns_receive_money_text">Display your QR code or copy your address.</string>
+    <string name="ns_top_up">Recarga tu billetera</string>
+    
+    
+    
+    
+    
+    
+    
+    <string name="ns_receive_money_securely">Receive money privately</string>
+    <string name="ns_show_qr_code">Mostrar código QR</string>
+    <string name="ns_show_qr_code_text">Let someone scan to send you money.</string>
+    <string name="ns_copy_private_address">Copiar dirección privada</string>
+    <string name="ns_copy_private_address_text">La dirección de su billetera se copiará al portapapeles.</string>
+    <string name="ns_receive_money_publicly">Recibir dinero públicamente</string>
+    <string name="ns_copy_public_address">Copiar una dirección no privada</string>
+    <string name="ns_receive_money_publicly_text">Esto copiará su dirección t.</string>
+    <string name="ns_private_address">Dirección Privada</string>
+    <string name="ns_non_private_address">Non-private address</string>
+    <string name="ns_top_up_your_wallet">Recarga tu billetera</string>
+    
+    <string name="ns_see_more">Ver más</string>
+    <string name="ns_copied">Copiado</string>
+    <!-- Settings Screen -->
+    <string name="ns_settings">Ajustes</string>
+    <string name="ns_sync_notifications">Notificaciones de sincronización</string>
+    <string name="ns_sync_notifications_text">Recuerda mantener la billetera actualizada</string>
+    <string name="ns_sync_notifications_body">Cuando la billetera Nighthawk está cerrada por un largo período de tiempo entonces tardará más tiempo en iniciarse cuando quiera usarlo.\n\nPermitir notificaciones de sincronización para recordarle que abra la billetera cada semana.</string>
+    <string name="ns_backup_wallet">Respaldar billetera</string>
+    <string name="ns_backup_wallet_text">Mantén tu billetera segura en caso de perder tu teléfono</string>
+    <string name="ns_backup_wallet_heading">Escribe tu semilla de respaldo</string>
+    
+    <string name="ns_backup_wallet_pdf">Guardar como PDF</string>
+    <string name="ns_rescan_wallet">Reescanear billetera</string>
+    <string name="ns_rescan_wallet_text">Volver a escanear saldos de la billetera para solucionar problemas.</string>
+    <string name="ns_rescan_wallet_body">![CDATA[¡Esta solución puede tardar un rato!<br/><br/>A <b>FULL</b> escaneará %1$s bloques al cumpleaños de esta billetera y tomará alrededor de %2$s.<br/><br/>A <b>WIPE</b> es como un escaneo completo pero primero elimina todos los datos y luego los restaura de las palabras de su copia de seguridad.]]</string>
+    <string name="ns_rescan_wallet_full">Reescaneo completo</string>
+    <string name="ns_rescan_wallet_wipe">Borrar &amp; reiniciar</string>
+    <string name="ns_fiat_currency">Moneda fiat</string>
+    <string name="ns_fiat_currency_text">Elige tu moneda local</string>
+    
+    <string name="ns_change_server">Cambiar de servidor</string>
+    
+    
+    <string name="ns_external_services">Servicio externo</string>
+    <string name="ns_external_services_text">Optar por nuestros servicios asociados.</string>
+    <string name="ns_external_services_uns">Habilitar Unstoppable Domain Service</string>
+    <string name="ns_security">Seguridad</string>
+    <string name="enter_six_digit_pin_code">Ingrese el código PIN de seis dígitos</string>
+    <string name="choose_six_digit_pin_code">Elige un código Pin de seis dígitos</string>
+    <string name="enter_the_same_six_digits">Introduzca los mismos seis dígitos</string>
+    <string name="choose_pin_code">Elige un código PIN</string>
+    <string name="verify_pin_code">Verifica el código PIN</string>
+    <string name="wrong_pin_code">Código PIN incorrecto</string>
+    <string name="set_pin_code_request">Por favor, establece primero el código PIN</string>
+    <string name="pin_code_setup_done">¡Código pin configurado exitosamente!</string>
+    <string name="settings_toast_face_touch_id_enabled">Face/Touch ID habilitado.</string>
+    <string name="settings_toast_face_touch_id_disabled">Face/Touch ID deshabilitado.</string>
+    <string name="wrong_pin_code_message">El código pin no coincide con el código pin anterior.</string>
+    <string name="ns_security_text">Configurar/Cambiar Código Pin &amp; Biométrico</string>
+    <string name="set_change_pin_code">Configurar/Cambiar código Pin de Nighthawk</string>
+    <string name="biometric_backup_phrase_title">Autenticar para continuar</string>
+    <string name="enable_face_id_touch_id">Habilitar Face/Touch ID</string>
+    <string name="dialog_bio_metric_not_enabled_title">Face ID Touch ID error</string>
+    <string name="dialog_bio_metric_not_enabled_message">No se pudo habilitar esta opción. Parece que Face ID o Touch ID no está habilitado en tu dispositivo móvil.</string>
+    <string name="ns_security_choose">Elige un código PIN</string>
+    <string name="ns_security_try_again">Por favor, inténtalo de nuevo</string>
+    <string name="ns_about">Acerca de</string>
+    
+    <string name="ns_view_source">Ver código fuente</string>
+    <string name="ns_credits">Amigos de Nighthawk</string>
+    <string name="ns_about_text">Nighthawk v%s &amp; Licencias</string>
+    <string name="ns_view_license">Licencias OSS</string>
+    <string name="ns_back_up_seed_dialog_title">¿Ver frase semilla?</string>
+    <string name="ns_back_up_seed_dialog_body">ATENCIÓN: Por favor, asegúrese de que es el único que ve su teléfono, la frase semilla se mostrará en la siguiente pantalla.</string>
+    <string name="ns_back_up_seed_dialog_positive">Ver semilla</string>
+    <string name="ns_please_try_again">Por favor, inténtalo de nuevo</string>
+    <string name="ns_disable_pin">Desactivar Pin</string>
+    <string name="ns_disable_pin_message">Pin deshabilitado</string>
+    <string name="ns_view_licences">Ver licencias</string>
+    <string name="dialog_rescan_wallet_title">¿Reescanear esta billetera?</string>
+    <string name="dialog_rescan_wallet_message">El reescaneado puede tardar hasta unas horas, dependiendo de la duración del historial de transacciones de su monedero. Desea iniciar un nuevo escaneado?</string>
+    <string name="dialog_rescan_wallet_button_positive">Rápido</string>
+    <string name="dialog_rescan_wallet_button_negative">Completo</string>
+    <string name="dialog_rescan_wallet_button_neutral">Limpiar</string>
+    <string name="dialog_rescan_initiated_title">¡Realizando el reescaneo total!</string>
+    <string name="dialog_rescan_failed_title">Falló el reescaneo completo</string>
+    <string name="rescan_wallet_wipe_success">¡Datos de bloque borrados con éxito! Los datos de la billetera se han borrado. ¡Por favor, vuelva a abrir la aplicación!</string>
+    <string name="ns_update">Update</string>
+    <!-- Backup/Restore Screen-->
+    <string name="ns_landing_backup_skipped_message_1">¿Está seguro? Sin una copia de seguridad, los fondos pueden perderse ¡PARA SIEMPRE!</string>
+    <string name="ns_landing_backup_skipped_message_2">No puedes hacer una copia de seguridad más tarde. ¡Probablemente perderás tus fondos!</string>
+    <string name="ns_landing_button_backup_skipped_1">Después</string>
+    <string name="ns_landing_button_backup_skipped_2">He sido advertido</string>
+    <string name="ns_landing_button_progress_create">Creando</string>
+    <string name="ns_button_skip">Omitir por ahora</string>
+    <string name="ns_backup_done">Hecho</string>
+    <string name="ns_view_wallet">Ver billetera</string>
+    <string name="ns_exit_restore_flow_text">¿Estás seguro? ¡Por seguridad, las palabras que has introducido serán borradas!</string>
+    <string name="ns_exit_restore_flow_title">¿Cancelar restauración?</string>
+    <string name="ns_stay">Permanecer</string>
+    <string name="ns_exit">Salir</string>
+    <string name="ns_landing_create_success_message">¡Enhorabuena! Su billetera ha sido creada correctamente!</string>
+    <string name="ns_landing_import_success_message">¡Enhorabuena! Su billetera ha sido importada correctamente!</string>
+    <!-- Send Flow -->
+    <string name="ns_scan_payment_request">Escanear una solicitud de pago</string>
+    <string name="ns_scan_payment_request_text">Si tiene una solicitud de pago, puede escanear el código QR aquí para completar automáticamente todos los detalles.</string>
+    <string name="ns_choose_send">Elige cuánto enviar</string>
+    
+    <string name="ns_scan_payment_code">Escanear un código de pago</string>
+    <string name="ns_top_up_wallet">Recarga tu billetera</string>
+    
+    <string name="ns_add_message">Añade un mensaje a tu pago</string>
+    <string name="ns_write_something">Escribe algo…</string>
+    <string name="ns_skip">Saltar</string>
+    <string name="ns_choose_who">Elige a quién enviarlo</string>
+    <string name="ns_review_and_send">Revisar y enviar</string>
+    <string name="ns_network_fee">Comisión de la Red</string>
+    
+    <string name="ns_sending">Enviando</string>
+    <string name="ns_pending_confirmation">Confirmación pendiente</string>
+    <string name="ns_expired">Expirado</string>
+    <string name="ns_unknown">Desconocido</string>
+    <string name="ns_cancel">Cancelar</string>
+    <string name="ns_success">Completado</string>
+    <string name="ns_done">Hecho</string>
+    <string name="ns_more_details">Más detalles</string>
+    <string name="ns_failed">Fallido</string>
+    <string name="ns_try_again">Intentar de nuevo</string>
+    
+    <string name="ns_amount_with_unit">%1m %2$s</string>
+    <string name="ns_format_date_time">dd/MM/yyyy</string>
+    <string name="ns_view_all_transactions">Ver historial de transacciones</string>
+    <string name="ns_downloading_block">Descargando\n\nBloque %1$s de %2$s</string>
+    <string name="ns_downloading_wallet">Descargando…%1d%%</string>
+    <string name="ns_syncing_wallet">Sincronizando…%1$.2f%%</string>
+    <string name="ns_syncing_block">Sincronizando\n\nBloque %1$s de %2$s</string>
+    
+    <string name="ns_add_address_hint">Añadir la dirección aquí</string>
+    <string name="ns_paste_from_clip_board">Pegar desde el portapapeles</string>
+    
+    <string name="ns_memo">Memo</string>
+    <string name="ns_pool">Details</string>
+    <string name="ns_network">Conexión</string>
+    <string name="ns_recipient">Destinatario</string>
+    <string name="ns_address">Dirección</string>
+    <string name="ns_subtotal">Subtotal</string>
+    <string name="ns_total_amount">Monto total</string>
+    <string name="ns_shielded">Confidencial</string>
+    <string name="ns_legacy_shielded_sapling">Codificación antigua</string>
+    <string name="ns_transparent">Recepción pública</string>
+    <string name="ns_include_reply_to">incluir respuesta a</string>
+    
+    
+    <string name="open_browser">Abrir navegador</string>
+    
+    
+    
+    
+    <string name="insufficient_msg">No tienes suficiente saldo para enviar</string>
+    <string name="memo_max_length_msg">Ha escrito la longitud máxima para enviar un mensaje</string>
+    <string name="autoshielding_title_text"><b>Privacidad integrada.</b> DarkFi confirma transferencias de forma privada; no hay una pista transparente separada que consolidar.</string>
+    <string name="autoshielding_body_text">Las bifurcaciones antiguas hablaban de auto-blindaje entre piscinas transparentes y blindadas. En DarkFi esta app muestra <b>un solo saldo</b> desde tu endpoint; los QR pueden usar distintas codificaciones de recepción por compatibilidad.\n\nVerifica direcciones por un canal aparte en envíos de alto valor.</string>
+    <string name="shielding">En proceso…</string>
+    <string name="autoshielding_button_positive">¡Excelente!</string>
+    <string name="autoshielding_button_neutral">Más información</string>
+    
+    
+    <string name="open_settings">Abrir Ajustes</string>
+    <string name="notification_permission_dialog_title">Alerta</string>
+    <string name="notification_permission_dialog_desc">Para publicar cualquier notificación necesitamos proporcionar permisos de notificaciones.\nDesde la configuración, por favor permita el permiso de notificaciones</string>
+    <string name="transaction_id_copied">La fecha de la transacción se ha copiado en el portapapeles.</string>
+    <string name="dialog_first_use_view_tx_message">¿Estás seguro de que quieres abandonar la aplicación? Esto puede reducir la privacidad si no confías en el destino.</string>
+    <string name="dialog_first_use_view_tx_positive">Ver Tx</string>
+    <string name="dialog_first_use_view_tx_title">Riesgo potencial de privacidad</string>
+    <string name="keep_screen_on">Mantener la pantalla encendida</string>
+    <string name="keep_screen_on_detail_msg">Si no ha abierto su cbilletera en un tiempo, el proceso de sincronización puede tardar algún tiempo. Configurar el modo de pantalla a \"Mantener\" asegurará que el teléfono no se quede dormido mientras se sincroniza.</string>
+    <string name="advanced">Avanzado</string>
+    <string name="advanced_msg">Ajustes menos comunes</string>
+    <string name="nuke_wallet">Nuke Wallet</string>
+    <string name="nuke_wallet_caution">PRECAUCIÓN: Esto borrará completamente su billetera y no podrá recuperar fondos sin su frase semilla. Asegúrate de guardarla en un lugar seguro antes de continuar</string>
+    <string name="nuke_wallet_dialog_msg">Esta operación es IRREVERSIBLE. Restaurar sus fondos será imposible sin su frase semilla. Asegúrese ABSOLUTAMENTE de haberlas guardado en un lugar seguro antes de proceder. ¿Todavía quieres proceder?</string>
+    <string name="are_you_sure">¿Estás seguro?</string>
+    <string name="app_icon">App Icon</string>
+    <string name="default_name">Default</string>
+    <string name="retro">Retro</string>
+    <string name="delete_wallet">Delete Wallet</string>
+    <string name="enable_dark_theme">Switch to dark theme</string>
+    <string name="ns_host">Host</string>
+    <string name="ns_port">Port</string>
+    <string name="tex_address_support_error">Invalid Address, Tex Address is not supported</string>
+</resources>

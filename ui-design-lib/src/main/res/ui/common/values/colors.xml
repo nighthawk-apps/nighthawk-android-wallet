@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <!-- Stealth infrastructure palette (keep legacy ns_* names mapped here for XML + colorResource) -->
+    <color name="ns_stealth_moonlit">#0E1012</color>
+    <color name="ns_stealth_charcoal">#171C22</color>
+    <color name="ns_stealth_accent">#5E9BAF</color>
+    <color name="ns_stealth_accent_muted">#7DADB9</color>
+    <color name="ns_stealth_steel">#8F98A3</color>
+    <color name="ns_stealth_border">#343D47</color>
+    <color name="ns_stealth_disabled_fill">#1F252D</color>
+
+    <!-- Legacy peach scale → cool slate / accent derivatives -->
+    <color name="ns_peach_100">@color/ns_stealth_accent</color>
+    <color name="ns_peach_80">#7DACBD</color>
+    <color name="ns_peach_60">#9BBDCF</color>
+    <color name="ns_peach_20">#DDE5EA</color>
+    <color name="ns_parmaviolet">#C5CED6</color>
+    <color name="ns_peach_40_dark">#3F6F80</color>
+    <color name="ns_peach_60_dark">#4F8799</color>
+    <color name="ns_white">#FFFFFF</color>
+    <color name="ns_red">#CF6679</color>
+    <color name="ns_navy">@color/ns_stealth_border</color>
+    <color name="ns_dark_navy">@color/ns_stealth_moonlit</color>
+    <color name="ns_status_bar_color">#CC0E1012</color>
+    <color name="ns_purple">#9C5776</color>
+    <color name="ns_maroon">#CF5355</color>
+    <color name="ns_bright_blue">#7AA3F3</color>
+    <color name="ns_bright_green">#9DEA79</color>
+    <color name="ns_bright_red">#F53C3C</color>
+    <color name="ns_disabled">#33FFFFFF</color>
+
+    <!--                  -->
+    <!-- palette: Android -->
+    <!--                  -->
+
+    <color name="colorPrimary">@color/ns_stealth_accent</color>
+    <color name="colorPrimaryMedium">@color/ns_peach_60_dark</color>
+    <color name="colorPrimaryDark">@color/ns_peach_40_dark</color>
+    <color name="colorAccent">#A1A1A1</color>
+    <color name="colorSurface">@color/text_light</color>
+    <color name="colorOnSurface">@color/background_banner</color>
+
+    <!--                  -->
+    <!-- palette: neutral base -->
+    <!--                  -->
+
+    <!-- Colors here should have a hex value and a stable semantic name (nh_* prefix) -->
+    <!-- This palette should be kept as small as possible
+     and should map directly to the design style guide -->
+
+    <color name="nh_white">#F5F5F5</color>
+    <color name="nh_gray">#616161</color>
+    <color name="nh_white_12">#1FFFFFFF</color>
+    <color name="nh_white_24">#3DFFFFFF</color>
+    <color name="nh_white_40">#66FFFFFF</color>
+    <color name="nh_white_50">#80FFFFFF</color>
+    <color name="nh_white_60">#A3FFFFFF</color>
+    <color name="nh_white_87">#BFFFFFFF</color>
+    <color name="nh_white_light">@color/ns_peach_20</color>
+    <color name="nh_black_light">#2B2B2B</color>
+    <color name="nh_black_12">#1F000000</color>
+    <color name="nh_black_40">#66000000</color>
+    <color name="nh_black_54">#8A000000</color>
+    <color name="nh_black_87">#DD000000</color>
+    <color name="nh_black_dark">#171717</color>
+    <color name="nh_black_0">#00000000</color>
+
+    <color name="nh_green">@color/ns_bright_green</color>
+    <color name="nh_red">@color/ns_bright_red</color>
+    <color name="nh_blue">@color/ns_bright_blue</color>
+    <color name="nh_blue_dark">#4A90E2</color>
+
+    <!-- yellows -->
+    <color name="nh_yellow">@color/ns_peach_100</color>
+    <color name="nh_orange">@color/ns_peach_60_dark</color>
+
+    <!-- tab layout grey -->
+    <color name="unselected_tab_grey">#727272</color>
+
+    <!--                  -->
+    <!-- named colors     -->
+    <!--                  -->
+
+    <!-- Every color here should be a reference to a palette color
+    but have a more useful name for use in code -->
+
+    <color name="background_banner">@color/nh_black_dark</color>
+    <color name="background_banner_stroke">#282828</color>
+    <color name="scan_overlay_background">@color/nh_black_87</color>
+    <color name="spacer">#1FBB666A</color>
+    <color name="text_send_amount_disabled">@color/text_light</color>
+
+    <!-- text -->
+    <color name="text_light">@color/ns_peach_20</color>
+    <color name="text_light_dimmed">@color/nh_white_87</color>
+    <color name="text_dark">@color/nh_black_87</color>
+    <color name="text_dark_dimmed">@color/nh_black_54</color>
+    <color name="text_shadow">@color/nh_black_40</color>
+
+    <!-- text : pending design review -->
+    <!-- these are colors found in designs that fall near but outside the palette but may want to
+         replace existing palette colors, after design review -->
+    <color name="tx_text_light_dimmed">#9B9B9B</color>
+    <color name="tx_text_light_dimmed_less">#D3D3D3</color>
+    <color name="tx_circle_icon_bg">#494A4C</color>
+    <color name="tx_primary">@color/ns_peach_100</color>
+
+    <!--transaction colors-->
+    <color name="transaction_sent">#B8B8B8</color>
+
+    <color name="mtrl_textinput_default_box_stroke_color" tools:override="true" >@color/nh_white</color>
+</resources>

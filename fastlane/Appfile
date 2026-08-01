@@ -1,0 +1,4 @@
+# F-Droid does not use Google Play credentials.
+# Set json_key_file only if deploying to Google Play.
+json_key_file(ENV["SUPPLY_JSON_KEY"] || "")
+package_name("com.nighthawkwallet.android")

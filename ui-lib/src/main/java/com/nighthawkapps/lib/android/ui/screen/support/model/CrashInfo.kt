@@ -1,0 +1,54 @@
+package com.nighthawkapps.lib.android.ui.screen.support.model
+
+/*import com.nighthawkapps.lib.android.crash.ExceptionPath
+import com.nighthawkapps.lib.android.crash.ReportedException
+import com.nighthawkapps.lib.android.crash.android.getExceptionDirectory
+import com.nighthawkapps.lib.android.crash.new
+import com.nighthawkapps.lib.android.spackle.io.listFilesSuspend*/
+import android.content.Context
+import com.nighthawkapps.lib.android.spackle.Twig
+import kotlinx.datetime.Instant
+
+data class CrashInfo(
+    val exceptionClassName: String,
+    val isUncaught: Boolean,
+    val timestamp: Instant
+) {
+    fun toSupportString() =
+        buildString {
+            appendLine("Exception")
+            appendLine("  Class name: $exceptionClassName")
+            appendLine("  Is uncaught: $isUncaught")
+            appendLine("  Timestamp: $timestamp")
+
+            // For now, don't include the stacktrace. It'll be too long for the emails we want to generate
+        }
+
+    companion object
+}
+
+fun List<CrashInfo>.toCrashSupportString() =
+    buildString {
+        // Using the header "Exceptions" instead of "Crashes" to reduce risk of alarming users
+        appendLine("Exceptions:")
+        this@toCrashSupportString.forEach {
+            appendLine(it.toSupportString())
+        }
+    }
+
+// If you change this, be sure to update the test case under /docs/testing/manual_testing/Contact Support.md
+private const val MAX_EXCEPTIONS_TO_REPORT = 5
+
+suspend fun CrashInfo.Companion.all(context: Context): List<CrashInfo> {
+    Twig.debug { "$context" }
+    return emptyList()
+    /*val exceptionDirectory = ExceptionPath.getExceptionDirectory(context) ?: return emptyList()
+    val filesList: List<File> = exceptionDirectory.listFilesSuspend().toList()
+    return filesList
+        .mapNotNull {
+            ReportedException.new(it)
+        }.sortedBy { it.time }
+        .reversed()
+        .take(MAX_EXCEPTIONS_TO_REPORT)
+        .map { CrashInfo(it.exceptionClassName, it.isUncaught, it.time) }*/
+}

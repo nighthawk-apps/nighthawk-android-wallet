@@ -1,0 +1,16 @@
+[versions]
+detektGradlePlugin = "1.23.8"
+gradle = "9.1.1"
+jetbrainsKotlinxKover = "0.9.8"
+kotlinGradlePlugin = "2.2.10"
+orgEclipseJgit = "6.4.0.202211300538-r"
+
+[libraries]
+detekt-gradle-plugin = { group = "io.gitlab.arturbosch.detekt", name = "detekt-gradle-plugin", version.ref = "detektGradlePlugin" }
+gradle = { group = "com.android.tools.build", name = "gradle", version.ref = "gradle" }
+kotlin-gradle-plugin = { group = "org.jetbrains.kotlin", name = "kotlin-gradle-plugin", version.ref = "kotlinGradlePlugin" }
+kotlinx-kover-gradle-plugin = { group = "org.jetbrains.kotlinx", name = "kover-gradle-plugin", version.ref = "jetbrainsKotlinxKover" }
+org-eclipse-jgit = { group = "org.eclipse.jgit", name = "org.eclipse.jgit", version.ref = "orgEclipseJgit" }
+
+[plugins]
+jetbrains-kotlinx-kover = { id = "org.jetbrains.kotlinx.kover", version.ref = "jetbrainsKotlinxKover" }

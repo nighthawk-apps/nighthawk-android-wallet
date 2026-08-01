@@ -1,0 +1,288 @@
+<?xml version="1.0" ?>
+<SmellBaseline>
+  <ManuallySuppressedIssues></ManuallySuppressedIssues>
+  <CurrentIssues>
+    <ID>ComposableParamOrder:SeedBackup.kt$SeedItem</ID>
+    <ID>ComposableParamOrder:TransactionOverviewHistoryRow.kt$TransactionOverviewHistoryRow</ID>
+    <ID>CompositionLocalAllowlist:ChatCompositionLocals.kt$LocalDarkfiChatController</ID>
+    <ID>CompositionLocalNaming:ConfigurationLocal.kt$RemoteConfig</ID>
+    <ID>CyclomaticComplexMethod:ChatSettingsScreen.kt$@Composable internal fun ChatSettingsScreen( controller: DarkfiChatController, identity: DarkfiChatIdentity, onBack: () -&gt; Unit, )</ID>
+    <ID>CyclomaticComplexMethod:DarkfiChatController.kt$DarkfiChatController$private suspend fun runIrcConnectSequence()</ID>
+    <ID>CyclomaticComplexMethod:DarkircIrcClient.kt$DarkircIrcClient$suspend fun connectAndJoin(joinChannels: List&lt;String&gt;): Unit</ID>
+    <ID>CyclomaticComplexMethod:DarkircIrcClientHandshakeTest.kt$DarkircIrcClientHandshakeTest$@Test fun connectAndJoin_completesAgainstMinimalDarkircLikeServer()</ID>
+    <ID>CyclomaticComplexMethod:SetUpPin.kt$@Composable fun SetUpPin( onBack: () -&gt; Unit, onPinSelected: (String) -&gt; Unit )</ID>
+    <ID>CyclomaticComplexMethod:TransactionDetails.kt$@Composable fun TransactionDetails( transactionDetailsUIModel: TransactionDetailsUIModel?, balanceUIModel: BalanceUIModel, isNavigateAwayFromAppWarningShown: Boolean, onBack: () -&gt; Unit, viewOnBlockExplorer: (url: String, updateWarningStatus: Boolean) -&gt; Unit )</ID>
+    <ID>ForbiddenComment:AndroidSupport.kt$// TODO [#386]:</ID>
+    <ID>ForbiddenComment:NotEnoughSpaceView.kt$// TODO [#883]:</ID>
+    <ID>ForbiddenComment:QrCodeAnalyzer.kt$QrCodeAnalyzer$// TODO [#437]:</ID>
+    <ID>ForbiddenComment:ReceiveView.kt$// TODO [#163]:</ID>
+    <ID>ForbiddenComment:RestoreView.kt$// TODO [#672]:</ID>
+    <ID>ForbiddenComment:ScanView.kt$// TODO [#423]:</ID>
+    <ID>ForbiddenComment:ScanView.kt$// TODO [#437]:</ID>
+    <ID>ForbiddenComment:TimeInfo.kt$TimeInfo$// TODO [#388]:</ID>
+    <ID>ForbiddenComment:WalletAddressView.kt$// TODO [#160]:</ID>
+    <ID>FunctionOnlyReturningConstant:WalletSnapshot.kt$@Suppress("unused") fun WalletSnapshot.changePendingBalance(): Long</ID>
+    <ID>FunctionOnlyReturningConstant:WalletSnapshot.kt$@Suppress("unused") fun WalletSnapshot.valuePendingBalance(): Long</ID>
+    <ID>FunctionOnlyReturningConstant:WalletSnapshot.kt$fun WalletSnapshot.hasChangePending(): Boolean</ID>
+    <ID>FunctionOnlyReturningConstant:WalletSnapshot.kt$fun WalletSnapshot.hasValuePending(): Boolean</ID>
+    <ID>FunctionOnlyReturningConstant:WalletSnapshot.kt$fun WalletSnapshot.pendingBalanceAtomic(): Long</ID>
+    <ID>ImplicitDefaultLocale:Extensions.kt$String.format("%02x", this[i])</ID>
+    <ID>LongMethod:AdvanceSetting.kt$@Composable fun AdvanceSetting( isScreenOnEnabled: Boolean?, isBanditAvailable: Boolean, preferredLogo: AvailableLogo?, themeVariant: AppThemeVariant, allAvailableLogo: PersistentList&lt;AvailableLogo&gt;, onScreenOnEnabledChanged: (isEnabled: Boolean) -&gt; Unit, onBack: () -&gt; Unit, onNukeWallet: () -&gt; Unit, onLogoPreferenceChanged: (availableLogo: AvailableLogo) -&gt; Unit, onThemeVariantChanged: (AppThemeVariant) -&gt; Unit )</ID>
+    <ID>LongMethod:AndroidChat.kt$@Composable private fun ChatScreen(controller: DarkfiChatController)</ID>
+    <ID>LongMethod:AndroidSend.kt$@Suppress("UNUSED_PARAMETER") @Composable private fun WrapSend( activity: ComponentActivity, sendArgumentsWrapper: SendArgumentsWrapper?, goToQrScanner: () -&gt; Unit, goBack: () -&gt; Unit, )</ID>
+    <ID>LongMethod:AndroidSettings.kt$@Composable private fun SettingsHubIdentitySection(activity: ComponentActivity)</ID>
+    <ID>LongMethod:AndroidWallet.kt$@Composable internal fun WrapWallet( activity: ComponentActivity, sendArgumentsWrapper: SendArgumentsWrapper?, onAddressQrCodes: () -&gt; Unit, onTransactionDetail: (String) -&gt; Unit, onViewTransactionHistory: () -&gt; Unit, onSendFromDeepLink: () -&gt; Unit, onScanToSend: () -&gt; Unit, )</ID>
+    <ID>LongMethod:AuthenticatePin.kt$@Composable fun AuthenticatePin( lastPin: String, onBack: () -&gt; Unit, onAuthentication: (Boolean) -&gt; Unit )</ID>
+    <ID>LongMethod:AutoShieldingInfo.kt$@Composable fun AutoShieldingInfo(onNext: () -&gt; Unit)</ID>
+    <ID>LongMethod:ChangeServer.kt$@Composable fun ChangeServer( onBack: () -&gt; Unit, presetOptionList: ImmutableList&lt;DarkfiEndpointPreset&gt;, selectedPreset: DarkfiEndpointPreset?, onPresetSelected: (DarkfiEndpointPreset?) -&gt; Unit, )</ID>
+    <ID>LongMethod:ChatSettingsScreen.kt$@Composable internal fun ChatSettingsScreen( controller: DarkfiChatController, identity: DarkfiChatIdentity, onBack: () -&gt; Unit, )</ID>
+    <ID>LongMethod:DarkfiChatController.kt$DarkfiChatController$private suspend fun runIrcConnectSequence()</ID>
+    <ID>LongMethod:DarkircIrcClient.kt$DarkircIrcClient$suspend fun connectAndJoin(joinChannels: List&lt;String&gt;): Unit</ID>
+    <ID>LongMethod:EncryptedPdfDialog.kt$@Composable fun EncryptedPdfDialog( onDismissRequest: () -&gt; Unit, onExportPdf: (password: String) -&gt; Unit )</ID>
+    <ID>LongMethod:EnterPinCommonUI.kt$@Composable fun EnterPinCommonUI( incorrectPassword: Boolean, enteredPassword: String, message: String, onKeyPressed: (NumberPadValueTypes) -&gt; Unit )</ID>
+    <ID>LongMethod:EnterReceiverAddress.kt$@Composable fun EnterReceiverAddress( receiverAddress: String, isContinueBtnEnabled: Boolean, onBack: () -&gt; Unit, onValueChanged: (String) -&gt; Unit, onContinue: (String) -&gt; Unit, onScan: () -&gt; Unit )</ID>
+    <ID>LongMethod:GetStarted.kt$@Composable fun GetStarted( onCreateWallet: () -&gt; Unit, onRestore: () -&gt; Unit, onReference: () -&gt; Unit )</ID>
+    <ID>LongMethod:LongNewWalletBackupView.kt$@Composable private fun TestInProgress( splitSeedPhrase: ImmutableList&lt;String&gt;, selectedTestChoices: TestChoices, onChoicesChanged: ((choicesCount: Int) -&gt; Unit)?, backupState: BackupState )</ID>
+    <ID>LongMethod:MainNavigation.kt$@Composable internal fun MainActivity.MainNavigation( navHostController: NavHostController, paddingValues: PaddingValues )</ID>
+    <ID>LongMethod:PdfUtil.kt$PdfUtil$fun exportPasswordProtectedPdf( context: Context, password: String, seedWords: List&lt;String&gt;, birthDay: Long? )</ID>
+    <ID>LongMethod:ReceiveQrCodes.kt$@OptIn(ExperimentalFoundationApi::class) @Composable fun ReceiveQrCodes( walletAddresses: DarkfiWalletAddresses, onBack: () -&gt; Unit, onSeeMoreTopUpOption: () -&gt; Unit )</ID>
+    <ID>LongMethod:ReceiveView.kt$@Composable fun ReceiveView( onBack: () -&gt; Unit, onShowQrCode: () -&gt; Unit, onCopyPrivateAddress: () -&gt; Unit, onTopUpWallet: () -&gt; Unit, onCopyTransparentAddress: () -&gt; Unit )</ID>
+    <ID>LongMethod:Restore.kt$@Composable internal fun Restore( isSeedValid: Boolean, onSeedValueChanged: (seed: String) -&gt; Unit, onContinue: (seedPhrase: String, birthdayHeight: Long?) -&gt; Unit, onBack: () -&gt; Unit, )</ID>
+    <ID>LongMethod:Security.kt$@Composable fun Security( onBack: () -&gt; Unit, isPinEnabled: Boolean, isTouchIdOrFaceEnabled: Boolean, isBioMetricEnabledOnMobile: Boolean, onDisablePin: () -&gt; Unit, onSetPin: () -&gt; Unit, onTouchIdToggleChanged: (Boolean) -&gt; Unit )</ID>
+    <ID>LongMethod:SeedBackup.kt$@Composable fun SeedBackupContent( seedWords: ImmutableList&lt;String&gt;, birthday: Long?, navigationFromSettings: Boolean, onContinue: () -&gt; Unit, onBack: () -&gt; Unit, )</ID>
+    <ID>LongMethod:SendConfirmation.kt$@Composable fun SendConfirmation( sendConfirmationState: SendConfirmationState, onCancel: () -&gt; Unit, onTryAgain: () -&gt; Unit, onDone: () -&gt; Unit, // onMoreDetails: (Long) -&gt; Unit, )</ID>
+    <ID>LongMethod:SetUpPin.kt$@Composable fun SetUpPin( onBack: () -&gt; Unit, onPinSelected: (String) -&gt; Unit )</ID>
+    <ID>LongMethod:ShieldFunds.kt$@Composable fun ShieldFunds( onBack: () -&gt; Unit, shieldingProcessState: ShieldingProcessState )</ID>
+    <ID>LongMethod:TransactionDetails.kt$@Composable fun TransactionDetails( transactionDetailsUIModel: TransactionDetailsUIModel?, balanceUIModel: BalanceUIModel, isNavigateAwayFromAppWarningShown: Boolean, onBack: () -&gt; Unit, viewOnBlockExplorer: (url: String, updateWarningStatus: Boolean) -&gt; Unit )</ID>
+    <ID>LongMethod:TransactionOverviewHistoryRow.kt$@OptIn(ExperimentalFoundationApi::class) @Composable fun TransactionOverviewHistoryRow( transactionOverview: DarkfiTransactionOverview, fiatCurrencyUiState: FiatCurrencyUiState, isBalancePrivateMode: Boolean = false, isFiatCurrencyPreferred: Boolean = false, onItemClick: (DarkfiTransactionOverview) -&gt; Unit, onItemLongClick: (DarkfiTransactionOverview) -&gt; Unit = {}, )</ID>
+    <ID>LongMethod:TransferMainView.kt$@Composable fun TransferMainView( onSendMoney: () -&gt; Unit, onReceiveMoney: () -&gt; Unit, onTopUp: () -&gt; Unit, )</ID>
+    <ID>LongMethod:WalletView.kt$@OptIn(ExperimentalFoundationApi::class) @Composable fun WalletView( walletSnapshot: WalletSnapshot, transactionSnapshot: ImmutableList&lt;DarkfiTransactionOverview&gt;, isKeepScreenOnWhileSyncing: Boolean?, isFiatCurrencyPreferred: Boolean, fiatCurrencyUiState: FiatCurrencyUiState, isBandit: Boolean, onAddressQrCodes: () -&gt; Unit, onTransactionDetail: (String) -&gt; Unit, onViewTransactionHistory: () -&gt; Unit, onLongItemClick: (DarkfiTransactionOverview) -&gt; Unit, onFlipCurrency: (isFiatCurrencyPreferredOverNative: Boolean) -&gt; Unit, onScanToSend: () -&gt; Unit )</ID>
+    <ID>LongParameterList:AdvanceSetting.kt$( isScreenOnEnabled: Boolean?, isBanditAvailable: Boolean, preferredLogo: AvailableLogo?, themeVariant: AppThemeVariant, allAvailableLogo: PersistentList&lt;AvailableLogo&gt;, onScreenOnEnabledChanged: (isEnabled: Boolean) -&gt; Unit, onBack: () -&gt; Unit, onNukeWallet: () -&gt; Unit, onLogoPreferenceChanged: (availableLogo: AvailableLogo) -&gt; Unit, onThemeVariantChanged: (AppThemeVariant) -&gt; Unit )</ID>
+    <ID>LongParameterList:AlertDialog.kt$( title: String, desc: String, confirmText: String, dismissText: String, onConfirm: () -&gt; Unit = {}, onDismiss: () -&gt; Unit = {}, onDismissRequest: () -&gt; Unit = {} )</ID>
+    <ID>LongParameterList:AndroidWallet.kt$( activity: ComponentActivity, sendArgumentsWrapper: SendArgumentsWrapper?, onAddressQrCodes: () -&gt; Unit, onTransactionDetail: (String) -&gt; Unit, onViewTransactionHistory: () -&gt; Unit, onSendFromDeepLink: () -&gt; Unit, onScanToSend: () -&gt; Unit, )</ID>
+    <ID>LongParameterList:AndroidWallet.kt$( sendArgumentsWrapper: SendArgumentsWrapper?, onAddressQrCodes: () -&gt; Unit, onTransactionDetail: (String) -&gt; Unit, onViewTransactionHistory: () -&gt; Unit, onSendFromDeepLink: () -&gt; Unit, onScanToSend: () -&gt; Unit, )</ID>
+    <ID>LongParameterList:DarkfiTransactionOverviewFixture.kt$DarkfiTransactionOverviewFixture$( rawId: String = "preview_tx_${System.nanoTime()}", minedHeight: Long? = 1L, timestampEpochMillis: Long? = System.currentTimeMillis(), totalFeeAtomic: Long = 1_000L, isSentTransaction: Boolean = false, netValueAtomic: Long = 50_000_000L, )</ID>
+    <ID>LongParameterList:EnterReceiverAddress.kt$( receiverAddress: String, isContinueBtnEnabled: Boolean, onBack: () -&gt; Unit, onValueChanged: (String) -&gt; Unit, onContinue: (String) -&gt; Unit, onScan: () -&gt; Unit )</ID>
+    <ID>LongParameterList:RestoreView.kt$( userWordList: WordList, parseResult: ParseResult, setTextState: (String) -&gt; Unit, focusRequester: FocusRequester, seedPhraseValidation: StateFlow&lt;DarkfiMnemonic.SeedPhraseValidation?&gt;, modifier: Modifier = Modifier )</ID>
+    <ID>LongParameterList:Security.kt$( onBack: () -&gt; Unit, isPinEnabled: Boolean, isTouchIdOrFaceEnabled: Boolean, isBioMetricEnabledOnMobile: Boolean, onDisablePin: () -&gt; Unit, onSetPin: () -&gt; Unit, onTouchIdToggleChanged: (Boolean) -&gt; Unit )</ID>
+    <ID>LongParameterList:SettingsListItem.kt$( @DrawableRes iconRes: Int, title: String, desc: String, modifier: Modifier = Modifier, rotateByDegree: Float = 0f, showDivider: Boolean = true )</ID>
+    <ID>LongParameterList:Text.kt$( text: String, modifier: Modifier = Modifier, maxLines: Int = Int.MAX_VALUE, overflow: TextOverflow = TextOverflow.Clip, textAlign: TextAlign = TextAlign.Start, color: Color = MaterialTheme.colorScheme.onBackground )</ID>
+    <ID>LongParameterList:TransactionHistory.kt$( transactionSnapshot: ImmutableList&lt;DarkfiTransactionOverview&gt;, fiatCurrencyUiState: FiatCurrencyUiState, isFiatCurrencyPreferred: Boolean, onBack: () -&gt; Unit, onTransactionDetail: (String) -&gt; Unit, onItemLongClick: (DarkfiTransactionOverview) -&gt; Unit, )</ID>
+    <ID>LongParameterList:TransactionOverviewHistoryRow.kt$( transactionOverview: DarkfiTransactionOverview, fiatCurrencyUiState: FiatCurrencyUiState, isBalancePrivateMode: Boolean = false, isFiatCurrencyPreferred: Boolean = false, onItemClick: (DarkfiTransactionOverview) -&gt; Unit, onItemLongClick: (DarkfiTransactionOverview) -&gt; Unit = {}, )</ID>
+    <ID>LongParameterList:WalletView.kt$( walletSnapshot: WalletSnapshot, transactionSnapshot: ImmutableList&lt;DarkfiTransactionOverview&gt;, isKeepScreenOnWhileSyncing: Boolean?, isFiatCurrencyPreferred: Boolean, fiatCurrencyUiState: FiatCurrencyUiState, isBandit: Boolean, onAddressQrCodes: () -&gt; Unit, onTransactionDetail: (String) -&gt; Unit, onViewTransactionHistory: () -&gt; Unit, onLongItemClick: (DarkfiTransactionOverview) -&gt; Unit, onFlipCurrency: (isFiatCurrencyPreferredOverNative: Boolean) -&gt; Unit, onScanToSend: () -&gt; Unit )</ID>
+    <ID>LoopWithTooManyJumpStatements:DarkircIrcClientHandshakeTest.kt$DarkircIrcClientHandshakeTest$while</ID>
+    <ID>MagicNumber:AboutView.kt$12f</ID>
+    <ID>MagicNumber:AndroidWallet.kt$500</ID>
+    <ID>MagicNumber:AuthenticatePin.kt$1000</ID>
+    <ID>MagicNumber:AutoShieldingInfo.kt$0.8f</ID>
+    <ID>MagicNumber:Button.kt$10f</ID>
+    <ID>MagicNumber:Button.kt$44</ID>
+    <ID>MagicNumber:ChangeServer.kt$0.4f</ID>
+    <ID>MagicNumber:ChangeServer.kt$0.6f</ID>
+    <ID>MagicNumber:Constants.kt$100L</ID>
+    <ID>MagicNumber:Constants.kt$200L</ID>
+    <ID>MagicNumber:Constants.kt$50L</ID>
+    <ID>MagicNumber:Constants.kt$800L</ID>
+    <ID>MagicNumber:DarkfiChatController.kt$DarkfiChatController.Companion$3</ID>
+    <ID>MagicNumber:DarkfiChatPreferences.kt$DarkfiChatPreferences$1000</ID>
+    <ID>MagicNumber:DarkfiChatPreferences.kt$DarkfiChatPreferences$65535</ID>
+    <ID>MagicNumber:DarkfiChatPreferences.kt$DarkfiChatPreferences$9999</ID>
+    <ID>MagicNumber:DarkfiChatPreferences.kt$DarkfiChatPreferences.Companion$1000</ID>
+    <ID>MagicNumber:DarkfiChatPreferences.kt$DarkfiChatPreferences.Companion$9999</ID>
+    <ID>MagicNumber:DarkfiEndpointPreset.kt$65535</ID>
+    <ID>MagicNumber:DarkfiMnemonic.kt$DarkfiEnglishWordList$2048</ID>
+    <ID>MagicNumber:DarkfiMnemonic.kt$DarkfiMnemonic$0xFF</ID>
+    <ID>MagicNumber:DarkfiMnemonic.kt$DarkfiMnemonic$10</ID>
+    <ID>MagicNumber:DarkfiMnemonic.kt$DarkfiMnemonic$11</ID>
+    <ID>MagicNumber:DarkfiMnemonic.kt$DarkfiMnemonic$12</ID>
+    <ID>MagicNumber:DarkfiMnemonic.kt$DarkfiMnemonic$128</ID>
+    <ID>MagicNumber:DarkfiMnemonic.kt$DarkfiMnemonic$2047</ID>
+    <ID>MagicNumber:DarkfiMnemonic.kt$DarkfiMnemonic$24</ID>
+    <ID>MagicNumber:DarkfiMnemonic.kt$DarkfiMnemonic$256</ID>
+    <ID>MagicNumber:DarkfiMnemonic.kt$DarkfiMnemonic$32</ID>
+    <ID>MagicNumber:DarkfiMnemonic.kt$DarkfiMnemonic$7</ID>
+    <ID>MagicNumber:DarkfiMnemonic.kt$DarkfiMnemonic$8</ID>
+    <ID>MagicNumber:DarkfiPercent.kt$DarkfiPercent$1e-4f</ID>
+    <ID>MagicNumber:DarkfiSynchronizer.kt$32</ID>
+    <ID>MagicNumber:DarkfiWalletCoordinator.kt$DarkfiWalletCoordinator$5_000</ID>
+    <ID>MagicNumber:DarkircIrcClient.kt$DarkircIrcClient$16</ID>
+    <ID>MagicNumber:DarkircIrcClient.kt$DarkircIrcClient$256</ID>
+    <ID>MagicNumber:DarkircIrcClient.kt$DarkircIrcClient$48</ID>
+    <ID>MagicNumber:DarkircWireParser.kt$DarkircWireParser$3</ID>
+    <ID>MagicNumber:DarkircWireParser.kt$DarkircWireParser$4</ID>
+    <ID>MagicNumber:EncryptedPdfDialog.kt$0.96f</ID>
+    <ID>MagicNumber:EnterPinCommonUI.kt$.75f</ID>
+    <ID>MagicNumber:EnterPinCommonUI.kt$3</ID>
+    <ID>MagicNumber:GetStarted.kt$0.1f</ID>
+    <ID>MagicNumber:GetStarted.kt$0.7f</ID>
+    <ID>MagicNumber:GetStarted.kt$12f</ID>
+    <ID>MagicNumber:JvmQrCodeGenerator.kt$JvmQrCodeGenerator$3</ID>
+    <ID>MagicNumber:MainActivity.kt$MainActivity$0.03f</ID>
+    <ID>MagicNumber:MainActivity.kt$MainActivity$13f</ID>
+    <ID>MagicNumber:MainActivity.kt$MainActivity$36</ID>
+    <ID>MagicNumber:PdfUtil.kt$PdfUtil$1.5f</ID>
+    <ID>MagicNumber:PdfUtil.kt$PdfUtil$128</ID>
+    <ID>MagicNumber:PdfUtil.kt$PdfUtil$12f</ID>
+    <ID>MagicNumber:PdfUtil.kt$PdfUtil$14f</ID>
+    <ID>MagicNumber:PdfUtil.kt$PdfUtil$16f</ID>
+    <ID>MagicNumber:PdfUtil.kt$PdfUtil$50f</ID>
+    <ID>MagicNumber:PdfUtil.kt$PdfUtil$6</ID>
+    <ID>MagicNumber:PdfUtil.kt$PdfUtil$700f</ID>
+    <ID>MagicNumber:ReceiveQrCodes.kt$3</ID>
+    <ID>MagicNumber:ReceiveQrCodes.kt$4</ID>
+    <ID>MagicNumber:Restore.kt$0.7f</ID>
+    <ID>MagicNumber:RestoreViewModel.kt$DarkfiEnglishWordListForRestore$2048</ID>
+    <ID>MagicNumber:SeedBackup.kt$0.3f</ID>
+    <ID>MagicNumber:SeedBackup.kt$3</ID>
+    <ID>MagicNumber:SetUpPin.kt$1000</ID>
+    <ID>MagicNumber:StubDarkfiSynchronizer.kt$StubDarkfiSynchronizer$0.99f</ID>
+    <ID>MagicNumber:StubDarkfiSynchronizer.kt$StubDarkfiSynchronizer$100_000_000L</ID>
+    <ID>MagicNumber:StubDarkfiSynchronizer.kt$StubDarkfiSynchronizer$10L</ID>
+    <ID>MagicNumber:StubDarkfiSynchronizer.kt$StubDarkfiSynchronizer$16</ID>
+    <ID>MagicNumber:StubDarkfiSynchronizer.kt$StubDarkfiSynchronizer$48</ID>
+    <ID>MagicNumber:SyncNotificationViewModel.kt$SyncNotificationViewModel.SyncIntervalOption.MONTHLY$30</ID>
+    <ID>MagicNumber:SyncNotificationViewModel.kt$SyncNotificationViewModel.SyncIntervalOption.WEEKLY$7</ID>
+    <ID>MagicNumber:SyncNotificationWorker.kt$SyncNotificationWorker$100</ID>
+    <ID>MagicNumber:SyncNotificationWorker.kt$SyncNotificationWorker$200</ID>
+    <ID>MagicNumber:SyncNotificationWorker.kt$SyncNotificationWorker$300</ID>
+    <ID>MagicNumber:SyncNotificationWorker.kt$SyncNotificationWorker.Companion$24</ID>
+    <ID>MagicNumber:SyncNotificationWorker.kt$SyncNotificationWorker.Companion$7</ID>
+    <ID>MagicNumber:TorSocksReadiness.kt$TorSocksReadiness$1500</ID>
+    <ID>MagicNumber:TorSocksReadiness.kt$TorSocksReadiness$200</ID>
+    <ID>MagicNumber:TransactionDetails.kt$10</ID>
+    <ID>MagicNumber:TransactionDetails.kt$180f</ID>
+    <ID>MagicNumber:TransactionDetails.kt$20</ID>
+    <ID>MagicNumber:TransactionDetailsUIModel.kt$1000</ID>
+    <ID>MagicNumber:TransactionHistory.kt$25.25</ID>
+    <ID>MagicNumber:TransactionOverviewHistoryRow.kt$180f</ID>
+    <ID>MagicNumber:TransactionOverviewHistoryRow.kt$25.24</ID>
+    <ID>MagicNumber:WalletView.kt$0.8f</ID>
+    <ID>MagicNumber:WalletView.kt$25.8</ID>
+    <ID>MagicNumber:WalletView.kt$90</ID>
+    <ID>MatchingDeclarationName:NumberPadKeys.kt$NumberPadValueTypes</ID>
+    <ID>MatchingDeclarationName:SyncNotificationIntervalOptionPreferenceDefault.kt$SyncIntervalOptionPreferenceDefault : PreferenceDefault</ID>
+    <ID>MatchingDeclarationName:WalletCoordinator.kt$AppWalletCoordinator</ID>
+    <ID>MaxLineLength:AlertDialog.kt$AlertDialog(title = "Dialog Title", desc = "Description for Dialog", confirmText = "OK", dismissText = "Cancel")</ID>
+    <ID>MaxLineLength:AuthenticatePin.kt$id = if (incorrectPassword.value) R.string.ns_security_try_again else R.string.enter_six_digit_pin_code</ID>
+    <ID>MaxLineLength:BalanceDisplayValues.kt$BalanceDisplayValues.Companion$DarkfiAmountFormatter.formatAtomic(totalBalance - availableBalance).removeTrailingZero()</ID>
+    <ID>MaxLineLength:ChangeServerViewModel.kt$ChangeServerViewModel$fun presetOptions(): ImmutableList&lt;DarkfiEndpointPreset&gt;</ID>
+    <ID>MaxLineLength:ChatSettingsScreen.kt$Toast.makeText(context, R.string.ns_chat_identity_generate_failed, Toast.LENGTH_SHORT).show()</ID>
+    <ID>MaxLineLength:DarkfiChatController.kt$DarkfiChatController$"IRC host is loopback — SOCKS skipped. Desktop tip: run darkirc then `adb reverse tcp:6667 tcp:6667`.\n"</ID>
+    <ID>MaxLineLength:DarkfiChatController.kt$DarkfiChatController$"Tip: start `darkirc` on a workstation (default tcp://127.0.0.1:6667) or expose IRC/TLS via tunnel.\n"</ID>
+    <ID>MaxLineLength:DarkfiChatController.kt$DarkfiChatController$fun activeSeedUrls(): List&lt;String&gt;</ID>
+    <ID>MaxLineLength:DarkfiChatIdentity.kt$DarkfiChatIdentity$*</ID>
+    <ID>MaxLineLength:DarkfiChatIdentity.kt$DarkfiChatIdentity$fun publicIdHex(): String?</ID>
+    <ID>MaxLineLength:EncryptedPdfDialog.kt$visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation()</ID>
+    <ID>MaxLineLength:EncryptedPreferenceKeys.kt$EncryptedPreferenceKeys$val IS_FIAT_CURRENCY_PREFERRED = BooleanPreferenceDefault(PreferenceKey("is_fiat_currency_preferred_over_drk"), false)</ID>
+    <ID>MaxLineLength:EnterPinCommonUI.kt$BodyMedium(text = message, textAlign = TextAlign.Center, modifier = Modifier.align(Alignment.CenterHorizontally))</ID>
+    <ID>MaxLineLength:EnterPinCommonUI.kt$EnterPinCommonUI(incorrectPassword = false, enteredPassword = "11", message = "Enter Six Digit Pin", onKeyPressed = {})</ID>
+    <ID>MaxLineLength:EnterPinCommonUI.kt$Modifier.background(color = WalletTheme.colors.onBackgroundHeader, shape = CircleShape)</ID>
+    <ID>MaxLineLength:EnterPinCommonUI.kt$color = colorResource(id = com.nighthawkapps.lib.android.ui.design.R.color.nh_gray)</ID>
+    <ID>MaxLineLength:GetStarted.kt$style = TextStyle(fontSize = TextUnit(12f, TextUnitType.Sp), textDecoration = TextDecoration.Underline)</ID>
+    <ID>MaxLineLength:HistoryViewTest.kt$HistoryViewTest$private</ID>
+    <ID>MaxLineLength:HomeViewModel.kt$HomeViewModel$// Flag to track any expecting balance is there or not. We will show snackBar everytime user open the app until it is a confirmed transaction</ID>
+    <ID>MaxLineLength:MainActivity.kt$MainActivity$homeViewModel.shortcutAction = ShortcutAction.getShortcutAction(intent?.getStringExtra(ShortcutAction.KEY_SHORT_CUT_CLICK))</ID>
+    <ID>MaxLineLength:MainNavigation.kt$/* onMoreDetails = { navHostController.popBackStack(BottomNavItem.Transfer.route, false) navHostController.navigateJustOnce(NavigationTargets.navigationRouteTransactionDetails(transactionId = it)) },*/</ID>
+    <ID>MaxLineLength:MainNavigation.kt$NavHost</ID>
+    <ID>MaxLineLength:MainNavigation.kt$icon = { Icon(painter = painterResource(id = bottomNavItem.icon), contentDescription = bottomNavItem.route) }</ID>
+    <ID>MaxLineLength:MainNavigation.kt$onSetPin = { navHostController.navigateJustOnce(NavigationTargets.navigateToPinScreen(isPinSetUp = true)) }</ID>
+    <ID>MaxLineLength:MergingConfigurationProviderTest.kt$MergingConfigurationProviderTest$StringConfiguration(persistentMapOf(BooleanDefaultEntryFixture.KEY.key to false.toString()), newer)</ID>
+    <ID>MaxLineLength:MergingConfigurationProviderTest.kt$MergingConfigurationProviderTest$StringConfiguration(persistentMapOf(BooleanDefaultEntryFixture.KEY.key to false.toString()), null)</ID>
+    <ID>MaxLineLength:MergingConfigurationProviderTest.kt$MergingConfigurationProviderTest$StringConfiguration(persistentMapOf(BooleanDefaultEntryFixture.KEY.key to true.toString()), null)</ID>
+    <ID>MaxLineLength:MergingConfigurationProviderTest.kt$MergingConfigurationProviderTest$StringConfiguration(persistentMapOf(BooleanDefaultEntryFixture.KEY.key to true.toString()), older)</ID>
+    <ID>MaxLineLength:PdfUtil.kt$PdfUtil$context.packageManager.queryIntentActivities(intentChooser, PackageManager.MATCH_DEFAULT_ONLY)</ID>
+    <ID>MaxLineLength:RetrofitHelper.kt$RetrofitHelper$fun getCoinMetricsApiService(): CoinMetricsApiService</ID>
+    <ID>MaxLineLength:ScreenshotTest.kt$ScreenshotTest$/** Screenshot baselines were removed with the DarkFi-only refactor; replace once Compose previews stabilize again. */</ID>
+    <ID>MaxLineLength:SendConfirmation.kt$/*TextButton( onClick = { onMoreDetails(sendConfirmationState.id) }, modifier = Modifier.align(Alignment.CenterHorizontally) ) { BodyMedium(text = stringResource(id = R.string.ns_more_details).uppercase(), color = WalletTheme.colors.onBackgroundHeader) }*/</ID>
+    <ID>MaxLineLength:SendConfirmation.kt$BodyMedium(text = stringResource(id = R.string.ns_cancel).uppercase(), color = WalletTheme.colors.onBackgroundHeader)</ID>
+    <ID>MaxLineLength:SettingsView.kt$BodyMedium(text = stringResource(id = R.string.ns_chat_settings_section_title), color = WalletTheme.colors.surfaceEnd)</ID>
+    <ID>MaxLineLength:ShieldViewModel.kt$ShieldViewModel$"Try again after ${maxAutoShieldFrequency.milliseconds.inWholeMinutes} minutes of your last auto shielding"</ID>
+    <ID>MaxLineLength:ShieldViewModel.kt$ShieldViewModel$private val _shieldingProcessSate: MutableStateFlow&lt;ShieldingProcessState&gt; = MutableStateFlow(ShieldingProcessState.CREATING)</ID>
+    <ID>MaxLineLength:StandardPreferenceKeys.kt$StandardPreferenceKeys$val IS_AUTOSHIELDING_INFO_ACKNOWLEDGED = BooleanPreferenceDefault(PreferenceKey("is_autoshielding_info_acknowledged"), false)</ID>
+    <ID>MaxLineLength:StandardPreferenceKeys.kt$StandardPreferenceKeys$val IS_NAVIGATE_AWAY_FROM_APP_WARNING_SHOWN = BooleanPreferenceDefault(PreferenceKey("is_navigate_from_app_warning_shown"), false)</ID>
+    <ID>MaxLineLength:StandardPreferenceKeys.kt$StandardPreferenceKeys$val IS_UNSTOPPABLE_SERVICE_ENABLED = BooleanPreferenceDefault(PreferenceKey("is_unstoppable_service_enabled"), false)</ID>
+    <ID>MaxLineLength:StandardPreferenceKeys.kt$StandardPreferenceKeys$val LAST_AUTOSHIELDING_PROMPT_EPOCH_MILLIS_STRING = StringPreferenceDefault(PreferenceKey("last_autoshielding_epoch_millis"), "0")</ID>
+    <ID>MaxLineLength:SyncNotificationIntervalOptionPreferenceDefault.kt$SyncIntervalOptionPreferenceDefault$override suspend</ID>
+    <ID>MaxLineLength:SyncNotificationIntervalOptionPreferenceDefault.kt$SyncIntervalOptionPreferenceDefault$preferenceProvider.getString(key)?.let { SyncNotificationViewModel.SyncIntervalOption.getSyncIntervalByText(it) }</ID>
+    <ID>MaxLineLength:SyncNotificationWorker.kt$SyncNotificationWorker$val channelPeriodic = NotificationChannel(WorkIds.SYNC_NOTIFICATION_CHANNEL_ID, WorkIds.SYNC_NOTIFICATION_CHANNEL_NAME, importance)</ID>
+    <ID>MaxLineLength:TimeInfo.kt$TimeInfo$// Use a slightly more human friendly format instead of ISO, since this will appear in the emails that users see</ID>
+    <ID>MaxLineLength:TransactionDetails.kt$transactionRecipient = DarkfiTransactionRecipient("jhasdgjhagsdjagsjadjhgasjhdgajshdgjahsgdjasgdjasgdjsad")</ID>
+    <ID>MaxLineLength:TransactionOverviewHistoryRow.kt$Body(text = transactionText, color = colorResource(id = com.nighthawkapps.lib.android.ui.design.R.color.ns_parmaviolet))</ID>
+    <ID>MaxLineLength:TransferMainView.kt$BodyMedium(text = stringResource(id = R.string.ns_send_and_receive_drk), color = WalletTheme.colors.secondaryTitleText)</ID>
+    <ID>MaxLineLength:WalletView.kt$if (pagerState.currentPage == iteration) WalletTheme.colors.selectedPageIndicator else MaterialTheme.colorScheme.primary</ID>
+    <ID>MaxLineLength:WalletView.kt$text = balanceDisplayValues.balanceUIModel.fiatBalance + " ${balanceDisplayValues.balanceUIModel.fiatUnit}"</ID>
+    <ID>MaxLineLength:WalletViewModel.kt$WalletViewModel$EncryptedPreferenceKeys.PERSISTABLE_DARKFI_WALLET.getValue(preferenceProvider)?.copyWithEndpoint(endpoint)</ID>
+    <ID>MaxLineLength:stealth.android-build-conventions.gradle.kts$resourceConfigurations.addAll(listOf("en", "en-rUS", "en-rGB", "en-rAU", "en_XA", "ar_XB", "ar", "bg", "bn", "da", "de", "el", "es", "fi", "fr", "he", "hi", "id", "is", "it", "ja", "kn", "ko", "mr", "ne", "nl", "no", "pa", "pt", "ro", "ru", "sa", "ta", "te", "th", "ug", "uk", "ur", "zh"))</ID>
+    <ID>MayBeConst:EncryptedPreferenceProviderTest.kt$EncryptedPreferenceProviderTest.Companion$private val FILENAME = "encrypted_preference_test"</ID>
+    <ID>MayBeConst:StandardPreferenceProviderTest.kt$StandardPreferenceProviderTest.Companion$private val FILENAME = "encrypted_preference_test"</ID>
+    <ID>MayBeConst:SupportViewTest.kt$SupportViewTest.Companion$internal val DEFAULT_MESSAGE = "I can haz cheezburger?"</ID>
+    <ID>ModifierNotUsedAtRoot:ReceiveQrCodes.kt$modifier = modifier</ID>
+    <ID>ModifierReused:ReceiveQrCodes.kt$Box(modifier = modifier, contentAlignment = Alignment.Center) { Column(modifier = modifier) { BrightenScreen() DisableScreenTimeout() val sizePixels = with(LocalDensity.current) { size.toPx() }.roundToInt() // In the future, use actual/expect to switch QR code generator implementations for multiplatform // Note that our implementation has an extra array copy to BooleanArray, which is a cross-platform // representation. This should have minimal performance impact since the QR code is relatively // small and we only generate QR codes infrequently. val qrCodePixelArray = JvmQrCodeGenerator.generate(data, sizePixels) val qrCodeImage = AndroidQrCodeImageGenerator.generate(qrCodePixelArray, sizePixels) Image( bitmap = qrCodeImage, contentDescription = stringResource(R.string.receive_qr_code_content_description) ) } QrLogo(logoId = logoId, backGroundColor = backGroundColor) }</ID>
+    <ID>ModifierReused:ReceiveQrCodes.kt$Column(modifier = modifier) { BrightenScreen() DisableScreenTimeout() val sizePixels = with(LocalDensity.current) { size.toPx() }.roundToInt() // In the future, use actual/expect to switch QR code generator implementations for multiplatform // Note that our implementation has an extra array copy to BooleanArray, which is a cross-platform // representation. This should have minimal performance impact since the QR code is relatively // small and we only generate QR codes infrequently. val qrCodePixelArray = JvmQrCodeGenerator.generate(data, sizePixels) val qrCodeImage = AndroidQrCodeImageGenerator.generate(qrCodePixelArray, sizePixels) Image( bitmap = qrCodeImage, contentDescription = stringResource(R.string.receive_qr_code_content_description) ) }</ID>
+    <ID>ModifierWithoutDefault:Divider.kt$modifier</ID>
+    <ID>MultipleEmitters:LongOnboardingView.kt$OnboardingBottomNav</ID>
+    <ID>MultipleEmitters:LongOnboardingView.kt$WalletStageBottomNav</ID>
+    <ID>MultipleEmitters:SeedBackup.kt$SeedItemRow</ID>
+    <ID>PreviewPublic:AboutView.kt$AboutViewPreview</ID>
+    <ID>PreviewPublic:AdvanceSetting.kt$AdvanceSettingPreview</ID>
+    <ID>PreviewPublic:AlertDialog.kt$AlertDialogPreview</ID>
+    <ID>PreviewPublic:AuthenticatePin.kt$AuthenticatePinPreview</ID>
+    <ID>PreviewPublic:AutoShieldingInfo.kt$AutoShieldingInfoPreview</ID>
+    <ID>PreviewPublic:ChangeServer.kt$ChangeServerPreview</ID>
+    <ID>PreviewPublic:Divider.kt$PreviewMaxWidthDivider</ID>
+    <ID>PreviewPublic:EncryptedPdfDialog.kt$EncryptedPdfDialogPreview</ID>
+    <ID>PreviewPublic:EnterPinCommonUI.kt$EnterPinCommonUIPreview</ID>
+    <ID>PreviewPublic:EnterReceiverAddress.kt$EnterReceiverAddressPreview</ID>
+    <ID>PreviewPublic:ExternalServices.kt$ExternalServicesPreview</ID>
+    <ID>PreviewPublic:FiatCurrency.kt$FiatCurrencyPreview</ID>
+    <ID>PreviewPublic:GetStarted.kt$ComposablePreview</ID>
+    <ID>PreviewPublic:LicencesView.kt$LicenceViewPreview</ID>
+    <ID>PreviewPublic:ReceiveQrCodes.kt$QrAddressCardPreview</ID>
+    <ID>PreviewPublic:ReceiveQrCodes.kt$ReceiveQrCodesPreview</ID>
+    <ID>PreviewPublic:ReceiveQrCodes.kt$TopUpCardPreview</ID>
+    <ID>PreviewPublic:ReceiveView.kt$ReceiveViewPreview</ID>
+    <ID>PreviewPublic:Restore.kt$RestorePreview</ID>
+    <ID>PreviewPublic:Security.kt$SecurityPreview</ID>
+    <ID>PreviewPublic:SeedBackup.kt$SeedFeedBackPreview</ID>
+    <ID>PreviewPublic:SendConfirmation.kt$SendConfirmationPreview</ID>
+    <ID>PreviewPublic:SetUpPin.kt$SetUpPinPreview</ID>
+    <ID>PreviewPublic:SettingsListItem.kt$SettingListItemPreview</ID>
+    <ID>PreviewPublic:SettingsView.kt$SettingsPreview</ID>
+    <ID>PreviewPublic:ShieldFunds.kt$FundsAvailablePreview</ID>
+    <ID>PreviewPublic:SyncNotification.kt$SyncNotificationPreview</ID>
+    <ID>PreviewPublic:TopUp.kt$TopUpPreview</ID>
+    <ID>PreviewPublic:TransactionDetails.kt$TransactionDetailsDarkPreview</ID>
+    <ID>PreviewPublic:TransactionDetails.kt$TransactionDetailsPreview</ID>
+    <ID>PreviewPublic:TransactionHistory.kt$TransactionHistoryPreview</ID>
+    <ID>PreviewPublic:TransactionOverviewHistoryRow.kt$TransactionOverviewHistoryRowPreview</ID>
+    <ID>PreviewPublic:TransferMainView.kt$WalletPreview</ID>
+    <ID>PreviewPublic:WalletView.kt$BalanceViewPreview</ID>
+    <ID>PreviewPublic:WalletView.kt$WalletPreview</ID>
+    <ID>ReturnCount:DarkfiChatController.kt$DarkfiChatController.Companion$fun extractHostFromSeed(seedUrl: String): String?</ID>
+    <ID>ReturnCount:DarkfiChatSecureStore.kt$DarkfiChatSecureStore$fun sharedPreferences(context: Context): SharedPreferences</ID>
+    <ID>ReturnCount:DarkfiMnemonic.kt$DarkfiMnemonic$suspend fun decodeChatEntropyIfValid( words: List&lt;String&gt;, assetManager: AssetManager ): ByteArray?</ID>
+    <ID>ReturnCount:DarkfiMnemonic.kt$DarkfiMnemonic$suspend fun validate( words: List&lt;String&gt;, assetManager: AssetManager ): SeedPhraseValidation</ID>
+    <ID>ReturnCount:DeepLinkUtil.kt$DeepLinkUtil$fun getSendDeepLinkData(uri: Uri): SendDeepLinkData?</ID>
+    <ID>ReturnCount:Extensions.kt$internal fun Double.toFiatAtomicDrk( fiatCurrencyUiState: FiatCurrencyUiState, isFiatCurrencyPreferredOverDrk: Boolean ): Long?</ID>
+    <ID>ReturnCount:MainActivity.kt$MainActivity$@SuppressLint("NewApi") private fun findSplashScreenView(view: View): SplashScreenView?</ID>
+    <ID>ReturnCount:PersistableDarkfiWallet.kt$fun darkfiNetworkFromPackage(context: Context): DarkfiNetwork</ID>
+    <ID>SwallowedException:Extensions.kt$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:CoinMetricsRepositoryImpl.kt$CoinMetricsRepositoryImpl$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:DarkfiChatController.kt$DarkfiChatController$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:DarkfiChatSecureStore.kt$DarkfiChatSecureStore$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:DarkircIrcClient.kt$DarkircIrcClient$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:DeepLinkUtil.kt$DeepLinkUtil$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:Extensions.kt$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:Extensions.kt$t: Throwable</ID>
+    <ID>TooGenericExceptionCaught:HomeViewModel.kt$HomeViewModel$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:PdfUtil.kt$PdfUtil$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:SettingsViewModel.kt$SettingsViewModel$e: Exception</ID>
+    <ID>TooManyFunctions:Text.kt$com.nighthawkapps.lib.android.ui.design.component.Text.kt</ID>
+    <ID>UnusedPrivateProperty:CrashInfo.kt$// If you change this, be sure to update the test case under /docs/testing/manual_testing/Contact Support.md private const val MAX_EXCEPTIONS_TO_REPORT = 5</ID>
+    <ID>UnusedPrivateProperty:Typography.kt$@OptIn(ExperimentalTextApi::class) private val RubikFontFamily = FontFamily( Font(googleFont = RubikFont, fontProvider = provider, weight = FontWeight.Normal), // W400 Font(googleFont = RubikFont, fontProvider = provider, weight = FontWeight.Medium), // W500 Font(googleFont = RubikFont, fontProvider = provider, weight = FontWeight.SemiBold), // W600 Font(googleFont = RubikFont, fontProvider = provider, weight = FontWeight.Bold) // W700 )</ID>
+    <ID>ViewModelInjection:AndroidAdvancedSetting.kt$settingsViewModel</ID>
+    <ID>ViewModelInjection:AndroidChangeServer.kt$changeServerViewModel</ID>
+    <ID>ViewModelInjection:AndroidFiatCurrency.kt$fiatCurrencyViewModel</ID>
+    <ID>ViewModelInjection:AndroidTransactionDetails.kt$transactionUiViewModel</ID>
+  </CurrentIssues>
+</SmellBaseline>

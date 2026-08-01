@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="new_wallet_header">Mi frase secreta</string>
+    <string name="new_wallet_body">Estas palabras representan tus fondos y la seguridad utilizada para protegerlos.\n\n¡Haz una copia de seguridad ahora!.</string>
+    <string name="new_wallet_button_finished">Ya la escribí</string>
+    <string name="new_wallet_button_copy">Copiar al búfer</string>
+</resources>

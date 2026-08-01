@@ -1,0 +1,10 @@
+# Standalone darkfi-lightwalletd testnet configuration (fhe-omr).
+# Use sibling repo ../darkfi-lightwalletd — clients talk only to this gRPC port.
+
+darkfid_endpoint = "tcp://127.0.0.1:18345"
+grpc_listen = "127.0.0.1:9067"
+
+cache_path = "/tmp/darkfi-lwd-testnet-cache"
+
+chain_name = "darkfi-testnet"
+network = "testnet"

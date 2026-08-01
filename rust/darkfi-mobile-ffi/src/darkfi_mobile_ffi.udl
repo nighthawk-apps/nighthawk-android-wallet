@@ -1,0 +1,266 @@
+namespace darkfi_mobile_ffi {
+    string bridge_version();
+    string bridge_ping();
+    sequence<string> generate_darkfi_mnemonic();
+    sequence<string> generate_bip39_chat_mnemonic();
+    boolean validate_darkfi_mnemonic(sequence<string> phrase);
+    sequence<u8>? decode_chat_entropy(sequence<string> phrase);
+
+    [Throws=DarkfiWalletNativeError]
+    string chacha_encrypt_dm(sequence<u8> my_secret, sequence<u8> their_public, string plaintext);
+
+    [Throws=DarkfiWalletNativeError]
+    string chacha_decrypt_dm(sequence<u8> my_secret, sequence<u8> their_public, string ciphertext_b58);
+
+    DmKeypair generate_dm_keypair();
+
+    string darkirc_status();
+
+    // `use_tor` routes all P2P traffic through the Guardian tor-android SOCKS5
+    // proxy on 127.0.0.1:`tor_socks_port` (via the `socks5://…/<onion>` darkirc
+    // seeds); when false, clearnet tcp+tls seeds are used. `tor_socks_port` is
+    // ignored when `use_tor` is false.
+    [Throws=DarkfiWalletNativeError]
+    void start_darkirc(string datastore_path, boolean use_tor, u16 tor_socks_port, DarkircEventCallback? callback);
+
+    [Throws=DarkfiWalletNativeError]
+    void stop_darkirc();
+
+    [Throws=DarkfiWalletNativeError]
+    void send_chat_message(string channel, string nick, string message);
+
+    // `use_tor` routes all P2P traffic over darkfi's in-process arti Tor
+    // the embedded arti transport needs no external SOCKS5 proxy.
+    [Throws=DarkfiWalletNativeError] boolean start_arti_proxy(string socks_listen);
+    void stop_arti_proxy();
+    boolean is_arti_running();
+};
+
+callback interface DarkircEventCallback {
+    void on_message(string event_id, string channel, string nick, string message, u64 timestamp);
+};
+
+dictionary DmKeypair {
+    string secret_b58;
+    string public_b58;
+};
+
+dictionary DrkBootstrapConfig {
+    string network;
+    sequence<string> mnemonic;
+    string wallet_db_path;
+    string cache_path;
+    string wallet_pass;
+    string lightwallet_server_url;
+    i64 birthday_height;
+    /// Optional SHA-256 of lightwalletd leaf cert DER (32 bytes). Required for remote HTTPS.
+    sequence<u8>? lightwallet_tls_pin_sha256;
+    boolean use_tor;
+    u16 tor_socks_port;
+    /// Optional darkfid JSON-RPC URL for broadcast fallback only.
+    /// Leave unset/empty for lightwalletd-only (recommended). Never hardcode a testnet port.
+    string? darkfid_rpc_url;
+};
+
+dictionary DrkSyncSnapshot {
+    i64 scanned_blocks;
+    i64 chain_tip;
+};
+
+enum SyncMethod {
+    "UnifOmr",
+    "TrialDecrypt",
+    "Unknown",
+};
+
+enum SyncFallbackReason {
+    "None",
+    "ServerOmrUnsupported",
+    "OmrDetectionFailed",
+    "MissingOmrClues",
+    "KeyPoolExpired",
+    "KeyPoolNotRegistered",
+    "Unknown",
+};
+
+dictionary DrkLightSyncState {
+    string status;
+    string sync_type;
+    string status_message;
+    string sync_type_message;
+    i64 scanned_height;
+    i64 chain_tip;
+    boolean omr_available;
+    SyncMethod sync_method;
+    SyncFallbackReason fallback_reason;
+    string fallback_user_message;
+};
+
+dictionary DrkTokenBalance {
+    string token_id;
+    string? display_label;
+    i64 balance_atomic;
+};
+
+dictionary DrkTransactionRecord {
+    string tx_hash;
+    string status;
+    i64 block_height;
+    i64 fee_atomic;
+    boolean is_sent;
+    i64 net_value_atomic;
+    string contract_summary;
+    string? recipient_address;
+    SyncMethod sync_method;
+};
+
+dictionary DrkDaoSummary {
+    string name;
+    string bulla_b58;
+    string gov_token_id;
+    string quorum_display;
+    string proposer_limit_display;
+    double approval_ratio_percent;
+    i64 mint_height;
+    boolean can_propose;
+    boolean can_vote;
+    boolean can_exec;
+};
+
+dictionary DrkDaoProposalSummary {
+    string proposal_bulla_b58;
+    string dao_name;
+    string dao_bulla_b58;
+    u32 auth_call_count;
+    u64 duration_blockwindows;
+    u64 creation_blockwindow;
+    i64 mint_height;
+    i64 exec_height;
+    boolean is_executed;
+    string summary_line;
+};
+
+dictionary DrkDaoProposalDetail {
+    string proposal_bulla_b58;
+    string dao_name;
+    string dao_bulla_b58;
+    u32 auth_call_count;
+    u64 duration_blockwindows;
+    u64 creation_blockwindow;
+    i64 mint_height;
+    i64 exec_height;
+    boolean is_executed;
+    string summary_line;
+    string? propose_tx_hash;
+    string? exec_tx_hash;
+    boolean has_plaintext_data;
+};
+
+/// Event emitted when a chain reorganization is detected.
+/// Exposed to the mobile UI for user notification and transaction refresh.
+dictionary ReorgEvent {
+    /// Height at which the reorg was first detected
+    u32 detected_at_height;
+    /// Height the wallet rewound to
+    u32 rewound_to;
+    /// Number of blocks invalidated
+    u32 blocks_invalidated;
+    /// Number of transactions affected (re-scanned / status changed)
+    u32 txs_affected;
+    /// Human-readable summary for UI display
+    string summary_message;
+};
+
+/// Optional callback for chain reorganization events.
+/// Mobile apps implement this to show reorg notifications.
+callback interface ReorgEventCallback {
+    void on_reorg(ReorgEvent event);
+};
+
+[Error]
+enum DarkfiWalletNativeError {
+    "WalletNotInitialized",
+    "InvalidBootstrapConfig",
+    "NativeDrkUnavailable",
+    "ConnectionFailed",
+    "SyncFailed",
+    "CryptoError",
+    "NetworkTimeout",
+    "ServerUnavailable",
+    "InvalidAddress",
+    "InsufficientFunds",
+    "TransactionBuildFailed",
+    "OmrDetectionFailed",
+    "TrialDecryptFailed",
+};
+
+interface DarkfiWalletHandle {
+    [Throws=DarkfiWalletNativeError]
+    constructor(DrkBootstrapConfig config);
+
+    [Throws=DarkfiWalletNativeError]
+    i64 confirmed_balance_atomic();
+
+    [Throws=DarkfiWalletNativeError]
+    string primary_deposit_address();
+
+    [Throws=DarkfiWalletNativeError]
+    DrkSyncSnapshot refresh_now();
+
+    [Throws=DarkfiWalletNativeError]
+    DrkSyncSnapshot sync_snapshot();
+
+    DrkLightSyncState light_sync_snapshot();
+
+    [Throws=DarkfiWalletNativeError]
+    sequence<u8> build_transfer(string recipient_address, string amount, string? token_id, string? payment_memo);
+
+    [Throws=DarkfiWalletNativeError]
+    i64 estimate_transfer_fee(string recipient_address, string amount, string? token_id, string? payment_memo);
+
+    [Throws=DarkfiWalletNativeError]
+    string broadcast_transfer(sequence<u8> tx_bytes, string? payment_memo, string? recipient_address);
+
+    [Throws=DarkfiWalletNativeError]
+    string? transaction_payment_memo(string tx_hash);
+
+    [Throws=DarkfiWalletNativeError]
+    string? transaction_recipient(string tx_hash);
+
+    [Throws=DarkfiWalletNativeError]
+    sequence<DrkTokenBalance> list_token_balances();
+
+    [Throws=DarkfiWalletNativeError]
+    sequence<DrkTransactionRecord> list_transactions();
+
+    [Throws=DarkfiWalletNativeError]
+    string generate_new_address();
+
+    [Throws=DarkfiWalletNativeError]
+    sequence<string> list_addresses();
+
+    [Throws=DarkfiWalletNativeError]
+    sequence<DrkDaoSummary> list_daos();
+
+    [Throws=DarkfiWalletNativeError]
+    sequence<DrkDaoProposalSummary> list_proposals(string? dao_name);
+
+    [Throws=DarkfiWalletNativeError]
+    DrkDaoProposalDetail get_proposal(string proposal_bulla_b58);
+
+    [Throws=DarkfiWalletNativeError]
+    string dao_propose_transfer(string dao_name, u64 duration_blockwindows, string amount, string? token_id, string recipient_address);
+
+    [Throws=DarkfiWalletNativeError]
+    string dao_vote(string proposal_bulla_b58, boolean vote_yes);
+
+    /// Register a callback for chain reorganization events.
+    /// The callback fires when reorg is detected during sync.
+    void set_reorg_callback(ReorgEventCallback? callback);
+
+    /// Handle a detected chain reorganization: rewinds state, invalidates
+    /// transactions above the fork point, re-scans affected blocks, and
+    /// returns a ReorgEvent describing what changed.
+    [Throws=DarkfiWalletNativeError]
+    ReorgEvent handle_reorg_recovery(u32 rewind_to_height);
+};

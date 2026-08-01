@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Nighthawk</string>
+    <string name="onboarding_back">Πίσω</string>
+    <string name="onboarding_skip">Παράλειψη</string>
+    <string name="onboarding_next">Επόμενο</string>
+    <string name="onboarding_1_header">Καλώς ήρθατε!</string>
+    <string name="onboarding_1_body">Το DarkFi διευθετεί τις μεταφορές ιδιωτικά από προεπιλογή. Αυτό το πορτοφόλι δείχνει ένα υπόλοιπο DRK από το σημείο συγχρονισμού σας — όχι χωριστά διαφανή και θωρακισμένα σύνολα.\n\nΕπιλέξτε διακομιστές που εμπιστεύεστε και δημιουργήστε αντίγραφο της φράσης ανάκτησης.</string>
+    <string name="onboarding_1_image_content_description"></string>
+    <string name="onboarding_2_header">Μορφές λήψης</string>
+    <string name="onboarding_2_body">Μπορείτε να μοιραστείτε διαφορετικές κωδικοποιήσεις λήψης (σειρά κατάθεσης, QR, προαιρετικοί δημόσιοι κωδικοί). Μετά τη σύνδεση συγχρονισμού πιστώνονται στο ίδιο πορτοφόλι DarkFi.\n\nΧρησιμοποιήστε τη μορφή που περιμένει ο πληρωτής.</string>
+    <string name="onboarding_2_image_content_description"></string>
+    <string name="onboarding_3_header">Και πολλά ακόμα…</string>
+    <string name="onboarding_3_body">Συνεχίζουμε να βελτιώνουμε ταχύτερο συγχρονισμό και πιο σαφή εργαλεία για DarkFi / DRK.\n\nΑναμένετε σταθερές βελτιώσεις.</string>
+    <string name="onboarding_3_image_content_description"></string>
+    <string name="onboarding_4_header">Ας ξεκινήσουμε!</string>
+    <string name="onboarding_4_body">Επιλέξτε μεταξύ δημιουργίας νέου πορτοφολιού και εισαγωγής υπάρχουσας μυστικής φράσης ανάκτησης.</string>
+    <string name="onboarding_4_image_content_description"></string>
+    <string name="onboarding_4_create_new_wallet">Δημιουργία νέου πορτοφολιού</string>
+    <string name="onboarding_4_import_existing_wallet">Εισαγωγή υπάρχοντος πορτοφολιού</string>
+
+    <string name="onboarding_short_header">Ρυθμίστε το πορτοφόλι σας προσανατολισμένο σε Stealth / DarkFi</string>
+    <string name="onboarding_short_information">Δημιουργήστε νέο πορτοφόλι ή επαναφέρετε υπάρχουσα φράση αντιγράφου ασφαλείας:</string>
+    <string name="onboarding_short_create_new_wallet">Δημιουργία νέου πορτοφολιού</string>
+    <string name="onboarding_short_import_existing_wallet">Εισαγωγή υπάρχοντος πορτοφολιού</string>
+</resources>

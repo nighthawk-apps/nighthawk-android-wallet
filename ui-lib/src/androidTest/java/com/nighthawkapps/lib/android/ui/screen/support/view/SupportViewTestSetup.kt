@@ -1,0 +1,56 @@
+package com.nighthawkapps.lib.android.ui.screen.support.view
+
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.test.junit4.ComposeContentTestRule
+import com.nighthawkapps.lib.android.ui.design.theme.WalletTheme
+import java.util.concurrent.atomic.AtomicInteger
+import java.util.concurrent.atomic.AtomicReference
+
+class SupportViewTestSetup(
+    private val composeTestRule: ComposeContentTestRule
+) {
+    private val onBackCount = AtomicInteger(0)
+
+    private val onSendCount = AtomicInteger(0)
+
+    private val onSendMessage = AtomicReference<String>(null)
+
+    fun getOnBackCount(): Int {
+        composeTestRule.waitForIdle()
+        return onBackCount.get()
+    }
+
+    fun getOnSendCount(): Int {
+        composeTestRule.waitForIdle()
+        return onSendCount.get()
+    }
+
+    fun getSendMessage(): String? {
+        composeTestRule.waitForIdle()
+        return onSendMessage.get()
+    }
+
+    @Composable
+    @Suppress("TestFunctionName")
+    fun DefaultContent() {
+        Support(
+            SnackbarHostState(),
+            onBack = {
+                onBackCount.incrementAndGet()
+            },
+            onSend = {
+                onSendCount.incrementAndGet()
+                onSendMessage.set(it)
+            }
+        )
+    }
+
+    fun setDefaultContent() {
+        composeTestRule.setContent {
+            WalletTheme {
+                DefaultContent()
+            }
+        }
+    }
+}

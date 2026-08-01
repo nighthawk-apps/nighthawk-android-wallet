@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Nighthawk</string>
+    <string name="onboarding_back">Takaisin</string>
+    <string name="onboarding_skip">Ohita</string>
+    <string name="onboarding_next">Seuraava</string>
+    <string name="onboarding_1_header">Tervetuloa!</string>
+    <string name="onboarding_1_body">DarkFi käsittelee siirrot oletuksena yksityisesti. Lompakko näyttää yhden DRK-saldon synkronointipäätteestäsi — ei erillisiä läpinäkyviä ja piilotettuja summia.\n\nValitse luotettavat palvelimet ja varmuuskopioi palautuslauseke.</string>
+    <string name="onboarding_1_image_content_description"></string>
+    <string name="onboarding_2_header">Vastaanottomuodot</string>
+    <string name="onboarding_2_body">Voit jakaa erilaisia vastaanottokoodeja (talletusmerkkijono, QR, valinnaiset julkisen tyyliset koodit). Ne kirjataan samaan DarkFi-lompakkoon, kun synk on kytketty.\n\nKäytä muotoa, jonka maksaja odottaa.</string>
+    <string name="onboarding_2_image_content_description"></string>
+    <string name="onboarding_3_header">Ja paljon muuta…</string>
+    <string name="onboarding_3_body">Parannamme jatkuvasti synkronointia ja selkeämpiä DarkFi-/DRK-työkaluja.\n\nOdota tasaisia päivityksiä.</string>
+    <string name="onboarding_3_image_content_description"></string>
+    <string name="onboarding_4_header">Aloitetaan!</string>
+    <string name="onboarding_4_body">Valitse uuden lompakon luominen tai olemassa olevan salaisen palautuslausekkeen tuominen.</string>
+    <string name="onboarding_4_image_content_description"></string>
+    <string name="onboarding_4_create_new_wallet">Luo uusi lompakko</string>
+    <string name="onboarding_4_import_existing_wallet">Tuo olemassa oleva lompakko</string>
+
+    <string name="onboarding_short_header">Määritä Stealth-/DarkFi-suuntautunut lompakkosi</string>
+    <string name="onboarding_short_information">Luo uusi lompakko tai palauta olemassa oleva varmuuskopiolauseke:</string>
+    <string name="onboarding_short_create_new_wallet">Luo uusi lompakko</string>
+    <string name="onboarding_short_import_existing_wallet">Tuo olemassa oleva lompakko</string>
+</resources>

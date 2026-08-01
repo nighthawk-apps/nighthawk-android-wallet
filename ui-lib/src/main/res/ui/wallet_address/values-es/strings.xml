@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="wallet_address_title">Mis direcciones</string>
+    <string name="wallet_address_back_content_description">Volver</string>
+    <string name="wallet_address_primary_deposit">Tu dirección unificada</string>
+    <string name="wallet_address_header_includes">que incluye</string>
+    <string name="wallet_address_confidential_receive">Sapling Blindado (NU1)</string>
+    <string name="wallet_address_public_receive">Transparente</string>
+    <string name="wallet_address_show">Mostrar direcciones</string>
+    <string name="wallet_address_hide">Ocultar direcciones</string>
+    
+</resources>

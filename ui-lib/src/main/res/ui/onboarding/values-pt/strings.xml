@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Nighthawk</string>
+    <string name="onboarding_back">Voltar</string>
+    <string name="onboarding_skip">Saltar</string>
+    <string name="onboarding_next">Seguinte</string>
+    <string name="onboarding_1_header">Bem-vindo!</string>
+    <string name="onboarding_1_body">A DarkFi liquida transferências em privado por predefinição. Esta carteira mostra um único saldo DRK do seu endpoint de sincronização — sem totais separados transparentes e confidenciais.\n\nEscolha servidores em que confia e guarde a sua frase de recuperação.</string>
+    <string name="onboarding_1_image_content_description"></string>
+    <string name="onboarding_2_header">Formatos de receção</string>
+    <string name="onboarding_2_body">Pode partilhar diferentes codificações de receção (cadeia de depósito, QR, códigos opcionais em estilo público). Creditam a mesma carteira DarkFi quando a sincronização está ligada.\n\nUse o formato que quem paga espera.</string>
+    <string name="onboarding_2_image_content_description"></string>
+    <string name="onboarding_3_header">E muito mais…</string>
+    <string name="onboarding_3_body">Continuamos a melhorar a sincronização mais rápida e ferramentas mais claras focadas em DarkFi e DRK.\n\nConte com melhorias regulares.</string>
+    <string name="onboarding_3_image_content_description"></string>
+    <string name="onboarding_4_header">Vamos começar!</string>
+    <string name="onboarding_4_body">Escolha entre criar uma carteira nova e importar uma frase de recuperação secreta existente.</string>
+    <string name="onboarding_4_image_content_description"></string>
+    <string name="onboarding_4_create_new_wallet">Criar carteira nova</string>
+    <string name="onboarding_4_import_existing_wallet">Importar carteira existente</string>
+
+    <string name="onboarding_short_header">Configure a sua carteira orientada a Stealth / DarkFi</string>
+    <string name="onboarding_short_information">Crie uma carteira nova ou restaure uma frase de backup existente:</string>
+    <string name="onboarding_short_create_new_wallet">Criar carteira nova</string>
+    <string name="onboarding_short_import_existing_wallet">Importar carteira existente</string>
+</resources>

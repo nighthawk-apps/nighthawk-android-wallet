@@ -1,0 +1,73 @@
+[package]
+name = "darkfi-mobile-ffi"
+version = "0.1.0"
+edition = "2021"
+description = "UniFFI cdylib for DarkFi-backed Android APIs (incremental rollout)."
+license = "MIT OR Apache-2.0"
+publish = false
+
+[features]
+default = ["darkirc"]
+darkirc = ["dep:darkirc"]
+
+[lib]
+name = "darkfi_mobile_ffi"
+crate-type = ["lib", "cdylib"]
+
+[dependencies]
+drk = { path = "../../third_party/darkfi/bin/drk" }
+darkfi = { path = "../../third_party/darkfi", features = ["bs58", "event-graph", "p2p-tor"] }
+darkfi-sdk = { path = "../../third_party/darkfi/src/sdk", features = ["async"] }
+
+easy-parallel = "3.3.1"
+# Cargo package `darkirc`, Rust lib name `irc2`
+darkirc = { path = "../../third_party/darkfi/bin/darkirc", optional = true }
+semver = "1.0.28"
+sled-overlay = "0.1.20"
+tracing = "0.1.44"
+arti-client = { version = "0.42.0", default-features = false, features = ["async-std", "compression", "error_detail", "rustls"] }
+tor-rtcompat = { version = "0.42.0", features = ["async-std", "rustls"] }
+darkfi-serial = { path = "../../third_party/darkfi/src/serial" }
+darkfi_money_contract = { path = "../../third_party/darkfi/src/contract/money", features = ["no-entrypoint", "client"] }
+darkfi_dao_contract = { path = "../../third_party/darkfi/src/contract/dao", features = ["no-entrypoint", "client"] }
+bip39 = "2.2.0"
+blake3 = "1.8.5"
+bs58 = "0.5.1"
+crypto_box = { version = "0.9.1", features = ["chacha20"] }
+futures = "0.3.32"
+hmac = "0.12.1"
+num-bigint = { version = "0.4.6", features = ["rand"] }
+num-traits = "0.2.19"
+pbkdf2 = "0.12.2"
+rand = "0.8.5"
+sha2 = "0.10.9"
+smol = "2.0.2"
+unicode-normalization = "0.1.24"
+url = "2.5.8"
+zeroize = "1.8"
+uniffi = { version = "0.31.1", features = ["scaffolding-ffi-buffer-fns", "cli"] }
+thiserror = "2"
+log = "0.4"
+android_logger = "0.14"
+tracing-subscriber = { version = "0.3", default-features = false, features = ["fmt", "env-filter"] }
+tonic = { version = "0.12", features = ["tls", "tls-webpki-roots"] }
+prost = "0.13"
+async-compat = "0.2"
+rustls = { version = "0.23", default-features = false, features = ["ring", "tls12"] }
+rustls-pki-types = "1"
+regex-lite = "0.1"
+tokio-rustls = "0.26"
+rusqlite = { version = "0.37", features = ["bundled"] }
+fhe = "0.1.1"
+fhe-traits = "0.1.1"
+tokio = { version = "1", features = ["full"] }
+tower = { version = "0.4", features = ["util"] }
+rand09 = { package = "rand", version = "0.9" }
+hyper-util = { version = "0.1", features = ["tokio"] }
+tokio-socks = "0.5"
+# Align with rusqlite 0.37's libsqlite3-sys (bundled). Do not pull a second
+# sqlite3 via sqlcipher here — that conflicts with darkfi/drk's rusqlite 0.37.
+
+[build-dependencies]
+uniffi = { version = "0.31.1", features = ["build", "scaffolding-ffi-buffer-fns"] }
+tonic-build = "0.12"

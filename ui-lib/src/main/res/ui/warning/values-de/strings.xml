@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
+    <string name="not_enough_space_title">Not enough space!</string>
+    
+    <string name="space_required_to_continue"><xliff:g example="300" id="required_megabytes">~%1$s</xliff:g> megs required to continue </string>
+    <string name="unknown">Unbekannt</string>
+</resources>

@@ -1,0 +1,65 @@
+# This file contains the fastlane.tools configuration
+# You can find the documentation at https://docs.fastlane.tools
+#
+# For a list of all available actions, check out
+#
+#     https://docs.fastlane.tools/actions
+#
+# For a list of all available plugins, check out
+#
+#     https://docs.fastlane.tools/plugins/available-plugins
+#
+
+default_platform(:android)
+
+platform :android do
+
+  # ── F-Droid ────────────────────────────────────────────────────────────
+  #
+  # F-Droid builds are unsigned — F-Droid signs with its own key.
+  # This lane produces the mainnet release APK without signing, ready for
+  # F-Droid's build server to pick up.
+
+  desc "Build unsigned mainnet release APK for F-Droid"
+  lane :fdroid do
+    gradle(
+      task: "clean assembleDarkfimainnetRelease",
+      properties: {
+        # F-Droid builds without signing; their server applies their own key.
+        "IS_SIGN_RELEASE_BUILD_WITH_DEBUG_KEY" => "false",
+      }
+    )
+    # Log the output APK path for CI
+    apk_path = lane_context[SharedValues::GRADLE_APK_OUTPUT_PATH]
+    UI.success("F-Droid APK: #{apk_path}") if apk_path
+  end
+
+  desc "Run unit tests"
+  lane :test do
+    gradle(task: "testDarkfimainnetReleaseUnitTest")
+  end
+
+  # ── Internal distribution ──────────────────────────────────────────────
+
+  desc "Submit Build to AppCenter"
+  lane :build do |options|
+    gradle(task: "clean assembleDarkfimainnetRelease")
+    upload_to_app_center(
+      api_token: options[:api_token],
+      app_name: options[:app_name],
+      notes: "Author: #{last_git_commit[:author]}, changes: #{last_git_commit[:message]}"
+    )
+  end
+
+  private_lane :upload_to_app_center do |options|
+    appcenter_upload(
+      api_token: options[:api_token],
+      app_name: options[:app_name],
+      owner_name: "Nighthawk-Apps",
+      owner_type: "organization",
+      release_notes: options[:notes],
+      notify_testers: true
+    )
+  end
+
+end

@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Nighthawk</string>
+    <string name="onboarding_back">Tilbage</string>
+    <string name="onboarding_skip">Spring over</string>
+    <string name="onboarding_next">Næste</string>
+    <string name="onboarding_1_header">Velkommen!</string>
+    <string name="onboarding_1_body">DarkFi afvikler overførsler privat som standard. Denne wallet viser én DRK-saldo fra dit synkroniserings-endpoint — ikke adskilte transparente og skjulte totaler.\n\nVælg servere, du stoler på, og sikkerhedskopiér din gendannelsessætning.</string>
+    <string name="onboarding_1_image_content_description"></string>
+    <string name="onboarding_2_header">Modtagelsesformater</string>
+    <string name="onboarding_2_body">Du kan dele forskellige modtagerkoder (indbetalingsstreng, QR, valgfrie offentligt udseende koder). De krediterer den samme DarkFi-wallet, når synk er tilsluttet.\n\nBrug det format, din betaler forventer.</string>
+    <string name="onboarding_2_image_content_description"></string>
+    <string name="onboarding_3_header">Og meget mere…</string>
+    <string name="onboarding_3_body">Vi forbedrer fortsat hurtigere synk og klarere DarkFi-/DRK-værktøjer.\n\nForvent løbende opdateringer.</string>
+    <string name="onboarding_3_image_content_description"></string>
+    <string name="onboarding_4_header">Sådan kommer du i gang!</string>
+    <string name="onboarding_4_body">Vælg mellem at oprette en ny wallet og importere en eksisterende hemmelig gendannelsessætning.</string>
+    <string name="onboarding_4_image_content_description"></string>
+    <string name="onboarding_4_create_new_wallet">Opret ny wallet</string>
+    <string name="onboarding_4_import_existing_wallet">Importer eksisterende wallet</string>
+
+    <string name="onboarding_short_header">Konfigurer din Stealth-/DarkFi-wallet</string>
+    <string name="onboarding_short_information">Opret en ny wallet eller gendan en eksisterende backup-sætning:</string>
+    <string name="onboarding_short_create_new_wallet">Opret ny wallet</string>
+    <string name="onboarding_short_import_existing_wallet">Importer eksisterende wallet</string>
+</resources>

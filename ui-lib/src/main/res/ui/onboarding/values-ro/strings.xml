@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Nighthawk</string>
+    <string name="onboarding_back">Înapoi</string>
+    <string name="onboarding_skip">Sari peste</string>
+    <string name="onboarding_next">Înainte</string>
+    <string name="onboarding_1_header">Bine ai venit!</string>
+    <string name="onboarding_1_body">DarkFi decontează transferurile privat în mod implicit. Acest portofel arată un singur sold DRK de la punctul tău de sincronizare — nu totaluri separate transparente și protejate.\n\nAlege servere de încredere și păstrează fraza de recuperare în siguranță.</string>
+    <string name="onboarding_1_image_content_description"></string>
+    <string name="onboarding_2_header">Formate de primire</string>
+    <string name="onboarding_2_body">Poți partaja diferite codări de primire (șir depozit, QR, coduri opționale în stil public). Acestea creditează același portofel DarkFi după conectarea sincronizării.\n\nFolosește formatul așteptat de plătitor.</string>
+    <string name="onboarding_2_image_content_description"></string>
+    <string name="onboarding_3_header">Și multe altele…</string>
+    <string name="onboarding_3_body">Continuăm să îmbunătățim sincronizarea mai rapidă și instrumentele mai clare pentru DarkFi / DRK.\n\nAșteaptă-te la îmbunătățiri constante.</string>
+    <string name="onboarding_3_image_content_description"></string>
+    <string name="onboarding_4_header">Să începem!</string>
+    <string name="onboarding_4_body">Alege între crearea unui portofel nou și importul unei fraze secrete de recuperare existente.</string>
+    <string name="onboarding_4_image_content_description"></string>
+    <string name="onboarding_4_create_new_wallet">Creează portofel nou</string>
+    <string name="onboarding_4_import_existing_wallet">Importă portofel existent</string>
+
+    <string name="onboarding_short_header">Configurează portofelul orientat Stealth / DarkFi</string>
+    <string name="onboarding_short_information">Creează un portofel nou sau restaurează o frază de rezervă existentă:</string>
+    <string name="onboarding_short_create_new_wallet">Creează portofel nou</string>
+    <string name="onboarding_short_import_existing_wallet">Importă portofel existent</string>
+</resources>

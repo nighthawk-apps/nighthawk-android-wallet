@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Nighthawk</string>
+    <string name="onboarding_back">رجوع</string>
+    <string name="onboarding_skip">تخطي</string>
+    <string name="onboarding_next">التالي</string>
+    <string name="onboarding_1_header">مرحبًا!</string>
+    <string name="onboarding_1_body">يُسوّي DarkFi التحويلات بشكل خاص افتراضيًا. تعرض هذه المحفظة رصيد DRK واحدًا من نقطة مزامنتك — وليس مجاميع منفصلة شفافة ومحمية.\n\nاختر خوادم تثق بها واحتفظ بنسخة احتياطية من عبارة الاسترداد.</string>
+    <string name="onboarding_1_image_content_description"></string>
+    <string name="onboarding_2_header">صيَغ الاستلام</string>
+    <string name="onboarding_2_body">يمكنك مشاركة ترميزات استلام مختلفة (سلسلة الإيداع، رمز QR، رموز اختيارية بأسلوب عام). تُضاف إلى نفس محفظة DarkFi بمجرد اتصال المزامنة.\n\nاستخدم الصيغة التي يتوقعها الدافع.</string>
+    <string name="onboarding_2_image_content_description"></string>
+    <string name="onboarding_3_header">والمزيد…</string>
+    <string name="onboarding_3_body">نواصل تحسين المزامنة الأسرع والأدوات الأوضح المرتبطة بـ DarkFi و DRK.\n\nتوقّع تحسينات مستمرة.</string>
+    <string name="onboarding_3_image_content_description"></string>
+    <string name="onboarding_4_header">لنبدأ!</string>
+    <string name="onboarding_4_body">اختر بين إنشاء محفظة جديدة أو استيراد عبارة استرداد سرية موجودة.</string>
+    <string name="onboarding_4_image_content_description"></string>
+    <string name="onboarding_4_create_new_wallet">إنشاء محفظة جديدة</string>
+    <string name="onboarding_4_import_existing_wallet">استيراد محفظة موجودة</string>
+
+    <string name="onboarding_short_header">اضبط محفظتك الموجّهة نحو Stealth / DarkFi</string>
+    <string name="onboarding_short_information">أنشئ محفظة جديدة أو استعد عبارة نسخ احتياطي موجودة:</string>
+    <string name="onboarding_short_create_new_wallet">إنشاء محفظة جديدة</string>
+    <string name="onboarding_short_import_existing_wallet">استيراد محفظة موجودة</string>
+</resources>

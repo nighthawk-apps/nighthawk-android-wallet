@@ -1,0 +1,25 @@
+# Opt-out from missing-trailing-comma rule enabled by default
+root = true
+[*.{kt,kts}]
+ktlint_standard_trailing-comma-on-call-site = disabled
+ktlint_standard_trailing-comma-on-declaration-site = disabled
+
+# Compose & Android naming conventions use PascalCase @Composable previews / helpers.
+ktlint_standard_function-naming = disabled
+
+# Filenames often diverge from single-top-level-type rule (historical packages).
+ktlint_standard_filename = disabled
+
+# Kotlin/Android backing-property conventions (`_foo` + `foo`) conflict with strict ktlint defaults here.
+ktlint_standard_backing-property-naming = disabled
+
+# Large codebase mixes KDoc + block/EOL comments (especially generated-adjacent sections).
+ktlint_standard_no-consecutive-comments = disabled
+
+# Sealed UI labels sometimes use UPPER_SNAKE-style nested types for QR tabs.
+ktlint_standard_class-naming = disabled
+
+ktlint_standard_comment-wrapping = disabled
+
+# Theme tokens occasionally mirror XML dimension names (historical).
+ktlint_standard_property-naming = disabled

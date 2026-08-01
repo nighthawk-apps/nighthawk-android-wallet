@@ -1,0 +1,24 @@
+package com.nighthawkapps.lib.android.configuration.api
+
+import com.nighthawkapps.lib.android.configuration.model.map.Configuration
+import kotlinx.coroutines.flow.Flow
+
+/**
+ * Provides a remote config implementation.
+ */
+interface ConfigurationProvider {
+    /**
+     * @return The configuration if it has been loaded already.  If not loaded, returns an empty configuration.
+     */
+    fun peekConfiguration(): Configuration
+
+    /**
+     * @return A flow that provides snapshots of configuration updates.
+     */
+    fun getConfigurationFlow(): Flow<Configuration>
+
+    /**
+     * Signals to the configuration provider that now might be a good time to refresh.
+     */
+    fun hintToRefresh()
+}

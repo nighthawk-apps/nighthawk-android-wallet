@@ -1,0 +1,32 @@
+<resources>
+    <string name="app_name">Nighthawk</string>
+
+    <string name="onboarding_back">Back</string>
+    <string name="onboarding_skip">Skip</string>
+    <string name="onboarding_next">Next</string>
+    <string name="onboarding_1_header">Welcome!</string>
+    <string name="onboarding_1_body">Welcome to the new Nighthawk — a DarkFi experience.\n\nPrivate DRK transfers, on-device wallet keys, and sync through your chosen darkfid endpoint.</string>
+    <string name="onboarding_1_image_content_description"></string>
+    <string name="onboarding_2_header">Wallet &amp; features</string>
+    <string name="onboarding_2_body">Your wallet runs through upstream drk: scan the chain, view balance, receive deposit addresses, and send DRK with fee estimates.\n\nBack up your recovery phrase and pick servers you trust.</string>
+    <string name="onboarding_2_image_content_description"></string>
+    <string name="onboarding_3_header">Chat &amp; features</string>
+    <string name="onboarding_3_body">Chat over DarkIRC: public channels, optional embedded darkirc, and Tor-aware outbound routing.\n\nJoin preset channels or connect to your own node.</string>
+    <string name="onboarding_3_image_content_description"></string>
+
+    <string name="ns_onboarding_welcome">Welcome to Nighthawk</string>
+    <string name="ns_onboarding_wallet_features">Wallet &amp; features</string>
+    <string name="ns_onboarding_chat_anonymity">Chat &amp; features</string>
+    <string name="ns_running_on_darkfi">A DarkFi experience</string>
+
+    <string name="onboarding_4_header">Let’s get started!</string>
+    <string name="onboarding_4_body">Choose between creating a new wallet and importing an existing Secret Recovery Phrase.</string>
+    <string name="onboarding_4_image_content_description"></string>
+    <string name="onboarding_4_create_new_wallet">Create New Wallet</string>
+    <string name="onboarding_4_import_existing_wallet">Import an Existing Wallet</string>
+
+    <string name="onboarding_short_header">Set up your Stealth / DarkFi-oriented wallet</string>
+    <string name="onboarding_short_information">Create a new wallet or restore an existing backup phrase:</string>
+    <string name="onboarding_short_create_new_wallet">Create New Wallet</string>
+    <string name="onboarding_short_import_existing_wallet">Import an Existing Wallet</string>
+</resources>

@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:tools="http://schemas.android.com/tools" xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
+    
+    <string name="request_back_content_description">Назад</string>
+    
+    <string name="request_amount">Сумма?</string>
+    <string name="request_message">Сообщение</string>
+    <string name="request_create">Создать и отправить</string>
+    
+</resources>

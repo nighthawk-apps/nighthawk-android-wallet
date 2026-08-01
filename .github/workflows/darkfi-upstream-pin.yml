@@ -1,0 +1,28 @@
+# Verifies docs/upstream/darkfi-revision.txt points at reachable blobs on GitHub.
+name: DarkFi upstream pin
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '27 6 * * 1'
+  pull_request:
+    paths:
+      - 'docs/upstream/**'
+      - 'scripts/verify-darkfi-upstream-pin.sh'
+      - 'scripts/fetch-darkfi-upstream-reference.sh'
+      - '.github/workflows/darkfi-upstream-pin.yml'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify_pin:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9
+      - name: Verify pinned blobs exist on GitHub
+        run: ./scripts/verify-darkfi-upstream-pin.sh

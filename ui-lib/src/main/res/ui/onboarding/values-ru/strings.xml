@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Nighthawk</string>
+    <string name="onboarding_back">Назад</string>
+    <string name="onboarding_skip">Пропустить</string>
+    <string name="onboarding_next">Далее</string>
+    <string name="onboarding_1_header">Приветствуем!</string>
+    <string name="onboarding_1_body">DarkFi по умолчанию проводит переводы конфиденциально. Кошелёк показывает один баланс DRK с вашего узла синхронизации — без раздельных «прозрачных» и «экранированных» сумм.\n\nВыбирайте доверенные серверы и храните резервную фразу.</string>
+    <string name="onboarding_1_image_content_description"></string>
+    <string name="onboarding_2_header">Форматы получения</string>
+    <string name="onboarding_2_body">Можно делиться разными способами получения (строка депозита, QR, опциональные «публичные» коды). После подключения синхронизации они зачисляются на тот же кошелёк DarkFi.\n\nИспользуйте формат, который ожидает отправитель.</string>
+    <string name="onboarding_2_image_content_description"></string>
+    <string name="onboarding_3_header">И многое другое…</string>
+    <string name="onboarding_3_body">Мы продолжаем улучшать скорость синхронизации и инструменты вокруг DarkFi и DRK.\n\nЖдите постоянных улучшений.</string>
+    <string name="onboarding_3_image_content_description"></string>
+    <string name="onboarding_4_header">Начнём!</string>
+    <string name="onboarding_4_body">Выберите между созданием нового кошелька и импортом существующей секретной фразы восстановления.</string>
+    <string name="onboarding_4_image_content_description"></string>
+    <string name="onboarding_4_create_new_wallet">Создать новый кошелёк</string>
+    <string name="onboarding_4_import_existing_wallet">Импортировать существующий кошелёк</string>
+
+    <string name="onboarding_short_header">Настройте кошелёк в духе Stealth / DarkFi</string>
+    <string name="onboarding_short_information">Создайте новый кошелёк или восстановите существующую резервную фразу:</string>
+    <string name="onboarding_short_create_new_wallet">Создать новый кошелёк</string>
+    <string name="onboarding_short_import_existing_wallet">Импортировать существующий кошелёк</string>
+</resources>

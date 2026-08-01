@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <uses-permission android:name="android.permission.INTERNET" />
+
+    <application
+        android:name="com.nighthawkwallet.android.NighthawkWalletApplication"
+        android:allowBackup="false"
+        android:dataExtractionRules="@xml/data_extraction_rules"
+        android:fullBackupContent="@xml/backup_rules"
+        android:label="@string/app_name"
+        android:networkSecurityConfig="@xml/network_security_config">
+
+        <!--
+          S8 TLS pin: SHA-256 of the lightwalletd *leaf certificate DER* (64 hex chars).
+          Required for remote https:// / tcp+tls:// endpoints (fail-closed without it).
+          Compute: openssl x509 -in lightwalletd.crt -outform DER | openssl dgst -sha256
+          Leave empty / omit for loopback-only cleartext. Override at runtime via
+          SharedPreferences darkfi_lightwallet_security / lightwallet_tls_pin_sha256.
+        -->
+        <meta-data
+            android:name="com.nighthawkapps.lightwallet_tls_pin_sha256"
+            android:value="${LIGHTWALLET_TLS_PIN_SHA256}" />
+
+        <!-- Alias acts as the entrypoint to the application.
+             Using an alias ensures we can refactor the actual Activity without breaking
+             clients. -->
+        <activity-alias
+            android:name="com.nighthawkapps.lib.android.ui.screen.advancesetting.model.OneLauncherAlias"
+            android:exported="true"
+            android:enabled="true"
+            android:icon="@mipmap/ic_launcher"
+            android:roundIcon="@mipmap/ic_launcher_round"
+            android:label="@string/app_name"
+            android:targetActivity="com.nighthawkapps.lib.android.ui.MainActivity">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+
+                <data android:scheme="drk" />
+            </intent-filter>
+
+            <meta-data
+                android:name="android.app.shortcuts"
+                android:resource="@xml/shortcuts" />
+
+        </activity-alias>
+
+        <activity-alias
+            android:name="com.nighthawkapps.lib.android.ui.screen.advancesetting.model.TwoLauncherAlias"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@mipmap/ic_launcher_legacy"
+            android:label="@string/app_name"
+            android:roundIcon="@mipmap/ic_launcher_round_legacy"
+            android:targetActivity="com.nighthawkapps.lib.android.ui.MainActivity">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+
+                <data android:scheme="drk" />
+            </intent-filter>
+
+            <meta-data
+                android:name="android.app.shortcuts"
+                android:resource="@xml/shortcuts" />
+
+        </activity-alias>
+
+    </application>
+
+</manifest>

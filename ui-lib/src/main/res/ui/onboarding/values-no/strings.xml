@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Nighthawk</string>
+    <string name="onboarding_back">Tilbake</string>
+    <string name="onboarding_skip">Hopp over</string>
+    <string name="onboarding_next">Neste</string>
+    <string name="onboarding_1_header">Velkommen!</string>
+    <string name="onboarding_1_body">DarkFi gjør opp overføringer privat som standard. Denne lommeboken viser én DRK-saldo fra synk-endepunktet ditt — ikke separate transparente og skjulte totalsummer.\n\nVelg servere du stoler på og sikkerhetskopier gjenfrasen din.</string>
+    <string name="onboarding_1_image_content_description"></string>
+    <string name="onboarding_2_header">Motta-formater</string>
+    <string name="onboarding_2_body">Du kan dele ulike mottakskodingsformer (innskuddsstreng, QR, valgfrie «offentlige» koder). De krediterer samme DarkFi-lommebok når synk er tilkoblet.\n\nBruk formatet betaleren forventer.</string>
+    <string name="onboarding_2_image_content_description"></string>
+    <string name="onboarding_3_header">Og mye mer…</string>
+    <string name="onboarding_3_body">Vi jobber videre med raskere synk og tydeligere DarkFi-/DRK-verktøy.\n\nForvent jevnlige forbedringer.</string>
+    <string name="onboarding_3_image_content_description"></string>
+    <string name="onboarding_4_header">La oss komme i gang!</string>
+    <string name="onboarding_4_body">Velg mellom å opprette en ny lommebok og å importere en eksisterende hemmelig gjenopprettingsfrase.</string>
+    <string name="onboarding_4_image_content_description"></string>
+    <string name="onboarding_4_create_new_wallet">Opprett ny lommebok</string>
+    <string name="onboarding_4_import_existing_wallet">Importer eksisterende lommebok</string>
+
+    <string name="onboarding_short_header">Sett opp Stealth-/DarkFi-orientert lommebok</string>
+    <string name="onboarding_short_information">Opprett en ny lommebok eller gjenopprett en eksisterende sikkerhetsfrase:</string>
+    <string name="onboarding_short_create_new_wallet">Opprett ny lommebok</string>
+    <string name="onboarding_short_import_existing_wallet">Importer eksisterende lommebok</string>
+</resources>

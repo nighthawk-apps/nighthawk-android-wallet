@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Nighthawk</string>
+    <string name="onboarding_back">Retour</string>
+    <string name="onboarding_skip">Passer</string>
+    <string name="onboarding_next">Suivant</string>
+    <string name="onboarding_1_header">Bienvenue !</string>
+    <string name="onboarding_1_body">DarkFi règle les transferts en privé par défaut. Ce portefeuille affiche un seul solde DRK depuis votre point de synchronisation — pas de totaux séparés transparent et confidentiel.\n\nChoisissez des serveurs de confiance et sauvegardez votre phrase de récupération.</string>
+    <string name="onboarding_1_image_content_description"></string>
+    <string name="onboarding_2_header">Formats de réception</string>
+    <string name="onboarding_2_body">Vous pouvez partager différents encodages de réception (chaîne de dépôt, QR, codes de style public optionnels). Ils créditent le même portefeuille DarkFi une fois la synchro connectée.\n\nUtilisez le format attendu par votre payeur.</string>
+    <string name="onboarding_2_image_content_description"></string>
+    <string name="onboarding_3_header">Et bien plus encore…</string>
+    <string name="onboarding_3_body">Nous poursuivons une synchronisation plus rapide et des outils DarkFi / DRK plus clairs.\n\nAttendez-vous à des améliorations régulières.</string>
+    <string name="onboarding_3_image_content_description"></string>
+    <string name="onboarding_4_header">C’est parti !</string>
+    <string name="onboarding_4_body">Choisissez entre créer un nouveau portefeuille et importer une phrase de récupération secrète existante.</string>
+    <string name="onboarding_4_image_content_description"></string>
+    <string name="onboarding_4_create_new_wallet">Créer un portefeuille</string>
+    <string name="onboarding_4_import_existing_wallet">Importer un portefeuille existant</string>
+
+    <string name="onboarding_short_header">Configurez votre portefeuille orienté Stealth / DarkFi</string>
+    <string name="onboarding_short_information">Créez un nouveau portefeuille ou restaurez une phrase de sauvegarde existante :</string>
+    <string name="onboarding_short_create_new_wallet">Créer un portefeuille</string>
+    <string name="onboarding_short_import_existing_wallet">Importer un portefeuille existant</string>
+</resources>

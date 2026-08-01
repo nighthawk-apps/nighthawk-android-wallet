@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="ns_logo_desc">Nighthawk logo</string>
+    <string name="ns_fiat_balance_desc">Fiat balance</string>
+    <string name="ns_next">Next</string>
+    <string name="ns_send_money_desc">Send DRK to another wallet</string>
+    <string name="ns_create_new_address">Create new address</string>
+    <string name="ns_payment_request_unavailable">Payment requests are not available on DarkFi yet.</string>
+    <string name="daemon_status_connected">DarkFi connection: connected</string>
+    <string name="daemon_status_connecting">DarkFi connection: connecting</string>
+    <string name="daemon_status_starting">DarkFi connection: starting</string>
+    <string name="daemon_status_reconnecting">DarkFi connection: reconnecting</string>
+    <string name="daemon_status_stopped">DarkFi connection: stopped</string>
+    <string name="daemon_status_error">DarkFi connection: error</string>
+    <string name="daemon_status_unknown">DarkFi connection: unknown</string>
+    <string name="daemon_status_disabled">DarkFi connection: disabled</string>
+    <string name="daemon_status_reorg_recovery">⚠️ Chain reorganization detected — updating transactions</string>
+    <string name="reorg_banner_message">Chain reorganization detected at height %1$d. Rewound to %2$d — %3$d blocks and %4$d transactions affected.</string>
+    <string name="daemon_restart_dialog_title">Restart connection?</string>
+    <string name="daemon_restart_dialog_body">This restarts wallet sync (darkfid) and embedded DarkIRC if enabled. Your keys stay on device.</string>
+    <string name="daemon_restart_dialog_confirm">Restart</string>
+    <string name="daemon_restart_dialog_cancel">Cancel</string>
+</resources>

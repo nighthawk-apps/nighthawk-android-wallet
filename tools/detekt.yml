@@ -1,0 +1,60 @@
+naming:
+  active: true
+  FunctionNaming:
+    active: true
+    excludes: ['**/test/**', '**/androidTest/**', '**/commonTest/**', '**/jvmTest/**', '**/jsTest/**', '**/iosTest/**']
+    functionPattern: '[a-z][a-zA-Z0-9]*'
+    excludeClassPattern: '$^'
+    ignoreAnnotated:
+      - 'Composable'
+
+# Embedded Guardian tor-android runner — keep lint noise low for leaf packages.
+complexity:
+  NestedBlockDepth:
+    active: true
+    excludes: ['**/tor/embedded/**']
+
+exceptions:
+  TooGenericExceptionCaught:
+    active: true
+    excludes:
+      - '**/tor/embedded/**'
+      - '**/chat/darkirc/**'
+  TooGenericExceptionThrown:
+    active: true
+    excludes: ['**/tor/embedded/**']
+
+style:
+  MagicNumber:
+    excludes:
+      - '**/tor/embedded/**'
+      - '**/test/**'
+      - '**/androidTest/**'
+      - '**/commonTest/**'
+      - '**/jvmTest/**'
+      - '**/*.gradle.kts'
+  ForbiddenComment:
+    active: true
+    comments:
+      - reason: 'Forbidden FIXME todo marker in comment, please fix the problem. Or include issue number prefix for 
+      FIXME comments, e.g. `FIXME [#123]: Fix this later`'
+        value: 'FIXME'
+      - reason: 'Forbidden STOPSHIP todo marker in comment, please address the problem before shipping the code. Or 
+      include issue number prefix for STOPSHIP comments, e.g. `STOPSHIP [#123]: Fix this later`'
+        value: 'STOPSHIP'
+      - reason: 'Forbidden TODO todo marker in comment, please do the changes. Or include issue number prefix for TODO 
+      comments, e.g. `TODO [#123]: Fix this later`'
+        value: 'TODO'
+    allowedPatterns: '[TODO|FIXME|STOPSHIP]+\s\[#\d+\]:\s.+'
+  NewLineAtEndOfFile:
+    active: false
+  UnusedPrivateMember:
+    active: true
+    allowedNames: '(_|ignored|expected|serialVersionUID)'
+    excludes: [ '**/*.kts' ]
+    ignoreAnnotated:
+      - 'Preview'
+
+Compose:
+  ModifierMissing:
+    active: false

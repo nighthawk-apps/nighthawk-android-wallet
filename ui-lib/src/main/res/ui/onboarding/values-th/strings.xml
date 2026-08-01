@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Nighthawk</string>
+    <string name="onboarding_back">ย้อนกลับ</string>
+    <string name="onboarding_skip">ข้าม</string>
+    <string name="onboarding_next">ถัดไป</string>
+    <string name="onboarding_1_header">ยินดีต้อนรับ!</string>
+    <string name="onboarding_1_body">DarkFi ชำระโอนเป็นค่าเริ่มต้นแบบส่วนตัว กระเป๋านี้แสดงยอด DRK เดียวจากปลายทางซิงก์ของคุณ — ไม่ใช่ยอดรวมแยกแบบโปร่งใสและแบบปิด\n\nเลือกเซิร์ฟเวอร์ที่คุณไว้ใจและสำรองวลีกู้คืนของคุณ</string>
+    <string name="onboarding_1_image_content_description"></string>
+    <string name="onboarding_2_header">รูปแบบการรับ</string>
+    <string name="onboarding_2_body">คุณแชร์การเข้ารหัสการรับที่ต่างกันได้ (สตริงฝาก, QR, รหัสแบบสาธารณะเสริม) เมื่อเชื่อมซิงก์แล้วจะเข้ายอดเดียวกันที่กระเป๋า DarkFi\n\nใช้รูปแบบที่ผู้จ่ายคาดหวัง</string>
+    <string name="onboarding_2_image_content_description"></string>
+    <string name="onboarding_3_header">และอื่น ๆ อีกมากมาย…</string>
+    <string name="onboarding_3_body">เราพัฒนาซิงก์ให้เร็วขึ้นและเครื่องมือ DarkFi / DRK ให้ชัดเจนขึ้นอย่างต่อเนื่อง\n\nคาดหวังการปรับปรุงเป็นประจำ</string>
+    <string name="onboarding_3_image_content_description"></string>
+    <string name="onboarding_4_header">เริ่มกันเลย!</string>
+    <string name="onboarding_4_body">เลือกระหว่างสร้างกระเป๋าใหม่หรือนำเข้าวลีกู้คืนลับที่มีอยู่แล้ว</string>
+    <string name="onboarding_4_image_content_description"></string>
+    <string name="onboarding_4_create_new_wallet">สร้างกระเป๋าใหม่</string>
+    <string name="onboarding_4_import_existing_wallet">นำเข้ากระเป๋าที่มีอยู่</string>
+
+    <string name="onboarding_short_header">ตั้งค่ากระเป๋าแนว Stealth / DarkFi ของคุณ</string>
+    <string name="onboarding_short_information">สร้างกระเป๋าใหม่หรือกู้คืนวลีสำรองที่มีอยู่แล้ว:</string>
+    <string name="onboarding_short_create_new_wallet">สร้างกระเป๋าใหม่</string>
+    <string name="onboarding_short_import_existing_wallet">นำเข้ากระเป๋าที่มีอยู่</string>
+</resources>

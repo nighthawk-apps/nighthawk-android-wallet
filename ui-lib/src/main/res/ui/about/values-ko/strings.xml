@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
+    <string name="about_title">About</string>
+    <string name="about_back_content_description">돌아가기</string>
+    <string name="about_version_header">버전</string>
+    <string name="about_version_format" formatted="true"></string>
+    <string name="about_build_header">설치</string>
+    <string name="about_build_configuration">설정</string>
+    <string name="about_legal_header">법률</string>
+    <string name="about_legal_info">Nighthawk Wallet is open-source software. Use at your own risk. By using this software, you agree to the Terms of Service and Privacy Policy available at nighthawkapps.com.</string>
+</resources>

@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Nighthawk</string>
+    <string name="onboarding_back">돌아가기</string>
+    <string name="onboarding_skip">건너뛰기</string>
+    <string name="onboarding_next">다음</string>
+    <string name="onboarding_1_header">환영합니다!</string>
+    <string name="onboarding_1_body">DarkFi는 기본적으로 이체를 비공개로 처리합니다. 이 지갑은 동기화 엔드포인트에서 하나의 DRK 잔액만 표시하며, 투명·차폐 잔액을 나누지 않습니다.\n\n신뢰하는 서버를 선택하고 복구 문구를 안전하게 보관하세요.</string>
+    <string name="onboarding_1_image_content_description"></string>
+    <string name="onboarding_2_header">수신 형식</string>
+    <string name="onboarding_2_body">입금 문자열, QR, 선택적 공개 스타일 코드 등 서로 다른 수신 표현을 공유할 수 있습니다. 동기화가 연결되면 같은 DarkFi 지갑으로 적립됩니다.\n\n보내는 사람이 기대하는 형식을 사용하세요.</string>
+    <string name="onboarding_2_image_content_description"></string>
+    <string name="onboarding_3_header">그리고 훨씬 더 많습니다…</string>
+    <string name="onboarding_3_body">더 빠른 동기화와 더 명확한 DarkFi / DRK 중심 도구를 계속 다듬고 있습니다.\n\n꾸준한 개선을 기대해 주세요.</string>
+    <string name="onboarding_3_image_content_description"></string>
+    <string name="onboarding_4_header">시작해요!</string>
+    <string name="onboarding_4_body">새 지갑을 만들거나 기존 비밀 복구 문구를 가져오는 것 중에서 선택하세요.</string>
+    <string name="onboarding_4_image_content_description"></string>
+    <string name="onboarding_4_create_new_wallet">새 지갑 만들기</string>
+    <string name="onboarding_4_import_existing_wallet">기존 지갑 가져오기</string>
+
+    <string name="onboarding_short_header">Stealth / DarkFi 지향 지갑 설정</string>
+    <string name="onboarding_short_information">새 지갑을 만들거나 기존 백업 문구를 복원하세요:</string>
+    <string name="onboarding_short_create_new_wallet">새 지갑 만들기</string>
+    <string name="onboarding_short_import_existing_wallet">기존 지갑 가져오기</string>
+</resources>

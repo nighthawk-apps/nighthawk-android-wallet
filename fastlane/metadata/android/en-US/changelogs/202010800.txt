@@ -1,0 +1,4 @@
+- Adopt SDK v2.0.3
+- Improve regional currency handling
+- Update crowd sourced translations
+- Update app logo

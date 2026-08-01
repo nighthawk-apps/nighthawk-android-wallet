@@ -1,0 +1,293 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="restore_header">지갑 만들기</string>
+    <string name="restore_title">지갑 불러오기</string>
+    <string name="restore_back_content_description">돌아가기</string>
+    <string name="restore_button_clear">초기화</string>
+    <string name="restore_seed_instructions">이제 복구 문구 (일명 시드 문구) 를 입력하여 백업된 지갑을 가져올 수 있습니다.</string>
+    <string name="restore_seed_button_restore">지갑 복구</string>
+    <string name="restore_seed_warning_suggestions">이 단어는 시드 구문 사전에 없습니다.  제안된 단어 중에서 올바른 단어를 선택해 주세요.</string>
+    <string name="restore_seed_warning_no_suggestions">이 단어는 시드 구문 사전에 없습니다.</string>
+    <string name="restore_birthday_header">지갑의 생성일을 알고 계신가요?</string>
+    <string name="restore_birthday_body">이렇게 하면 더 빠르게 동기화할 수 있습니다. 지갑의 생성일을 모르더라도 걱정하지 마세요.</string>
+    <string name="restore_birthday_hint">Birthday Height</string>
+    <string name="restore_birthday_button_restore">Birthday 복원하시오</string>
+    <string name="restore_birthday_button_skip">지갑 Birthday를 모릅니다</string>
+    <string name="restore_complete_header">시드 단어 가져오기</string>
+    <string name="restore_complete_info">이제 블록체인을 스캔하여 거래와 잔액을 찾습니다.</string>
+    <string name="restore_button_see_wallet">내 지갑으로 데려다주세요</string>
+    <!-- Start Flow -->
+    <string name="ns_nighthawk">Nighthawk</string>
+    <string name="ns_motto">Where privacy is proven, not promised.</string>
+    
+    <string name="ns_get_started">Get Started</string>
+    <string name="ns_landing_text">If it\'s your first time using Nighthawk, you\'ll need to create a wallet. If you are returning to Nighthawk, you can try to restore your previous wallet.</string>
+    <string name="ns_landing_footer">이 앱을 사용함으로써 귀하는 당사의</string>
+    <string name="ns_terms_conditions">Terms and Conditions</string>
+    <string name="ns_create_wallet">Create Wallet</string>
+    <string name="ns_create_wallet_title">Write down your backup seed</string>
+    
+    <string name="ns_create_wallet_confirm_text">I confirm I have written down my seed phrase.</string>
+    <string name="ns_restore_from_backup">Restore from Backup</string>
+    <string name="ns_restore_wallet_text">아래에 24단어 시드 문구를 입력합니다. 복구 문구가 없는 경우 새 지갑을 만들어야 합니다.</string>
+    <string name="ns_your_seed_phrase">Your seed phrase</string>
+    <string name="ns_wallet_birthday">Wallet birthday: %s</string>
+    <string name="ns_birthday_height">Birthday Height (옵션)</string>
+    <string name="ns_your_seed_error">Error - This doesn\'t look like a valid seed phrase.</string>
+    <string name="ns_continue">Continue</string>
+    <string name="ns_export_as_pdf">PDF로 내보내기</string>
+    <string name="ns_pdf_dialog_sub_heading">시드 단어를 비밀번호로 보호된 PDF로 내보내 사용자 보안이 설정된 휴대용 저장 장치에 백업할 수 있습니다.</string>
+    <string name="ns_please_enter_password">Please Enter Password</string>
+    <string name="ns_export_pdf">Export PDF</string>
+    <string name="ns_receive">Receive</string>
+    <string name="ns_transaction_history">Transactions History</string>
+    <string name="ns_copy">Copy</string>
+    <string name="ns_primary_deposit_address">통합주소 (Unified address)</string>
+    <string name="ns_shielded_address">Confidential deposit address</string>
+    <string name="ns_confidential_receive_address">레거시 보호 주소</string>
+    <string name="ns_public_receive_address">Transparent address</string>
+    <string name="ns_restore_dialog_title">계속하기 전에</string>
+    <string name="ns_restore_dialog_primary_action">계속</string>
+    <string name="ns_restore_dialog_body">나이트호크에서 처음 생성한 시드 문구만 가져오시기 바랍니다. 다른 지갑은 다르게 작동하므로 거래 자금이 부정확하게 보고될 수 있습니다.</string>
+    <!-- Wallet Screen -->
+    <string name="ns_wallet">Wallet</string>
+    <string name="ns_connecting">Connecting</string>
+    <string name="ns_reconnecting">Reconnecting</string>
+    <string name="ns_preparing_download">Preparing to download</string>
+    <string name="ns_downloading">Downloading</string>
+    <string name="ns_validating">Validating</string>
+    <string name="ns_enhancing">Enhancing</string>
+    <string name="ns_preparing_scan">Preparing to scan</string>
+    <string name="ns_scanning">Scanning…%1$d%%</string>
+    <string name="ns_finalizing">Finalizing</string>
+    <string name="ns_swipe_left">Swipe left to show your balance</string>
+    
+    <string name="ns_around">around %s</string>
+    <string name="ns_total_balance">Total balance</string>
+    <string name="ns_shielded_balance">Wallet balance</string>
+    <string name="ns_sapling_balance">Wallet balance</string>
+    <string name="ns_transparent_balance">Wallet balance</string>
+    <string name="ns_shield_now">Shield Now</string>
+    
+    
+    <string name="ns_recent_activity">Recent activity</string>
+    <string name="ns_received">Received</string>
+    <string name="ns_sent">Sent</string>
+    <string name="ns_auto_shielded_funds">Incoming DRK</string>
+    <!-- Transaction Details Screen -->
+    <string name="ns_transaction_details">Transaction details</string>
+    <string name="ns_show_memo">Show memo</string>
+    <string name="ns_received_from">Received from %s</string>
+    <string name="ns_sent_from">Sent from %s</string>
+    <string name="ns_transparent_wallet">public-style wallet encoding</string>
+    <string name="ns_shielded_wallet">confidential-format wallet</string>
+    <string name="ns_pending">Pending</string>
+    <string name="ns_pending_confirmations">Pending %s</string>
+    <string name="ns_confirmed">Confirmed</string>
+    
+    <string name="ns_view_on_explorer">View on explorer</string>
+    <string name="ns_time_utc">Time (UTC)</string>
+    <string name="ns_block_id">Block ID</string>
+    <string name="ns_confirmations">Confirmations</string>
+    <string name="ns_transaction_id">Transaction ID</string>
+    <string name="ns_processing">Processing</string>
+    <string name="ns_transaction_details_error_msg">현재 거래 세부 정보를 확인할 수 없습니다. 스캔 프로세스가 완료될 때까지 기다려주세요.</string>
+    <string name="ns_transaction_date_error">사용할 수 없음</string>
+    <!-- Transfer Screen -->
+    <string name="ns_transfer">Transfer</string>
+    
+    <string name="ns_send_money">Send money</string>
+    <string name="ns_send_money_text">Scan someone\'s QR code to send them money</string>
+    <string name="ns_receive_money">Receive money</string>
+    <string name="ns_receive_money_text">Display your QR code or copy your address.</string>
+    <string name="ns_top_up">Top up your wallet</string>
+    
+    
+    
+    
+    
+    
+    
+    <string name="ns_receive_money_securely">Receive money privately</string>
+    <string name="ns_show_qr_code">Show QR Code</string>
+    <string name="ns_show_qr_code_text">Let someone scan to send you money.</string>
+    <string name="ns_copy_private_address">Copy private address</string>
+    <string name="ns_copy_private_address_text">Your wallet address will be copied to the clipboard.</string>
+    <string name="ns_receive_money_publicly">Share public receive encoding</string>
+    <string name="ns_copy_public_address">Copy public receive encoding</string>
+    <string name="ns_receive_money_publicly_text">This will copy your t-address.</string>
+    <string name="ns_private_address">Private Address</string>
+    <string name="ns_non_private_address">Non-private address</string>
+    <string name="ns_top_up_your_wallet">Top up your wallet</string>
+    
+    <string name="ns_see_more">See More</string>
+    <string name="ns_copied">복사 완료</string>
+    <!-- Settings Screen -->
+    <string name="ns_settings">Settings</string>
+    <string name="ns_sync_notifications">Sync notifications</string>
+    <string name="ns_sync_notifications_text">Reminding you to keep the wallet up-to-date</string>
+    <string name="ns_sync_notifications_body">나이트호크 지갑을 오랫동안 닫아두면 지갑을 사용하려고 할 때 시작하는 데 시간이 오래 걸립니다.\n\n매주 지갑을 열라는 동기화 알림을 받도록 허용합니다.</string>
+    <string name="ns_backup_wallet">Backup your wallet</string>
+    <string name="ns_backup_wallet_text">Keep your wallet safe in case you lose your phone</string>
+    <string name="ns_backup_wallet_heading">Write down your backup seed</string>
+    
+    <string name="ns_backup_wallet_pdf">Save as PDF</string>
+    <string name="ns_rescan_wallet">Rescan wallet</string>
+    <string name="ns_rescan_wallet_text">Rescan wallet balances to troubleshoot issues.</string>
+    <string name="ns_rescan_wallet_body">![CDATA[This fix may take a while!<br/><br/>A <b>FULL</b> scan will rewind %1$s blocks to this wallet\'s birthday and take around %2$s.<br/><br/>A <b>WIPE</b> is like a full scan but it first deletes all data then restores it from your backup seed words.]]</string>
+    <string name="ns_rescan_wallet_full">Full rescan</string>
+    <string name="ns_rescan_wallet_wipe">Wipe &amp; restart</string>
+    <string name="ns_fiat_currency">Fiat Currency</string>
+    <string name="ns_fiat_currency_text">Choose your local currency</string>
+    
+    <string name="ns_change_server">Add servers</string>
+    
+    
+    <string name="ns_external_services">외부 서비스</string>
+    <string name="ns_external_services_text">파트너 서비스를 선택하세요.</string>
+    <string name="ns_external_services_uns">Unstoppable 도메인 서비스 사용</string>
+    <string name="ns_security">Security</string>
+    <string name="enter_six_digit_pin_code">6자리 핀 코드 입력</string>
+    <string name="choose_six_digit_pin_code">Choose a Six Digit Pin code</string>
+    <string name="enter_the_same_six_digits">Enter the Same Six Digits</string>
+    <string name="choose_pin_code">Pin 코드를 선택해 주세요</string>
+    <string name="verify_pin_code">Pin 코드 확인</string>
+    <string name="wrong_pin_code">Pin 코드가 틀립니다</string>
+    <string name="set_pin_code_request">Pin 코드를 먼저 설정해주세요.</string>
+    <string name="pin_code_setup_done">Pin code set up successfully!</string>
+    <string name="settings_toast_face_touch_id_enabled">Face/Touch ID enabled.</string>
+    <string name="settings_toast_face_touch_id_disabled">Face/Touch ID disabled.</string>
+    <string name="wrong_pin_code_message">Your pin code didn\'t match with the previous pin code.</string>
+    <string name="ns_security_text">Set/Change Pin Code &amp; Biometric</string>
+    <string name="set_change_pin_code">Set/Change Nighthawk Pin Code</string>
+    <string name="biometric_backup_phrase_title">Authenticate to proceed</string>
+    <string name="enable_face_id_touch_id">Enable Face ID/Touch ID</string>
+    <string name="dialog_bio_metric_not_enabled_title">Face ID Touch ID Error</string>
+    <string name="dialog_bio_metric_not_enabled_message">이 옵션을 활성화할 수 없습니다. 모바일 장치에서 Face ID 또는 Touch ID가 활성화되지 않은 것 같습니다.</string>
+    <string name="ns_security_choose">Choose PIN code</string>
+    <string name="ns_security_try_again">Please try again</string>
+    <string name="ns_about">About</string>
+    
+    <string name="ns_view_source">View Source</string>
+    <string name="ns_credits">Nighthawk friends</string>
+    <string name="ns_about_text">Nighthawk v%s &amp; Licenses</string>
+    <string name="ns_view_license">OSS 라이선스</string>
+    <string name="ns_back_up_seed_dialog_title">View Seed Words?</string>
+    <string name="ns_back_up_seed_dialog_body">경고: 지갑 시드 키가 다음 화면에 표시되므로 본인만 휴대폰을 볼 수 있는지 확인하세요.</string>
+    <string name="ns_back_up_seed_dialog_positive">View Seed</string>
+    <string name="ns_please_try_again">Please try again</string>
+    <string name="ns_disable_pin">Disable Pin</string>
+    <string name="ns_disable_pin_message">Pin disabled</string>
+    <string name="ns_view_licences">View Licences</string>
+    <string name="dialog_rescan_wallet_title">Rescan This Wallet?</string>
+    <string name="dialog_rescan_wallet_message">재검색은 지갑 거래 내역의 길이에 따라 최대 몇 시간이 소요될 수 있습니다. 재검색을 시작하시겠습니까?</string>
+    <string name="dialog_rescan_wallet_button_positive">Quick</string>
+    <string name="dialog_rescan_wallet_button_negative">Full</string>
+    <string name="dialog_rescan_wallet_button_neutral">Wipe</string>
+    <string name="dialog_rescan_initiated_title">전체 다시 검색을 수행하는 중!</string>
+    <string name="dialog_rescan_failed_title">Full Rescan Failed</string>
+    <string name="rescan_wallet_wipe_success">블록 데이터를 성공적으로 삭제했습니다! 지갑 데이터가 삭제되었습니다. 앱을 다시 실행하세요!</string>
+    <string name="ns_update">업데이트</string>
+    <!-- Backup/Restore Screen-->
+    <string name="ns_landing_backup_skipped_message_1">Are you sure? Without a backup, funds can be lost FOREVER!</string>
+    <string name="ns_landing_backup_skipped_message_2">You can\'t backup later. You\'re probably going to lose your funds!</string>
+    <string name="ns_landing_button_backup_skipped_1">Later</string>
+    <string name="ns_landing_button_backup_skipped_2">I\'ve been warned</string>
+    <string name="ns_landing_button_progress_create">Creating</string>
+    <string name="ns_button_skip">Skip for now</string>
+    <string name="ns_backup_done">Done</string>
+    <string name="ns_view_wallet">View Wallet</string>
+    <string name="ns_exit_restore_flow_text">확실하신가요? 보안을 위해 입력하신 단어는 지워집니다!</string>
+    <string name="ns_exit_restore_flow_title">Abort Restore?</string>
+    <string name="ns_stay">Stay</string>
+    <string name="ns_exit">Exit</string>
+    <string name="ns_landing_create_success_message">축하합니다! 지갑이 성공적으로 생성되었습니다!</string>
+    <string name="ns_landing_import_success_message">축하합니다! 지갑을 성공적으로 가져왔습니다!</string>
+    <!-- Send Flow -->
+    <string name="ns_scan_payment_request">Scan a Payment Request</string>
+    <string name="ns_scan_payment_request_text">If you have a payment request, you can scan the QR code here to auto-fill all the details.</string>
+    <string name="ns_choose_send">Choose how much to send</string>
+    <string name="ns_spendable_balance">사용 가능한 잔액(송금 수수료 포함) 은 %1$s %2$s입니다.</string>
+    <string name="ns_scan_payment_code">Scan a payment code</string>
+    <string name="ns_top_up_wallet">Top up wallet</string>
+    
+    <string name="ns_add_message">Add a message to your payment</string>
+    <string name="ns_write_something">Write something…</string>
+    <string name="ns_skip">Skip</string>
+    <string name="ns_choose_who">Choose who to send it to</string>
+    <string name="ns_review_and_send">Review and send</string>
+    <string name="ns_network_fee">Network Fee</string>
+    
+    <string name="ns_sending">Sending</string>
+    <string name="ns_pending_confirmation">Pending confirmation</string>
+    <string name="ns_expired">Expired</string>
+    <string name="ns_unknown">Unknown</string>
+    <string name="ns_cancel">Cancel</string>
+    <string name="ns_success">완료</string>
+    <string name="ns_done">완료되었습니다.</string>
+    <string name="ns_more_details">More Details</string>
+    <string name="ns_failed">Failed</string>
+    <string name="ns_try_again">Try Again</string>
+    
+    <string name="ns_amount_with_unit">%1$s %2$s</string>
+    <string name="ns_format_date_time">dd/MM/yyyy</string>
+    <string name="ns_view_all_transactions">View transaction history</string>
+    <string name="ns_downloading_block">Downloading\n\nBlock %1$s of %2$s</string>
+    <string name="ns_downloading_wallet">다운로드 중…%1d%%</string>
+    <string name="ns_syncing_wallet">동기화 중…%1$.2f%%</string>
+    <string name="ns_syncing_block">Syncing\n\nBlock %1$s of %2$s</string>
+    
+    <string name="ns_add_address_hint">Add address here</string>
+    <string name="ns_paste_from_clip_board">Paste from clipboard</string>
+    <string name="ns_clipboard_wrong_text_paste_error">마지막으로 복사한 주소가 유효한 지캐시 주소가 아닌 것 같습니다.</string>
+    <string name="ns_memo">Memo</string>
+    <string name="ns_pool">Details</string>
+    <string name="ns_network">Network</string>
+    <string name="ns_recipient">Recipient</string>
+    <string name="ns_address">Address</string>
+    <string name="ns_subtotal">Subtotal</string>
+    <string name="ns_total_amount">Total amount</string>
+    <string name="ns_shielded">Confidential</string>
+    <string name="ns_legacy_shielded_sapling"> 레거시 차폐</string>
+    <string name="ns_transparent">Public receive</string>
+    <string name="ns_include_reply_to">include reply-to</string>
+    
+    
+    <string name="open_browser">Open Browser</string>
+    
+    
+    
+    
+    <string name="insufficient_msg">송금할 잔액이 충분하지 않습니다.</string>
+    <string name="memo_max_length_msg">메시지를 보낼 수 있는 최대 길이를 작성했습니다.</string>
+    <string name="autoshielding_title_text">나이트호크 월렛은 <b>기본적으로 보호됩니다</b>. 저희는 귀하의 자금에 대해 최고 수준의 기밀성을 보장하기 위한 조치를 구현했습니다.</string>
+    <string name="autoshielding_body_text"><b>자동 차폐</b>는 투명 주소로 들어오는 모든 자금이 자동으로 차폐 주소로 이동됨을 의미합니다.\n\n당사는 최신 개인정보 보호 모범 사례 및 권장 사항에 대한 정기적인 업데이트를 제공하여 사용자에게 최신 정보를 제공하기 위해 최선을 다하고 있습니다.</string>
+    <string name="autoshielding_button_positive">좋습니다!</string>
+    <string name="autoshielding_button_neutral">자세히 알아보기</string>
+    
+    
+    <string name="shielding">보호화 중!</string>
+    <string name="open_settings">설정 열기</string>
+    <string name="notification_permission_dialog_title">경고</string>
+    <string name="notification_permission_dialog_desc">알림을 게시하려면 알림 권한을 제공해야 합니다.\n설정에서 알림 권한을 허용하세요.</string>
+    <string name="transaction_id_copied">거래 ID가 클립보드에 복사되었습니다.</string>
+    <string name="dialog_first_use_view_tx_message">앱을 종료하길 원하십니까? 만약 당신이 목적지를 신뢰하지 않는 경우, 프라이버시가 줄어들 수 있습니다.</string>
+    <string name="dialog_first_use_view_tx_positive">View Tx</string>
+    <string name="dialog_first_use_view_tx_title">Potential Privacy Risk</string>
+    <string name="keep_screen_on">항상 화면 켜기</string>
+    <string name="keep_screen_on_detail_msg">한동안 지갑을 열지 않았다면 동기화 과정에 다소 시간이 걸릴 수 있습니다. 화면 모드를 \'계속 켜짐\'으로 설정하면 동기화 중에 휴대폰이 절전 모드로 전환되지 않도록 할 수 있습니다.</string>
+    <string name="advanced">고급 설정</string>
+    <string name="advanced_msg">추가 세팅</string>
+    <string name="nuke_wallet">Nuke 월렛</string>
+    <string name="nuke_wallet_caution">주의: 진행 시 지갑이 완전히 삭제되며 시드 단어가 없으면 자금을 복구할 수 없습니다. 계속 진행하기 전에 시드 문구를 안전한 곳에 저장해두시기 바랍니다.</string>
+    <string name="nuke_wallet_dialog_msg">이 작업은 되돌릴 수 없습니다. 시드 문구 없이는 자금 복원이 불가능합니다. 계속 진행하기 전에 안전한 곳에 저장했는지 반드시 확인하시기 바랍니다. 그래도 계속 진행하시겠습니까?</string>
+    <string name="are_you_sure">Are you sure?</string>
+    <string name="app_icon">엡 아이콘</string>
+    <string name="default_name">기본 설정</string>
+    <string name="retro">레트로</string>
+    <string name="delete_wallet">Delete Wallet</string>
+    <string name="enable_dark_theme">Switch to dark theme</string>
+    <string name="ns_host">Host</string>
+    <string name="ns_port">Port</string>
+    <string name="tex_address_support_error">Invalid Address, Tex Address is not supported</string>
+</resources>

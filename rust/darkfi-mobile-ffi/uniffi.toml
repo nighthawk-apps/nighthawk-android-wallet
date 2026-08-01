@@ -1,0 +1,5 @@
+# Kotlin bindings package for `uniffi-bindgen generate` (UniFFI ≥ 0.31).
+# Regenerate from repo root — see `rust/darkfi-mobile-ffi/README.md`.
+[bindings.kotlin]
+package_name = "com.nighthawkapps.lib.uniffi.darkfi_mobile_ffi"
+cdylib_name = "darkfi_mobile_ffi"

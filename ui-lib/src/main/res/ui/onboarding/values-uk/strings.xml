@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Nighthawk</string>
+    <string name="onboarding_back">Назад</string>
+    <string name="onboarding_skip">Пропустити</string>
+    <string name="onboarding_next">Далі</string>
+    <string name="onboarding_1_header">Ласкаво просимо!</string>
+    <string name="onboarding_1_body">DarkFi за замовчуванням проводить перекази конфіденційно. Гаманець показує один баланс DRK із вашої точки синхронізації — без окремих «прозорих» та «екранованих» сум.\n\nОбирайте надійні сервери й зберігайте резервну фразу.</string>
+    <string name="onboarding_1_image_content_description"></string>
+    <string name="onboarding_2_header">Формати отримання</string>
+    <string name="onboarding_2_body">Можна ділитися різними способами отримання (рядок депозиту, QR, опційні «публічні» коди). Після підключення синхронізації вони зараховуються на той самий гаманець DarkFi.\n\nВикористовуйте формат, який очікує відправник.</string>
+    <string name="onboarding_2_image_content_description"></string>
+    <string name="onboarding_3_header">І набагато більше…</string>
+    <string name="onboarding_3_body">Ми продовжуємо покращувати швидшу синхронізацію й зрозуміліші інструменти для DarkFi та DRK.\n\nОчікуйте постійних покращень.</string>
+    <string name="onboarding_3_image_content_description"></string>
+    <string name="onboarding_4_header">Почнімо!</string>
+    <string name="onboarding_4_body">Оберіть між створенням нового гаманця та імпортом наявної секретної фрази відновлення.</string>
+    <string name="onboarding_4_image_content_description"></string>
+    <string name="onboarding_4_create_new_wallet">Створити новий гаманець</string>
+    <string name="onboarding_4_import_existing_wallet">Імпортувати наявний гаманець</string>
+
+    <string name="onboarding_short_header">Налаштуйте гаманець у дусі Stealth / DarkFi</string>
+    <string name="onboarding_short_information">Створіть новий гаманець або відновіть наявну резервну фразу:</string>
+    <string name="onboarding_short_create_new_wallet">Створити новий гаманець</string>
+    <string name="onboarding_short_import_existing_wallet">Імпортувати наявний гаманець</string>
+</resources>

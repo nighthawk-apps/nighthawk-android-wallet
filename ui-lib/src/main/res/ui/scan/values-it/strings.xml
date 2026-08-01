@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    
+    <string name="scan_back_content_description">Indietro</string>
+    <string name="scan_preview_content_description">Fotocamera</string>
+    
+    <string name="scan_settings_button">Abilita l\'autorizzazione fotocamera</string>
+    <string name="scan_settings_open_failed">Impossibile avviare l\'app Impostazioni.</string>
+    <string name="scan_setup_failed">Impossibile eseguire lo scanner QR.</string>
+    <string name="scan_setup_back">Indietro</string>
+    <string name="scan_state_permission">È necessario il permesso della fotocamera.</string>
+    <string name="scan_state_scanning">Scansione…</string>
+    <string name="scan_state_failed">Scansione fallita!</string>
+    
+</resources>

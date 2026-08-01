@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="send_title">Send DRK</string>
+    <string name="send_body_native">Builds and broadcasts a private transfer via on-device drk and your darkfid endpoint.</string>
+    <string name="send_body_unavailable">Native wallet library is not loaded for this device ABI. Rebuild jniLibs or use an arm64 emulator.</string>
+    <string name="send_balance_atomic" formatted="true">Balance (atomic): %1$d · ~%2$s DRK</string>
+    <string name="send_estimated_fee" formatted="true">Estimated fee (atomic): %1$d · ~%2$s DRK</string>
+    <string name="send_recipient_label">Recipient address</string>
+    <string name="send_token_label">Token</string>
+    <string name="send_amount_label">Amount (DRK)</string>
+    <string name="send_memo">Memo (optional)</string>
+    <string name="send_confirmation_memo_format" formatted="true">Memo: %1$s</string>
+    <string name="send_insufficient_balance" formatted="true">Insufficient balance. This transfer needs about %1$s DRK (amount + fee) but you only have %2$s DRK available. Add more funds to continue.</string>
+    <string name="send_submit">Review transfer</string>
+    <string name="send_scan_qr">Scan QR code</string>
+    <string name="send_confirm_title">Confirm transfer</string>
+    <string name="send_confirm_message" formatted="true">Send %1$s DRK to\n%2$s\n\nEstimated fee: %3$s DRK</string>
+    <string name="send_confirm">Send</string>
+    <string name="send_cancel">Cancel</string>
+    <string name="send_fee_unknown">unknown</string>
+    <string name="send_success_title">Transfer submitted</string>
+    <string name="send_success_message" formatted="true">Transaction id:\n%1$s</string>
+    <string name="send_success_ok">Done</string>
+    <string name="send_omr_scheme_label">PerfOMR (default)</string>
+    <string name="send_omr_default_hint">This transfer embeds an OMR/OMD detection clue so the recipient can sync privately via lightwalletd (PerfOMR + LWEmongrass). No scheme toggle — OMR is always on.</string>
+    <string name="send_tx_id_format">Transaction id: %1$s</string>
+</resources>

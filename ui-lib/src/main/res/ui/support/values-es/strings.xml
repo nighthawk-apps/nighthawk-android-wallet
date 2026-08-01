@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
+    <string name="support_header">Contactar con soporte</string>
+    <string name="support_back_content_description">Volver</string>
+    <string name="support_hint">¿Cómo podemos ayudarte?</string>
+    <string name="support_send">Enviar</string>
+    <string name="support_confirmation_dialog_ok">Ok</string>
+    <string name="support_confirmation_dialog_cancel">Cancelar</string>
+    
+    <!-- This is replaced by a resource overlay via app/build.gradle.kts -->
+    <string name="support_email_address"></string>
+    <string name="support_information">Por favor, háganos saber sobre cualquier problema que haya tenido, o características que desee ver en el futuro.</string>
+    <string name="support_disclaimer">La información proporcionada se maneja de acuerdo con nuestra Política de Privacidad.</string>
+    <string name="support_unable_to_open_email">No se puede iniciar la aplicación de correo electrónico.</string>
+</resources>

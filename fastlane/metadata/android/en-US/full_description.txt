@@ -1,0 +1,21 @@
+Nighthawk is a self-custodial, privacy-first wallet built on DarkFi. Your keys, your coins — no intermediaries.
+
+Features
+- Self-custodial 22-word recovery phrase with PDF backup
+- Native DarkFi wallet sync via Rust core (darkfid RPC)
+- Send and receive DRK with full privacy
+- DAO governance hub — browse DAOs and proposals on-chain
+- Experimental DarkIRC-aligned encrypted chat
+- Configurable DarkFi RPC endpoints
+- Fiat price hints via public APIs
+
+Privacy by default
+- Single DarkFi address derived from your recovery phrase
+- No analytics, no tracking, no third-party services
+- All wallet data stays on your device
+
+Note
+This is a work-in-progress release. Some features are still under active development. Nighthawk is provided "as is", without warranty.
+
+Source code: https://github.com/nickhawk/new-nighthawk-android-wallet
+Support: nighthawkwallet@protonmail.com

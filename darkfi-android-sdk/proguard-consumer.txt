@@ -1,0 +1,26 @@
+# DarkFi Android SDK — consumer ProGuard / R8 rules
+
+# Public façade used by the app (actual package namespace).
+-keep class com.nighthawkapps.lib.android.sdk.** { *; }
+
+# UniFFI / JNA bindings (Structure fields + Callback methods resolved reflectively).
+# Without these, R8 full-mode stripping breaks every native wallet/chat call in
+# minified release builds while debug continues to work.
+-keep class com.nighthawkapps.lib.uniffi.** { *; }
+-keep class com.sun.jna.** { *; }
+-keepclassmembers class * extends com.sun.jna.Structure {
+    <fields>;
+    <methods>;
+}
+-keepclassmembers class * extends com.sun.jna.Callback {
+    <methods>;
+}
+-dontwarn java.awt.**
+-dontwarn com.sun.jna.**
+
+# Guardian Project Tor control (jtorctl)
+-keep class net.freehaven.tor.control.** { *; }
+
+# Legacy placeholder paths (harmless if absent).
+-keep class org.darkfi.wallet.android.sdk.api.** { *; }
+-keep class org.darkfi.wallet.android.sdk.native.** { *; }

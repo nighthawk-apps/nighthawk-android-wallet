@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="darkirc_fg_channel_name">DarkIRC Network</string>
+    <string name="darkirc_fg_notif_title">DarkIRC Network Active</string>
+    <string name="darkirc_fg_notif_body">Keeping chat connected while the app is in the background</string>
+    <string name="darkfid_fg_channel_name">DarkFi node background</string>
+    <string name="darkfid_fg_notif_title">darkfid</string>
+    <string name="darkfid_fg_notif_body">Fullnode syncing for wallet (127.0.0.1:18345 testnet)</string>
+</resources>

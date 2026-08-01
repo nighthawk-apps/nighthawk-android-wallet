@@ -1,0 +1,331 @@
+syntax = "proto3";
+package darkfi.lightwallet;
+
+// DarkFi Lightwallet Service
+//
+// This service provides bandwidth-efficient access to the DarkFi blockchain
+// for light wallet clients. It serves compact blocks (stripped of ZK proofs
+// and signatures) that clients can trial-decrypt to discover their own notes.
+//
+// All note scanning (trial decryption) happens client-side. The server never
+// learns which transactions belong to which client.
+
+service DarkFiLightWallet {
+
+  // === Block Sync ===
+
+  // Stream compact blocks in an inclusive height range [start, end].
+  // The server returns blocks in ascending height order.
+  rpc GetBlockRange(BlockRange) returns (stream CompactBlock);
+
+  // Get a single compact block by height.
+  rpc GetBlock(BlockHeight) returns (CompactBlock);
+
+  // Stream compact blocks at specific heights (sparse fetch).
+  // Heights should be sorted unique; server sorts/dedups. Cap 512.
+  // Returns NOT_FOUND if any requested height is missing.
+  rpc GetCompactBlocksAtHeights(HeightList) returns (stream CompactBlock);
+
+  // Get the current chain tip height and hash.
+  rpc GetChainTip(Empty) returns (ChainTip);
+
+  // Subscribe to new blocks as they are finalized.
+  // The server streams CompactBlock messages for each new block.
+  rpc SubscribeBlocks(Empty) returns (stream CompactBlock);
+
+  // === Transactions ===
+
+  // Get a full transaction by its hash. Returns the serialized Transaction
+  // (including proofs and signatures, unlike compact blocks).
+  rpc GetTransaction(TxHash) returns (RawTransaction);
+  
+  // Phase 1: UnifOMR Detection (Linear Partial Decryption)
+  rpc GetUnifOmrDigest(OmrDigestRequest) returns (OmrDigestResponse);
+  
+  // Phase 2: Batch PIR Fetch (Non-Linear Payload Retrieval)
+  rpc FetchPirBatch(BatchPirRequest) returns (BatchPirResponse);
+
+  // Submit a signed transaction to the network via the backing darkfid node.
+  rpc SendTransaction(RawTransaction) returns (SendResponse);
+
+  // Register an FHE OMR clue for a pending transaction (sender-side).
+  // lightwalletd merges this into CompactOutput.omr_clue when the tx confirms.
+  rpc RegisterOmrClue(OmrClueRegistration) returns (Empty);
+
+  // === Note / Commitment Sync ===
+
+  // Get all note commitments (coins) added in a block range.
+  rpc GetNoteCommitments(BlockRange) returns (stream NoteCommitmentUpdate);
+
+  // Get all nullifiers revealed in a block range.
+  rpc GetNullifiers(BlockRange) returns (stream NullifierUpdate);
+
+  // Get the Merkle tree state snapshot at a given height.
+  rpc GetTreeState(BlockHeight) returns (TreeState);
+
+  // === Contract State ===
+
+  // Lookup zkas bincodes for a given contract ID.
+  rpc LookupZkas(ContractId) returns (ZkasResponse);
+
+  // === OMR (Oblivious Message Retrieval) ===
+
+  // Request an OMR detection digest for a height range.
+  // Get server OMR capabilities.
+  rpc GetOmrCapabilities(Empty) returns (OmrCapabilities);
+
+  // Publish the wallet's UnifOMR RLWE clue public key (pk_clue), keyed by
+  // payment pubkey hash. Senders look this up before GenClue.
+  rpc RegisterCluePublicKey(CluePublicKeyRegistration) returns (Empty);
+
+  // Fetch a recipient's UnifOMR clue public key by payment pubkey (32 bytes).
+  rpc GetCluePublicKey(PaymentPubkey) returns (CluePublicKey);
+
+  // === Server Info ===
+
+  // Get server metadata: version, chain info, sync status.
+  rpc GetLightInfo(Empty) returns (LightInfo);
+}
+
+// === Request/Response Messages ===
+
+message Empty {}
+
+message BlockRange {
+  // Start height, inclusive
+  uint32 start_height = 1;
+  // End height, inclusive
+  uint32 end_height = 2;
+}
+
+message BlockHeight {
+  uint32 height = 1;
+}
+
+message HeightList {
+  // Sorted unique preferred; server sorts/dedups
+  repeated uint32 heights = 1;
+}
+
+message TxHash {
+  // 32-byte blake3 transaction hash
+  bytes hash = 1;
+}
+
+message ChainTip {
+  uint32 height = 1;
+  // 32-byte blake3 header hash
+  bytes hash = 2;
+  uint64 timestamp = 3;
+  uint32 block_target = 4;
+}
+
+// A compact representation of a DarkFi block, stripped of ZK proofs and
+// signatures. Contains only the data needed for wallet sync:
+// - Per-output: coin commitment, encrypted note, value/token commitments
+// - Per-input: nullifier (for spend detection)
+// - Block metadata: height, hash, previous hash, timestamp
+message CompactBlock {
+  uint32 height = 1;
+  // 32-byte blake3 header hash
+  bytes hash = 2;
+  // 32-byte blake3 previous header hash
+  bytes prev_hash = 3;
+  uint64 timestamp = 4;
+  repeated CompactTx txs = 5;
+}
+
+// A compact representation of a single transaction within a block.
+message CompactTx {
+  // 32-byte blake3 transaction hash
+  bytes tx_hash = 1;
+  // The Money contract outputs (coins + encrypted notes)
+  repeated CompactOutput outputs = 2;
+  // Revealed nullifiers (each 32 bytes)
+  repeated bytes nullifiers = 3;
+  // Fee paid by this transaction (if parseable)
+  uint64 fee = 4;
+}
+
+// A compact representation of a single transaction output.
+message CompactOutput {
+  // Coin commitment: Poseidon hash of CoinAttributes (32 bytes, pallas::Base)
+  bytes coin = 1;
+  // AeadEncryptedNote: serialized (ephem_public + ciphertext)
+  // Clients trial-decrypt this with their secret key via DH + ChaCha20Poly1305
+  bytes encrypted_note = 2;
+  // Pedersen commitment for value (33 bytes, compressed pallas::Point)
+  bytes value_commit = 3;
+  // Commitment for token ID (32 bytes, pallas::Base)
+  bytes token_commit = 4;
+  // FHE OMR clue byte array
+  bytes omr_clue = 5;
+  // Recipient-encrypted OMR metadata (scheme + clue seed + user memo).
+  // Encrypted with recipient's pubkey via DH + ChaCha20Poly1305.
+  // LWD stores opaquely; cannot decrypt. Merged on block confirm.
+  bytes omr_metadata_enc = 6;
+}
+
+message NoteCommitmentUpdate {
+  uint32 height = 1;
+  // New coin commitments added at this height (each 32 bytes)
+  repeated bytes coins = 2;
+}
+
+message NullifierUpdate {
+  uint32 height = 1;
+  // New nullifiers revealed at this height (each 32 bytes)
+  repeated bytes nullifiers = 2;
+}
+
+message TreeState {
+  uint32 height = 1;
+  // Serialized MerkleTree (DarkFi bridgetree format)
+  bytes tree_data = 2;
+}
+
+message RawTransaction {
+  // Serialized DarkFi Transaction (darkfi-serial format)
+  bytes data = 1;
+  // Optional FHE / UnifOMR clue for the payment output.
+  bytes omr_clue = 2;
+  // Compact-block output index the clue applies to (payment output).
+  // Default 0. Change outputs must not receive the recipient clue.
+  uint32 omr_clue_output_index = 3;
+  // Recipient-encrypted OMR metadata (opaque to LWD). Merged into
+  // CompactOutput.omr_metadata_enc on confirm when present.
+  bytes omr_metadata_enc = 4;
+}
+
+message OmrClueRegistration {
+  // 32-byte blake3 transaction hash
+  bytes tx_hash = 1;
+  // FHE / UnifOMR clue bytes
+  bytes omr_clue = 2;
+  // Output index (default 0 = payment output).
+  uint32 omr_clue_output_index = 3;
+  // Recipient-encrypted OMR metadata.
+  bytes omr_metadata_enc = 4;
+}
+
+message SendResponse {
+  // Transaction hash if successful
+  bytes tx_hash = 1;
+  // Error message if failed, empty string on success
+  string error = 2;
+  // Whether an attached OMR clue was accepted and stored (S22).
+  // false when the clue was empty, rejected by validation, or could not be stored.
+  bool clue_accepted = 3;
+}
+
+message ContractId {
+  // Base58-encoded contract ID
+  string id = 1;
+}
+
+message ZkasResponse {
+  repeated ZkasBincode bincodes = 1;
+}
+
+message ZkasBincode {
+  string namespace = 1;
+  bytes bincode = 2;
+}
+
+message LightInfo {
+  // Server version string
+  string version = 1;
+  // Chain identifier
+  string chain_name = 2;
+  // Current best block height
+  uint32 block_height = 3;
+  // Block target time in seconds
+  uint32 block_target = 4;
+  // Current difficulty (as string for big integer)
+  string difficulty = 5;
+  // Whether the server supports OMR detection
+  bool omr_supported = 6;
+  // Current best block hash
+  bytes best_block_hash = 7;
+  // Backing node version string
+  string backend_version = 8;
+}
+
+// === OMR Messages ===
+
+message OmrDigestRequest {
+  // Client's OMR detection key (scheme-dependent encoding).
+  // Legacy single-key field; still honored when `detection_keys` is empty.
+  bytes detection_key = 1;
+  // Start height, inclusive
+  uint32 start_height = 2;
+  // End height, inclusive
+  uint32 end_height = 3;
+  // S17 Phase 2: multiple detection keys (same wallet, different address tags).
+  // When non-empty, the server evaluates each key and returns a framed multi-digest
+  // (or a Blake3 height-union). Prefer this over N parallel GetOmrDigest RPCs.
+  repeated bytes detection_keys = 4;
+}
+
+message OmrDigestResponse {
+  // FHE encrypted digest containing the matching block heights.
+  // For multi-key requests: length-prefixed frames, one digest per key
+  // ([u32 LE len][digest]…), decrypted client-side with the matching key.
+  // The client decrypts this locally.
+  bytes encrypted_digest = 1;
+  // Whether the digest covers the full requested range
+  bool complete = 2;
+}
+
+message OmrCapabilities {
+  // Whether OMR is currently enabled and operational
+  bool enabled = 1;
+  // Supported OMR scheme name (e.g. "fmd" for Fuzzy Message Detection)
+  string scheme = 2;
+  // Server-side false positive rate (informational)
+  double false_positive_rate = 3;
+  // Maximum block range per digest request
+  uint32 max_range_per_request = 4;
+}
+
+message PaymentPubkey {
+  // 32-byte DarkFi payment public key
+  bytes payment_pubkey = 1;
+}
+
+message CluePublicKeyRegistration {
+  bytes payment_pubkey = 1;
+  // Serialized UnifOMR RLWE public key (see unifomr::serialize_public_key)
+  bytes clue_public_key = 2;
+  // Schnorr signature (darkfi-serial) over:
+  //   b"DarkFi-UnifOMR-CluePK-v2" || network_byte || key_version (u64 LE)
+  //     || payment_pubkey || clue_public_key
+  // under the payment SecretKey. Required — proves ownership of payment_pubkey,
+  // binds the network (no cross-network replay) and a monotonic key_version
+  // (no stale-registration replay / clue-key pinning).
+  bytes ownership_proof = 3;
+  // Client-chosen monotonic version (unix seconds). The server only replaces
+  // an existing registration when key_version is strictly greater.
+  uint64 key_version = 4;
+}
+
+message CluePublicKey {
+  bytes clue_public_key = 1;
+  bool found = 2;
+}
+
+message BatchPirRequest {
+  // BFV ciphertexts: one-hot (or multi-hot) selection over [start_height, end_height].
+  // For multi-limb payloads, client sends one query CT per request (limb_index).
+  repeated bytes query_ciphertexts = 1;
+  // Inclusive height window the selection vector indexes into (slot i = start_height + i).
+  uint32 start_height = 2;
+  uint32 end_height = 3;
+  // Which u64-limb of the compact-block serialization to retrieve (0-based).
+  uint32 limb_index = 4;
+}
+
+message BatchPirResponse {
+  // BFV ciphertext(s) encrypting the selected limb(s) / packed payload fragments.
+  repeated bytes payload_ciphertexts = 1;
+}

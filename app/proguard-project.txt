@@ -1,0 +1,104 @@
+# Commenting this out would improve obfuscation. The wallet is already open source so obfuscation doesn't provide much benefit
+# and makes analyzing the release build of the app more difficult.
+-dontobfuscate
+
+# Ensure that stacktraces are reversible.
+-renamesourcefileattribute SourceFile
+-keepattributes SourceFile,LineNumberTable
+
+# Generate the combined proguard configuration for debugging.
+-printconfiguration build/outputs/proguard-config.txt
+
+-dontwarn com.gemalto.jp2.JP2Decoder
+-dontwarn com.gemalto.jp2.JP2Encoder
+
+-dontwarn com.google.j2objc.annotations.ReflectionSupport$Level
+-dontwarn com.google.j2objc.annotations.ReflectionSupport
+-dontwarn com.google.j2objc.annotations.RetainedWith
+
+-dontwarn androidx.compose.ui.util.MathHelpersKt
+-dontwarn com.google.common.util.concurrent.ListenableFuture
+-dontwarn com.google.errorprone.annotations.InlineMe
+-dontwarn com.google.errorprone.annotations.MustBeClosed
+-dontwarn javax.naming.directory.Attribute
+-dontwarn javax.naming.directory.Attributes
+-dontwarn javax.naming.directory.DirContext
+-dontwarn javax.naming.directory.InitialDirContext
+-dontwarn javax.naming.NamingEnumeration
+-dontwarn javax.naming.NamingException
+
+# kotlinx.datetime supports kotlinx.serialization, but we don't use kotlinx.serialization elsewhere
+# in the projects, so the classes aren't present.  These warnings are safe to suppress.
+-dontwarn kotlinx.serialization.KSerializer
+-dontwarn kotlinx.serialization.Serializable
+
+-dontwarn com.gemalto.jp2.JP2Decoder
+-dontwarn com.gemalto.jp2.JP2Encoder
+-dontwarn org.jetbrains.kotlin.compiler.plugin.CliOption
+-dontwarn org.jetbrains.kotlin.compiler.plugin.CommandLineProcessor
+-dontwarn org.jetbrains.kotlin.compiler.plugin.ComponentRegistrar
+-dontwarn org.jetbrains.kotlin.diagnostics.DiagnosticFactory0
+-dontwarn org.jetbrains.kotlin.diagnostics.DiagnosticFactory1
+-dontwarn org.jetbrains.kotlin.diagnostics.DiagnosticFactory2
+-dontwarn org.jetbrains.kotlin.diagnostics.DiagnosticFactory3
+-dontwarn org.jetbrains.kotlin.diagnostics.Errors$Initializer
+-dontwarn org.jetbrains.kotlin.diagnostics.PositioningStrategies
+-dontwarn org.jetbrains.kotlin.diagnostics.PositioningStrategy
+-dontwarn org.jetbrains.kotlin.diagnostics.Severity
+-dontwarn org.jetbrains.kotlin.diagnostics.rendering.CommonRenderers
+-dontwarn org.jetbrains.kotlin.diagnostics.rendering.ContextIndependentParameterRenderer
+-dontwarn org.jetbrains.kotlin.diagnostics.rendering.DefaultErrorMessages$Extension
+-dontwarn org.jetbrains.kotlin.diagnostics.rendering.DiagnosticFactoryToRendererMap
+-dontwarn org.jetbrains.kotlin.diagnostics.rendering.DiagnosticParameterRenderer
+-dontwarn org.jetbrains.kotlin.diagnostics.rendering.Renderers
+-dontwarn org.jetbrains.kotlin.diagnostics.rendering.SmartDescriptorRenderer
+-dontwarn org.jetbrains.kotlin.diagnostics.rendering.SmartTypeRenderer
+
+
+# Retrofit does reflection on generic parameters. InnerClasses is required to use Signature and
+# EnclosingMethod is required to use InnerClasses.
+-keepattributes Signature, InnerClasses, EnclosingMethod
+
+# Retrofit does reflection on method and parameter annotations.
+-keepattributes RuntimeVisibleAnnotations, RuntimeVisibleParameterAnnotations
+
+# Keep annotation default values (e.g., retrofit2.http.Field.encoded).
+-keepattributes AnnotationDefault
+
+# Retain service method parameters when optimizing.
+-keepclassmembers,allowshrinking,allowobfuscation interface * {
+    @retrofit2.http.* <methods>;
+}
+
+# Ignore JSR 305 annotations for embedding nullability information.
+-dontwarn javax.annotation.**
+
+# Guarded by a NoClassDefFoundError try/catch and only used when on the classpath.
+-dontwarn kotlin.Unit
+
+# Top-level functions that can only be used by Kotlin.
+-dontwarn retrofit2.KotlinExtensions
+-dontwarn retrofit2.KotlinExtensions$*
+
+# With R8 full mode, it sees no subtypes of Retrofit interfaces since they are created with a Proxy
+# and replaces all potential values with null. Explicitly keeping the interfaces prevents this.
+-if interface * { @retrofit2.http.* <methods>; }
+-keep,allowobfuscation interface <1>
+
+# Keep inherited services.
+-if interface * { @retrofit2.http.* <methods>; }
+-keep,allowobfuscation interface * extends <1>
+
+# With R8 full mode generic signatures are stripped for classes that are not
+# kept. Suspend functions are wrapped in continuations where the type argument
+# is used.
+-keep,allowobfuscation,allowshrinking class kotlin.coroutines.Continuation
+
+# R8 full mode strips generic signatures from return types if not kept.
+-if interface * { @retrofit2.http.* public *** *(...); }
+-keep,allowoptimization,allowshrinking,allowobfuscation class <3>
+
+# With R8 full mode generic signatures are stripped for classes that are not kept.
+-keep,allowobfuscation,allowshrinking class retrofit2.Response
+
+-keep class com.nighthawkapps.lib.android.network.** { *; }

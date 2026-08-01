@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
+    <string name="not_enough_space_title">저장공간이 부족합니다</string>
+    
+    <string name="space_required_to_continue"><xliff:g example="300" id="required_megabytes">~%1$s</xliff:g> 계속하려면 Mb 필요합니다 </string>
+    <string name="unknown">알 수 없는</string>
+</resources>
