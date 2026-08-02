@@ -23,7 +23,7 @@ Canonical list of **Android** capabilities for the DarkFi wallet APK (`com.night
 |---------|---------|---------------|
 | Create new wallet (BIP39-style mnemonic) | ✅ | DarkFi uses **22-word** upstream mnemonic via UniFFI `generateDarkfiMnemonic` |
 | Restore from seed phrase | ✅ | Import path in onboarding |
-| Wallet encrypted at rest | ✅ | Encrypted prefs + SQLCipher `wallet.db` (native `drk`) |
+| Wallet encrypted at rest | ✅ | Encrypted prefs + turso/aegis256 `wallet.db` (native `drk`) |
 | PIN / app lock | ✅ | PIN setup and gate |
 | Backup reminder / seed backup flow | ✅ | Settings → backup wallet |
 | Birthday height (faster restore) | 🟡 | `birthdayHeight` in persist model; FFI bootstrap supports it |
@@ -136,7 +136,7 @@ Canonical list of **Android** capabilities for the DarkFi wallet APK (`com.night
 | `libdarkfi_mobile_ffi.so` | ✅ (build per ABI) | `darkfi_mobile_ffi` XCFramework or static lib |
 | UniFFI `DarkfiWalletHandle` | ✅ | Same UDL → Swift |
 | `StubDarkfiSynchronizer` fallback | ✅ | Graceful degrade without native lib |
-| SQLCipher-linked `drk` | ✅ | Same Rust crate |
+| Tip `drk` (turso + aegis256) | ✅ | Same Rust crate / pin |
 | Payment memo FFI | ✅ | `payment_memo` on transfer + `transaction_payment_memo` |
 
 ---

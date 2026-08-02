@@ -1,11 +1,10 @@
 #!/usr/bin/env bash
 # Cross-compile darkfi-mobile-ffi (UniFFI cdylib) for Android ABIs.
+# Prerequisite: ./scripts/vendor-darkfi.sh (tip bin/drk = turso + aegis256; no SQLCipher).
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 ARTIFACTS="$ROOT/artifacts/mobile-ffi"
-SQLCIPHER_ARTIFACTS="$ROOT/artifacts/sqlcipher"
-SQLCIPHER_HEADERS="$ROOT/artifacts/sqlcipher/include"
 JNILIBS="$ROOT/darkfi-android-sdk/src/main/jniLibs"
 RUST="$ROOT/rust"
 ANDROID_API="${ANDROID_API:-27}"
@@ -29,30 +28,6 @@ target_env_prefix() {
   echo "$1" | tr '[:lower:]' '[:upper:]' | tr '-' '_'
 }
 
-sqlcipher_ready() {
-  local abi="$1"
-  [[ -f "$SQLCIPHER_ARTIFACTS/$abi/libsqlcipher.a" && -f "$SQLCIPHER_ARTIFACTS/$abi/libcrypto.a" ]]
-}
-
-ensure_sqlcipher_artifacts() {
-  local abi missing=0
-  for abi in arm64-v8a armeabi-v7a x86 x86_64; do
-    if ! sqlcipher_ready "$abi"; then
-      missing=1
-      break
-    fi
-  done
-  if [[ "$missing" -eq 1 ]]; then
-    echo "Building SQLCipher for Android (required by drk/rusqlite)..."
-    "$ROOT/scripts/build-sqlcipher-android.sh"
-  fi
-  if [[ ! -f "$SQLCIPHER_HEADERS/sqlite3.h" ]]; then
-    echo "error: missing SQLCipher headers at $SQLCIPHER_HEADERS" >&2
-    echo "Re-run: ./scripts/build-sqlcipher-android.sh" >&2
-    exit 1
-  fi
-}
-
 ndk_prebuilt_dir() {
   find "$NDK/toolchains/llvm/prebuilt" -mindepth 1 -maxdepth 1 -type d 2>/dev/null | head -1
 }
@@ -68,48 +43,41 @@ ndk_sysroot_lib_dir() {
   echo "$(ndk_prebuilt_dir)/sysroot/usr/lib/${triple}/${ANDROID_API}"
 }
 
-configure_sqlcipher_link_for_target() {
+configure_ndk_link_for_target() {
   local triple="$1"
   local abi="$2"
-  local target_prefix lib_dir ndk_lib_dir
+  local target_prefix ndk_lib_dir bin_dir
   target_prefix="$(target_env_prefix "$triple")"
-  lib_dir="$SQLCIPHER_ARTIFACTS/$abi"
   ndk_lib_dir="$(ndk_sysroot_lib_dir "$abi")"
+  bin_dir="$(ndk_prebuilt_dir)/bin"
 
-  if ! sqlcipher_ready "$abi"; then
-    echo "error: missing SQLCipher libs for $abi under $lib_dir" >&2
-    exit 1
-  fi
-
-  # libsqlite3-sys (sqlcipher feature) reads TARGET-prefixed vars when cross-compiling.
-  export "${target_prefix}_SQLCIPHER_LIB_DIR=$lib_dir"
-  export "${target_prefix}_SQLCIPHER_INCLUDE_DIR=$SQLCIPHER_HEADERS"
-  export "${target_prefix}_SQLCIPHER_STATIC=1"
-
-  local bin_dir="$(ndk_prebuilt_dir)/bin"
   export "AR_${target_prefix}=${bin_dir}/llvm-ar"
   export "CARGO_TARGET_${target_prefix}_AR=${bin_dir}/llvm-ar"
   export "CC_${target_prefix}=${bin_dir}/${triple}${ANDROID_API}-clang"
   export "CXX_${target_prefix}=${bin_dir}/${triple}${ANDROID_API}-clang++"
 
-  # Cargo link search/lib for dependency graph (drk/rodio needs NDK sysroot for -laaudio).
-  # Play requires 16KB ELF segment alignment for native libs (targetSdk 35+).
-  export "CARGO_TARGET_${target_prefix}_RUSTFLAGS=-L native=${lib_dir} -L native=${ndk_lib_dir} -l static=sqlcipher -l static=crypto -C link-arg=-Wl,-z,max-page-size=16384"
+  # NDK sysroot for -laaudio (rodio/drk); Play requires 16KB ELF segment alignment.
+  export "CARGO_TARGET_${target_prefix}_RUSTFLAGS=-L native=${ndk_lib_dir} -C link-arg=-Wl,-z,max-page-size=16384"
 }
 
 if [[ "$(id -u)" -eq 0 ]]; then
   echo "warning: running as root will create root-owned build artifacts; prefer running without sudo." >&2
 fi
 
+if [[ ! -d "$ROOT/third_party/darkfi/bin/drk" ]]; then
+  echo "Expected vendored DarkFi — run ./scripts/vendor-darkfi.sh first." >&2
+  exit 1
+fi
+
+"$ROOT/scripts/compile-darkfi-zkas-proofs.sh"
+
 export ANDROID_NDK_HOME="$(resolve_ndk_home)"
 export ANDROID_NDK_ROOT="$ANDROID_NDK_HOME"
 export NDK="$ANDROID_NDK_HOME"
 export CARGO_HOME="${CARGO_HOME:-$ROOT/.cargo-home}"
 
-ensure_sqlcipher_artifacts
-
-configure_sqlcipher_link_for_target aarch64-linux-android arm64-v8a
-configure_sqlcipher_link_for_target x86_64-linux-android x86_64
+configure_ndk_link_for_target aarch64-linux-android arm64-v8a
+configure_ndk_link_for_target x86_64-linux-android x86_64
 
 mkdir -p "$CARGO_HOME"
 mkdir -p "$ARTIFACTS/arm64-v8a" "$ARTIFACTS/armeabi-v7a" "$ARTIFACTS/x86" "$ARTIFACTS/x86_64"
@@ -159,8 +127,7 @@ for abi in $abis; do
   copy_one "$triple" "$abi"
 done
 
-# Regenerate Kotlin UniFFI bindings from the UDL so generated types (e.g. SyncMethod)
-# stay in sync with rust/darkfi-mobile-ffi/src/darkfi_mobile_ffi.udl.
+# Regenerate Kotlin UniFFI bindings from the UDL so generated types stay in sync.
 echo "Regenerating Kotlin UniFFI bindings..."
 (
   cd "$RUST"

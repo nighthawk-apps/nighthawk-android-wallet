@@ -16,8 +16,8 @@ import java.io.File
 import java.security.SecureRandom
 
 /**
- * SQLCipher **`wallet_pass`** for future **`Drk::new`**. Generated once per install and stored in
- * secure datastore (not derived from the seed — upstream expects an independent passphrase).
+ * Independent **`wallet_pass`** for **`Drk::new`** (turso/aegis256 key material).
+ * Generated once per install and stored in secure datastore (not derived from the seed).
  */
 internal object DrkWalletPassStore {
     private const val PREFS_FILE = "darkfi_wallet_secure.preferences_pb"

@@ -1,24 +1,24 @@
 # Upstream DarkFi proposals (crypto / wallet)
 
 Nighthawk cannot land these directly in `darkrenaissance/darkfi`. This list is
-for upstream discussion / PRs. Local mobile clients keep a `bin/drk` SQLCipher
-overlay at vendor pin `ae0339804` + `bin/drk @ c4d1776` until resolved.
+for upstream discussion / PRs.
 
-## P1 — Wallet storage encryption for mobile
+**Client pin policy (pre-release):** Android / iOS / desktop UniFFI track tip
+`bin/drk` (turso + experimental aegis256). There is no SQLCipher overlay.
+Moonshine keeps its own SQLCipher pruned DB by design (not `drk`).
 
-**Problem.** Upstream replaced `drk` rusqlite/SQLCipher with turso + aegis256.
-Mobile wallets require SQLCipher (`PRAGMA key`) for existing threat models and
-App Store / Play storage expectations. Turso encryption is not SQLCipher-compatible;
-existing wallet DBs would not open.
+## P1 — Wallet storage encryption (resolved for Nighthawk UniFFI)
 
-**Recommended fix.** Either:
-1. Restore optional `rusqlite` + `sqlcipher` feature on `bin/drk` alongside turso
-   (feature-gated backends), or
-2. Document a migration path from SQLCipher → turso with explicit re-encrypt
-   tooling and a stable KDF, then give clients time to migrate.
+**Status.** Adopted upstream tip: `WalletDb` uses turso with experimental
+`aegis256` and `hexkey = blake3(wallet_pass)`. Mobile/desktop pass the same
+`wallet_pass` through `Drk::new`; OS sandbox + encrypted prefs / Keychain /
+desktop PIN vault still protect the passphrase.
 
-**Why.** Without a SQLCipher-compatible path, mobile cannot track upstream `drk`
-without breaking encrypted-at-rest wallets.
+**Residual upstream asks.**
+1. Stabilize turso encryption API (today marked experimental).
+2. Document KDF / cipher parameters as a compatibility contract for light clients.
+3. Optional: feature-gated SQLCipher backend only if a migration story is needed
+   for third-party wallets that already shipped SQLCipher (Nighthawk has not).
 
 ## P2 — Secret zeroization in wallet key paths
 
@@ -78,15 +78,5 @@ metadata), so light servers can reject unbound clues.
 
 ## P7 — Net / RPC hardening already upstream
 
-Recent upstream work (bounded broadcasts, subscriber teardown, host registry
-retention, inbound slot leak fix) is valuable. Mobile FFI vendors should track
-these once the wallet-DB strategy (P1) is settled — no additional proposal
-beyond “keep merging net/rpc hardening”.
-
----
-
-### Out of scope for upstream (stay Nighthawk-layer)
-
-- UniFFI surface (`darkfi-mobile-ffi`)
-- UnifOMR Param2 / LWD gRPC / decoy clue directory
-- TLS pin policy for lightwalletd clients
+Track upstream net acceptor/connector and seed-address updates when bumping the
+client pin; no Nighthawk fork required.

@@ -130,7 +130,10 @@ async fn ensure_default_money_key(
 
     if let Ok(addrs) = drk.addresses().await {
         if let Some((key_id, _, _, _)) = addrs.last() {
-            drk.set_default_address(*key_id as usize)
+            let idx = u16::try_from(*key_id)
+                .map_err(|_| format!("set_default_address: key_id {key_id} out of u16 range"))?;
+            drk.set_default_address(idx)
+                .await
                 .map_err(|e| format!("set_default_address: {e}"))?;
         }
     }

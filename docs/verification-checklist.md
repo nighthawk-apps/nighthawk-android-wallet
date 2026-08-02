@@ -41,7 +41,7 @@ Use against **standalone** `darkfi-lightwalletd` with `fhe-omr`. Tick when prove
 - [x] Android `useTor` follows `routeOutboundThroughTor`
 - [x] Android `generateDmKeypair` uses UniFFI
 - [x] Reorg callback wired (iOS `SDKSynchronizerLive`, Android `NativeDarkfiSynchronizer`)
-- [x] Docs state UnifOMR `0x05`, no pool, no SQLCipher overclaim
+- [x] Docs state UnifOMR `0x05`, no pool; UniFFI wallet = tip turso/aegis256 (Moonshine SQLCipher is separate)
 - [ ] No PII/keys/addresses/txids in **release** builds (manual log review)
 - [ ] Secrets only in Keychain / encrypted DataStore (manual review)
 - [x] Documented MVP limits accepted for ship (`doc/unifomr_mvp_limits.md`)

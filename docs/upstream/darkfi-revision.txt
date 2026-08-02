@@ -1,1 +1,4 @@
-ae0339804 (master) + bin/drk overlay @ c4d1776 (rusqlite/SQLCipher for mobile)
+a76639f020a55473ee786deb584d603d968d4db6
+# darkrenaissance/darkfi master tip (2026-07-27)
+# Wallet: upstream bin/drk turso + experimental aegis256 (blake3(wallet_pass) hex key).
+# No SQLCipher overlay — nothing shipped; clients track tip threat model.

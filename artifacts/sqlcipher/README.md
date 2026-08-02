@@ -1,28 +1,11 @@
-# SQLCipher for Android NDK
+# SQLCipher for Android NDK (legacy)
 
-`drk` links **`rusqlite`** with the **`sqlcipher`** feature. Android cross-compiles fail with `unable to find library -lsqlcipher` until per-ABI static libraries are installed here:
+**Not required** for tip UniFFI / `drk` / `darkirc` builds. Upstream wallet storage is
+turso + experimental aegis256; tip `darkirc` uses sled-overlay only.
 
-```
-artifacts/sqlcipher/arm64-v8a/libsqlcipher.a
-artifacts/sqlcipher/arm64-v8a/libcrypto.a
-artifacts/sqlcipher/armeabi-v7a/libsqlcipher.a
-artifacts/sqlcipher/armeabi-v7a/libcrypto.a
-…
-```
+This tree and `scripts/build-sqlcipher-android.sh` remain only for experimental or
+out-of-tree work that still links `rusqlite` with the `sqlcipher` feature (e.g.
+historical darkirc Android notes in upstream README).
 
-Build both with:
-
-```bash
-./scripts/build-sqlcipher-android.sh
-```
-
-The script cross-compiles **OpenSSL `libcrypto.a`** per ABI (SQLCipher’s codec backend), then **`ndk-build`** for `libsqlcipher.a` with `-DSQLCIPHER_CRYPTO_OPENSSL`.
-
-`rust/darkfi-mobile-ffi/build.rs` links `sqlcipher` and `crypto` when those files exist.
-
-If a previous run failed with `openssl/crypto.h not found`, remove the stale tree and rebuild:
-
-```bash
-rm -rf .build/sqlcipher-android
-./scripts/build-sqlcipher-android.sh
-```
+Moonshine’s CLI wallet keeps its own SQLCipher dependency in the `moonshine`
+repo and does not use these artifacts.

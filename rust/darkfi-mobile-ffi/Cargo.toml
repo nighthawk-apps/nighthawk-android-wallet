@@ -57,6 +57,7 @@ rustls = { version = "0.23", default-features = false, features = ["ring", "tls1
 rustls-pki-types = "1"
 regex-lite = "0.1"
 tokio-rustls = "0.26"
+# Compact-block side cache only (not the drk wallet DB). Upstream drk uses turso + aegis256.
 rusqlite = { version = "0.37", features = ["bundled"] }
 fhe = "0.1.1"
 fhe-traits = "0.1.1"
@@ -65,8 +66,6 @@ tower = { version = "0.4", features = ["util"] }
 rand09 = { package = "rand", version = "0.9" }
 hyper-util = { version = "0.1", features = ["tokio"] }
 tokio-socks = "0.5"
-# Align with rusqlite 0.37's libsqlite3-sys (bundled). Do not pull a second
-# sqlite3 via sqlcipher here — that conflicts with darkfi/drk's rusqlite 0.37.
 
 [build-dependencies]
 uniffi = { version = "0.31.1", features = ["build", "scaffolding-ffi-buffer-fns"] }

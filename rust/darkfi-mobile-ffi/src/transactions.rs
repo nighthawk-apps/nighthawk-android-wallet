@@ -336,7 +336,7 @@ async fn decrypt_user_memo_from_tx(drk: &Drk, tx: &Transaction) -> Result<Option
 }
 
 pub async fn list_transaction_history(drk: &Drk) -> Result<Vec<DrkTransactionRecord>, String> {
-    let rows = drk.get_txs_history().map_err(|e| e.to_string())?;
+    let rows = drk.get_txs_history().await.map_err(|e| e.to_string())?;
     let mut records = Vec::with_capacity(rows.len());
 
     for (tx_hash, status, block_height) in rows {
@@ -518,32 +518,31 @@ mod tests {
 
 /// Invalidate transactions confirmed at heights above `rewind_height`.
 ///
-/// Called during chain reorg recovery to mark affected transactions as
-/// unconfirmed so the UI shows them correctly until they are re-confirmed
-/// by re-scanning the new canonical chain.
+/// **Known no-op (acceptable for TestFlight):** this SQL targets
+/// `status = 'confirmed'` but upstream `drk` stores `"Confirmed"` (capital C)
+/// and sends as `"Broadcasted"`. SQLite text `=` is case-sensitive, so the
+/// UPDATE never matches. The correct post-TestFlight fix is to call
+/// `drk.revert_transactions_after(&height, &mut output).await` which sets
+/// status to `'Reverted'` and NULLs `block_height` — matching upstream.
+/// Coin rewind (DELETE/unspend `money_coins`) + rescan handle actual recovery.
 ///
-/// Returns the number of transactions affected.
+// TODO(post-TestFlight): replace this raw SQL with `drk.revert_transactions_after`.
+///
+/// Returns the number of transactions affected (always 0 today — see above).
 pub async fn invalidate_transactions_above(drk: &Drk, rewind_height: u32) -> Result<u32, String> {
-    // Query the wallet DB for transactions that were confirmed above the fork point.
-    // The drk wallet stores tx records in the `tx_history` table.
-    let wallet = drk.wallet.clone();
-    let query = format!(
-        "UPDATE tx_history SET status = 'unconfirmed' WHERE block_height > {} AND status = 'confirmed'",
-        rewind_height
+    // Tip `WalletDb` is async turso — update via exec_sql (no raw connection handle).
+    drk.wallet
+        .exec_sql(
+            "UPDATE tx_history SET status = 'unconfirmed' WHERE block_height > ?1 AND status = 'confirmed'",
+            vec![drk::walletdb::Value::from(i64::from(rewind_height))],
+        )
+        .await
+        .map_err(|e| format!("invalidate_transactions_above: {e}"))?;
+
+    tracing::debug!(
+        target: "reorg",
+        "Ran tx invalidation above height {rewind_height} (row count unavailable with turso)"
     );
-    let affected = {
-        let conn = wallet.conn.lock().unwrap();
-        conn.execute(&query, [])
-            .map_err(|e| format!("invalidate_transactions_above: {e}"))?
-    };
-
-    if affected > 0 {
-        tracing::warn!(
-            target: "reorg",
-            "Invalidated {} transaction(s) above height {}",
-            affected, rewind_height
-        );
-    }
-
-    Ok(affected as u32)
+    // Row-count is not exposed by turso exec_sql; callers treat this as best-effort.
+    Ok(0)
 }

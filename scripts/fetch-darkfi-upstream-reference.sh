@@ -6,9 +6,9 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 REV_FILE="${ROOT}/docs/upstream/darkfi-revision.txt"
 OUT="${ROOT}/docs/upstream/_scratch"
 
-first_line="$(sed -n '1p' "${REV_FILE}" | tr -d '[:space:]')"
+first_line="$(sed -n '1p' "${REV_FILE}" | awk '{print $1}')"
 if [[ ! "${first_line}" =~ ^[0-9a-f]{40}$ ]]; then
-  echo "error: invalid SHA on line 1 of ${REV_FILE}" >&2
+  echo "error: line 1 of ${REV_FILE} must start with a full 40-char lowercase hex SHA; got '${first_line}'" >&2
   exit 1
 fi
 

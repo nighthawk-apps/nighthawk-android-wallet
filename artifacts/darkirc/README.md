@@ -10,9 +10,13 @@ artifacts/darkirc/armeabi-v7a/darkirc_exec
 
 ## How to populate
 
-Cross-compile from DarkFi locally (see **`scripts/build-darkirc-android.sh`**) — it installs into **`artifacts/darkirc/`**.
+```bash
+./scripts/vendor-darkfi.sh
+./scripts/build-darkirc-android.sh
+```
 
-The script vendors pinned DarkFi (`scripts/vendor-darkfi.sh`), stages **`artifacts/sqlcipher/<abi>/`** static libs into upstream `bin/darkirc/sqlcipher/` (upstream Android linker expects `libsqlite3.a`), and builds **arm64-v8a** + **x86_64** (emulator). Run **`scripts/build-sqlcipher-android.sh`** first if SQLCipher artifacts are missing.
+Tip DarkFi `darkirc` uses sled-overlay (no SQLCipher staging). The script builds
+**arm64-v8a** + **x86_64** into this directory.
 
 CI should run that script (or unzip a secured build artifact here) **before** `./gradlew :app:assemble*`.
 

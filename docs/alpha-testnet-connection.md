@@ -7,7 +7,7 @@ This documents how Nighthawk connects to the **DarkFi alpha testnet** (App **0.3
 | Layer | Daemon | What it does | Default testnet port |
 |-------|--------|--------------|----------------------|
 | **Chain / P2P** | `darkfid` | Syncs blocks from the network; serves JSON-RPC to wallets | P2P **18340** (clearnet `tcp+tls`), RPC **18345** |
-| **Wallet** | `drk` (in APK via UniFFI) | Local SQLCipher wallet; scans blocks via `darkfid` JSON-RPC | Connects to **18345** |
+| **Wallet** | `drk` (in APK via UniFFI) | Local turso/aegis256 wallet; scans blocks via `darkfid` JSON-RPC | Connects to **18345** |
 
 Nighthawk embeds **`drk`** via UniFFI and can embed **`darkfid`** (packaged `darkfid_exec`) like upstream expects an external fullnode on loopback **18345**. Without the binary, run `darkfid` elsewhere or use **`adb reverse`** — see below.
 

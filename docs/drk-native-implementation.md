@@ -7,11 +7,11 @@ This document maps upstream **`bin/app/src/plugin/drk.rs`** and **`bin/drk`** to
 | Upstream | Role |
 |----------|------|
 | [`bin/app/src/plugin/drk.rs`](https://github.com/darkrenaissance/darkfi/blob/master/bin/app/src/plugin/drk.rs) | In-process plugin: paths, `Drk::new`, scan loop, balance UI hooks |
-| [`bin/drk/src/lib.rs`](https://github.com/darkrenaissance/darkfi/blob/master/bin/drk/src/lib.rs) | Wallet core: SQLCipher `wallet.db`, money contracts, RPC to `darkfid` |
+| [`bin/drk/src/lib.rs`](https://github.com/darkrenaissance/darkfi/blob/master/bin/drk/src/lib.rs) | Wallet core: turso + aegis256 `wallet.db`, money contracts, RPC to `darkfid` |
 | [`bin/drk/drk_config.toml`](https://github.com/darkrenaissance/darkfi/blob/master/bin/drk/drk_config.toml) | Default endpoints / network |
 | [`bin/darkfid/src/rpc/`](https://github.com/darkrenaissance/darkfi/tree/master/bin/darkfid/src/rpc) | Chain JSON-RPC consumed by `drk` |
 
-Pinned revision: **`docs/upstream/darkfi-revision.txt`** (currently `c4d1776` on upstream `master`, matching the vendored tree).
+Pinned revision: **`docs/upstream/darkfi-revision.txt`** (full tip SHA; no `bin/drk` overlay).
 
 ## Current Nighthawk state (this PR)
 
@@ -19,7 +19,7 @@ Pinned revision: **`docs/upstream/darkfi-revision.txt`** (currently `c4d1776` on
 |-------|--------|
 | Kotlin **`PersistableDarkfiWallet`** | Seed, network, `DarkfiEndpoint`, optional birthday |
 | **`DrkWalletPaths`** | `filesDir/drk/wallet.db`, `filesDir/drk/cache` (mirrors Android plugin paths) |
-| **`DrkWalletPassStore`** | Random SQLCipher passphrase in encrypted prefs |
+| **`DrkWalletPassStore`** | Random `wallet_pass` in encrypted prefs (turso/aegis key material) |
 | UniFFI **`DrkBootstrapConfig`** + **`DarkfiWalletHandle::new`** | `Drk::new`, wallet/money init, mnemonic import |
 | **`NativeDarkfiSynchronizer`** | Probe-gated; balance, address, scan via FFI |
 | **`DarkfiSynchronizerFactory`** | Native when probe OK; stub fallback on open failure |
@@ -33,7 +33,8 @@ Phase 1 — Link upstream `drk` in `darkfi-mobile-ffi` — **done**
 4. **`DarkfiWalletHandle::new`** calls `Drk::new`, `initialize_wallet`, `initialize_money`, mnemonic key import.
 5. Android: `./scripts/build-darkfi-mobile-ffi-android.sh` (uses repo-local `CARGO_HOME=.cargo-home`).
 
-**Android SQLCipher:** place `libsqlcipher.a` per ABI under `artifacts/sqlcipher/` (see `artifacts/sqlcipher/README.md`) or run `./scripts/build-sqlcipher-android.sh` before the NDK link step succeeds.
+**Wallet crypto:** tip `drk` encrypts with turso experimental `aegis256`. Wipe any
+pre-tip local `wallet.db` files after the pin bump (format is not SQLCipher-compatible).
 
 ## Phase 2 — Scan + balance (plugin parity)
 

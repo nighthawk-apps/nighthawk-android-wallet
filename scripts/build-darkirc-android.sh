@@ -1,18 +1,15 @@
 #!/usr/bin/env bash
 # Cross-compile darkirc for Android ABIs and copy into this repo's artifacts/.
 # Prerequisite: run scripts/vendor-darkfi.sh (or set DARKFI_SRC to a darkfi checkout).
+#
+# Tip darkirc uses sled-overlay only (no rusqlite/SQLCipher).
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 # Gradle syncDarkircArtifacts merges this tree into APK assets (`darkirc/<abi>/darkirc_exec`).
 OUT="$ROOT/artifacts/darkirc"
 : "${DARKFI_SRC:=$ROOT/third_party/darkfi}"
-SQLCIPHER_ARTIFACTS="$ROOT/artifacts/sqlcipher"
-SQLCIPHER_HEADERS="$SQLCIPHER_ARTIFACTS/include"
 DARKIRC_CRATE="$DARKFI_SRC/bin/darkirc"
-DARKIRC_CARGO="$DARKIRC_CRATE/Cargo.toml"
-DARKIRC_BUILD_RS="$DARKIRC_CRATE/build.rs"
-DARKIRC_SQLCIPHER_DIR="$DARKIRC_CRATE/sqlcipher"
 ANDROID_API="${ANDROID_API:-27}"
 
 resolve_ndk_home() {
@@ -44,29 +41,6 @@ abi_to_triple() {
   esac
 }
 
-sqlcipher_ready() {
-  local abi="$1"
-  [[ -f "$SQLCIPHER_ARTIFACTS/$abi/libsqlcipher.a" && -f "$SQLCIPHER_ARTIFACTS/$abi/libcrypto.a" ]]
-}
-
-ensure_sqlcipher_artifacts() {
-  local abi missing=0
-  for abi in arm64-v8a x86_64; do
-    if ! sqlcipher_ready "$abi"; then
-      missing=1
-      break
-    fi
-  done
-  if [[ "$missing" -eq 1 ]]; then
-    echo "Building SQLCipher for Android (required for darkirc)..."
-    "$ROOT/scripts/build-sqlcipher-android.sh"
-  fi
-  if [[ ! -f "$SQLCIPHER_HEADERS/sqlite3.h" ]]; then
-    echo "error: missing SQLCipher headers at $SQLCIPHER_HEADERS" >&2
-    exit 1
-  fi
-}
-
 ndk_prebuilt_dir() {
   find "$NDK/toolchains/llvm/prebuilt" -mindepth 1 -maxdepth 1 -type d 2>/dev/null | head -1
 }
@@ -78,31 +52,20 @@ ndk_sysroot_lib_dir() {
   echo "$(ndk_prebuilt_dir)/sysroot/usr/lib/${triple}/${ANDROID_API}"
 }
 
-# Upstream darkirc build.rs adds -L sqlcipher/ on Android; linker expects libsqlite3.a there.
-stage_darkirc_sqlcipher_libs() {
+configure_ndk_link_for_abi() {
   local abi="$1"
-  local src="$SQLCIPHER_ARTIFACTS/$abi"
-  rm -rf "$DARKIRC_SQLCIPHER_DIR"
-  mkdir -p "$DARKIRC_SQLCIPHER_DIR"
-  cp "$src/libsqlcipher.a" "$DARKIRC_SQLCIPHER_DIR/libsqlite3.a"
-  cp "$src/libsqlcipher.a" "$DARKIRC_SQLCIPHER_DIR/libsqlcipher.a"
-  cp "$src/libcrypto.a" "$DARKIRC_SQLCIPHER_DIR/libcrypto.a"
-  echo "Staged SQLCipher for $abi -> $DARKIRC_SQLCIPHER_DIR"
-}
-
-configure_sqlcipher_link_for_abi() {
-  local abi="$1"
-  local triple lib_dir ndk_lib_dir target_prefix
+  local triple ndk_lib_dir target_prefix bin_dir
   triple="$(abi_to_triple "$abi")"
   target_prefix="$(target_env_prefix "$triple")"
-  lib_dir="$SQLCIPHER_ARTIFACTS/$abi"
   ndk_lib_dir="$(ndk_sysroot_lib_dir "$abi")"
+  bin_dir="$(ndk_prebuilt_dir)/bin"
 
-  export "${target_prefix}_SQLCIPHER_LIB_DIR=$lib_dir"
-  export "${target_prefix}_SQLCIPHER_INCLUDE_DIR=$SQLCIPHER_HEADERS"
-  export "${target_prefix}_SQLCIPHER_STATIC=1"
-
-  export "CARGO_TARGET_${target_prefix}_RUSTFLAGS=-L native=${DARKIRC_SQLCIPHER_DIR} -L native=${lib_dir} -L native=${ndk_lib_dir} -l static=sqlite3 -l static=sqlcipher -l static=crypto -C link-arg=-Wl,-z,max-page-size=16384"
+  export "AR_${target_prefix}=${bin_dir}/llvm-ar"
+  export "CARGO_TARGET_${target_prefix}_AR=${bin_dir}/llvm-ar"
+  export "CC_${target_prefix}=${bin_dir}/${triple}${ANDROID_API}-clang"
+  export "CXX_${target_prefix}=${bin_dir}/${triple}${ANDROID_API}-clang++"
+  # Play requires 16KB ELF segment alignment for native libs (targetSdk 35+).
+  export "CARGO_TARGET_${target_prefix}_RUSTFLAGS=-L native=${ndk_lib_dir} -C link-arg=-Wl,-z,max-page-size=16384"
 }
 
 compile_event_graph_zkas_proofs() {
@@ -120,26 +83,6 @@ compile_event_graph_zkas_proofs() {
       "$zkas_bin" "$zk" -o "$out"
     fi
   done
-}
-
-apply_android_darkirc_patches() {
-  if [[ ! -f "$DARKIRC_CARGO.nighthawk-android.bak" ]]; then
-    cp "$DARKIRC_CARGO" "$DARKIRC_CARGO.nighthawk-android.bak"
-    cp "$DARKIRC_BUILD_RS" "$DARKIRC_BUILD_RS.nighthawk-android.bak"
-  fi
-  cp "$DARKIRC_CARGO.nighthawk-android.bak" "$DARKIRC_CARGO"
-  cp "$DARKIRC_BUILD_RS.nighthawk-android.bak" "$DARKIRC_BUILD_RS"
-
-  # rusqlite "bundled" does not link on x86_64-linux-android; use repo SQLCipher static libs.
-  perl -i -pe 's/features = \["bundled"\]/features = ["sqlcipher"]/ if /rusqlite/' "$DARKIRC_CARGO"
-
-  if ! grep -q 'rustc-link-lib=static=crypto' "$DARKIRC_BUILD_RS"; then
-    perl -i -pe '
-      if (/cargo:rustc-link-search=.*sqlcipher/) {
-        $_ .= qq{        println!("cargo:rustc-link-lib=static=crypto");\n};
-      }
-    ' "$DARKIRC_BUILD_RS"
-  fi
 }
 
 export ANDROID_NDK_HOME="$(resolve_ndk_home)"
@@ -163,16 +106,13 @@ if [[ ! -f "$ANDROID_NDK_HOME/source.properties" ]]; then
   exit 1
 fi
 
-ensure_sqlcipher_artifacts
-apply_android_darkirc_patches
 compile_event_graph_zkas_proofs
 
 build_one() {
   local abi="$1"
   local triple
   triple="$(abi_to_triple "$abi")"
-  stage_darkirc_sqlcipher_libs "$abi"
-  configure_sqlcipher_link_for_abi "$abi"
+  configure_ndk_link_for_abi "$abi"
   (
     cd "$DARKFI_SRC"
     # Build the [[bin]] target — package [lib] cdylib has entry point 0 and must not be exec'd.
@@ -184,6 +124,7 @@ build_one() {
     exit 1
   fi
   rm -rf "$OUT/$abi"/*
+  mkdir -p "$OUT/$abi"
   cp -f "$found" "$OUT/$abi/darkirc_exec"
   chmod +x "$OUT/$abi/darkirc_exec"
   echo "OK $abi -> $OUT/$abi/darkirc_exec"

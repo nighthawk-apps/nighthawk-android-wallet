@@ -964,18 +964,26 @@ impl DarkfiWalletHandle {
             let drk_guard = drk.write().await;
 
             // Delete coins created after rollback height
-            if let Err(e) = drk_guard.wallet.exec_sql(
-                "DELETE FROM money_coins WHERE creation_height > ?1",
-                rusqlite::params![rewind_to_height],
-            ) {
+            if let Err(e) = drk_guard
+                .wallet
+                .exec_sql(
+                    "DELETE FROM money_coins WHERE creation_height > ?1",
+                    vec![drk::walletdb::Value::from(i64::from(rewind_to_height))],
+                )
+                .await
+            {
                 tracing::error!(target: "reorg", "Failed to delete post-reorg coins: {e}");
             }
 
             // Un-spend coins that were marked spent after rollback height
-            if let Err(e) = drk_guard.wallet.exec_sql(
-                "UPDATE money_coins SET is_spent = 0, spent_height = NULL WHERE spent_height > ?1",
-                rusqlite::params![rewind_to_height],
-            ) {
+            if let Err(e) = drk_guard
+                .wallet
+                .exec_sql(
+                    "UPDATE money_coins SET is_spent = 0, spent_height = NULL WHERE spent_height > ?1",
+                    vec![drk::walletdb::Value::from(i64::from(rewind_to_height))],
+                )
+                .await
+            {
                 tracing::error!(target: "reorg", "Failed to un-spend post-reorg coins: {e}");
             }
 
@@ -991,10 +999,17 @@ impl DarkfiWalletHandle {
             rewound_to: rewind_to_height,
             blocks_invalidated,
             txs_affected,
-            summary_message: format!(
-                "Chain reorganization detected at height {}. Rewound to {} — {} blocks and {} transactions affected.",
-                detected_at, rewind_to_height, blocks_invalidated, txs_affected
-            ),
+            summary_message: if txs_affected > 0 {
+                format!(
+                    "Chain reorganization detected at height {}. Rewound to {} — {} blocks and {} transactions affected.",
+                    detected_at, rewind_to_height, blocks_invalidated, txs_affected
+                )
+            } else {
+                format!(
+                    "Chain reorganization detected at height {}. Rewound to {} — {} blocks invalidated.",
+                    detected_at, rewind_to_height, blocks_invalidated
+                )
+            },
         };
 
         // Step 6: Fire callback for UI notification

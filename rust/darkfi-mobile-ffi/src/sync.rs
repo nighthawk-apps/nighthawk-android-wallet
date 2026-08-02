@@ -389,10 +389,14 @@ async fn try_lightwallet_sync(drk: &DrkPtr, sync_engine: &SyncEngine) -> Result<
         sync_engine.rewind_to_height(rollback_height);
 
         // 2. Rewind wallet DB: delete coins created after rollback height
-        if let Err(e) = drk_guard.wallet.exec_sql(
-            "DELETE FROM money_coins WHERE creation_height > ?1",
-            rusqlite::params![rollback_height],
-        ) {
+        if let Err(e) = drk_guard
+            .wallet
+            .exec_sql(
+                "DELETE FROM money_coins WHERE creation_height > ?1",
+                vec![drk::walletdb::Value::from(i64::from(rollback_height))],
+            )
+            .await
+        {
             tracing::error!(
                 target: "wallet-sync",
                 "Failed to delete post-reorg coins: {e}",
@@ -400,11 +404,15 @@ async fn try_lightwallet_sync(drk: &DrkPtr, sync_engine: &SyncEngine) -> Result<
         }
 
         // 3. Un-spend coins that were marked spent after rollback height
-        if let Err(e) = drk_guard.wallet.exec_sql(
-            "UPDATE money_coins SET is_spent = 0, spent_height = NULL \
+        if let Err(e) = drk_guard
+            .wallet
+            .exec_sql(
+                "UPDATE money_coins SET is_spent = 0, spent_height = NULL \
              WHERE spent_height > ?1",
-            rusqlite::params![rollback_height],
-        ) {
+                vec![drk::walletdb::Value::from(i64::from(rollback_height))],
+            )
+            .await
+        {
             tracing::error!(
                 target: "wallet-sync",
                 "Failed to un-spend post-reorg coins: {e}",
@@ -436,10 +444,17 @@ async fn try_lightwallet_sync(drk: &DrkPtr, sync_engine: &SyncEngine) -> Result<
                     rewound_to: rollback_height,
                     blocks_invalidated,
                     txs_affected,
-                    summary_message: format!(
-                        "Chain reorganization detected at height {}. Rewound to {} — {} blocks and {} transactions affected.",
-                        current_scanned, rollback_height, blocks_invalidated, txs_affected
-                    ),
+                    summary_message: if txs_affected > 0 {
+                        format!(
+                            "Chain reorganization detected at height {}. Rewound to {} — {} blocks and {} transactions affected.",
+                            current_scanned, rollback_height, blocks_invalidated, txs_affected
+                        )
+                    } else {
+                        format!(
+                            "Chain reorganization detected at height {}. Rewound to {} — {} blocks invalidated.",
+                            current_scanned, rollback_height, blocks_invalidated
+                        )
+                    },
                 });
             }
         }
@@ -1202,25 +1217,25 @@ async fn apply_omr_sparse_window(
                 MONEY_COINS_COL_SPENT_HEIGHT,
             );
 
-            let spent_height: Option<u32> = None;
-            let params = rusqlite::params![
-                coin.to_bytes(),
-                serialize(&note.value),
-                serialize(&note.token_id),
-                serialize(&note.spend_hook),
-                serialize(&note.user_data),
-                serialize(&note.coin_blind),
-                serialize(&note.value_blind),
-                serialize(&note.token_blind),
-                serialize(&secret),
-                serialize(&leaf_position),
-                serialize(&note.memo),
-                height,
-                0,
-                spent_height,
+            let spent_height: Option<i64> = None;
+            let params = vec![
+                drk::walletdb::Value::from(coin.to_bytes().to_vec()),
+                drk::walletdb::Value::from(serialize(&note.value)),
+                drk::walletdb::Value::from(serialize(&note.token_id)),
+                drk::walletdb::Value::from(serialize(&note.spend_hook)),
+                drk::walletdb::Value::from(serialize(&note.user_data)),
+                drk::walletdb::Value::from(serialize(&note.coin_blind)),
+                drk::walletdb::Value::from(serialize(&note.value_blind)),
+                drk::walletdb::Value::from(serialize(&note.token_blind)),
+                drk::walletdb::Value::from(serialize(&secret)),
+                drk::walletdb::Value::from(serialize(&leaf_position)),
+                drk::walletdb::Value::from(serialize(&note.memo)),
+                drk::walletdb::Value::from(i64::from(height)),
+                drk::walletdb::Value::from(0i64),
+                drk::walletdb::Value::from(spent_height),
             ];
 
-            if let Err(e) = drk.wallet.exec_sql(&query, params) {
+            if let Err(e) = drk.wallet.exec_sql(&query, params).await {
                 return Err(format!(
                     "Inserting OMR trial-decrypted coin at height {height} failed: {e}"
                 ));
@@ -1508,25 +1523,25 @@ async fn process_compact_block(
                 MONEY_COINS_COL_SPENT_HEIGHT,
             );
 
-            let spent_height: Option<u32> = None;
-            let params = rusqlite::params![
-                coin.to_bytes(),
-                serialize(&note.value),
-                serialize(&note.token_id),
-                serialize(&note.spend_hook),
-                serialize(&note.user_data),
-                serialize(&note.coin_blind),
-                serialize(&note.value_blind),
-                serialize(&note.token_blind),
-                serialize(&secret),
-                serialize(&leaf_position),
-                serialize(&note.memo),
-                block.height,
-                0,
-                spent_height,
+            let spent_height: Option<i64> = None;
+            let params = vec![
+                drk::walletdb::Value::from(coin.to_bytes().to_vec()),
+                drk::walletdb::Value::from(serialize(&note.value)),
+                drk::walletdb::Value::from(serialize(&note.token_id)),
+                drk::walletdb::Value::from(serialize(&note.spend_hook)),
+                drk::walletdb::Value::from(serialize(&note.user_data)),
+                drk::walletdb::Value::from(serialize(&note.coin_blind)),
+                drk::walletdb::Value::from(serialize(&note.value_blind)),
+                drk::walletdb::Value::from(serialize(&note.token_blind)),
+                drk::walletdb::Value::from(serialize(&secret)),
+                drk::walletdb::Value::from(serialize(&leaf_position)),
+                drk::walletdb::Value::from(serialize(&note.memo)),
+                drk::walletdb::Value::from(i64::from(block.height)),
+                drk::walletdb::Value::from(0i64),
+                drk::walletdb::Value::from(spent_height),
             ];
 
-            if let Err(e) = drk.wallet.exec_sql(&query, params) {
+            if let Err(e) = drk.wallet.exec_sql(&query, params).await {
                 return Err(format!(
                     "Inserting trial-decrypted coin at height {} failed: {e}",
                     block.height
