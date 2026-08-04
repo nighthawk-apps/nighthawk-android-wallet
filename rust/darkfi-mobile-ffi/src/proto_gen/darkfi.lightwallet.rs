@@ -136,8 +136,8 @@ pub struct RawTransaction {
     /// Default 0. Change outputs must not receive the recipient clue.
     #[prost(uint32, tag = "3")]
     pub omr_clue_output_index: u32,
-    /// Recipient-encrypted OMR metadata (opaque to LWD). Merged into
-    /// CompactOutput.omr_metadata_enc on confirm when present.
+    /// Recipient-encrypted OMR metadata (scheme + clue seed + user memo).
+    /// LWD stores opaquely and merges into CompactOutput.omr_metadata_enc on confirm.
     #[prost(bytes = "vec", tag = "4")]
     pub omr_metadata_enc: ::prost::alloc::vec::Vec<u8>,
 }
@@ -215,24 +215,6 @@ pub struct LightInfo {
     pub backend_version: ::prost::alloc::string::String,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
-pub struct OmrDigestRequest {
-    /// Client's OMR detection key (scheme-dependent encoding).
-    /// Legacy single-key field; still honored when `detection_keys` is empty.
-    #[prost(bytes = "vec", tag = "1")]
-    pub detection_key: ::prost::alloc::vec::Vec<u8>,
-    /// Start height, inclusive
-    #[prost(uint32, tag = "2")]
-    pub start_height: u32,
-    /// End height, inclusive
-    #[prost(uint32, tag = "3")]
-    pub end_height: u32,
-    /// S17 Phase 2: multiple detection keys (same wallet, different address tags).
-    /// When non-empty, the server evaluates each key and returns a framed multi-digest
-    /// (or a Blake3 height-union). Prefer this over N parallel GetOmrDigest RPCs.
-    #[prost(bytes = "vec", repeated, tag = "4")]
-    pub detection_keys: ::prost::alloc::vec::Vec<::prost::alloc::vec::Vec<u8>>,
-}
-#[derive(Clone, PartialEq, ::prost::Message)]
 pub struct OmrDigestResponse {
     /// FHE encrypted digest containing the matching block heights.
     /// For multi-key requests: length-prefixed frames, one digest per key
@@ -244,12 +226,37 @@ pub struct OmrDigestResponse {
     #[prost(bool, tag = "2")]
     pub complete: bool,
 }
+/// Client-streaming message for StreamDetectionKey.
+/// The first chunk MUST carry the header fields (start/end height, key count).
+/// Subsequent chunks carry raw detection key bytes.  Multiple keys are sent
+/// sequentially: finish key 0's bytes, then key 1's bytes, etc.  Each key
+/// boundary is indicated by `key_done = true` on the last chunk of that key.
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct DetectionKeyChunk {
+    /// Only set on the first chunk (header).  Ignored on subsequent chunks.
+    #[prost(uint32, tag = "1")]
+    pub start_height: u32,
+    #[prost(uint32, tag = "2")]
+    pub end_height: u32,
+    /// Expected number of detection keys that will follow (cap 16).
+    #[prost(uint32, tag = "3")]
+    pub num_keys: u32,
+    /// Raw detection key bytes (partial or complete).
+    /// Recommended chunk size: 1 MiB (1_048_576 bytes).
+    #[prost(bytes = "vec", tag = "4")]
+    pub data: ::prost::alloc::vec::Vec<u8>,
+    /// Set to true on the last chunk of each individual key.  The server
+    /// uses this to delimit multi-key uploads (key_done count must equal
+    /// num_keys before processing begins).
+    #[prost(bool, tag = "5")]
+    pub key_done: bool,
+}
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct OmrCapabilities {
     /// Whether OMR is currently enabled and operational
     #[prost(bool, tag = "1")]
     pub enabled: bool,
-    /// Supported OMR scheme name (e.g. "fmd" for Fuzzy Message Detection)
+    /// Supported OMR scheme name ("unifomr" when enabled)
     #[prost(string, tag = "2")]
     pub scheme: ::prost::alloc::string::String,
     /// Server-side false positive rate (informational)
@@ -291,10 +298,19 @@ pub struct CluePublicKey {
     pub clue_public_key: ::prost::alloc::vec::Vec<u8>,
     #[prost(bool, tag = "2")]
     pub found: bool,
+    /// Schnorr ownership proof (same encoding as RegisterCluePublicKey).
+    /// Always present at a fixed padded wire length: real registrations carry a
+    /// verifiable proof; decoys carry random bytes of equal size so registration
+    /// status is not leaked by response length. Clients MUST verify before use.
+    #[prost(bytes = "vec", tag = "3")]
+    pub ownership_proof: ::prost::alloc::vec::Vec<u8>,
+    /// key_version from registration (0 for decoys).
+    #[prost(uint64, tag = "4")]
+    pub key_version: u64,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct BatchPirRequest {
-    /// BFV ciphertexts: one-hot (or multi-hot) selection over \[start_height, end_height\].
+    /// BFV ciphertexts: SealPIR-style striped selection (one CT per stripe) over \[start_height, end_height\].
     /// For multi-limb payloads, client sends one query CT per request (limb_index).
     #[prost(bytes = "vec", repeated, tag = "1")]
     pub query_ciphertexts: ::prost::alloc::vec::Vec<::prost::alloc::vec::Vec<u8>>,
@@ -578,9 +594,12 @@ pub mod dark_fi_light_wallet_client {
             self.inner.unary(req, path, codec).await
         }
         /// Phase 1: UnifOMR Detection (Linear Partial Decryption)
+        /// Client streams the detection key(s) in ~1 MiB chunks, avoiding the need
+        /// for a 160 MiB single-message gRPC limit.
+        /// The first message MUST be a DetectionKeyChunk with header fields set.
         pub async fn get_unif_omr_digest(
             &mut self,
-            request: impl tonic::IntoRequest<super::OmrDigestRequest>,
+            request: impl tonic::IntoStreamingRequest<Message = super::DetectionKeyChunk>,
         ) -> std::result::Result<
             tonic::Response<super::OmrDigestResponse>,
             tonic::Status,
@@ -597,7 +616,7 @@ pub mod dark_fi_light_wallet_client {
             let path = http::uri::PathAndQuery::from_static(
                 "/darkfi.lightwallet.DarkFiLightWallet/GetUnifOmrDigest",
             );
-            let mut req = request.into_request();
+            let mut req = request.into_streaming_request();
             req.extensions_mut()
                 .insert(
                     GrpcMethod::new(
@@ -605,7 +624,7 @@ pub mod dark_fi_light_wallet_client {
                         "GetUnifOmrDigest",
                     ),
                 );
-            self.inner.unary(req, path, codec).await
+            self.inner.client_streaming(req, path, codec).await
         }
         /// Phase 2: Batch PIR Fetch (Non-Linear Payload Retrieval)
         pub async fn fetch_pir_batch(
@@ -803,8 +822,7 @@ pub mod dark_fi_light_wallet_client {
                 );
             self.inner.unary(req, path, codec).await
         }
-        /// Request an OMR detection digest for a height range.
-        /// Get server OMR capabilities.
+        /// Get server OMR capabilities (scheme is always "unifomr" when enabled).
         pub async fn get_omr_capabilities(
             &mut self,
             request: impl tonic::IntoRequest<super::Empty>,

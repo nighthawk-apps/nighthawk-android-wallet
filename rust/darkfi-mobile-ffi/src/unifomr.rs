@@ -110,33 +110,36 @@ pub type OmrError = String;
 static UNIFOMR_BFV_PARAMS: OnceLock<Arc<BfvParameters>> = OnceLock::new();
 
 /// BFV params for UnifOMR AHE — paper Param2 `D=4096`, plaintext `t=q`.
-pub fn bfv_params() -> Arc<BfvParameters> {
-    UNIFOMR_BFV_PARAMS
-        .get_or_init(|| {
-            Arc::new(
-                BfvParametersBuilder::new()
-                    .set_degree(4096)
-                    .set_plaintext_modulus(CLUE_Q)
-                    .set_moduli_sizes(&[40, 40, 40])
-                    .build()
-                    .expect("UnifOMR Param2 BFV parameters"),
-            )
-        })
-        .clone()
+pub fn bfv_params() -> Result<Arc<BfvParameters>, OmrError> {
+    if let Some(p) = UNIFOMR_BFV_PARAMS.get() {
+        return Ok(Arc::clone(p));
+    }
+    let built = BfvParametersBuilder::new()
+        .set_degree(4096)
+        .set_plaintext_modulus(CLUE_Q)
+        .set_moduli_sizes(&[40, 40, 40])
+        .build()
+        .map(Arc::new)
+        .map_err(|e| format!("UnifOMR Param2 BFV parameters: {e}"))?;
+    // Another thread may have won the race; prefer the stored value.
+    let _ = UNIFOMR_BFV_PARAMS.set(Arc::clone(&built));
+    Ok(UNIFOMR_BFV_PARAMS.get().map(Arc::clone).unwrap_or(built))
 }
 
-pub fn packing_degree() -> usize {
-    bfv_params().degree()
+pub fn packing_degree() -> Result<usize, OmrError> {
+    Ok(bfv_params()?.degree())
 }
 
 // ---------------------------------------------------------------------------
 // RLWE clue PKE (paper RLWEenc)
 // ---------------------------------------------------------------------------
 
-#[derive(Clone)]
+use zeroize::{Zeroize, ZeroizeOnDrop};
+
+#[derive(Clone, Zeroize, ZeroizeOnDrop)]
 pub struct RlweSecretKey {
     /// Coefficients in (-q/2, q/2], sparse ternary-ish with weight ≤ CLUE_H.
-    pub coeffs: Vec<i64>,
+    coeffs: Vec<i64>,
 }
 
 #[derive(Clone)]
@@ -248,6 +251,10 @@ fn poly_mul_mod(a: &[u64], s: &[i64]) -> Vec<u64> {
 }
 
 impl RlweSecretKey {
+    pub fn coeffs(&self) -> &[i64] {
+        &self.coeffs
+    }
+
     pub fn random<R: RngCore + CryptoRng>(rng: &mut R) -> Self {
         let mut coeffs = vec![0i64; CLUE_N];
         // Exactly CLUE_H non-zeros in {±1}.
@@ -530,7 +537,7 @@ impl UnifOmrClient {
         let (clue_sk, _) = clue_keypair_from_wallet(wallet_secret, network)?;
         let det_seed = derive_det_seed(wallet_secret, network)?;
         let mut r = StdRng::from_seed(det_seed);
-        let params = bfv_params();
+        let params = bfv_params()?;
         let det_sk = SecretKey::random(&params, &mut r);
         let det_pk = PublicKey::new(&det_sk, &mut r);
         Ok(Self {
@@ -656,8 +663,8 @@ impl UnifOmrClient {
     }
 
     /// Paper range check: centered lift into (-t/2,t/2], match if |v| ≤ R_PRIME.
-    pub fn range_check_matches(slots: &[u64], start: u32, end: u32) -> Vec<u32> {
-        let t = bfv_params().plaintext();
+    pub fn range_check_matches(slots: &[u64], start: u32, end: u32) -> Result<Vec<u32>, OmrError> {
+        let t = bfv_params()?.plaintext();
         let mut out = Vec::new();
         for (i, &raw) in slots.iter().enumerate() {
             let height = start.saturating_add(i as u32);
@@ -673,7 +680,7 @@ impl UnifOmrClient {
                 out.push(height);
             }
         }
-        out
+        Ok(out)
     }
 }
 
@@ -728,11 +735,11 @@ pub struct UnifOmrDetector {
 }
 
 impl UnifOmrDetector {
-    pub fn new(network: u8) -> Self {
-        Self {
+    pub fn new(network: u8) -> Result<Self, OmrError> {
+        Ok(Self {
             network,
-            params: bfv_params(),
-        }
+            params: bfv_params()?,
+        })
     }
 
     /// Evaluate UnifOMD over notes with LWEmongrass pre-filter.
@@ -1008,9 +1015,22 @@ pub fn verify_clue_pk_ownership(
     use darkfi_sdk::crypto::schnorr::SchnorrPublic;
     use darkfi_sdk::crypto::PublicKey;
     use darkfi_serial::deserialize;
+    const OWNERSHIP_PROOF_WIRE_LEN: usize = 128;
+    let proof_bytes = if ownership_proof.len() == OWNERSHIP_PROOF_WIRE_LEN {
+        if ownership_proof.len() < 2 {
+            return Err("ownership proof wire too short".into());
+        }
+        let len = u16::from_le_bytes([ownership_proof[0], ownership_proof[1]]) as usize;
+        if len == 0 || 2 + len > ownership_proof.len() {
+            return Err("ownership proof length invalid".into());
+        }
+        &ownership_proof[2..2 + len]
+    } else {
+        ownership_proof
+    };
     let pk = PublicKey::from_bytes(*payment_pubkey)
         .map_err(|e| format!("invalid payment pubkey: {e}"))?;
-    let sig: darkfi_sdk::crypto::schnorr::Signature = deserialize(ownership_proof)
+    let sig: darkfi_sdk::crypto::schnorr::Signature = deserialize(proof_bytes)
         .map_err(|e| format!("invalid ownership proof encoding: {e}"))?;
     let msg = clue_pk_ownership_message(network, key_version, payment_pubkey, clue_public_key);
     if !pk.verify(&msg, &sig) {

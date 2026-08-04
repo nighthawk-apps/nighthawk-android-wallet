@@ -98,8 +98,8 @@ impl BatchPirServer {
         Self { params }
     }
 
-    pub fn with_unifomr_params() -> Self {
-        Self::new(bfv_params())
+    pub fn with_unifomr_params() -> Result<Self, String> {
+        Ok(Self::new(bfv_params()?))
     }
 
     /// Evaluate `Σ query_slots[i] * db[i]` under encryption for one stripe.
@@ -164,20 +164,20 @@ pub struct BatchPirClient {
 }
 
 impl BatchPirClient {
-    pub fn from_seed(seed: [u8; 32]) -> Self {
+    pub fn from_seed(seed: [u8; 32]) -> Result<Self, String> {
         let mut r = StdRng::from_seed(seed);
-        let params = bfv_params();
+        let params = bfv_params()?;
         let secret_key = SecretKey::random(&params, &mut r);
         let public_key = PublicKey::new(&secret_key, &mut r);
-        Self {
+        Ok(Self {
             secret_key,
             public_key,
             params,
-        }
+        })
     }
 
     pub fn from_wallet(wallet_secret: &[u8], network: u8) -> Result<Self, String> {
-        Ok(Self::from_seed(derive_pir_seed(wallet_secret, network)?))
+        Self::from_seed(derive_pir_seed(wallet_secret, network)?)
     }
 
     fn encrypt_selection(&self, selection: &[u64]) -> Result<Vec<u8>, String> {

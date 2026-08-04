@@ -45,6 +45,7 @@ smol = "2.0.2"
 unicode-normalization = "0.1.24"
 url = "2.5.8"
 zeroize = "1.8"
+x509-parser = "0.16"
 uniffi = { version = "0.31.1", features = ["scaffolding-ffi-buffer-fns", "cli"] }
 thiserror = "2"
 log = "0.4"
@@ -53,6 +54,7 @@ tracing-subscriber = { version = "0.3", default-features = false, features = ["f
 tonic = { version = "0.12", features = ["tls", "tls-webpki-roots"] }
 prost = "0.13"
 async-compat = "0.2"
+async-stream = "0.3"
 rustls = { version = "0.23", default-features = false, features = ["ring", "tls12"] }
 rustls-pki-types = "1"
 regex-lite = "0.1"

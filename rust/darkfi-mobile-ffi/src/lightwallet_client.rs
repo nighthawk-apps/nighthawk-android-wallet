@@ -22,7 +22,8 @@
 use std::time::{Duration, Instant};
 
 /// UnifOMR GenDetKey wire size (~19MB for n=512); raise tonic's 4MB default.
-const MAX_GRPC_MESSAGE_BYTES: usize = 64 * 1024 * 1024;
+// Param2 UnifOMR detection keys are ~120 MiB on the wire.
+const MAX_GRPC_MESSAGE_BYTES: usize = 160 * 1024 * 1024;
 
 fn lwd_client(
     channel: tonic::transport::Channel,
@@ -232,26 +233,75 @@ struct PinnedVerifier {
     pinned_sha256: [u8; 32],
 }
 
+fn cert_hostname_matches(cert: &x509_parser::certificate::X509Certificate<'_>, host: &str) -> bool {
+    use x509_parser::extensions::GeneralName;
+    if let Ok(Some(san)) = cert.subject_alternative_name() {
+        for name in &san.value.general_names {
+            if let GeneralName::DNSName(dns) = name {
+                if dns.eq_ignore_ascii_case(host) {
+                    return true;
+                }
+            }
+        }
+    }
+    cert.subject().iter_common_name().any(|cn| {
+        cn.as_str()
+            .map(|s| s.eq_ignore_ascii_case(host))
+            .unwrap_or(false)
+    })
+}
+
 impl rustls::client::danger::ServerCertVerifier for PinnedVerifier {
     fn verify_server_cert(
         &self,
         end_entity: &rustls::pki_types::CertificateDer<'_>,
         _intermediates: &[rustls::pki_types::CertificateDer<'_>],
-        _server_name: &rustls::pki_types::ServerName<'_>,
+        server_name: &rustls::pki_types::ServerName<'_>,
         _ocsp_response: &[u8],
-        _now: rustls::pki_types::UnixTime,
+        now: rustls::pki_types::UnixTime,
     ) -> Result<rustls::client::danger::ServerCertVerified, rustls::Error> {
         use sha2::{Digest, Sha256};
         let mut hasher = Sha256::new();
         hasher.update(end_entity.as_ref());
         let hash = hasher.finalize();
-        if hash.as_slice() == self.pinned_sha256 {
-            Ok(rustls::client::danger::ServerCertVerified::assertion())
-        } else {
-            Err(rustls::Error::InvalidCertificate(
+        if hash.as_slice() != self.pinned_sha256 {
+            return Err(rustls::Error::InvalidCertificate(
                 rustls::CertificateError::UnknownIssuer,
-            ))
+            ));
         }
+
+        // Pin matched — also enforce validity window + hostname (SAN/CN).
+        let (_, cert) = x509_parser::parse_x509_certificate(end_entity.as_ref()).map_err(|_| {
+            rustls::Error::InvalidCertificate(rustls::CertificateError::BadEncoding)
+        })?;
+        let now_secs = now.as_secs() as i64;
+        let not_before = cert.validity().not_before.timestamp();
+        let not_after = cert.validity().not_after.timestamp();
+        if now_secs < not_before {
+            return Err(rustls::Error::InvalidCertificate(
+                rustls::CertificateError::NotValidYet,
+            ));
+        }
+        if now_secs > not_after {
+            return Err(rustls::Error::InvalidCertificate(
+                rustls::CertificateError::Expired,
+            ));
+        }
+        let host = match server_name {
+            rustls::pki_types::ServerName::DnsName(d) => d.as_ref(),
+            _ => {
+                return Err(rustls::Error::InvalidCertificate(
+                    rustls::CertificateError::NotValidForName,
+                ));
+            }
+        };
+        if !cert_hostname_matches(&cert, host) {
+            return Err(rustls::Error::InvalidCertificate(
+                rustls::CertificateError::NotValidForName,
+            ));
+        }
+
+        Ok(rustls::client::danger::ServerCertVerified::assertion())
     }
 
     fn verify_tls12_signature(
@@ -1101,18 +1151,43 @@ impl LightwalletClient {
         end_height: u32,
     ) -> Result<Vec<u8>, String> {
         validate_block_range(start_height, end_height)?;
+        if detection_keys.is_empty() {
+            return Err("detection_keys required".into());
+        }
+        if detection_keys.iter().any(|k| k.is_empty()) {
+            return Err("empty detection key not allowed".into());
+        }
         let result = async_compat::Compat::new(async {
             let channel = self.connect_channel().await?;
             let mut client = lwd_client(channel);
-            let detection_key = detection_keys.first().cloned().unwrap_or_default();
-            let request = lightwallet_proto::OmrDigestRequest {
-                detection_key,
-                start_height,
-                end_height,
-                detection_keys,
+            let chunk_size = 1024 * 1024; // 1 MiB
+            let num_keys = detection_keys.len() as u32;
+            let stream = async_stream::stream! {
+                yield lightwallet_proto::DetectionKeyChunk {
+                    start_height,
+                    end_height,
+                    num_keys,
+                    data: vec![],
+                    key_done: false,
+                };
+                for key in detection_keys {
+                    let mut offset = 0;
+                    while offset < key.len() {
+                        let end_offset = (offset + chunk_size).min(key.len());
+                        let chunk_data = key[offset..end_offset].to_vec();
+                        offset = end_offset;
+                        yield lightwallet_proto::DetectionKeyChunk {
+                            start_height: 0,
+                            end_height: 0,
+                            num_keys: 0,
+                            data: chunk_data,
+                            key_done: offset == key.len(),
+                        };
+                    }
+                }
             };
             let resp = client
-                .get_unif_omr_digest(request)
+                .get_unif_omr_digest(tonic::Request::new(stream))
                 .await
                 .map_err(|e| format!("GetUnifOmrDigest RPC: {e}"))?;
             Ok(resp.into_inner().encrypted_digest)
@@ -1149,7 +1224,7 @@ impl LightwalletClient {
     pub async fn get_clue_public_key(
         &self,
         payment_pubkey: Vec<u8>,
-    ) -> Result<(bool, Vec<u8>), String> {
+    ) -> Result<(bool, Vec<u8>, Vec<u8>, u64), String> {
         let result = async_compat::Compat::new(async {
             let channel = self.connect_channel().await?;
             let mut client = lwd_client(channel);
@@ -1158,7 +1233,12 @@ impl LightwalletClient {
                 .await
                 .map_err(|e| format!("GetCluePublicKey RPC: {e}"))?;
             let inner = resp.into_inner();
-            Ok((inner.found, inner.clue_public_key))
+            Ok((
+                inner.found,
+                inner.clue_public_key,
+                inner.ownership_proof,
+                inner.key_version,
+            ))
         })
         .await;
         result

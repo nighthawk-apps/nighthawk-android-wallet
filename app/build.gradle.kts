@@ -27,6 +27,15 @@ android {
         // Override: -PLIGHTWALLET_TLS_PIN_SHA256=<hex> or gradle.properties.
         val tlsPin = (project.findProperty("LIGHTWALLET_TLS_PIN_SHA256") as? String)?.trim().orEmpty()
         manifestPlaceholders["LIGHTWALLET_TLS_PIN_SHA256"] = tlsPin
+        // Release builds must ship a pin (fail closed at configure time).
+        val isReleaseTask = gradle.startParameter.taskNames.any {
+            it.contains("Release", ignoreCase = true) && !it.contains("UnitTest", ignoreCase = true)
+        }
+        if (isReleaseTask && (tlsPin.isEmpty() || tlsPin == "0".repeat(64) || tlsPin.equals("PLACEHOLDER", true))) {
+            throw GradleException(
+                "LIGHTWALLET_TLS_PIN_SHA256 must be set to a real 64-hex leaf pin for release builds"
+            )
+        }
 
         if (project.property("IS_USE_TEST_ORCHESTRATOR").toString().toBoolean()) {
             testInstrumentationRunnerArguments["clearPackageData"] = "true"

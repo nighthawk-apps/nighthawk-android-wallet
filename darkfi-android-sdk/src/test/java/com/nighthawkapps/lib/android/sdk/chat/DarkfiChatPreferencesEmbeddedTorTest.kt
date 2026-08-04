@@ -33,10 +33,10 @@ class DarkfiChatPreferencesEmbeddedTorTest {
     }
 
     @Test
-    fun routeOutboundThroughTor_defaultsToFalse() {
+    fun routeOutboundThroughTor_defaultsToTrue() {
         val app = RuntimeEnvironment.getApplication() as Application
         val prefs = DarkfiChatPreferences(app)
-        assertFalse(prefs.routeOutboundThroughTor)
+        assertTrue(prefs.routeOutboundThroughTor)
     }
 
     @Test

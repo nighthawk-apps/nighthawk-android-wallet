@@ -254,10 +254,17 @@ fn cached_or_build_detection_key(
     wallet_secret: &[u8; 32],
     network: u8,
 ) -> Result<Vec<u8>, String> {
+    // Include a coarse epoch bucket so keys rotate ~daily and are not
+    // eternally linkable across sessions.
+    let epoch = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_secs() / 86_400)
+        .unwrap_or(0);
     let cache_id: [u8; 32] = {
-        let mut h = blake3::Hasher::new_derive_key("darkfi-mobile-ffi detkey-cache v1 param2");
+        let mut h = blake3::Hasher::new_derive_key("darkfi-mobile-ffi detkey-cache v2 param2");
         h.update(wallet_secret);
         h.update(&[network]);
+        h.update(&epoch.to_le_bytes());
         *h.finalize().as_bytes()
     };
     let cache = DETECTION_KEY_CACHE
@@ -269,14 +276,21 @@ fn cached_or_build_detection_key(
     }
     let key = client_crypto.build_detection_key(network)?;
     if let Ok(mut map) = cache.lock() {
-        // Bound memory: one Param2 key is ~38MB. Drop the map when it would
-        // exceed the wallet's detection-key cap (16 addresses max).
         if map.len() >= 16 {
             map.clear();
         }
         map.insert(cache_id, std::sync::Arc::new(key.clone()));
     }
     Ok(key)
+}
+
+/// Drop cached detection keys (call on wallet close / re-bootstrap).
+pub fn clear_detection_key_cache() {
+    if let Some(cache) = DETECTION_KEY_CACHE.get() {
+        if let Ok(mut map) = cache.lock() {
+            map.clear();
+        }
+    }
 }
 
 /// Ensure lightwalletd `GetLightInfo.chain_name` matches the wallet network so
@@ -730,10 +744,10 @@ async fn try_omr_sync(
         const MAX_DETECTION_KEYS: usize = 16;
         // Server-side cap on the sum of detection_keys lengths per request
         // (lightwalletd MAX_DETECTION_KEYS_TOTAL_BYTES). One Param2 det-key is
-        // ~38MB, so requests are chunked to stay under budget and the
-        // per-chunk digests are unioned. Sending all keys at once would be
-        // rejected with InvalidArgument for multi-address wallets.
-        const SERVER_DETECTION_KEYS_TOTAL_BUDGET: usize = 64 * 1024 * 1024;
+        // ~120 MiB; GetUnifOmrDigest streams ~1 MiB chunks. Multi-address wallets
+        // still chunk keys into separate RPCs so each request stays under the
+        // 160 MiB total budget (practical cap: one full Param2 key per request).
+        const SERVER_DETECTION_KEYS_TOTAL_BUDGET: usize = 160 * 1024 * 1024;
         let money_secrets = drk
             .get_money_secrets()
             .await
@@ -1712,7 +1726,7 @@ fn decrypt_unif_omr_heights(
             .map_err(|e| format!("UnifOMR digest decrypt failed: {e}"))?;
         return Ok(crate::unifomr::UnifOmrClient::range_check_matches(
             &slots, start, end,
-        ));
+        )?);
     }
 
     let mut heights = BTreeSet::new();
@@ -1731,7 +1745,7 @@ fn decrypt_unif_omr_heights(
         let slots = client_crypto
             .decrypt_digest_slots(frame)
             .map_err(|e| format!("UnifOMR digest decrypt failed for key[{i}]: {e}"))?;
-        for h in crate::unifomr::UnifOmrClient::range_check_matches(&slots, start, end) {
+        for h in crate::unifomr::UnifOmrClient::range_check_matches(&slots, start, end)? {
             heights.insert(h);
         }
     }

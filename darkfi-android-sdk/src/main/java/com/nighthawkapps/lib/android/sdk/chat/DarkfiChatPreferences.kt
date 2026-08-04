@@ -21,7 +21,7 @@ class DarkfiChatPreferences(
      * ([socksHost]:[socksPort], default loopback). Also gates DarkIRC SOCKS for non-loopback hosts.
      */
     var routeOutboundThroughTor: Boolean
-        get() = sp.getBoolean(KEY_TOR, false)
+        get() = sp.getBoolean(KEY_TOR, true)
         set(value) {
             sp.edit().putBoolean(KEY_TOR, value).apply()
         }

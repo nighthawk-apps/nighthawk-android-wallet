@@ -116,6 +116,8 @@ pub struct LightSyncState {
     /// True when a chain reorg was detected and the wallet needs a re-scan
     /// (security audit R1). The UI should prompt the user or auto-trigger rescan.
     pub reorg_detected: bool,
+    /// Last hard error message (e.g. strict OMR downgrade refusal).
+    pub last_error: Option<String>,
 }
 
 impl Default for LightSyncState {
@@ -136,6 +138,7 @@ impl Default for LightSyncState {
             omr_downgrade_warning: false,
             omr_downgrade_count: 0,
             reorg_detected: false,
+            last_error: None,
         }
     }
 }
@@ -483,6 +486,18 @@ impl SyncEngine {
                  Potential downgrade attack detected (session count: {})",
                 state.omr_downgrade_count,
             );
+            if self.strict_omr_only() {
+                state.omr_available = false;
+                state.status = LightSyncStatus::Error;
+                state.sync_type = LightSyncType::Idle;
+                state.last_error = Some(
+                    "OMR capability downgrade refused (strict_omr_only); \
+                     refusing trial-decrypt fallback"
+                        .into(),
+                );
+                state.refresh_messages();
+                return;
+            }
             if state.omr_downgrade_count > 3 {
                 tracing::error!(
                     target: "sync-engine",
@@ -496,7 +511,16 @@ impl SyncEngine {
         if available && state.sync_type == LightSyncType::Idle {
             state.sync_type = LightSyncType::Omr;
         } else if !available && state.sync_type == LightSyncType::Omr {
-            state.sync_type = LightSyncType::TrialDecryption;
+            if self.strict_omr_only() {
+                state.status = LightSyncStatus::Error;
+                state.sync_type = LightSyncType::Idle;
+                state.last_error = Some(
+                    "Server reports OMR unsupported; strict_omr_only refuses trial decrypt"
+                        .into(),
+                );
+            } else {
+                state.sync_type = LightSyncType::TrialDecryption;
+            }
         }
         state.refresh_messages();
     }
@@ -751,8 +775,19 @@ mod tests {
     }
 
     #[test]
-    fn test_set_omr_unavailable_switches_omr_to_trial() {
+    fn test_set_omr_unavailable_strict_refuses_trial() {
         let engine = SyncEngine::new("x".to_string());
+        // strict_omr_only defaults true
+        engine.set_omr_available(true);
+        engine.set_omr_available(false);
+        assert_eq!(engine.snapshot().status, LightSyncStatus::Error);
+        assert_ne!(engine.snapshot().sync_type, LightSyncType::TrialDecryption);
+    }
+
+    #[test]
+    fn test_set_omr_unavailable_switches_omr_to_trial_when_not_strict() {
+        let engine = SyncEngine::new("x".to_string());
+        engine.set_strict_omr_only(false);
         engine.set_omr_available(true);
         engine.set_omr_available(false);
         assert_eq!(engine.snapshot().sync_type, LightSyncType::TrialDecryption);

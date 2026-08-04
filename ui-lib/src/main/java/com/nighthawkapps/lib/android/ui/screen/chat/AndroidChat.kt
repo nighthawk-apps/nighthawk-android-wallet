@@ -316,6 +316,13 @@ private fun ChatScreen(
         val listState = rememberLazyListState()
         val threadMessages = messages[activeThreadKey].orEmpty()
 
+        // Scroll to bottom on initial load and when switching channels/DM threads.
+        LaunchedEffect(activeThreadKey) {
+            if (threadMessages.isNotEmpty()) {
+                listState.scrollToItem(threadMessages.lastIndex)
+            }
+        }
+
         // Auto-scroll to bottom when new messages arrive
         LaunchedEffect(threadMessages.size) {
             if (threadMessages.isNotEmpty()) {

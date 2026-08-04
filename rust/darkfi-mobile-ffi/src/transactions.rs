@@ -20,8 +20,7 @@ use crate::{
 };
 
 /// Per-session record of the OMR scheme byte embedded in each outgoing
-/// transaction's clue, keyed by tx hash. Lets transaction history report the
-/// real retrieval method a sent transaction was built with (UnifOMR).
+/// transaction's clue, keyed by tx hash.
 static SENT_SYNC_SCHEMES: LazyLock<RwLock<HashMap<String, u8>>> =
     LazyLock::new(|| RwLock::new(HashMap::new()));
 
@@ -30,12 +29,47 @@ static SENT_SYNC_SCHEMES: LazyLock<RwLock<HashMap<String, u8>>> =
 static SENT_PAYMENT_META: LazyLock<RwLock<HashMap<String, (Option<String>, Option<String>)>>> =
     LazyLock::new(|| RwLock::new(HashMap::new()));
 
+const MAX_SENT_CACHE_ENTRIES: usize = 10_000;
+
+/// Clear session caches (call on wallet close / re-bootstrap).
+pub fn clear_sent_session_cache() {
+    if let Ok(mut m) = SENT_SYNC_SCHEMES.write() {
+        m.clear();
+    }
+    if let Ok(mut m) = SENT_PAYMENT_META.write() {
+        m.clear();
+    }
+}
+
+fn insert_bounded_meta(
+    map: &mut HashMap<String, (Option<String>, Option<String>)>,
+    key: String,
+    val: (Option<String>, Option<String>),
+) {
+    if map.len() >= MAX_SENT_CACHE_ENTRIES && !map.contains_key(&key) {
+        if let Some(oldest) = map.keys().next().cloned() {
+            map.remove(&oldest);
+        }
+    }
+    map.insert(key, val);
+}
+
 /// Look up a recipient address persisted at broadcast time (session cache).
 pub fn sent_recipient_address(tx_hash: &str) -> Option<String> {
     SENT_PAYMENT_META
         .read()
         .ok()
         .and_then(|m| m.get(tx_hash).and_then(|(_, r)| r.clone()))
+}
+
+fn derive_omr_memo_key(secret_bytes: &[u8; 32], recipient_pk: &[u8; 32], nonce: &[u8]) -> [u8; 32] {
+    let mut out = [0u8; 32];
+    let mut hasher = blake3::Hasher::new_derive_key("DarkFi-OMR-MemoKey-v1");
+    hasher.update(secret_bytes);
+    hasher.update(recipient_pk);
+    hasher.update(nonce);
+    out.copy_from_slice(hasher.finalize().as_bytes());
+    out
 }
 
 pub async fn build_transfer(
@@ -66,23 +100,40 @@ pub async fn build_transfer(
     let secret_bytes: [u8; 32] = secret.inner().to_repr();
     let recipient_pk_bytes: [u8; 32] = recipient.public_key().to_bytes();
 
-    // Fail-closed: require a registered UnifOMR clue public key (no PerfOMR fallback).
+    let network_byte = match drk.network {
+        darkfi_sdk::crypto::keypair::Network::Mainnet => 0x00u8,
+        darkfi_sdk::crypto::keypair::Network::Testnet => 0x01u8,
+    };
+
+    // Fail-closed: require a registered UnifOMR clue public key (verified ownership).
     let (omr_scheme, omr_clue) = resolve_outgoing_omr_clue(
         &recipient_pk_bytes,
+        network_byte,
         lightwallet_server_url,
         lightwallet_tls_pin,
     )
     .await?;
 
+    // Per-tx memo key (domain-separated) — never reuse raw spending key bytes.
+    let mut nonce = [0u8; 16];
+    rand::RngCore::fill_bytes(&mut rand::thread_rng(), &mut nonce);
+    let memo_key = derive_omr_memo_key(&secret_bytes, &recipient_pk_bytes, &nonce);
+
     let omr_memo = crate::memo::build_omr_memo(
-        &secret_bytes,
+        &memo_key,
         &recipient_pk_bytes,
         payment_memo,
         Some(omr_scheme),
     )?;
 
     // Encrypt the OMR metadata for the recipient (LWD cannot read it).
-    let omr_metadata_enc = crate::memo::encrypt_omr_metadata(&omr_memo, recipient.public_key())?;
+    // Bind clue hash into AEAD plaintext so clue swap is detectable by recipient.
+    let mut omr_memo_bound = omr_memo;
+    let clue_hash = *blake3::hash(&omr_clue).as_bytes();
+    omr_memo_bound.extend_from_slice(b"|CLUE|");
+    omr_memo_bound.extend_from_slice(&clue_hash);
+    let omr_metadata_enc =
+        crate::memo::encrypt_omr_metadata(&omr_memo_bound, recipient.public_key())?;
 
     tracing::info!(
         target: "wallet-tx",
@@ -92,8 +143,6 @@ pub async fn build_transfer(
         payment_memo.map(str::trim).filter(|s| !s.is_empty()).is_some()
     );
 
-    // MoneyNote::memo is empty in current upstream money client; user text
-    // rides in encrypted OMR metadata (envelope → LWD omr_metadata_enc).
     let _plain_memo = payment_memo
         .map(str::trim)
         .filter(|s| !s.is_empty())
@@ -112,13 +161,14 @@ pub async fn build_transfer(
         .map_err(|e| format!("transfer: {e}"))?;
 
     let tx_bytes = serialize_async(&tx).await;
-    // Envelope carries FHE clue + encrypted metadata for LWD.
-    Ok(wrap_envelope(&omr_metadata_enc, &omr_clue, &tx_bytes))
+    wrap_envelope(&omr_metadata_enc, &omr_clue, &tx_bytes)
 }
 
-/// Look up recipient UnifOMR clue PK and build a paper clue. Fail-closed (no PerfOMR).
+/// Look up recipient UnifOMR clue PK and build a paper clue.
+/// Ownership proof from LWD MUST verify; otherwise treat as unregistered.
 async fn resolve_outgoing_omr_clue(
     recipient_pk: &[u8; 32],
+    network_byte: u8,
     lightwallet_server_url: Option<&str>,
     lightwallet_tls_pin: Option<[u8; 32]>,
 ) -> Result<(u8, Vec<u8>), String> {
@@ -137,7 +187,7 @@ async fn resolve_outgoing_omr_clue(
         lightwallet_tls_pin,
     );
 
-    let (_found, clue_pk) = client
+    let (_found, clue_pk, ownership_proof, key_version) = client
         .get_clue_public_key(recipient_pk.to_vec())
         .await
         .map_err(|e| format!("GetCluePublicKey failed: {e}"))?;
@@ -147,12 +197,25 @@ async fn resolve_outgoing_omr_clue(
                 .into(),
         );
     }
+    crate::unifomr::verify_clue_pk_ownership(
+        network_byte,
+        key_version,
+        recipient_pk,
+        &clue_pk,
+        &ownership_proof,
+    )
+    .map_err(|e| {
+        format!(
+            "GetCluePublicKey ownership verify failed ({e}); treating as unregistered \
+             (possible MITM or decoy)"
+        )
+    })?;
     let pk = crate::unifomr::deserialize_public_key(&clue_pk)
         .map_err(|e| format!("Invalid UnifOMR clue public key: {e}"))?;
     let clue = crate::unifomr::build_omr_clue_from_pk(&pk);
     tracing::info!(
         target: "wallet-tx",
-        "Using UnifOMR clue public key for recipient (directory)"
+        "Using verified UnifOMR clue public key for recipient"
     );
     Ok((SCHEME_UNIFOMR, clue))
 }
@@ -165,15 +228,26 @@ pub async fn broadcast_transfer(
     lightwallet_server_url: Option<&str>,
     lightwallet_tls_pin: Option<[u8; 32]>,
 ) -> Result<String, String> {
-    let raw_tx = strip_omr_envelope(tx_bytes);
+    let raw_tx = strip_omr_envelope(tx_bytes)?;
 
-    // Record the OMR scheme embedded in the clue so history can report how the
-    // transaction was built.
     let sent_scheme = extract_envelope_scheme(tx_bytes);
 
     let tx: Transaction = deserialize_async(raw_tx)
         .await
         .map_err(|e| format!("decode tx: {e}"))?;
+
+    let tx_hash = tx.hash().to_string();
+
+    // Idempotency: already broadcast this session.
+    if let Ok(map) = SENT_PAYMENT_META.read() {
+        if map.contains_key(&tx_hash) {
+            tracing::warn!(
+                target: "wallet-tx",
+                "broadcast_transfer: txid {tx_hash} already submitted this session"
+            );
+            return Ok(tx_hash);
+        }
+    }
 
     drk.simulate_tx(&tx)
         .await
@@ -182,12 +256,6 @@ pub async fn broadcast_transfer(
     let unifomr_clue = extract_envelope_fhe_clue(tx_bytes).unwrap_or_default();
     let omr_metadata_enc = extract_envelope_omr_memo(tx_bytes).unwrap_or_default();
 
-    // UnifOMR clues are off-chain hints with a 24h TTL on lightwalletd. They are
-    // only merged when SendTransaction stores the hint and the confirming block
-    // is indexed. Darkfid-only broadcast cannot carry the clue — fail closed.
-    //
-    // Mark coins spent ONLY after lightwalletd accepts the tx (and clue when
-    // present). Marking first left local spent state on broadcast failure.
     let lw_url = lightwallet_server_url
         .map(str::trim)
         .filter(|s| !s.is_empty())
@@ -200,45 +268,62 @@ pub async fn broadcast_transfer(
         &lw_url,
         lightwallet_tls_pin,
     );
-    client
+
+    // Mark pending before send to prevent concurrent duplicate.
+    {
+        let memo = payment_memo
+            .map(str::trim)
+            .filter(|s| !s.is_empty())
+            .map(str::to_string);
+        let recipient = recipient_address
+            .map(str::trim)
+            .filter(|s| !s.is_empty())
+            .map(str::to_string);
+        if let Ok(mut map) = SENT_PAYMENT_META.write() {
+            insert_bounded_meta(&mut map, tx_hash.clone(), (memo, recipient));
+        }
+    }
+
+    let send_result = client
         .send_transaction(
             raw_tx.to_vec(),
             unifomr_clue.clone(),
             omr_metadata_enc,
         )
-        .await
-        .map_err(|e| {
-            format!(
+        .await;
+
+    match send_result {
+        Ok(_tx_hash_bytes) => {}
+        Err(e) => {
+            let is_timeout = e.to_lowercase().contains("timeout")
+                || e.to_lowercase().contains("timed out")
+                || e.to_lowercase().contains("deadline");
+            if !is_timeout {
+                if let Ok(mut map) = SENT_PAYMENT_META.write() {
+                    map.remove(&tx_hash);
+                }
+            }
+            return Err(format!(
                 "SendTransaction via lightwalletd failed ({e}). \
                  UnifOMR clue hint was not stored — refusing darkfid fallback so \
                  receivers can still detect within the 24h TTL."
-            )
-        })?;
+            ));
+        }
+    }
 
     let mut output = Vec::new();
     drk.mark_tx_spend(&tx, &mut output)
         .await
         .map_err(|e| format!("mark_tx_spend after broadcast: {e}"))?;
 
-    let tx_hash = tx.hash().to_string();
-
     if let Some(scheme) = sent_scheme {
         if let Ok(mut map) = SENT_SYNC_SCHEMES.write() {
+            if map.len() >= MAX_SENT_CACHE_ENTRIES && !map.contains_key(&tx_hash) {
+                if let Some(oldest) = map.keys().next().cloned() {
+                    map.remove(&oldest);
+                }
+            }
             map.insert(tx_hash.clone(), scheme);
-        }
-    }
-
-    let memo = payment_memo
-        .map(str::trim)
-        .filter(|s| !s.is_empty())
-        .map(str::to_string);
-    let recipient = recipient_address
-        .map(str::trim)
-        .filter(|s| !s.is_empty())
-        .map(str::to_string);
-    if memo.is_some() || recipient.is_some() {
-        if let Ok(mut map) = SENT_PAYMENT_META.write() {
-            map.insert(tx_hash.clone(), (memo, recipient));
         }
     }
 
@@ -264,7 +349,7 @@ pub async fn estimate_transfer_fee(
         lightwallet_tls_pin,
     )
     .await?;
-    let raw_tx = strip_omr_envelope(&envelope);
+    let raw_tx = strip_omr_envelope(&envelope)?;
     let tx: Transaction = deserialize_async(raw_tx)
         .await
         .map_err(|e| format!("decode tx: {e}"))?;
@@ -398,7 +483,7 @@ pub async fn list_transaction_history(drk: &Drk) -> Result<Vec<DrkTransactionRec
 ///
 /// If the bytes start with `b"O2"`, parse memo/clue lengths and return
 /// only the raw tx bytes. Otherwise returns the input unchanged.
-fn strip_omr_envelope(data: &[u8]) -> &[u8] {
+fn strip_omr_envelope(data: &[u8]) -> Result<&[u8], String> {
     strip_envelope(data)
 }
 
@@ -435,28 +520,28 @@ mod tests {
     fn test_strip_omr_envelope_with_tag() {
         let omr_memo = vec![0x4F, 0x05, 0x03]; // 3-byte UnifOMR memo
         let raw_tx = b"raw_transaction_data";
-        let envelope = wrap_envelope(&omr_memo, &[], raw_tx);
+        let envelope = wrap_envelope(&omr_memo, &[], raw_tx).unwrap();
 
-        let stripped = strip_omr_envelope(&envelope);
+        let stripped = strip_omr_envelope(&envelope).unwrap();
         assert_eq!(stripped, raw_tx);
     }
 
     #[test]
     fn test_strip_omr_envelope_no_tag() {
         let raw_tx = b"just_a_raw_transaction";
-        let stripped = strip_omr_envelope(raw_tx);
+        let stripped = strip_omr_envelope(raw_tx).unwrap();
         assert_eq!(stripped, raw_tx);
     }
 
     #[test]
     fn test_strip_omr_envelope_empty() {
-        let stripped = strip_omr_envelope(&[]);
+        let stripped = strip_omr_envelope(&[]).unwrap();
         assert_eq!(stripped, &[] as &[u8]);
     }
 
     #[test]
     fn test_strip_omr_envelope_too_short() {
-        let stripped = strip_omr_envelope(b"OM");
+        let stripped = strip_omr_envelope(b"OM").unwrap();
         assert_eq!(stripped, b"OM");
     }
 
@@ -470,7 +555,7 @@ mod tests {
             clue.len() > 255,
             "UnifOMR clue must use O2 u32 length (multi-KB)"
         );
-        let env = wrap_envelope(&memo, &clue, b"txbytes");
+        let env = wrap_envelope(&memo, &clue, b"txbytes").unwrap();
         let parsed = parse_envelope(&env).expect("O2 parse");
         assert_eq!(parsed.fhe_clue, clue.as_slice());
         // extract_envelope_scheme returns UNIFOMR when any envelope is present

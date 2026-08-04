@@ -23,6 +23,24 @@ pub mod lightwallet_sync;
 pub mod omr;
 pub mod unifomr;
 
+fn install_panic_hook_once() {
+    use std::sync::Once;
+    static ONCE: Once = Once::new();
+    ONCE.call_once(|| {
+        let prev = std::panic::take_hook();
+        std::panic::set_hook(Box::new(move |info| {
+            // Log location only — never dump panic payload that may contain secrets.
+            let loc = info
+                .location()
+                .map(|l| format!("{}:{}:{}", l.file(), l.line(), l.column()))
+                .unwrap_or_else(|| "unknown".into());
+            eprintln!("darkfi-mobile-ffi panic at {loc}");
+            tracing::error!(target: "darkfi-mobile-ffi", "panic at {loc}");
+            prev(info);
+        }));
+    });
+}
+
 #[cfg(feature = "darkirc")]
 pub trait DarkircEventCallback: Send + Sync {
     fn on_message(
@@ -157,7 +175,7 @@ pub enum DarkfiWalletNativeError {
 type ResultWallet<T> = Result<T, DarkfiWalletNativeError>;
 
 /// Bootstrap fields mirroring upstream **`DrkPlugin::new`** / `Drk::new` inputs on Android.
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct DrkBootstrapConfig {
     pub network: String,
     pub mnemonic: Vec<String>,
@@ -181,6 +199,40 @@ pub struct DrkBootstrapConfig {
     pub tor_socks_port: u16,
     /// Optional darkfid JSON-RPC for broadcast fallback only. Empty/`None` = LWD-only.
     pub darkfid_rpc_url: Option<String>,
+}
+
+impl std::fmt::Debug for DrkBootstrapConfig {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("DrkBootstrapConfig")
+            .field("network", &self.network)
+            .field("mnemonic", &"[REDACTED]")
+            .field("wallet_db_path", &self.wallet_db_path)
+            .field("cache_path", &self.cache_path)
+            .field("wallet_pass", &"[REDACTED]")
+            .field("lightwallet_server_url", &self.lightwallet_server_url)
+            .field("birthday_height", &self.birthday_height)
+            .field(
+                "lightwallet_tls_pin_sha256",
+                &self.lightwallet_tls_pin_sha256.as_ref().map(|_| "[PIN]"),
+            )
+            .field("use_tor", &self.use_tor)
+            .field("tor_socks_port", &self.tor_socks_port)
+            .field("darkfid_rpc_url", &self.darkfid_rpc_url)
+            .finish()
+    }
+}
+
+impl DrkBootstrapConfig {
+    /// Zeroize secrets after bootstrap has copied them. UniFFI Records cannot
+    /// implement `Drop` (scaffolding moves fields), so callers must scrub
+    /// explicitly once the wallet is constructed.
+    pub fn zeroize_secrets(&mut self) {
+        use zeroize::Zeroize;
+        self.wallet_pass.zeroize();
+        for w in &mut self.mnemonic {
+            w.zeroize();
+        }
+    }
 }
 
 /// Canonical retrieval / encryption path used for note discovery + sync.
@@ -594,6 +646,9 @@ impl std::fmt::Debug for DarkfiWalletHandle {
 
 impl DarkfiWalletHandle {
     pub fn new(config: DrkBootstrapConfig) -> ResultWallet<Self> {
+        install_panic_hook_once();
+        crate::transactions::clear_sent_session_cache();
+        crate::sync::clear_detection_key_cache();
         validate_bootstrap(&config)?;
 
         // Tor routing (fail-closed): start the in-process arti SOCKS proxy and
@@ -630,6 +685,8 @@ impl DarkfiWalletHandle {
                 .flatten(),
         ));
         sync::start_background_sync(drk.clone(), ex, sync_engine.clone());
+        let mut config = config;
+        config.zeroize_secrets();
         Ok(Self {
             drk,
             _sync_started: true,
