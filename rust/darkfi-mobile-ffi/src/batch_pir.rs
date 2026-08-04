@@ -333,8 +333,8 @@ mod tests {
 
     #[test]
     fn test_batch_pir_single_select() {
-        let client = BatchPirClient::from_seed([9u8; 32]);
-        let server = BatchPirServer::with_unifomr_params();
+        let client = BatchPirClient::from_seed([9u8; 32]).unwrap();
+        let server = BatchPirServer::with_unifomr_params().unwrap();
         let mut db = vec![0u64; 100];
         for i in 0..100 {
             db[i] = 1000 + i as u64;
@@ -349,8 +349,8 @@ mod tests {
 
     #[test]
     fn test_sealpir_cross_stripe() {
-        let client = BatchPirClient::from_seed([3u8; 32]);
-        let server = BatchPirServer::with_unifomr_params();
+        let client = BatchPirClient::from_seed([3u8; 32]).unwrap();
+        let server = BatchPirServer::with_unifomr_params().unwrap();
         let degree = client.params.degree();
         let window = degree + 50;
         let mut db = vec![0u64; window];

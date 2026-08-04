@@ -1087,13 +1087,13 @@ mod tests {
         let clue = serialize_clue(&pk.encrypt_zeros(&mut r));
 
         let det_key = client.build_detection_key(0x01).unwrap();
-        let detector = UnifOmrDetector::new(0x01);
+        let detector = UnifOmrDetector::new(0x01).unwrap();
 
         let notes = vec![(100u32, vec![ClueNote { omr_clue: clue }])];
         // Pad to exercise S19-style single height in a chunk.
         let digest = detector.evaluate(&det_key, &notes).unwrap();
         let slots = client.decrypt_digest_slots(&digest).unwrap();
-        let matches = UnifOmrClient::range_check_matches(&slots, 100, 100);
+        let matches = UnifOmrClient::range_check_matches(&slots, 100, 100).unwrap();
         assert!(
             matches.contains(&100),
             "pertinent height must match after range check; first slots={:?}",
@@ -1113,7 +1113,7 @@ mod tests {
         let alice_clue = serialize_clue(&alice_pk.encrypt_zeros(&mut r));
 
         let det_key = alice_client.build_detection_key(0x01).unwrap();
-        let detector = UnifOmrDetector::new(0x01);
+        let detector = UnifOmrDetector::new(0x01).unwrap();
         let notes = vec![(
             77u32,
             vec![
@@ -1125,7 +1125,7 @@ mod tests {
         )];
         let digest = detector.evaluate(&det_key, &notes).unwrap();
         let slots = alice_client.decrypt_digest_slots(&digest).unwrap();
-        let matches = UnifOmrClient::range_check_matches(&slots, 77, 77);
+        let matches = UnifOmrClient::range_check_matches(&slots, 77, 77).unwrap();
         assert!(
             matches.contains(&77),
             "alice must match when her clue is second; slots={:?}",
@@ -1142,7 +1142,7 @@ mod tests {
         let alice_client = UnifOmrClient::from_wallet(&alice, 0x01).unwrap();
         let (_, bob_pk) = clue_keypair_from_wallet(&bob, 0x01).unwrap();
         let det_key = alice_client.build_detection_key(0x01).unwrap();
-        let detector = UnifOmrDetector::new(0x01);
+        let detector = UnifOmrDetector::new(0x01).unwrap();
 
         for seed in [42u64, 99, 1337] {
             let mut r = StdRng::seed_from_u64(seed);
@@ -1150,7 +1150,7 @@ mod tests {
             let notes = vec![(50u32, vec![ClueNote { omr_clue: clue }])];
             let digest = detector.evaluate(&det_key, &notes).unwrap();
             let slots = alice_client.decrypt_digest_slots(&digest).unwrap();
-            let matches = UnifOmrClient::range_check_matches(&slots, 50, 50);
+            let matches = UnifOmrClient::range_check_matches(&slots, 50, 50).unwrap();
             assert!(
                 matches.is_empty(),
                 "false positive on seed {seed}: alice matched bob's clue"
@@ -1198,10 +1198,10 @@ mod tests {
             ],
         )];
         let det_key = alice_client.build_detection_key(0x01).unwrap();
-        let detector = UnifOmrDetector::new(0x01);
+        let detector = UnifOmrDetector::new(0x01).unwrap();
         let digest = detector.evaluate(&det_key, &notes).unwrap();
         let slots = alice_client.decrypt_digest_slots(&digest).unwrap();
-        let matches = UnifOmrClient::range_check_matches(&slots, 123, 123);
+        let matches = UnifOmrClient::range_check_matches(&slots, 123, 123).unwrap();
         assert!(
             matches.contains(&123),
             "overflowed height must fail open (match) — censorship otherwise"
