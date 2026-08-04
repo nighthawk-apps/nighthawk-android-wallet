@@ -49,6 +49,14 @@ object DarkfiEndpointCatalog {
             DarkfiNetwork.Testnet -> {
                 listOf(
                     DarkfiEndpointPreset(
+                        "Studio testnet (ngrok)",
+                        DarkfiEndpoint(
+                            host = "epidermis-sandbox-marshland.ngrok-free.dev",
+                            port = 443,
+                            isTls = true,
+                        ),
+                    ),
+                    DarkfiEndpointPreset(
                         "Local lightwalletd (loopback / adb reverse)",
                         DarkfiEndpoint(
                             host = "127.0.0.1",

@@ -34,14 +34,23 @@ data class DarkfiEndpoint(
         /** `darkfid_config.toml` → `[network_config."localnet"].management_rpc`. */
         const val DARKFID_MANAGEMENT_RPC_PORT_LOCALNET: Int = 28346
 
-        /** Defaults to standalone lightwalletd. Network match is enforced at sync via chain_name. */
+        /** Defaults to Studio testnet LWD via ngrok. Network match is enforced at sync via chain_name. */
         @Suppress("UNUSED_PARAMETER")
         fun defaultForNetwork(network: DarkfiNetwork): DarkfiEndpoint =
-            DarkfiEndpoint(
-                host = "127.0.0.1",
-                port = LIGHTWALLET_GRPC_PORT,
-                isTls = false,
-            )
+            when (network) {
+                DarkfiNetwork.Testnet ->
+                    DarkfiEndpoint(
+                        host = "epidermis-sandbox-marshland.ngrok-free.dev",
+                        port = 443,
+                        isTls = true,
+                    )
+                DarkfiNetwork.Mainnet ->
+                    DarkfiEndpoint(
+                        host = "127.0.0.1",
+                        port = LIGHTWALLET_GRPC_PORT,
+                        isTls = false,
+                    )
+            }
 
         fun fromJson(obj: JSONObject): DarkfiEndpoint =
             DarkfiEndpoint(

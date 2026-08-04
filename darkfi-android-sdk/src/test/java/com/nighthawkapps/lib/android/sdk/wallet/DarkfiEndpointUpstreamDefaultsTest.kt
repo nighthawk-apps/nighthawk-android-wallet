@@ -14,9 +14,14 @@ class DarkfiEndpointUpstreamDefaultsTest {
     }
 
     @Test
-    fun defaultTestnetIsStandaloneLightwalletd() {
+    fun defaultTestnetIsStudioNgrokHttps() {
         val ep = DarkfiEndpoint.defaultForNetwork(DarkfiNetwork.Testnet)
-        assertEquals(DarkfiEndpoint.LIGHTWALLET_GRPC_PORT, ep.port)
+        assertEquals(443, ep.port)
+        assertEquals(true, ep.isTls)
+        assertEquals(
+            "tcp+tls://epidermis-sandbox-marshland.ngrok-free.dev:443",
+            ep.toDisplayString(),
+        )
     }
 
     @Test

@@ -1,7 +1,8 @@
 package com.nighthawkapps.lib.android.sdk.wallet
 
 /**
- * Ensures the wallet sync endpoint is standalone lightwalletd (:9067).
+ * Ensures the wallet sync endpoint is standalone lightwalletd
+ * (:9067 cleartext / :9068 alt / :443 TLS terminator e.g. ngrok).
  * Network (testnet vs mainnet) is validated at sync via `GetLightInfo.chain_name`.
  */
 object DarkfiEndpointNetworkGuard {
@@ -15,15 +16,26 @@ object DarkfiEndpointNetworkGuard {
         ) : Result
     }
 
+    /** Ports accepted for lightwalletd gRPC (matches iOS / desktop allow-lists). */
+    val allowedPorts: Set<Int> =
+        setOf(
+            DarkfiEndpoint.LIGHTWALLET_GRPC_PORT,
+            9068,
+            443,
+        )
+
     fun validate(
         walletNetwork: DarkfiNetwork,
         endpoint: DarkfiEndpoint,
     ): Result {
-        val expectedPort = DarkfiEndpoint.LIGHTWALLET_GRPC_PORT
-        return if (endpoint.port == expectedPort) {
+        return if (endpoint.port in allowedPorts) {
             Result.Ok
         } else {
-            Result.Mismatch(walletNetwork, endpoint.port, expectedPort)
+            Result.Mismatch(
+                walletNetwork,
+                endpoint.port,
+                DarkfiEndpoint.LIGHTWALLET_GRPC_PORT,
+            )
         }
     }
 
@@ -32,7 +44,7 @@ object DarkfiEndpointNetworkGuard {
             append("Server endpoint uses port ")
             append(result.endpointPort)
             append(" but this wallet expects lightwalletd on ")
-            append(result.expectedPort)
-            append(". Open Change server and pick Local lightwalletd.")
+            append(allowedPorts.sorted().joinToString("/"))
+            append(". Open Change server and pick a lightwalletd endpoint.")
         }
 }
