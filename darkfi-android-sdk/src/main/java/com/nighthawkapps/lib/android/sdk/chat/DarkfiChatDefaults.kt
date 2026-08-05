@@ -36,13 +36,15 @@ object DarkfiChatDefaults {
         )
 
     /**
-     * Default IRC topics from upstream `[channel."#…"]` blocks in `darkirc_config.toml`.
-     * `#hackers` is in **`autojoin`** but has no dedicated `[channel]` block upstream.
+     * Default IRC topics from upstream `[channel."#…"]` blocks in `darkirc_config.toml`,
+     * plus a Nighthawk-only fill for `#hackers` (autojoin upstream, no `[channel]` topic).
      */
     val DEFAULT_CHANNEL_TOPICS: Map<String, String> =
         mapOf(
             "#dev" to "DarkFi Development HQ",
             "#media" to "DarkFi Art, Fashion, Video, Memetics",
+            // Nighthawk fill — not present in upstream darkirc_config.toml.
+            "#hackers" to "Hacker Culture",
             "#memes" to "DarkFi Meme Reality",
             "#philosophy" to "Philosophy Discussions",
             "#markets" to "Crypto Market Talk",

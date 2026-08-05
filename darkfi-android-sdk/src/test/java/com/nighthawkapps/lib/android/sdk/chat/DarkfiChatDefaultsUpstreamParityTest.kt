@@ -51,7 +51,8 @@ class DarkfiChatDefaultsUpstreamParityTest {
 
     @Test
     fun defaultChannelTopicsMatchPinnedDarkircConfig() {
-        val expected =
+        // Upstream `[channel."#…"]` topic blocks only — `#hackers` has none.
+        val upstreamTopics =
             mapOf(
                 "#dev" to "DarkFi Development HQ",
                 "#media" to "DarkFi Art, Fashion, Video, Memetics",
@@ -62,6 +63,11 @@ class DarkfiChatDefaultsUpstreamParityTest {
                 "#random" to "/b/",
                 "#lunardao" to "LunarDAO talk",
             )
-        assertEquals(expected, DarkfiChatDefaults.DEFAULT_CHANNEL_TOPICS)
+        for ((channel, topic) in upstreamTopics) {
+            assertEquals(topic, DarkfiChatDefaults.DEFAULT_CHANNEL_TOPICS[channel], channel)
+        }
+        // Intentional Nighthawk fill for autojoin channel with no upstream topic.
+        assertEquals("Hacker Culture", DarkfiChatDefaults.DEFAULT_CHANNEL_TOPICS["#hackers"])
+        assertEquals(upstreamTopics.size + 1, DarkfiChatDefaults.DEFAULT_CHANNEL_TOPICS.size)
     }
 }
