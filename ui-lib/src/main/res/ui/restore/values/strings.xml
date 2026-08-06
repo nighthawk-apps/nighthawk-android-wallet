@@ -484,6 +484,8 @@
     <string name="dialog_first_use_view_tx_title">Potential Privacy Risk</string>
     <string name="keep_screen_on">Keep Screen on</string>
     <string name="keep_screen_on_detail_msg">If you haven\'t opened your wallet in a while, the sync process can take some time. Setting screen mode to \"Keep on\" will ensure your phone doesn\'t fall asleep while syncing.</string>
+    <string name="strict_omr_only">Strict UnifOMR sync</string>
+    <string name="strict_omr_only_detail_msg">When enabled, Nighthawk only discovers payments that include UnifOMR clues (faster and more private). Leave off (default) to also trial-decrypt compact blocks so you can receive from other DarkFi wallets such as the drk CLI. Turning this on can hide/miss syncing those non-UnifOMR payments.</string>
     <string name="advanced">Advanced</string>
     <string name="advanced_msg">Less common settings</string>
     <string name="nuke_wallet">Nuke Wallet</string>

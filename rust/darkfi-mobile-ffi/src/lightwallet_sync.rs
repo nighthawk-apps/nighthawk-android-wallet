@@ -230,9 +230,10 @@ impl SyncEngine {
             server_endpoint,
             tls_pin_sha256,
             max_omr_failures: DEFAULT_MAX_OMR_FAILURES,
-            // Production default: no trial-decrypt fallback (privacy).
-            // Use SyncEngine::set_strict_omr_only(false) for recovery / tests.
-            strict_omr_only: std::sync::atomic::AtomicBool::new(true),
+            // Nighthawk default: allow supplemental trial decrypt so users can
+            // receive from non-UnifOMR wallets (e.g. upstream `drk`). Enable
+            // via Advanced Settings / DrkBootstrapConfig for max privacy.
+            strict_omr_only: std::sync::atomic::AtomicBool::new(false),
             prev_chain_tip: std::sync::atomic::AtomicU32::new(0),
             last_tip_update: std::sync::atomic::AtomicU64::new(0),
             reorg_callback: std::sync::Mutex::new(None),
@@ -263,7 +264,10 @@ impl SyncEngine {
         self.strict_omr_only.load(std::sync::atomic::Ordering::Relaxed)
     }
 
-    /// Enable or disable strict OMR-only mode (production default is enabled).
+    /// Enable or disable strict OMR-only mode.
+    ///
+    /// Nighthawk apps default this to `false` (cross-wallet receive). Moonshine
+    /// keeps UnifOMR-only behavior in its own sync engine.
     pub fn set_strict_omr_only(&self, strict: bool) {
         self.strict_omr_only
             .store(strict, std::sync::atomic::Ordering::Relaxed);
@@ -777,7 +781,7 @@ mod tests {
     #[test]
     fn test_set_omr_unavailable_strict_refuses_trial() {
         let engine = SyncEngine::new("x".to_string());
-        // strict_omr_only defaults true
+        engine.set_strict_omr_only(true);
         engine.set_omr_available(true);
         engine.set_omr_available(false);
         assert_eq!(engine.snapshot().status, LightSyncStatus::Error);
@@ -787,7 +791,7 @@ mod tests {
     #[test]
     fn test_set_omr_unavailable_switches_omr_to_trial_when_not_strict() {
         let engine = SyncEngine::new("x".to_string());
-        engine.set_strict_omr_only(false);
+        // Default is non-strict (cross-wallet receive).
         engine.set_omr_available(true);
         engine.set_omr_available(false);
         assert_eq!(engine.snapshot().sync_type, LightSyncType::TrialDecryption);

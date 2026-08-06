@@ -299,6 +299,10 @@ class NativeDarkfiSynchronizer internal constructor(
 
     override fun generateNewAddress(): String = handle.generateNewAddress()
 
+    override fun setStrictOmrOnly(strict: Boolean) {
+        handle.setStrictOmrOnly(strict)
+    }
+
     override suspend fun refreshNow() {
         _status.value = DarkfiSyncStatus.SYNCING
         runCatching { handle.refreshNow() }

@@ -67,6 +67,12 @@ interface DarkfiSynchronizer {
     /** Updates wallet status from darkfid RPC probe (upstream `connect` signal parity). */
     fun applyDarkfidReachability(reachable: Boolean) {}
 
+    /**
+     * When true, sync is UnifOMR-only (no supplemental/gap trial decrypt).
+     * Default for Nighthawk is false so non-UnifOMR senders (e.g. `drk`) can be received.
+     */
+    fun setStrictOmrOnly(strict: Boolean) {}
+
     /** True when this synchronizer can build and broadcast transfers via on-device `drk`. */
     val supportsNativeTransfer: Boolean
 

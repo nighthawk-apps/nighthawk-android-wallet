@@ -199,6 +199,10 @@ pub struct DrkBootstrapConfig {
     pub tor_socks_port: u16,
     /// Optional darkfid JSON-RPC for broadcast fallback only. Empty/`None` = LWD-only.
     pub darkfid_rpc_url: Option<String>,
+    /// When `true`, refuse supplemental / gap trial-decrypt (UnifOMR-only).
+    /// Nighthawk defaults this to `false` so users can receive from non-UnifOMR
+    /// wallets (e.g. upstream `drk`). Toggle via Advanced Settings.
+    pub strict_omr_only: bool,
 }
 
 impl std::fmt::Debug for DrkBootstrapConfig {
@@ -218,6 +222,7 @@ impl std::fmt::Debug for DrkBootstrapConfig {
             .field("use_tor", &self.use_tor)
             .field("tor_socks_port", &self.tor_socks_port)
             .field("darkfid_rpc_url", &self.darkfid_rpc_url)
+            .field("strict_omr_only", &self.strict_omr_only)
             .finish()
     }
 }
@@ -687,6 +692,7 @@ impl DarkfiWalletHandle {
                 .ok()
                 .flatten(),
         ));
+        sync_engine.set_strict_omr_only(config.strict_omr_only);
         sync::start_background_sync(drk.clone(), ex, sync_engine.clone());
         let mut config = config;
         config.zeroize_secrets();
@@ -700,6 +706,16 @@ impl DarkfiWalletHandle {
 
     pub fn light_sync_snapshot(&self) -> DrkLightSyncState {
         self.sync_engine.snapshot().into()
+    }
+
+    /// Enable or disable strict UnifOMR-only sync (no trial-decrypt fallback).
+    pub fn set_strict_omr_only(&self, strict: bool) {
+        self.sync_engine.set_strict_omr_only(strict);
+    }
+
+    /// Whether strict UnifOMR-only sync is currently enabled.
+    pub fn strict_omr_only(&self) -> bool {
+        self.sync_engine.strict_omr_only()
     }
 
     pub fn confirmed_balance_atomic(&self) -> ResultWallet<i64> {
@@ -1229,6 +1245,7 @@ mod tests {
             use_tor: false,
             tor_socks_port: 9150,
             darkfid_rpc_url: None,
+            strict_omr_only: false,
         }
     }
 

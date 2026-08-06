@@ -39,7 +39,7 @@ From the repository root (first-time or after vendored DarkFi / native code chan
 
 # 2) Android SDK + NDK
 export ANDROID_HOME="$HOME/Library/Android/sdk"
-export ANDROID_NDK_HOME="$ANDROID_HOME/ndk/$(ls "$ANDROID_HOME/ndk" | sort -V | tail -1)"
+export ANDROID_NDK_HOME="$ANDROID_HOME/ndk/26.1.10909125"
 export PATH="$PATH:$ANDROID_HOME/platform-tools"
 
 # 3) UniFFI wallet native lib + Kotlin bindings
@@ -112,7 +112,7 @@ rustup target add aarch64-linux-android armv7-linux-androideabi i686-linux-andro
 Produces `libdarkfi_mobile_ffi.so` per ABI, copies into `artifacts/mobile-ffi/` and `darkfi-android-sdk/src/main/jniLibs/`, and regenerates Kotlin bindings from `rust/darkfi-mobile-ffi/src/darkfi_mobile_ffi.udl`.
 
 ```bash
-export ANDROID_NDK_HOME=/path/to/ndk   # e.g. ~/Library/Android/sdk/ndk/29.0.14206865
+export ANDROID_NDK_HOME=/path/to/ndk   # e.g. ~/Library/Android/sdk/ndk/26.1.10909125
 ./scripts/build-darkfi-mobile-ffi-android.sh
 
 # Emulator + device only:
@@ -271,7 +271,7 @@ Enable Tor in settings. The SDK rewrites the lightwallet URL to `socks5://proxy/
 - Crypto parity: RLWE `n=1024`, signed AHE, `CLUE_ERROR_BOUND=2`, length-prefixed SealPIR limbs
 - Flow: RegisterCluePublicKey → GetClue → SendTransaction(omr_clue) → GetUnifOmrDigest → FetchPirBatch
 - Sync fail-closed if clue PK registration fails; send uses LWD `SendTransaction` only (24h clue hint)
-- Empty OMR → supplemental trial decrypt (unless `strict_omr_only`)
+- **Trial-decrypt fallback (default on):** when UnifOMR returns no matches (or large gaps), the wallet supplemental trial-decrypts compact blocks so you can receive from non-UnifOMR wallets such as upstream `drk`. Toggle **Strict UnifOMR sync** under Advanced settings to disable this (UnifOMR-only, more private / faster when counterparties also use UnifOMR).
 - Default local endpoint: `http://127.0.0.1:9067`
 - Limits: [`doc/unifomr_mvp_limits.md`](doc/unifomr_mvp_limits.md)
 

@@ -787,6 +787,10 @@ internal object IntegrityCheckingUniffiLib {
     ): Int
     external fun uniffi_darkfi_mobile_ffi_checksum_method_darkfiwallethandle_set_reorg_callback(
     ): Int
+    external fun uniffi_darkfi_mobile_ffi_checksum_method_darkfiwallethandle_set_strict_omr_only(
+    ): Int
+    external fun uniffi_darkfi_mobile_ffi_checksum_method_darkfiwallethandle_strict_omr_only(
+    ): Int
     external fun uniffi_darkfi_mobile_ffi_checksum_method_darkfiwallethandle_sync_snapshot(
     ): Int
     external fun uniffi_darkfi_mobile_ffi_checksum_method_darkfiwallethandle_transaction_payment_memo(
@@ -861,6 +865,10 @@ internal object UniffiLib {
     ): RustBuffer.ByValue
     external fun uniffi_darkfi_mobile_ffi_fn_method_darkfiwallethandle_set_reorg_callback(`ptr`: Long,`callback`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
     ): Unit
+    external fun uniffi_darkfi_mobile_ffi_fn_method_darkfiwallethandle_set_strict_omr_only(`ptr`: Long,`strict`: Byte,uniffi_out_err: UniffiRustCallStatus, 
+    ): Unit
+    external fun uniffi_darkfi_mobile_ffi_fn_method_darkfiwallethandle_strict_omr_only(`ptr`: Long,uniffi_out_err: UniffiRustCallStatus, 
+    ): Byte
     external fun uniffi_darkfi_mobile_ffi_fn_method_darkfiwallethandle_sync_snapshot(`ptr`: Long,uniffi_out_err: UniffiRustCallStatus, 
     ): RustBuffer.ByValue
     external fun uniffi_darkfi_mobile_ffi_fn_method_darkfiwallethandle_transaction_payment_memo(`ptr`: Long,`txHash`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
@@ -1127,6 +1135,12 @@ private fun uniffiCheckApiChecksums(lib: IntegrityCheckingUniffiLib) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if (lib.uniffi_darkfi_mobile_ffi_checksum_method_darkfiwallethandle_set_reorg_callback() != 19199) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_darkfi_mobile_ffi_checksum_method_darkfiwallethandle_set_strict_omr_only() != 57332) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_darkfi_mobile_ffi_checksum_method_darkfiwallethandle_strict_omr_only() != 1580) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if (lib.uniffi_darkfi_mobile_ffi_checksum_method_darkfiwallethandle_sync_snapshot() != 34731) {
@@ -1704,6 +1718,16 @@ public interface DarkfiWalletHandleInterface {
      */
     fun `setReorgCallback`(`callback`: ReorgEventCallback?)
     
+    /**
+     * Enable or disable strict UnifOMR-only sync (no trial-decrypt fallback).
+     */
+    fun `setStrictOmrOnly`(`strict`: kotlin.Boolean)
+    
+    /**
+     * Whether strict UnifOMR-only sync is currently enabled.
+     */
+    fun `strictOmrOnly`(): kotlin.Boolean
+    
     fun `syncSnapshot`(): DrkSyncSnapshot
     
     fun `transactionPaymentMemo`(`txHash`: kotlin.String): kotlin.String?
@@ -2104,6 +2128,38 @@ open class DarkfiWalletHandle: Disposable, AutoCloseable, DarkfiWalletHandleInte
     
 
     
+    /**
+     * Enable or disable strict UnifOMR-only sync (no trial-decrypt fallback).
+     */override fun `setStrictOmrOnly`(`strict`: kotlin.Boolean)
+        = 
+    callWithHandle {
+    uniffiRustCall() { _status ->
+    UniffiLib.uniffi_darkfi_mobile_ffi_fn_method_darkfiwallethandle_set_strict_omr_only(
+        it,
+        
+        FfiConverterBoolean.lower(`strict`),_status)
+}
+    }
+    
+    
+
+    
+    /**
+     * Whether strict UnifOMR-only sync is currently enabled.
+     */override fun `strictOmrOnly`(): kotlin.Boolean {
+            return FfiConverterBoolean.lift(
+    callWithHandle {
+    uniffiRustCall() { _status ->
+    UniffiLib.uniffi_darkfi_mobile_ffi_fn_method_darkfiwallethandle_strict_omr_only(
+        it,
+        _status)
+}
+    }
+    )
+    }
+    
+
+    
     @Throws(DarkfiWalletNativeException::class)override fun `syncSnapshot`(): DrkSyncSnapshot {
             return FfiConverterTypeDrkSyncSnapshot.lift(
     callWithHandle {
@@ -2254,6 +2310,11 @@ data class DrkBootstrapConfig (
      * Leave unset/empty for lightwalletd-only (recommended). Never hardcode a testnet port.
      */
     var `darkfidRpcUrl`: kotlin.String?
+    , 
+    /**
+     * When true, UnifOMR-only (no supplemental/gap trial decrypt). Nighthawk default false.
+     */
+    var `strictOmrOnly`: kotlin.Boolean
     
 ){
     
@@ -2281,6 +2342,7 @@ public object FfiConverterTypeDrkBootstrapConfig: FfiConverterRustBuffer<DrkBoot
             FfiConverterBoolean.read(buf),
             FfiConverterUShort.read(buf),
             FfiConverterOptionalString.read(buf),
+            FfiConverterBoolean.read(buf),
         )
     }
 
@@ -2295,7 +2357,8 @@ public object FfiConverterTypeDrkBootstrapConfig: FfiConverterRustBuffer<DrkBoot
             FfiConverterOptionalSequenceUByte.allocationSize(value.`lightwalletTlsPinSha256`) +
             FfiConverterBoolean.allocationSize(value.`useTor`) +
             FfiConverterUShort.allocationSize(value.`torSocksPort`) +
-            FfiConverterOptionalString.allocationSize(value.`darkfidRpcUrl`)
+            FfiConverterOptionalString.allocationSize(value.`darkfidRpcUrl`) +
+            FfiConverterBoolean.allocationSize(value.`strictOmrOnly`)
     )
 
     override fun write(value: DrkBootstrapConfig, buf: ByteBuffer) {
@@ -2310,6 +2373,7 @@ public object FfiConverterTypeDrkBootstrapConfig: FfiConverterRustBuffer<DrkBoot
             FfiConverterBoolean.write(value.`useTor`, buf)
             FfiConverterUShort.write(value.`torSocksPort`, buf)
             FfiConverterOptionalString.write(value.`darkfidRpcUrl`, buf)
+            FfiConverterBoolean.write(value.`strictOmrOnly`, buf)
     }
 }
 

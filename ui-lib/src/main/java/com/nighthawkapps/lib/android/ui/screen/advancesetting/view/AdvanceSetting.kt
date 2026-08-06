@@ -56,11 +56,13 @@ fun AdvanceSettingPreview() {
         Surface {
             AdvanceSetting(
                 isScreenOnEnabled = true,
+                isStrictOmrOnly = false,
                 isBanditAvailable = true,
                 themeVariant = AppThemeVariant.STEALTH_DEFAULT,
                 preferredLogo = null,
                 allAvailableLogo = AvailableLogo.entries.toPersistentList(),
                 onScreenOnEnabledChanged = {},
+                onStrictOmrOnlyChanged = {},
                 onBack = {},
                 onNukeWallet = {},
                 onLogoPreferenceChanged = {},
@@ -73,11 +75,13 @@ fun AdvanceSettingPreview() {
 @Composable
 fun AdvanceSetting(
     isScreenOnEnabled: Boolean?,
+    isStrictOmrOnly: Boolean,
     isBanditAvailable: Boolean,
     preferredLogo: AvailableLogo?,
     themeVariant: AppThemeVariant,
     allAvailableLogo: PersistentList<AvailableLogo>,
     onScreenOnEnabledChanged: (isEnabled: Boolean) -> Unit,
+    onStrictOmrOnlyChanged: (isEnabled: Boolean) -> Unit,
     onBack: () -> Unit,
     onNukeWallet: () -> Unit,
     onLogoPreferenceChanged: (availableLogo: AvailableLogo) -> Unit,
@@ -131,6 +135,34 @@ fun AdvanceSetting(
             Switch(
                 checked = isScreenOnEnabled ?: false,
                 onCheckedChange = { onScreenOnEnabledChanged(it) },
+            )
+        }
+
+        Spacer(modifier = Modifier.height(24.dp))
+        TitleMedium(
+            text = stringResource(id = R.string.strict_omr_only),
+            color =
+                colorResource(
+                    id = com.nighthawkapps.lib.android.ui.design.R.color.ns_parmaviolet
+                )
+        )
+        Spacer(modifier = Modifier.height(24.dp))
+        Row(
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = 40.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            BodyMedium(
+                text = stringResource(id = R.string.strict_omr_only_detail_msg),
+                modifier = Modifier.weight(1f)
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            Switch(
+                checked = isStrictOmrOnly,
+                onCheckedChange = { onStrictOmrOnlyChanged(it) },
             )
         }
 

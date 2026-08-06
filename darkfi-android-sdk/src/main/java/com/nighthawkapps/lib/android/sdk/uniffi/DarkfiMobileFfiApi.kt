@@ -82,6 +82,7 @@ object DarkfiMobileFfiApi {
             useTor = useTor,
             torSocksPort = prefs.socksPort.toUShort(),
             darkfidRpcUrl = null, // LWD-only; never hardcode a darkfid testnet port
+            strictOmrOnly = prefs.strictOmrOnly,
         )
     }
 

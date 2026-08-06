@@ -11,9 +11,13 @@ import com.nighthawkapps.lib.android.ui.common.ANDROID_STATE_FLOW_TIMEOUT
 import com.nighthawkapps.lib.android.ui.design.theme.AppThemeVariant
 import com.nighthawkapps.lib.android.ui.preference.StandardPreferenceKeys
 import com.nighthawkapps.lib.android.ui.preference.StandardPreferenceSingleton
+import com.nighthawkapps.lib.android.sdk.chat.DarkfiChatPreferences
+import com.nighthawkapps.lib.android.global.AppWalletCoordinator
 import com.nighthawkapps.lib.android.ui.screen.advancesetting.model.AvailableLogo
 import com.nighthawkapps.lib.android.ui.screen.advancesetting.model.OneLauncherAlias
 import com.nighthawkapps.lib.android.ui.screen.advancesetting.model.TwoLauncherAlias
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.WhileSubscribed
@@ -39,6 +43,10 @@ class SettingsViewModel(
 
     val isKeepScreenOnWhileSyncing: StateFlow<Boolean?> =
         booleanStateFlow(StandardPreferenceKeys.IS_KEEP_SCREEN_ON_DURING_SYNC)
+
+    private val _isStrictOmrOnly =
+        MutableStateFlow(DarkfiChatPreferences(getApplication()).strictOmrOnly)
+    val isStrictOmrOnly: StateFlow<Boolean> = _isStrictOmrOnly.asStateFlow()
 
     val isBanditAvailable =
         flow {
@@ -99,6 +107,15 @@ class SettingsViewModel(
 
     fun setKeepScreenOnWhileSyncing(enabled: Boolean) {
         setBooleanPreference(StandardPreferenceKeys.IS_KEEP_SCREEN_ON_DURING_SYNC, enabled)
+    }
+
+    fun setStrictOmrOnly(enabled: Boolean) {
+        DarkfiChatPreferences(getApplication()).strictOmrOnly = enabled
+        _isStrictOmrOnly.value = enabled
+        // Apply immediately to the live wallet handle when open.
+        viewModelScope.launch {
+            AppWalletCoordinator.get(getApplication()).synchronizer.value?.setStrictOmrOnly(enabled)
+        }
     }
 
     fun setBanditStatus(enabled: Boolean) {

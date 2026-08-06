@@ -65,6 +65,8 @@ dictionary DrkBootstrapConfig {
     /// Optional darkfid JSON-RPC URL for broadcast fallback only.
     /// Leave unset/empty for lightwalletd-only (recommended). Never hardcode a testnet port.
     string? darkfid_rpc_url;
+    /// When true, UnifOMR-only (no supplemental/gap trial decrypt). Nighthawk default false.
+    boolean strict_omr_only;
 };
 
 dictionary DrkSyncSnapshot {
@@ -216,6 +218,12 @@ interface DarkfiWalletHandle {
     DrkSyncSnapshot sync_snapshot();
 
     DrkLightSyncState light_sync_snapshot();
+
+    /// Enable or disable strict UnifOMR-only sync (no trial-decrypt fallback).
+    void set_strict_omr_only(boolean strict);
+
+    /// Whether strict UnifOMR-only sync is currently enabled.
+    boolean strict_omr_only();
 
     [Throws=DarkfiWalletNativeError]
     sequence<u8> build_transfer(string recipient_address, string amount, string? token_id, string? payment_memo);

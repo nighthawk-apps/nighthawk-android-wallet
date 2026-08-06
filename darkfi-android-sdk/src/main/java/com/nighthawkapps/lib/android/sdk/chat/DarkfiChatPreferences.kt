@@ -26,6 +26,16 @@ class DarkfiChatPreferences(
             sp.edit().putBoolean(KEY_TOR, value).apply()
         }
 
+    /**
+     * When true, wallet sync is UnifOMR-only (no supplemental/gap trial decrypt).
+     * Default false so Nighthawk can receive from non-UnifOMR wallets (e.g. upstream `drk`).
+     */
+    var strictOmrOnly: Boolean
+        get() = sp.getBoolean(KEY_STRICT_OMR_ONLY, false)
+        set(value) {
+            sp.edit().putBoolean(KEY_STRICT_OMR_ONLY, value).apply()
+        }
+
     /** Synonym for [routeOutboundThroughTor] (historic “chat toggle” wording). */
     var useTorForChat: Boolean
         get() = routeOutboundThroughTor
@@ -164,6 +174,7 @@ class DarkfiChatPreferences(
     companion object {
         private const val PREFS_NAME = "darkfi_chat_transport"
         private const val KEY_TOR = "prefer_tor_like_use_tor_txt"
+        private const val KEY_STRICT_OMR_ONLY = "darkfi_strict_omr_only"
         private const val KEY_IRC_HOST = "darkfi_irc_host"
         private const val KEY_IRC_PORT = "darkfi_irc_port"
         private const val KEY_IRC_NICK = "darkfi_irc_nickname"

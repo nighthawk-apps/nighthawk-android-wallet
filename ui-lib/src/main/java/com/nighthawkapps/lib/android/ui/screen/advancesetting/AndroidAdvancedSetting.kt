@@ -24,17 +24,20 @@ internal fun WrapAdvanceSetting(
 ) {
     val settingsViewModel = viewModel<SettingsViewModel>()
     val isScreenOnEnabled = settingsViewModel.isKeepScreenOnWhileSyncing.collectAsStateWithLifecycle().value
+    val isStrictOmrOnly = settingsViewModel.isStrictOmrOnly.collectAsStateWithLifecycle().value
     val isBanditAvailable = settingsViewModel.isBanditAvailable.collectAsStateWithLifecycle().value
     val preferredLogo = settingsViewModel.preferredLogo.collectAsStateWithLifecycle().value
     val themeVariant = settingsViewModel.appThemeVariant.collectAsStateWithLifecycle().value
     AdvanceSetting(
         isScreenOnEnabled = isScreenOnEnabled,
+        isStrictOmrOnly = isStrictOmrOnly,
         isBanditAvailable = isBanditAvailable,
         preferredLogo = preferredLogo,
         themeVariant = themeVariant,
         allAvailableLogo = AvailableLogo.entries.toPersistentList(),
         onScreenOnEnabledChanged =
             settingsViewModel::setKeepScreenOnWhileSyncing,
+        onStrictOmrOnlyChanged = settingsViewModel::setStrictOmrOnly,
         onBack = onBack,
         onNukeWallet = {
             (activity.getSystemService(ACTIVITY_SERVICE) as ActivityManager)
