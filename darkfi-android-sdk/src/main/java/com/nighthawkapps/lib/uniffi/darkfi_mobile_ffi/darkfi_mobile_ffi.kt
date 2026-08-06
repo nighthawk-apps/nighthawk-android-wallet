@@ -99,6 +99,43 @@ internal open class ForeignBytes : Structure() {
 
     class ByValue : ForeignBytes(), Structure.ByValue
 }
+
+// Converter for `&[u8]` / `[ByRef] bytes` arguments.
+//
+// Only `lower` is valid — zero-copy byte buffers only flow foreign -> Rust,
+// and only in argument position. `lift`, `read`, `write`, and
+// `allocationSize` have no sound implementation here and all panic at
+// runtime. The `FfiConverter` interface is implemented so that the
+// compiler enforces the full method set (rather than relying on eyeball).
+//
+// The provided `ByteBuffer` MUST be direct — only direct buffers have a
+// stable native address that JNA can expose via `getDirectBufferPointer`.
+// The returned `ForeignBytes.ByValue` is only valid for the duration of
+// the FFI call; the Rust side treats it as a borrow.
+internal object FfiConverterByRefBytes : FfiConverter<java.nio.ByteBuffer, ForeignBytes.ByValue> {
+    override fun lower(value: java.nio.ByteBuffer): ForeignBytes.ByValue {
+        require(value.isDirect) { "UniFFI zero-copy &[u8] requires a direct ByteBuffer. Use ByteBuffer.allocateDirect()." }
+        val remaining = value.remaining()
+        val fb = ForeignBytes.ByValue()
+        fb.len = remaining
+        // Zero-length direct buffers: skip getDirectBufferPointer (platform-variable behavior)
+        // and pass null. The Rust side treats (null, 0) as &[].
+        fb.data = if (remaining == 0) null else com.sun.jna.Native.getDirectBufferPointer(value)
+        return fb
+    }
+
+    override fun lift(value: ForeignBytes.ByValue): java.nio.ByteBuffer =
+        error("ByRef bytes cannot be lifted: zero-copy &[u8] only flows foreign->Rust")
+
+    override fun read(buf: java.nio.ByteBuffer): java.nio.ByteBuffer =
+        error("ByRef bytes cannot be read from a buffer: zero-copy &[u8] is only supported in argument position, not nested in records/options/etc.")
+
+    override fun write(value: java.nio.ByteBuffer, buf: java.nio.ByteBuffer): Unit =
+        error("ByRef bytes cannot be written to a buffer: zero-copy &[u8] is only supported in argument position, not nested in records/options/etc.")
+
+    override fun allocationSize(value: java.nio.ByteBuffer): ULong =
+        error("ByRef bytes have no RustBuffer allocation size: zero-copy &[u8] is only supported in argument position, not nested in records/options/etc.")
+}
 /**
  * The FfiConverter interface handles converter types to and from the FFI
  *
@@ -783,197 +820,197 @@ internal object UniffiLib {
         
     }
     external fun uniffi_darkfi_mobile_ffi_fn_clone_darkfiwallethandle(`handle`: Long,uniffi_out_err: UniffiRustCallStatus, 
-): Long
-external fun uniffi_darkfi_mobile_ffi_fn_free_darkfiwallethandle(`handle`: Long,uniffi_out_err: UniffiRustCallStatus, 
-): Unit
-external fun uniffi_darkfi_mobile_ffi_fn_constructor_darkfiwallethandle_new(`config`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
-): Long
-external fun uniffi_darkfi_mobile_ffi_fn_method_darkfiwallethandle_broadcast_transfer(`ptr`: Long,`txBytes`: RustBuffer.ByValue,`paymentMemo`: RustBuffer.ByValue,`recipientAddress`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
-): RustBuffer.ByValue
-external fun uniffi_darkfi_mobile_ffi_fn_method_darkfiwallethandle_build_transfer(`ptr`: Long,`recipientAddress`: RustBuffer.ByValue,`amount`: RustBuffer.ByValue,`tokenId`: RustBuffer.ByValue,`paymentMemo`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
-): RustBuffer.ByValue
-external fun uniffi_darkfi_mobile_ffi_fn_method_darkfiwallethandle_confirmed_balance_atomic(`ptr`: Long,uniffi_out_err: UniffiRustCallStatus, 
-): Long
-external fun uniffi_darkfi_mobile_ffi_fn_method_darkfiwallethandle_dao_propose_transfer(`ptr`: Long,`daoName`: RustBuffer.ByValue,`durationBlockwindows`: Long,`amount`: RustBuffer.ByValue,`tokenId`: RustBuffer.ByValue,`recipientAddress`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
-): RustBuffer.ByValue
-external fun uniffi_darkfi_mobile_ffi_fn_method_darkfiwallethandle_dao_vote(`ptr`: Long,`proposalBullaB58`: RustBuffer.ByValue,`voteYes`: Byte,uniffi_out_err: UniffiRustCallStatus, 
-): RustBuffer.ByValue
-external fun uniffi_darkfi_mobile_ffi_fn_method_darkfiwallethandle_estimate_transfer_fee(`ptr`: Long,`recipientAddress`: RustBuffer.ByValue,`amount`: RustBuffer.ByValue,`tokenId`: RustBuffer.ByValue,`paymentMemo`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
-): Long
-external fun uniffi_darkfi_mobile_ffi_fn_method_darkfiwallethandle_generate_new_address(`ptr`: Long,uniffi_out_err: UniffiRustCallStatus, 
-): RustBuffer.ByValue
-external fun uniffi_darkfi_mobile_ffi_fn_method_darkfiwallethandle_get_proposal(`ptr`: Long,`proposalBullaB58`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
-): RustBuffer.ByValue
-external fun uniffi_darkfi_mobile_ffi_fn_method_darkfiwallethandle_handle_reorg_recovery(`ptr`: Long,`rewindToHeight`: Int,uniffi_out_err: UniffiRustCallStatus, 
-): RustBuffer.ByValue
-external fun uniffi_darkfi_mobile_ffi_fn_method_darkfiwallethandle_light_sync_snapshot(`ptr`: Long,uniffi_out_err: UniffiRustCallStatus, 
-): RustBuffer.ByValue
-external fun uniffi_darkfi_mobile_ffi_fn_method_darkfiwallethandle_list_addresses(`ptr`: Long,uniffi_out_err: UniffiRustCallStatus, 
-): RustBuffer.ByValue
-external fun uniffi_darkfi_mobile_ffi_fn_method_darkfiwallethandle_list_daos(`ptr`: Long,uniffi_out_err: UniffiRustCallStatus, 
-): RustBuffer.ByValue
-external fun uniffi_darkfi_mobile_ffi_fn_method_darkfiwallethandle_list_proposals(`ptr`: Long,`daoName`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
-): RustBuffer.ByValue
-external fun uniffi_darkfi_mobile_ffi_fn_method_darkfiwallethandle_list_token_balances(`ptr`: Long,uniffi_out_err: UniffiRustCallStatus, 
-): RustBuffer.ByValue
-external fun uniffi_darkfi_mobile_ffi_fn_method_darkfiwallethandle_list_transactions(`ptr`: Long,uniffi_out_err: UniffiRustCallStatus, 
-): RustBuffer.ByValue
-external fun uniffi_darkfi_mobile_ffi_fn_method_darkfiwallethandle_primary_deposit_address(`ptr`: Long,uniffi_out_err: UniffiRustCallStatus, 
-): RustBuffer.ByValue
-external fun uniffi_darkfi_mobile_ffi_fn_method_darkfiwallethandle_refresh_now(`ptr`: Long,uniffi_out_err: UniffiRustCallStatus, 
-): RustBuffer.ByValue
-external fun uniffi_darkfi_mobile_ffi_fn_method_darkfiwallethandle_set_reorg_callback(`ptr`: Long,`callback`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
-): Unit
-external fun uniffi_darkfi_mobile_ffi_fn_method_darkfiwallethandle_sync_snapshot(`ptr`: Long,uniffi_out_err: UniffiRustCallStatus, 
-): RustBuffer.ByValue
-external fun uniffi_darkfi_mobile_ffi_fn_method_darkfiwallethandle_transaction_payment_memo(`ptr`: Long,`txHash`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
-): RustBuffer.ByValue
-external fun uniffi_darkfi_mobile_ffi_fn_method_darkfiwallethandle_transaction_recipient(`ptr`: Long,`txHash`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
-): RustBuffer.ByValue
-external fun uniffi_darkfi_mobile_ffi_fn_init_callback_vtable_darkirceventcallback(`vtable`: UniffiVTableCallbackInterfaceDarkircEventCallback,
-): Unit
-external fun uniffi_darkfi_mobile_ffi_fn_init_callback_vtable_reorgeventcallback(`vtable`: UniffiVTableCallbackInterfaceReorgEventCallback,
-): Unit
-external fun uniffi_darkfi_mobile_ffi_fn_func_bridge_ping(uniffi_out_err: UniffiRustCallStatus, 
-): RustBuffer.ByValue
-external fun uniffi_darkfi_mobile_ffi_fn_func_bridge_version(uniffi_out_err: UniffiRustCallStatus, 
-): RustBuffer.ByValue
-external fun uniffi_darkfi_mobile_ffi_fn_func_chacha_decrypt_dm(`mySecret`: RustBuffer.ByValue,`theirPublic`: RustBuffer.ByValue,`ciphertextB58`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
-): RustBuffer.ByValue
-external fun uniffi_darkfi_mobile_ffi_fn_func_chacha_encrypt_dm(`mySecret`: RustBuffer.ByValue,`theirPublic`: RustBuffer.ByValue,`plaintext`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
-): RustBuffer.ByValue
-external fun uniffi_darkfi_mobile_ffi_fn_func_darkirc_connection_phase(uniffi_out_err: UniffiRustCallStatus, 
-): RustBuffer.ByValue
-external fun uniffi_darkfi_mobile_ffi_fn_func_darkirc_status(uniffi_out_err: UniffiRustCallStatus, 
-): RustBuffer.ByValue
-external fun uniffi_darkfi_mobile_ffi_fn_func_decode_chat_entropy(`phrase`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
-): RustBuffer.ByValue
-external fun uniffi_darkfi_mobile_ffi_fn_func_generate_bip39_chat_mnemonic(uniffi_out_err: UniffiRustCallStatus, 
-): RustBuffer.ByValue
-external fun uniffi_darkfi_mobile_ffi_fn_func_generate_darkfi_mnemonic(uniffi_out_err: UniffiRustCallStatus, 
-): RustBuffer.ByValue
-external fun uniffi_darkfi_mobile_ffi_fn_func_generate_dm_keypair(uniffi_out_err: UniffiRustCallStatus, 
-): RustBuffer.ByValue
-external fun uniffi_darkfi_mobile_ffi_fn_func_is_arti_running(uniffi_out_err: UniffiRustCallStatus, 
-): Byte
-external fun uniffi_darkfi_mobile_ffi_fn_func_send_chat_message(`channel`: RustBuffer.ByValue,`nick`: RustBuffer.ByValue,`message`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
-): Unit
-external fun uniffi_darkfi_mobile_ffi_fn_func_start_arti_proxy(`socksListen`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
-): Byte
-external fun uniffi_darkfi_mobile_ffi_fn_func_start_darkirc(`datastorePath`: RustBuffer.ByValue,`useTor`: Byte,`torSocksPort`: Short,`callback`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
-): Unit
-external fun uniffi_darkfi_mobile_ffi_fn_func_stop_arti_proxy(uniffi_out_err: UniffiRustCallStatus, 
-): Unit
-external fun uniffi_darkfi_mobile_ffi_fn_func_stop_darkirc(uniffi_out_err: UniffiRustCallStatus, 
-): Unit
-external fun uniffi_darkfi_mobile_ffi_fn_func_validate_darkfi_mnemonic(`phrase`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
-): Byte
-external fun ffi_darkfi_mobile_ffi_rustbuffer_alloc(`size`: Long,uniffi_out_err: UniffiRustCallStatus, 
-): RustBuffer.ByValue
-external fun ffi_darkfi_mobile_ffi_rustbuffer_from_bytes(`bytes`: ForeignBytes.ByValue,uniffi_out_err: UniffiRustCallStatus, 
-): RustBuffer.ByValue
-external fun ffi_darkfi_mobile_ffi_rustbuffer_free(`buf`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
-): Unit
-external fun ffi_darkfi_mobile_ffi_rustbuffer_reserve(`buf`: RustBuffer.ByValue,`additional`: Long,uniffi_out_err: UniffiRustCallStatus, 
-): RustBuffer.ByValue
-external fun ffi_darkfi_mobile_ffi_rust_future_poll_u8(`handle`: Long,`callback`: UniffiRustFutureContinuationCallback,`callbackData`: Long,
-): Unit
-external fun ffi_darkfi_mobile_ffi_rust_future_cancel_u8(`handle`: Long,
-): Unit
-external fun ffi_darkfi_mobile_ffi_rust_future_free_u8(`handle`: Long,
-): Unit
-external fun ffi_darkfi_mobile_ffi_rust_future_complete_u8(`handle`: Long,uniffi_out_err: UniffiRustCallStatus, 
-): Int
-external fun ffi_darkfi_mobile_ffi_rust_future_poll_i8(`handle`: Long,`callback`: UniffiRustFutureContinuationCallback,`callbackData`: Long,
-): Unit
-external fun ffi_darkfi_mobile_ffi_rust_future_cancel_i8(`handle`: Long,
-): Unit
-external fun ffi_darkfi_mobile_ffi_rust_future_free_i8(`handle`: Long,
-): Unit
-external fun ffi_darkfi_mobile_ffi_rust_future_complete_i8(`handle`: Long,uniffi_out_err: UniffiRustCallStatus, 
-): Byte
-external fun ffi_darkfi_mobile_ffi_rust_future_poll_u16(`handle`: Long,`callback`: UniffiRustFutureContinuationCallback,`callbackData`: Long,
-): Unit
-external fun ffi_darkfi_mobile_ffi_rust_future_cancel_u16(`handle`: Long,
-): Unit
-external fun ffi_darkfi_mobile_ffi_rust_future_free_u16(`handle`: Long,
-): Unit
-external fun ffi_darkfi_mobile_ffi_rust_future_complete_u16(`handle`: Long,uniffi_out_err: UniffiRustCallStatus, 
-): Int
-external fun ffi_darkfi_mobile_ffi_rust_future_poll_i16(`handle`: Long,`callback`: UniffiRustFutureContinuationCallback,`callbackData`: Long,
-): Unit
-external fun ffi_darkfi_mobile_ffi_rust_future_cancel_i16(`handle`: Long,
-): Unit
-external fun ffi_darkfi_mobile_ffi_rust_future_free_i16(`handle`: Long,
-): Unit
-external fun ffi_darkfi_mobile_ffi_rust_future_complete_i16(`handle`: Long,uniffi_out_err: UniffiRustCallStatus, 
-): Short
-external fun ffi_darkfi_mobile_ffi_rust_future_poll_u32(`handle`: Long,`callback`: UniffiRustFutureContinuationCallback,`callbackData`: Long,
-): Unit
-external fun ffi_darkfi_mobile_ffi_rust_future_cancel_u32(`handle`: Long,
-): Unit
-external fun ffi_darkfi_mobile_ffi_rust_future_free_u32(`handle`: Long,
-): Unit
-external fun ffi_darkfi_mobile_ffi_rust_future_complete_u32(`handle`: Long,uniffi_out_err: UniffiRustCallStatus, 
-): Int
-external fun ffi_darkfi_mobile_ffi_rust_future_poll_i32(`handle`: Long,`callback`: UniffiRustFutureContinuationCallback,`callbackData`: Long,
-): Unit
-external fun ffi_darkfi_mobile_ffi_rust_future_cancel_i32(`handle`: Long,
-): Unit
-external fun ffi_darkfi_mobile_ffi_rust_future_free_i32(`handle`: Long,
-): Unit
-external fun ffi_darkfi_mobile_ffi_rust_future_complete_i32(`handle`: Long,uniffi_out_err: UniffiRustCallStatus, 
-): Int
-external fun ffi_darkfi_mobile_ffi_rust_future_poll_u64(`handle`: Long,`callback`: UniffiRustFutureContinuationCallback,`callbackData`: Long,
-): Unit
-external fun ffi_darkfi_mobile_ffi_rust_future_cancel_u64(`handle`: Long,
-): Unit
-external fun ffi_darkfi_mobile_ffi_rust_future_free_u64(`handle`: Long,
-): Unit
-external fun ffi_darkfi_mobile_ffi_rust_future_complete_u64(`handle`: Long,uniffi_out_err: UniffiRustCallStatus, 
-): Long
-external fun ffi_darkfi_mobile_ffi_rust_future_poll_i64(`handle`: Long,`callback`: UniffiRustFutureContinuationCallback,`callbackData`: Long,
-): Unit
-external fun ffi_darkfi_mobile_ffi_rust_future_cancel_i64(`handle`: Long,
-): Unit
-external fun ffi_darkfi_mobile_ffi_rust_future_free_i64(`handle`: Long,
-): Unit
-external fun ffi_darkfi_mobile_ffi_rust_future_complete_i64(`handle`: Long,uniffi_out_err: UniffiRustCallStatus, 
-): Long
-external fun ffi_darkfi_mobile_ffi_rust_future_poll_f32(`handle`: Long,`callback`: UniffiRustFutureContinuationCallback,`callbackData`: Long,
-): Unit
-external fun ffi_darkfi_mobile_ffi_rust_future_cancel_f32(`handle`: Long,
-): Unit
-external fun ffi_darkfi_mobile_ffi_rust_future_free_f32(`handle`: Long,
-): Unit
-external fun ffi_darkfi_mobile_ffi_rust_future_complete_f32(`handle`: Long,uniffi_out_err: UniffiRustCallStatus, 
-): Float
-external fun ffi_darkfi_mobile_ffi_rust_future_poll_f64(`handle`: Long,`callback`: UniffiRustFutureContinuationCallback,`callbackData`: Long,
-): Unit
-external fun ffi_darkfi_mobile_ffi_rust_future_cancel_f64(`handle`: Long,
-): Unit
-external fun ffi_darkfi_mobile_ffi_rust_future_free_f64(`handle`: Long,
-): Unit
-external fun ffi_darkfi_mobile_ffi_rust_future_complete_f64(`handle`: Long,uniffi_out_err: UniffiRustCallStatus, 
-): Double
-external fun ffi_darkfi_mobile_ffi_rust_future_poll_rust_buffer(`handle`: Long,`callback`: UniffiRustFutureContinuationCallback,`callbackData`: Long,
-): Unit
-external fun ffi_darkfi_mobile_ffi_rust_future_cancel_rust_buffer(`handle`: Long,
-): Unit
-external fun ffi_darkfi_mobile_ffi_rust_future_free_rust_buffer(`handle`: Long,
-): Unit
-external fun ffi_darkfi_mobile_ffi_rust_future_complete_rust_buffer(`handle`: Long,uniffi_out_err: UniffiRustCallStatus, 
-): RustBuffer.ByValue
-external fun ffi_darkfi_mobile_ffi_rust_future_poll_void(`handle`: Long,`callback`: UniffiRustFutureContinuationCallback,`callbackData`: Long,
-): Unit
-external fun ffi_darkfi_mobile_ffi_rust_future_cancel_void(`handle`: Long,
-): Unit
-external fun ffi_darkfi_mobile_ffi_rust_future_free_void(`handle`: Long,
-): Unit
-external fun ffi_darkfi_mobile_ffi_rust_future_complete_void(`handle`: Long,uniffi_out_err: UniffiRustCallStatus, 
-): Unit
+    ): Long
+    external fun uniffi_darkfi_mobile_ffi_fn_free_darkfiwallethandle(`handle`: Long,uniffi_out_err: UniffiRustCallStatus, 
+    ): Unit
+    external fun uniffi_darkfi_mobile_ffi_fn_constructor_darkfiwallethandle_new(`config`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    ): Long
+    external fun uniffi_darkfi_mobile_ffi_fn_method_darkfiwallethandle_broadcast_transfer(`ptr`: Long,`txBytes`: RustBuffer.ByValue,`paymentMemo`: RustBuffer.ByValue,`recipientAddress`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
+    external fun uniffi_darkfi_mobile_ffi_fn_method_darkfiwallethandle_build_transfer(`ptr`: Long,`recipientAddress`: RustBuffer.ByValue,`amount`: RustBuffer.ByValue,`tokenId`: RustBuffer.ByValue,`paymentMemo`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
+    external fun uniffi_darkfi_mobile_ffi_fn_method_darkfiwallethandle_confirmed_balance_atomic(`ptr`: Long,uniffi_out_err: UniffiRustCallStatus, 
+    ): Long
+    external fun uniffi_darkfi_mobile_ffi_fn_method_darkfiwallethandle_dao_propose_transfer(`ptr`: Long,`daoName`: RustBuffer.ByValue,`durationBlockwindows`: Long,`amount`: RustBuffer.ByValue,`tokenId`: RustBuffer.ByValue,`recipientAddress`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
+    external fun uniffi_darkfi_mobile_ffi_fn_method_darkfiwallethandle_dao_vote(`ptr`: Long,`proposalBullaB58`: RustBuffer.ByValue,`voteYes`: Byte,uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
+    external fun uniffi_darkfi_mobile_ffi_fn_method_darkfiwallethandle_estimate_transfer_fee(`ptr`: Long,`recipientAddress`: RustBuffer.ByValue,`amount`: RustBuffer.ByValue,`tokenId`: RustBuffer.ByValue,`paymentMemo`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    ): Long
+    external fun uniffi_darkfi_mobile_ffi_fn_method_darkfiwallethandle_generate_new_address(`ptr`: Long,uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
+    external fun uniffi_darkfi_mobile_ffi_fn_method_darkfiwallethandle_get_proposal(`ptr`: Long,`proposalBullaB58`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
+    external fun uniffi_darkfi_mobile_ffi_fn_method_darkfiwallethandle_handle_reorg_recovery(`ptr`: Long,`rewindToHeight`: Int,uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
+    external fun uniffi_darkfi_mobile_ffi_fn_method_darkfiwallethandle_light_sync_snapshot(`ptr`: Long,uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
+    external fun uniffi_darkfi_mobile_ffi_fn_method_darkfiwallethandle_list_addresses(`ptr`: Long,uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
+    external fun uniffi_darkfi_mobile_ffi_fn_method_darkfiwallethandle_list_daos(`ptr`: Long,uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
+    external fun uniffi_darkfi_mobile_ffi_fn_method_darkfiwallethandle_list_proposals(`ptr`: Long,`daoName`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
+    external fun uniffi_darkfi_mobile_ffi_fn_method_darkfiwallethandle_list_token_balances(`ptr`: Long,uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
+    external fun uniffi_darkfi_mobile_ffi_fn_method_darkfiwallethandle_list_transactions(`ptr`: Long,uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
+    external fun uniffi_darkfi_mobile_ffi_fn_method_darkfiwallethandle_primary_deposit_address(`ptr`: Long,uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
+    external fun uniffi_darkfi_mobile_ffi_fn_method_darkfiwallethandle_refresh_now(`ptr`: Long,uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
+    external fun uniffi_darkfi_mobile_ffi_fn_method_darkfiwallethandle_set_reorg_callback(`ptr`: Long,`callback`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    ): Unit
+    external fun uniffi_darkfi_mobile_ffi_fn_method_darkfiwallethandle_sync_snapshot(`ptr`: Long,uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
+    external fun uniffi_darkfi_mobile_ffi_fn_method_darkfiwallethandle_transaction_payment_memo(`ptr`: Long,`txHash`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
+    external fun uniffi_darkfi_mobile_ffi_fn_method_darkfiwallethandle_transaction_recipient(`ptr`: Long,`txHash`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
+    external fun uniffi_darkfi_mobile_ffi_fn_init_callback_vtable_darkirceventcallback(`vtable`: UniffiVTableCallbackInterfaceDarkircEventCallback,
+    ): Unit
+    external fun uniffi_darkfi_mobile_ffi_fn_init_callback_vtable_reorgeventcallback(`vtable`: UniffiVTableCallbackInterfaceReorgEventCallback,
+    ): Unit
+    external fun uniffi_darkfi_mobile_ffi_fn_func_bridge_ping(uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
+    external fun uniffi_darkfi_mobile_ffi_fn_func_bridge_version(uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
+    external fun uniffi_darkfi_mobile_ffi_fn_func_chacha_decrypt_dm(`mySecret`: RustBuffer.ByValue,`theirPublic`: RustBuffer.ByValue,`ciphertextB58`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
+    external fun uniffi_darkfi_mobile_ffi_fn_func_chacha_encrypt_dm(`mySecret`: RustBuffer.ByValue,`theirPublic`: RustBuffer.ByValue,`plaintext`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
+    external fun uniffi_darkfi_mobile_ffi_fn_func_darkirc_connection_phase(uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
+    external fun uniffi_darkfi_mobile_ffi_fn_func_darkirc_status(uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
+    external fun uniffi_darkfi_mobile_ffi_fn_func_decode_chat_entropy(`phrase`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
+    external fun uniffi_darkfi_mobile_ffi_fn_func_generate_bip39_chat_mnemonic(uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
+    external fun uniffi_darkfi_mobile_ffi_fn_func_generate_darkfi_mnemonic(uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
+    external fun uniffi_darkfi_mobile_ffi_fn_func_generate_dm_keypair(uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
+    external fun uniffi_darkfi_mobile_ffi_fn_func_is_arti_running(uniffi_out_err: UniffiRustCallStatus, 
+    ): Byte
+    external fun uniffi_darkfi_mobile_ffi_fn_func_send_chat_message(`channel`: RustBuffer.ByValue,`nick`: RustBuffer.ByValue,`message`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    ): Unit
+    external fun uniffi_darkfi_mobile_ffi_fn_func_start_arti_proxy(`socksListen`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    ): Byte
+    external fun uniffi_darkfi_mobile_ffi_fn_func_start_darkirc(`datastorePath`: RustBuffer.ByValue,`useTor`: Byte,`torSocksPort`: Short,`callback`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    ): Unit
+    external fun uniffi_darkfi_mobile_ffi_fn_func_stop_arti_proxy(uniffi_out_err: UniffiRustCallStatus, 
+    ): Unit
+    external fun uniffi_darkfi_mobile_ffi_fn_func_stop_darkirc(uniffi_out_err: UniffiRustCallStatus, 
+    ): Unit
+    external fun uniffi_darkfi_mobile_ffi_fn_func_validate_darkfi_mnemonic(`phrase`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    ): Byte
+    external fun ffi_darkfi_mobile_ffi_rustbuffer_alloc(`size`: Long,uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
+    external fun ffi_darkfi_mobile_ffi_rustbuffer_from_bytes(`bytes`: ForeignBytes.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
+    external fun ffi_darkfi_mobile_ffi_rustbuffer_free(`buf`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    ): Unit
+    external fun ffi_darkfi_mobile_ffi_rustbuffer_reserve(`buf`: RustBuffer.ByValue,`additional`: Long,uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
+    external fun ffi_darkfi_mobile_ffi_rust_future_poll_u8(`handle`: Long,`callback`: UniffiRustFutureContinuationCallback,`callbackData`: Long,
+    ): Unit
+    external fun ffi_darkfi_mobile_ffi_rust_future_cancel_u8(`handle`: Long,
+    ): Unit
+    external fun ffi_darkfi_mobile_ffi_rust_future_free_u8(`handle`: Long,
+    ): Unit
+    external fun ffi_darkfi_mobile_ffi_rust_future_complete_u8(`handle`: Long,uniffi_out_err: UniffiRustCallStatus, 
+    ): Int
+    external fun ffi_darkfi_mobile_ffi_rust_future_poll_i8(`handle`: Long,`callback`: UniffiRustFutureContinuationCallback,`callbackData`: Long,
+    ): Unit
+    external fun ffi_darkfi_mobile_ffi_rust_future_cancel_i8(`handle`: Long,
+    ): Unit
+    external fun ffi_darkfi_mobile_ffi_rust_future_free_i8(`handle`: Long,
+    ): Unit
+    external fun ffi_darkfi_mobile_ffi_rust_future_complete_i8(`handle`: Long,uniffi_out_err: UniffiRustCallStatus, 
+    ): Byte
+    external fun ffi_darkfi_mobile_ffi_rust_future_poll_u16(`handle`: Long,`callback`: UniffiRustFutureContinuationCallback,`callbackData`: Long,
+    ): Unit
+    external fun ffi_darkfi_mobile_ffi_rust_future_cancel_u16(`handle`: Long,
+    ): Unit
+    external fun ffi_darkfi_mobile_ffi_rust_future_free_u16(`handle`: Long,
+    ): Unit
+    external fun ffi_darkfi_mobile_ffi_rust_future_complete_u16(`handle`: Long,uniffi_out_err: UniffiRustCallStatus, 
+    ): Int
+    external fun ffi_darkfi_mobile_ffi_rust_future_poll_i16(`handle`: Long,`callback`: UniffiRustFutureContinuationCallback,`callbackData`: Long,
+    ): Unit
+    external fun ffi_darkfi_mobile_ffi_rust_future_cancel_i16(`handle`: Long,
+    ): Unit
+    external fun ffi_darkfi_mobile_ffi_rust_future_free_i16(`handle`: Long,
+    ): Unit
+    external fun ffi_darkfi_mobile_ffi_rust_future_complete_i16(`handle`: Long,uniffi_out_err: UniffiRustCallStatus, 
+    ): Short
+    external fun ffi_darkfi_mobile_ffi_rust_future_poll_u32(`handle`: Long,`callback`: UniffiRustFutureContinuationCallback,`callbackData`: Long,
+    ): Unit
+    external fun ffi_darkfi_mobile_ffi_rust_future_cancel_u32(`handle`: Long,
+    ): Unit
+    external fun ffi_darkfi_mobile_ffi_rust_future_free_u32(`handle`: Long,
+    ): Unit
+    external fun ffi_darkfi_mobile_ffi_rust_future_complete_u32(`handle`: Long,uniffi_out_err: UniffiRustCallStatus, 
+    ): Int
+    external fun ffi_darkfi_mobile_ffi_rust_future_poll_i32(`handle`: Long,`callback`: UniffiRustFutureContinuationCallback,`callbackData`: Long,
+    ): Unit
+    external fun ffi_darkfi_mobile_ffi_rust_future_cancel_i32(`handle`: Long,
+    ): Unit
+    external fun ffi_darkfi_mobile_ffi_rust_future_free_i32(`handle`: Long,
+    ): Unit
+    external fun ffi_darkfi_mobile_ffi_rust_future_complete_i32(`handle`: Long,uniffi_out_err: UniffiRustCallStatus, 
+    ): Int
+    external fun ffi_darkfi_mobile_ffi_rust_future_poll_u64(`handle`: Long,`callback`: UniffiRustFutureContinuationCallback,`callbackData`: Long,
+    ): Unit
+    external fun ffi_darkfi_mobile_ffi_rust_future_cancel_u64(`handle`: Long,
+    ): Unit
+    external fun ffi_darkfi_mobile_ffi_rust_future_free_u64(`handle`: Long,
+    ): Unit
+    external fun ffi_darkfi_mobile_ffi_rust_future_complete_u64(`handle`: Long,uniffi_out_err: UniffiRustCallStatus, 
+    ): Long
+    external fun ffi_darkfi_mobile_ffi_rust_future_poll_i64(`handle`: Long,`callback`: UniffiRustFutureContinuationCallback,`callbackData`: Long,
+    ): Unit
+    external fun ffi_darkfi_mobile_ffi_rust_future_cancel_i64(`handle`: Long,
+    ): Unit
+    external fun ffi_darkfi_mobile_ffi_rust_future_free_i64(`handle`: Long,
+    ): Unit
+    external fun ffi_darkfi_mobile_ffi_rust_future_complete_i64(`handle`: Long,uniffi_out_err: UniffiRustCallStatus, 
+    ): Long
+    external fun ffi_darkfi_mobile_ffi_rust_future_poll_f32(`handle`: Long,`callback`: UniffiRustFutureContinuationCallback,`callbackData`: Long,
+    ): Unit
+    external fun ffi_darkfi_mobile_ffi_rust_future_cancel_f32(`handle`: Long,
+    ): Unit
+    external fun ffi_darkfi_mobile_ffi_rust_future_free_f32(`handle`: Long,
+    ): Unit
+    external fun ffi_darkfi_mobile_ffi_rust_future_complete_f32(`handle`: Long,uniffi_out_err: UniffiRustCallStatus, 
+    ): Float
+    external fun ffi_darkfi_mobile_ffi_rust_future_poll_f64(`handle`: Long,`callback`: UniffiRustFutureContinuationCallback,`callbackData`: Long,
+    ): Unit
+    external fun ffi_darkfi_mobile_ffi_rust_future_cancel_f64(`handle`: Long,
+    ): Unit
+    external fun ffi_darkfi_mobile_ffi_rust_future_free_f64(`handle`: Long,
+    ): Unit
+    external fun ffi_darkfi_mobile_ffi_rust_future_complete_f64(`handle`: Long,uniffi_out_err: UniffiRustCallStatus, 
+    ): Double
+    external fun ffi_darkfi_mobile_ffi_rust_future_poll_rust_buffer(`handle`: Long,`callback`: UniffiRustFutureContinuationCallback,`callbackData`: Long,
+    ): Unit
+    external fun ffi_darkfi_mobile_ffi_rust_future_cancel_rust_buffer(`handle`: Long,
+    ): Unit
+    external fun ffi_darkfi_mobile_ffi_rust_future_free_rust_buffer(`handle`: Long,
+    ): Unit
+    external fun ffi_darkfi_mobile_ffi_rust_future_complete_rust_buffer(`handle`: Long,uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
+    external fun ffi_darkfi_mobile_ffi_rust_future_poll_void(`handle`: Long,`callback`: UniffiRustFutureContinuationCallback,`callbackData`: Long,
+    ): Unit
+    external fun ffi_darkfi_mobile_ffi_rust_future_cancel_void(`handle`: Long,
+    ): Unit
+    external fun ffi_darkfi_mobile_ffi_rust_future_free_void(`handle`: Long,
+    ): Unit
+    external fun ffi_darkfi_mobile_ffi_rust_future_complete_void(`handle`: Long,uniffi_out_err: UniffiRustCallStatus, 
+    ): Unit
 
-    
+        
 }
 
 private fun uniffiCheckContractApiVersion(lib: IntegrityCheckingUniffiLib) {
@@ -993,10 +1030,10 @@ private fun uniffiCheckApiChecksums(lib: IntegrityCheckingUniffiLib) {
     if (lib.uniffi_darkfi_mobile_ffi_checksum_func_bridge_version() != 4310) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_darkfi_mobile_ffi_checksum_func_chacha_decrypt_dm() != 31696) {
+    if (lib.uniffi_darkfi_mobile_ffi_checksum_func_chacha_decrypt_dm() != 30210) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_darkfi_mobile_ffi_checksum_func_chacha_encrypt_dm() != 54760) {
+    if (lib.uniffi_darkfi_mobile_ffi_checksum_func_chacha_encrypt_dm() != 37407) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if (lib.uniffi_darkfi_mobile_ffi_checksum_func_darkirc_connection_phase() != 60093) {
@@ -1005,13 +1042,13 @@ private fun uniffiCheckApiChecksums(lib: IntegrityCheckingUniffiLib) {
     if (lib.uniffi_darkfi_mobile_ffi_checksum_func_darkirc_status() != 29954) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_darkfi_mobile_ffi_checksum_func_decode_chat_entropy() != 49247) {
+    if (lib.uniffi_darkfi_mobile_ffi_checksum_func_decode_chat_entropy() != 57193) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_darkfi_mobile_ffi_checksum_func_generate_bip39_chat_mnemonic() != 13350) {
+    if (lib.uniffi_darkfi_mobile_ffi_checksum_func_generate_bip39_chat_mnemonic() != 52715) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_darkfi_mobile_ffi_checksum_func_generate_darkfi_mnemonic() != 7911) {
+    if (lib.uniffi_darkfi_mobile_ffi_checksum_func_generate_darkfi_mnemonic() != 48186) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if (lib.uniffi_darkfi_mobile_ffi_checksum_func_generate_dm_keypair() != 60508) {
@@ -1026,7 +1063,7 @@ private fun uniffiCheckApiChecksums(lib: IntegrityCheckingUniffiLib) {
     if (lib.uniffi_darkfi_mobile_ffi_checksum_func_start_arti_proxy() != 48169) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_darkfi_mobile_ffi_checksum_func_start_darkirc() != 37036) {
+    if (lib.uniffi_darkfi_mobile_ffi_checksum_func_start_darkirc() != 62586) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if (lib.uniffi_darkfi_mobile_ffi_checksum_func_stop_arti_proxy() != 38081) {
@@ -1035,25 +1072,25 @@ private fun uniffiCheckApiChecksums(lib: IntegrityCheckingUniffiLib) {
     if (lib.uniffi_darkfi_mobile_ffi_checksum_func_stop_darkirc() != 44306) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_darkfi_mobile_ffi_checksum_func_validate_darkfi_mnemonic() != 42375) {
+    if (lib.uniffi_darkfi_mobile_ffi_checksum_func_validate_darkfi_mnemonic() != 33875) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_darkfi_mobile_ffi_checksum_method_darkfiwallethandle_broadcast_transfer() != 37823) {
+    if (lib.uniffi_darkfi_mobile_ffi_checksum_method_darkfiwallethandle_broadcast_transfer() != 31867) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_darkfi_mobile_ffi_checksum_method_darkfiwallethandle_build_transfer() != 40440) {
+    if (lib.uniffi_darkfi_mobile_ffi_checksum_method_darkfiwallethandle_build_transfer() != 46602) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if (lib.uniffi_darkfi_mobile_ffi_checksum_method_darkfiwallethandle_confirmed_balance_atomic() != 48819) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_darkfi_mobile_ffi_checksum_method_darkfiwallethandle_dao_propose_transfer() != 16001) {
+    if (lib.uniffi_darkfi_mobile_ffi_checksum_method_darkfiwallethandle_dao_propose_transfer() != 39787) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if (lib.uniffi_darkfi_mobile_ffi_checksum_method_darkfiwallethandle_dao_vote() != 28282) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_darkfi_mobile_ffi_checksum_method_darkfiwallethandle_estimate_transfer_fee() != 27640) {
+    if (lib.uniffi_darkfi_mobile_ffi_checksum_method_darkfiwallethandle_estimate_transfer_fee() != 53987) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if (lib.uniffi_darkfi_mobile_ffi_checksum_method_darkfiwallethandle_generate_new_address() != 60300) {
@@ -1068,19 +1105,19 @@ private fun uniffiCheckApiChecksums(lib: IntegrityCheckingUniffiLib) {
     if (lib.uniffi_darkfi_mobile_ffi_checksum_method_darkfiwallethandle_light_sync_snapshot() != 6168) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_darkfi_mobile_ffi_checksum_method_darkfiwallethandle_list_addresses() != 34533) {
+    if (lib.uniffi_darkfi_mobile_ffi_checksum_method_darkfiwallethandle_list_addresses() != 441) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_darkfi_mobile_ffi_checksum_method_darkfiwallethandle_list_daos() != 26155) {
+    if (lib.uniffi_darkfi_mobile_ffi_checksum_method_darkfiwallethandle_list_daos() != 41886) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_darkfi_mobile_ffi_checksum_method_darkfiwallethandle_list_proposals() != 62268) {
+    if (lib.uniffi_darkfi_mobile_ffi_checksum_method_darkfiwallethandle_list_proposals() != 42935) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_darkfi_mobile_ffi_checksum_method_darkfiwallethandle_list_token_balances() != 28349) {
+    if (lib.uniffi_darkfi_mobile_ffi_checksum_method_darkfiwallethandle_list_token_balances() != 41120) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_darkfi_mobile_ffi_checksum_method_darkfiwallethandle_list_transactions() != 40596) {
+    if (lib.uniffi_darkfi_mobile_ffi_checksum_method_darkfiwallethandle_list_transactions() != 20689) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if (lib.uniffi_darkfi_mobile_ffi_checksum_method_darkfiwallethandle_primary_deposit_address() != 18714) {
@@ -1089,16 +1126,16 @@ private fun uniffiCheckApiChecksums(lib: IntegrityCheckingUniffiLib) {
     if (lib.uniffi_darkfi_mobile_ffi_checksum_method_darkfiwallethandle_refresh_now() != 57567) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_darkfi_mobile_ffi_checksum_method_darkfiwallethandle_set_reorg_callback() != 49654) {
+    if (lib.uniffi_darkfi_mobile_ffi_checksum_method_darkfiwallethandle_set_reorg_callback() != 19199) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if (lib.uniffi_darkfi_mobile_ffi_checksum_method_darkfiwallethandle_sync_snapshot() != 34731) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_darkfi_mobile_ffi_checksum_method_darkfiwallethandle_transaction_payment_memo() != 63542) {
+    if (lib.uniffi_darkfi_mobile_ffi_checksum_method_darkfiwallethandle_transaction_payment_memo() != 24617) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_darkfi_mobile_ffi_checksum_method_darkfiwallethandle_transaction_recipient() != 27939) {
+    if (lib.uniffi_darkfi_mobile_ffi_checksum_method_darkfiwallethandle_transaction_recipient() != 54355) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if (lib.uniffi_darkfi_mobile_ffi_checksum_constructor_darkfiwallethandle_new() != 8185) {
@@ -1705,6 +1742,7 @@ open class DarkfiWalletHandle: Disposable, AutoCloseable, DarkfiWalletHandleInte
     uniffiRustCallWithError(DarkfiWalletNativeException) { _status ->
     UniffiLib.uniffi_darkfi_mobile_ffi_fn_constructor_darkfiwallethandle_new(
     
+        
         FfiConverterTypeDrkBootstrapConfig.lower(`config`),_status)
 }
     )
@@ -1714,6 +1752,11 @@ open class DarkfiWalletHandle: Disposable, AutoCloseable, DarkfiWalletHandleInte
 
     private val wasDestroyed = AtomicBoolean(false)
     private val callCounter = AtomicLong(1)
+
+    /**
+     * Whether the current object has been destroyed and its reference is gone in the Rust side.
+     */
+    val uniffiIsDestroyed: Boolean get() = wasDestroyed.get()
 
     override fun destroy() {
         // Only allow a single call to this method.
@@ -1787,7 +1830,10 @@ open class DarkfiWalletHandle: Disposable, AutoCloseable, DarkfiWalletHandleInte
     uniffiRustCallWithError(DarkfiWalletNativeException) { _status ->
     UniffiLib.uniffi_darkfi_mobile_ffi_fn_method_darkfiwallethandle_broadcast_transfer(
         it,
-        FfiConverterSequenceUByte.lower(`txBytes`),FfiConverterOptionalString.lower(`paymentMemo`),FfiConverterOptionalString.lower(`recipientAddress`),_status)
+        
+        FfiConverterSequenceUByte.lower(`txBytes`),
+        FfiConverterOptionalString.lower(`paymentMemo`),
+        FfiConverterOptionalString.lower(`recipientAddress`),_status)
 }
     }
     )
@@ -1801,7 +1847,11 @@ open class DarkfiWalletHandle: Disposable, AutoCloseable, DarkfiWalletHandleInte
     uniffiRustCallWithError(DarkfiWalletNativeException) { _status ->
     UniffiLib.uniffi_darkfi_mobile_ffi_fn_method_darkfiwallethandle_build_transfer(
         it,
-        FfiConverterString.lower(`recipientAddress`),FfiConverterString.lower(`amount`),FfiConverterOptionalString.lower(`tokenId`),FfiConverterOptionalString.lower(`paymentMemo`),_status)
+        
+        FfiConverterString.lower(`recipientAddress`),
+        FfiConverterString.lower(`amount`),
+        FfiConverterOptionalString.lower(`tokenId`),
+        FfiConverterOptionalString.lower(`paymentMemo`),_status)
 }
     }
     )
@@ -1829,7 +1879,12 @@ open class DarkfiWalletHandle: Disposable, AutoCloseable, DarkfiWalletHandleInte
     uniffiRustCallWithError(DarkfiWalletNativeException) { _status ->
     UniffiLib.uniffi_darkfi_mobile_ffi_fn_method_darkfiwallethandle_dao_propose_transfer(
         it,
-        FfiConverterString.lower(`daoName`),FfiConverterULong.lower(`durationBlockwindows`),FfiConverterString.lower(`amount`),FfiConverterOptionalString.lower(`tokenId`),FfiConverterString.lower(`recipientAddress`),_status)
+        
+        FfiConverterString.lower(`daoName`),
+        FfiConverterULong.lower(`durationBlockwindows`),
+        FfiConverterString.lower(`amount`),
+        FfiConverterOptionalString.lower(`tokenId`),
+        FfiConverterString.lower(`recipientAddress`),_status)
 }
     }
     )
@@ -1843,7 +1898,9 @@ open class DarkfiWalletHandle: Disposable, AutoCloseable, DarkfiWalletHandleInte
     uniffiRustCallWithError(DarkfiWalletNativeException) { _status ->
     UniffiLib.uniffi_darkfi_mobile_ffi_fn_method_darkfiwallethandle_dao_vote(
         it,
-        FfiConverterString.lower(`proposalBullaB58`),FfiConverterBoolean.lower(`voteYes`),_status)
+        
+        FfiConverterString.lower(`proposalBullaB58`),
+        FfiConverterBoolean.lower(`voteYes`),_status)
 }
     }
     )
@@ -1857,7 +1914,11 @@ open class DarkfiWalletHandle: Disposable, AutoCloseable, DarkfiWalletHandleInte
     uniffiRustCallWithError(DarkfiWalletNativeException) { _status ->
     UniffiLib.uniffi_darkfi_mobile_ffi_fn_method_darkfiwallethandle_estimate_transfer_fee(
         it,
-        FfiConverterString.lower(`recipientAddress`),FfiConverterString.lower(`amount`),FfiConverterOptionalString.lower(`tokenId`),FfiConverterOptionalString.lower(`paymentMemo`),_status)
+        
+        FfiConverterString.lower(`recipientAddress`),
+        FfiConverterString.lower(`amount`),
+        FfiConverterOptionalString.lower(`tokenId`),
+        FfiConverterOptionalString.lower(`paymentMemo`),_status)
 }
     }
     )
@@ -1885,6 +1946,7 @@ open class DarkfiWalletHandle: Disposable, AutoCloseable, DarkfiWalletHandleInte
     uniffiRustCallWithError(DarkfiWalletNativeException) { _status ->
     UniffiLib.uniffi_darkfi_mobile_ffi_fn_method_darkfiwallethandle_get_proposal(
         it,
+        
         FfiConverterString.lower(`proposalBullaB58`),_status)
 }
     }
@@ -1904,6 +1966,7 @@ open class DarkfiWalletHandle: Disposable, AutoCloseable, DarkfiWalletHandleInte
     uniffiRustCallWithError(DarkfiWalletNativeException) { _status ->
     UniffiLib.uniffi_darkfi_mobile_ffi_fn_method_darkfiwallethandle_handle_reorg_recovery(
         it,
+        
         FfiConverterUInt.lower(`rewindToHeight`),_status)
 }
     }
@@ -1959,6 +2022,7 @@ open class DarkfiWalletHandle: Disposable, AutoCloseable, DarkfiWalletHandleInte
     uniffiRustCallWithError(DarkfiWalletNativeException) { _status ->
     UniffiLib.uniffi_darkfi_mobile_ffi_fn_method_darkfiwallethandle_list_proposals(
         it,
+        
         FfiConverterOptionalString.lower(`daoName`),_status)
 }
     }
@@ -2032,6 +2096,7 @@ open class DarkfiWalletHandle: Disposable, AutoCloseable, DarkfiWalletHandleInte
     uniffiRustCall() { _status ->
     UniffiLib.uniffi_darkfi_mobile_ffi_fn_method_darkfiwallethandle_set_reorg_callback(
         it,
+        
         FfiConverterOptionalTypeReorgEventCallback.lower(`callback`),_status)
 }
     }
@@ -2059,6 +2124,7 @@ open class DarkfiWalletHandle: Disposable, AutoCloseable, DarkfiWalletHandleInte
     uniffiRustCallWithError(DarkfiWalletNativeException) { _status ->
     UniffiLib.uniffi_darkfi_mobile_ffi_fn_method_darkfiwallethandle_transaction_payment_memo(
         it,
+        
         FfiConverterString.lower(`txHash`),_status)
 }
     }
@@ -2073,6 +2139,7 @@ open class DarkfiWalletHandle: Disposable, AutoCloseable, DarkfiWalletHandleInte
     uniffiRustCallWithError(DarkfiWalletNativeException) { _status ->
     UniffiLib.uniffi_darkfi_mobile_ffi_fn_method_darkfiwallethandle_transaction_recipient(
         it,
+        
         FfiConverterString.lower(`txHash`),_status)
 }
     }
@@ -3421,7 +3488,9 @@ public object FfiConverterSequenceTypeDrkTransactionRecord: FfiConverterRustBuff
             FfiConverterTypeDrkTransactionRecord.write(it, buf)
         }
     }
-} fun `bridgePing`(): kotlin.String {
+}
+
+fun `bridgePing`(): kotlin.String {
             return FfiConverterString.lift(
     uniffiRustCall() { _status ->
     UniffiLib.uniffi_darkfi_mobile_ffi_fn_func_bridge_ping(
@@ -3447,7 +3516,10 @@ public object FfiConverterSequenceTypeDrkTransactionRecord: FfiConverterRustBuff
     uniffiRustCallWithError(DarkfiWalletNativeException) { _status ->
     UniffiLib.uniffi_darkfi_mobile_ffi_fn_func_chacha_decrypt_dm(
     
-        FfiConverterSequenceUByte.lower(`mySecret`),FfiConverterSequenceUByte.lower(`theirPublic`),FfiConverterString.lower(`ciphertextB58`),_status)
+        
+        FfiConverterSequenceUByte.lower(`mySecret`),
+        FfiConverterSequenceUByte.lower(`theirPublic`),
+        FfiConverterString.lower(`ciphertextB58`),_status)
 }
     )
     }
@@ -3458,7 +3530,10 @@ public object FfiConverterSequenceTypeDrkTransactionRecord: FfiConverterRustBuff
     uniffiRustCallWithError(DarkfiWalletNativeException) { _status ->
     UniffiLib.uniffi_darkfi_mobile_ffi_fn_func_chacha_encrypt_dm(
     
-        FfiConverterSequenceUByte.lower(`mySecret`),FfiConverterSequenceUByte.lower(`theirPublic`),FfiConverterString.lower(`plaintext`),_status)
+        
+        FfiConverterSequenceUByte.lower(`mySecret`),
+        FfiConverterSequenceUByte.lower(`theirPublic`),
+        FfiConverterString.lower(`plaintext`),_status)
 }
     )
     }
@@ -3488,6 +3563,7 @@ public object FfiConverterSequenceTypeDrkTransactionRecord: FfiConverterRustBuff
     uniffiRustCall() { _status ->
     UniffiLib.uniffi_darkfi_mobile_ffi_fn_func_decode_chat_entropy(
     
+        
         FfiConverterSequenceString.lower(`phrase`),_status)
 }
     )
@@ -3539,7 +3615,10 @@ public object FfiConverterSequenceTypeDrkTransactionRecord: FfiConverterRustBuff
     uniffiRustCallWithError(DarkfiWalletNativeException) { _status ->
     UniffiLib.uniffi_darkfi_mobile_ffi_fn_func_send_chat_message(
     
-        FfiConverterString.lower(`channel`),FfiConverterString.lower(`nick`),FfiConverterString.lower(`message`),_status)
+        
+        FfiConverterString.lower(`channel`),
+        FfiConverterString.lower(`nick`),
+        FfiConverterString.lower(`message`),_status)
 }
     
     
@@ -3549,6 +3628,7 @@ public object FfiConverterSequenceTypeDrkTransactionRecord: FfiConverterRustBuff
     uniffiRustCallWithError(DarkfiWalletNativeException) { _status ->
     UniffiLib.uniffi_darkfi_mobile_ffi_fn_func_start_arti_proxy(
     
+        
         FfiConverterString.lower(`socksListen`),_status)
 }
     )
@@ -3560,7 +3640,11 @@ public object FfiConverterSequenceTypeDrkTransactionRecord: FfiConverterRustBuff
     uniffiRustCallWithError(DarkfiWalletNativeException) { _status ->
     UniffiLib.uniffi_darkfi_mobile_ffi_fn_func_start_darkirc(
     
-        FfiConverterString.lower(`datastorePath`),FfiConverterBoolean.lower(`useTor`),FfiConverterUShort.lower(`torSocksPort`),FfiConverterOptionalTypeDarkircEventCallback.lower(`callback`),_status)
+        
+        FfiConverterString.lower(`datastorePath`),
+        FfiConverterBoolean.lower(`useTor`),
+        FfiConverterUShort.lower(`torSocksPort`),
+        FfiConverterOptionalTypeDarkircEventCallback.lower(`callback`),_status)
 }
     
     
@@ -3588,6 +3672,7 @@ public object FfiConverterSequenceTypeDrkTransactionRecord: FfiConverterRustBuff
     uniffiRustCall() { _status ->
     UniffiLib.uniffi_darkfi_mobile_ffi_fn_func_validate_darkfi_mnemonic(
     
+        
         FfiConverterSequenceString.lower(`phrase`),_status)
 }
     )

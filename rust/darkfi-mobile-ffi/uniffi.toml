@@ -1,5 +1,6 @@
-# Kotlin bindings package for `uniffi-bindgen generate` (UniFFI ≥ 0.31).
-# Regenerate from repo root — see `rust/darkfi-mobile-ffi/README.md`.
+# Per-crate UniFFI config (discovered next to the UDL).
+# For UniFFI 0.32+, prefer omitting --config and letting bindgen load this file;
+# if you pass --config, use a global file with [crates.<name>] instead.
 [bindings.kotlin]
 package_name = "com.nighthawkapps.lib.uniffi.darkfi_mobile_ffi"
 cdylib_name = "darkfi_mobile_ffi"

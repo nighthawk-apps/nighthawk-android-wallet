@@ -141,4 +141,10 @@ echo "Regenerating Kotlin UniFFI bindings..."
     --no-format
 )
 
+# UniFFI 0.32 can fuse `}` with the next top-level `fun` (e.g. `} fun bridgePing`).
+KT_GEN="$ROOT/darkfi-android-sdk/src/main/java/com/nighthawkapps/lib/uniffi/darkfi_mobile_ffi/darkfi_mobile_ffi.kt"
+if [[ -f "$KT_GEN" ]]; then
+  perl -i -pe 's/^\} fun `/}\n\nfun `/g' "$KT_GEN"
+fi
+
 echo "UniFFI libs installed under artifacts/mobile-ffi/ and darkfi-android-sdk/src/main/jniLibs/"
