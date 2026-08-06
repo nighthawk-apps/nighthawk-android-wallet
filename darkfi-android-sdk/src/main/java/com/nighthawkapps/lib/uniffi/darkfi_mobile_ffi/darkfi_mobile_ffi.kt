@@ -688,6 +688,8 @@ internal object IntegrityCheckingUniffiLib {
     ): Int
     external fun uniffi_darkfi_mobile_ffi_checksum_func_chacha_encrypt_dm(
     ): Int
+    external fun uniffi_darkfi_mobile_ffi_checksum_func_darkirc_connection_phase(
+    ): Int
     external fun uniffi_darkfi_mobile_ffi_checksum_func_darkirc_status(
     ): Int
     external fun uniffi_darkfi_mobile_ffi_checksum_func_decode_chat_entropy(
@@ -839,6 +841,8 @@ external fun uniffi_darkfi_mobile_ffi_fn_func_bridge_version(uniffi_out_err: Uni
 external fun uniffi_darkfi_mobile_ffi_fn_func_chacha_decrypt_dm(`mySecret`: RustBuffer.ByValue,`theirPublic`: RustBuffer.ByValue,`ciphertextB58`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
 ): RustBuffer.ByValue
 external fun uniffi_darkfi_mobile_ffi_fn_func_chacha_encrypt_dm(`mySecret`: RustBuffer.ByValue,`theirPublic`: RustBuffer.ByValue,`plaintext`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+): RustBuffer.ByValue
+external fun uniffi_darkfi_mobile_ffi_fn_func_darkirc_connection_phase(uniffi_out_err: UniffiRustCallStatus, 
 ): RustBuffer.ByValue
 external fun uniffi_darkfi_mobile_ffi_fn_func_darkirc_status(uniffi_out_err: UniffiRustCallStatus, 
 ): RustBuffer.ByValue
@@ -993,6 +997,9 @@ private fun uniffiCheckApiChecksums(lib: IntegrityCheckingUniffiLib) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if (lib.uniffi_darkfi_mobile_ffi_checksum_func_chacha_encrypt_dm() != 54760) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_darkfi_mobile_ffi_checksum_func_darkirc_connection_phase() != 60093) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if (lib.uniffi_darkfi_mobile_ffi_checksum_func_darkirc_status() != 29954) {
@@ -3452,6 +3459,16 @@ public object FfiConverterSequenceTypeDrkTransactionRecord: FfiConverterRustBuff
     UniffiLib.uniffi_darkfi_mobile_ffi_fn_func_chacha_encrypt_dm(
     
         FfiConverterSequenceUByte.lower(`mySecret`),FfiConverterSequenceUByte.lower(`theirPublic`),FfiConverterString.lower(`plaintext`),_status)
+}
+    )
+    }
+    
+ fun `darkircConnectionPhase`(): kotlin.String {
+            return FfiConverterString.lift(
+    uniffiRustCall() { _status ->
+    UniffiLib.uniffi_darkfi_mobile_ffi_fn_func_darkirc_connection_phase(
+    
+        _status)
 }
     )
     }

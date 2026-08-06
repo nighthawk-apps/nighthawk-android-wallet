@@ -12,7 +12,10 @@
 //! reports `Connected` unless the Tor client genuinely bootstrapped. A failed
 //! bootstrap surfaces as `Failed`, so the UI cannot misrepresent Tor coverage.
 
-use std::sync::atomic::{AtomicU8, Ordering};
+use std::sync::{
+    atomic::{AtomicU8, Ordering},
+    Arc,
+};
 
 use arti_client::{TorClient, TorClientConfig};
 use futures::{AsyncReadExt, AsyncWriteExt};
@@ -100,21 +103,62 @@ pub fn is_arti_running() -> bool {
     ARTI_STATE.load(Ordering::SeqCst) == ARTI_CONNECTED
 }
 
+/// Block until Arti has bootstrapped (or [timeout] elapses / bootstrap failed).
+///
+/// Callers that install the process-wide SOCKS route must wait here before the
+/// first remote dial, otherwise lightwalletd / darkirc hit a listening-but-idle
+/// socket and fail.
+pub fn wait_until_running(timeout: std::time::Duration) -> Result<(), crate::DarkfiWalletNativeError> {
+    let deadline = std::time::Instant::now() + timeout;
+    loop {
+        match ARTI_STATE.load(Ordering::SeqCst) {
+            ARTI_CONNECTED => return Ok(()),
+            ARTI_FAILED => {
+                return Err(crate::DarkfiWalletNativeError::NativeDrkUnavailable(
+                    "Arti Tor bootstrap failed".into(),
+                ));
+            }
+            ARTI_STOPPED => {
+                // start_arti_proxy not called, or already stopped.
+                return Err(crate::DarkfiWalletNativeError::NativeDrkUnavailable(
+                    "Arti Tor proxy is not running".into(),
+                ));
+            }
+            _ => {
+                if std::time::Instant::now() >= deadline {
+                    return Err(crate::DarkfiWalletNativeError::NativeDrkUnavailable(
+                        "Timed out waiting for Arti Tor bootstrap".into(),
+                    ));
+                }
+                std::thread::sleep(std::time::Duration::from_millis(250));
+            }
+        }
+    }
+}
+
 /// Bootstrap the Tor client and serve SOCKS5 CONNECT requests until stopped.
 async fn run_socks_proxy(socks_port: u16) -> Result<(), String> {
-    // Bootstrap a real Tor client. This performs directory fetch + circuit
-    // setup; it can take 10-30s on first launch.
-    let config = TorClientConfig::default();
-    let tor_client = TorClient::create_bootstrapped(config)
-        .await
-        .map_err(|e| format!("Tor bootstrap failed: {e}"))?;
-
+    // Bind the SOCKS port *before* Tor bootstrap. Bootstrap can take 10–60s on
+    // first launch; if we only listen afterwards, Android readiness probes
+    // (30s) time out and darkirc/lightwalletd fail closed with "no SOCKS".
+    // A listening socket accepts TCP probes while we bootstrap; CONNECT
+    // handling starts only once the client is ready below.
     let listener = TcpListener::bind(("127.0.0.1", socks_port))
         .await
         .map_err(|e| format!("SOCKS bind on 127.0.0.1:{socks_port} failed: {e}"))?;
+    tracing::info!(
+        "arti SOCKS bound on 127.0.0.1:{socks_port}; bootstrapping Tor client..."
+    );
+
+    let config = TorClientConfig::default();
+    // Arti ≥0.45 returns Arc<TorClient<_>>; isolated_client() also yields Arc.
+    let tor_client: Arc<TorClient<tor_rtcompat::PreferredRuntime>> =
+        TorClient::create_bootstrapped(config)
+            .await
+            .map_err(|e| format!("Tor bootstrap failed: {e}"))?;
 
     ARTI_STATE.store(ARTI_CONNECTED, Ordering::SeqCst);
-    tracing::info!("arti SOCKS proxy bootstrapped and listening on 127.0.0.1:{socks_port}");
+    tracing::info!("arti SOCKS proxy bootstrapped and ready on 127.0.0.1:{socks_port}");
 
     loop {
         if ARTI_STOP_REQUESTED.load(Ordering::SeqCst) {
@@ -154,7 +198,7 @@ async fn run_socks_proxy(socks_port: u16) -> Result<(), String> {
 /// CONNECT target, dials it through Tor, and pipes bytes both ways.
 async fn handle_socks_conn(
     mut inbound: TcpStream,
-    tor_client: TorClient<tor_rtcompat::PreferredRuntime>,
+    tor_client: Arc<TorClient<tor_rtcompat::PreferredRuntime>>,
 ) -> Result<(), String> {
     // --- Greeting: VER, NMETHODS, METHODS... ---
     let mut head = [0u8; 2];

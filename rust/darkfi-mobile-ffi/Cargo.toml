@@ -25,8 +25,8 @@ darkirc = { path = "../../third_party/darkfi/bin/darkirc", optional = true }
 semver = "1.0.28"
 sled-overlay = "0.1.20"
 tracing = "0.1.44"
-arti-client = { version = "0.42.0", default-features = false, features = ["async-std", "compression", "error_detail", "rustls"] }
-tor-rtcompat = { version = "0.42.0", features = ["async-std", "rustls"] }
+arti-client = { version = "0.45.0", default-features = false, features = ["async-std", "compression", "error_detail", "rustls"] }
+tor-rtcompat = { version = "0.45.0", features = ["async-std", "rustls"] }
 darkfi-serial = { path = "../../third_party/darkfi/src/serial" }
 darkfi_money_contract = { path = "../../third_party/darkfi/src/contract/money", features = ["no-entrypoint", "client"] }
 darkfi_dao_contract = { path = "../../third_party/darkfi/src/contract/dao", features = ["no-entrypoint", "client"] }

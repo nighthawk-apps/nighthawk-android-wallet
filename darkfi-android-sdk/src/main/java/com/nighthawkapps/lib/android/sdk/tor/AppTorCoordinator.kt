@@ -13,6 +13,7 @@ import com.nighthawkapps.lib.android.sdk.wallet.darkfid.DarkfidDaemonBootstrap
 import com.nighthawkapps.lib.android.sdk.wallet.darkfid.DarkfidEmbeddedRunner
 import com.nighthawkapps.lib.android.sdk.wallet.darkfid.DarkfidP2pTransport
 import com.nighthawkapps.lib.android.spackle.Twig
+import com.nighthawkapps.lib.uniffi.darkfi_mobile_ffi.isArtiRunning
 import com.nighthawkapps.lib.uniffi.darkfi_mobile_ffi.startArtiProxy
 import com.nighthawkapps.lib.uniffi.darkfi_mobile_ffi.stopArtiProxy
 import kotlinx.coroutines.CoroutineScope
@@ -61,11 +62,24 @@ object AppTorCoordinator {
                     // Arti boots asynchronously via UniFFI thread; wait briefly before nudging SOCKS
                     delay(500)
                 }
-                TorSocksReadiness.awaitFirstReachablePort(
-                    "127.0.0.1",
-                    listOf(prefs.socksPort),
-                    deadlineMs = EXTERNAL_SOCKS_DEADLINE_MS,
-                )
+                // TCP bind can succeed before Tor circuits are ready (listener opens first).
+                // Wait for real bootstrap via isArtiRunning before handing the port to darkirc / LWD.
+                val port =
+                    TorSocksReadiness.awaitFirstReachablePort(
+                        "127.0.0.1",
+                        listOf(prefs.socksPort),
+                        deadlineMs = EXTERNAL_SOCKS_DEADLINE_MS,
+                    ) ?: return null
+                val bootstrapDeadline = System.currentTimeMillis() + ARTI_BOOTSTRAP_DEADLINE_MS
+                while (System.currentTimeMillis() < bootstrapDeadline) {
+                    if (runCatching { isArtiRunning() }.getOrDefault(false)) {
+                        Twig.info { "AppTor: Arti bootstrapped on port $port" }
+                        return port
+                    }
+                    delay(500)
+                }
+                Twig.warn { "AppTor: Arti SOCKS bound on $port but bootstrap timed out" }
+                null
             }
 
             else -> {
@@ -188,4 +202,7 @@ object AppTorCoordinator {
     }
 
     private const val EXTERNAL_SOCKS_DEADLINE_MS = 30_000L
+
+    /** First-launch Arti directory + circuit setup can exceed the TCP bind wait. */
+    private const val ARTI_BOOTSTRAP_DEADLINE_MS = 120_000L
 }

@@ -56,6 +56,21 @@ class TorDarkfidEndpointTest {
     }
 
     @Test
+    fun tls_endpoint_passthrough_when_tor_on() {
+        DarkfiChatPreferences(application).routeOutboundThroughTor = true
+        val endpoint =
+            DarkfiEndpoint(
+                host = "epidermis-sandbox-marshland.ngrok-free.dev",
+                port = 443,
+                isTls = true,
+            )
+        assertEquals(
+            "tcp+tls://epidermis-sandbox-marshland.ngrok-free.dev:443",
+            TorDarkfidEndpoint.displayUrlForWallet(application, endpoint),
+        )
+    }
+
+    @Test
     fun custom_socks_host_in_uri() {
         val prefs = DarkfiChatPreferences(application)
         prefs.routeOutboundThroughTor = true

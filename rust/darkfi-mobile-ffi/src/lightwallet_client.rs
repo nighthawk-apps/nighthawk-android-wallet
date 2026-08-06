@@ -233,12 +233,31 @@ struct PinnedVerifier {
     pinned_sha256: [u8; 32],
 }
 
+/// RFC 6125 §6.4.3 single-label wildcard: `*.ngrok-free.dev` matches
+/// `epidermis-sandbox-marshland.ngrok-free.dev`, but not nested labels or the
+/// bare registrable domain.
+fn dns_name_matches(pattern: &str, host: &str) -> bool {
+    if pattern.eq_ignore_ascii_case(host) {
+        return true;
+    }
+    let Some(suffix) = pattern.strip_prefix("*.") else {
+        return false;
+    };
+    if suffix.is_empty() || suffix.contains('*') {
+        return false;
+    }
+    let Some((label, rest)) = host.split_once('.') else {
+        return false;
+    };
+    !label.is_empty() && !label.contains('.') && rest.eq_ignore_ascii_case(suffix)
+}
+
 fn cert_hostname_matches(cert: &x509_parser::certificate::X509Certificate<'_>, host: &str) -> bool {
     use x509_parser::extensions::GeneralName;
     if let Ok(Some(san)) = cert.subject_alternative_name() {
         for name in &san.value.general_names {
             if let GeneralName::DNSName(dns) = name {
-                if dns.eq_ignore_ascii_case(host) {
+                if dns_name_matches(dns, host) {
                     return true;
                 }
             }
@@ -246,7 +265,7 @@ fn cert_hostname_matches(cert: &x509_parser::certificate::X509Certificate<'_>, h
     }
     cert.subject().iter_common_name().any(|cn| {
         cn.as_str()
-            .map(|s| s.eq_ignore_ascii_case(host))
+            .map(|s| dns_name_matches(s, host))
             .unwrap_or(false)
     })
 }
@@ -1487,8 +1506,12 @@ pub fn parse_socks5_lightwallet_url(url: &str) -> Option<ParsedLightwalletEndpoi
     if dest_host.is_empty() {
         return None;
     }
+    // Port 443 (and explicit TLS terminators) must stay HTTPS so certificate
+    // pinning / require_https_over_socks still apply when Kotlin wraps the
+    // endpoint as socks5:// for Tor. Cleartext gRPC ports keep http://.
+    let scheme = if dest_port == 443 { "https" } else { "http" };
     Some(ParsedLightwalletEndpoint {
-        grpc_url: format!("http://{dest_host}:{dest_port}"),
+        grpc_url: format!("{scheme}://{dest_host}:{dest_port}"),
         socks5_proxy: Some((proxy_host.to_string(), proxy_port)),
     })
 }
@@ -1544,6 +1567,35 @@ mod tests {
         let p = parse_socks5_lightwallet_url("socks5://127.0.0.1:9050/node.dark.fi:9067").unwrap();
         assert_eq!(p.grpc_url, "http://node.dark.fi:9067");
         assert_eq!(p.socks5_proxy, Some(("127.0.0.1".into(), 9050)));
+    }
+
+    #[test]
+    fn parse_socks5_tls_terminator_uses_https() {
+        let p = parse_socks5_lightwallet_url(
+            "socks5://127.0.0.1:9050/epidermis-sandbox-marshland.ngrok-free.dev:443",
+        )
+        .unwrap();
+        assert_eq!(
+            p.grpc_url,
+            "https://epidermis-sandbox-marshland.ngrok-free.dev:443"
+        );
+        assert_eq!(p.socks5_proxy, Some(("127.0.0.1".into(), 9050)));
+    }
+
+    #[test]
+    fn dns_name_matches_exact_and_single_label_wildcard() {
+        assert!(dns_name_matches(
+            "*.ngrok-free.dev",
+            "epidermis-sandbox-marshland.ngrok-free.dev"
+        ));
+        assert!(dns_name_matches("lw.example.com", "lw.example.com"));
+        assert!(dns_name_matches("LW.EXAMPLE.COM", "lw.example.com"));
+        assert!(!dns_name_matches("*.ngrok-free.dev", "ngrok-free.dev"));
+        assert!(!dns_name_matches(
+            "*.ngrok-free.dev",
+            "a.b.ngrok-free.dev"
+        ));
+        assert!(!dns_name_matches("lw.example.com", "other.example.com"));
     }
 
     #[test]

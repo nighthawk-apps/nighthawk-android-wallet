@@ -6,20 +6,19 @@ import com.nighthawkapps.lib.android.sdk.chat.TorIntegrationHelper
 import com.nighthawkapps.lib.android.sdk.wallet.DarkfiEndpoint
 
 /**
- * Rewrites wallet `darkfid` / lightwallet endpoint URLs for Rust dialers when app-wide Tor is on.
+ * Rewrites wallet lightwalletd endpoint URLs for Rust dialers when app-wide Tor is on.
  *
- * Non-loopback `tcp://host:port` becomes `socks5://proxy:port/host:port` (DarkFi transport URI).
+ * Non-loopback cleartext `tcp://host:port` becomes `socks5://proxy:port/host:port`.
  *
  * ## Lightwallet / gRPC notes
  *
- * The mobile FFI `LightwalletClient` parses this `socks5://…` form, dials the
- * destination through the local Tor SOCKS proxy, and uses cleartext `http://`
- * to the remote host over that tunnel (acceptable for a loopback Tor proxy).
+ * TLS endpoints (`tcp+tls://…`, e.g. Studio ngrok on :443) are **not** rewritten.
+ * Rust already installs a process-wide SOCKS5 proxy when `useTor` is set on
+ * bootstrap, and must keep `https://` so certificate pinning can run. Wrapping
+ * TLS URLs as `socks5://…` used to force cleartext `http://` and trip
+ * `require_https_over_socks`.
  *
- * Prefer `https://` + TLS certificate pin through Tor when the lightwalletd
- * endpoint supports TLS: set the wallet URL to an https endpoint and supply
- * `lightwallet_tls_pin_sha256`. Cleartext remote via SOCKS is OK for local
- * Tor; production should pin TLS when available.
+ * Cleartext remote via SOCKS remains available for local/dev lightwalletd.
  */
 object TorDarkfidEndpoint {
     fun displayUrlForWallet(
@@ -28,10 +27,8 @@ object TorDarkfidEndpoint {
     ): String = toConnectUrl(appContext, endpoint)
 
     /**
-     * Plain TCP when Tor is off or host is loopback; otherwise DarkFi `socks5://proxy/dest:port` URI.
-     *
-     * For lightwallet, the Rust FFI rewrites `socks5://proxy/dest` → dial dest via SOCKS
-     * with gRPC URL `http://dest` (or use https+pin separately when configured).
+     * Plain / TLS URL when Tor is off, host is loopback, or the endpoint uses TLS;
+     * otherwise DarkFi `socks5://proxy/dest:port` for cleartext remotes.
      */
     fun toConnectUrl(
         appContext: Context,
@@ -39,7 +36,10 @@ object TorDarkfidEndpoint {
     ): String {
         val host = endpoint.host.trim()
         val prefs = DarkfiChatPreferences(appContext.applicationContext)
-        if (!prefs.routeOutboundThroughTor || TorOutboundSocks.isLocalLoopbackHost(host)) {
+        if (!prefs.routeOutboundThroughTor ||
+            TorOutboundSocks.isLocalLoopbackHost(host) ||
+            endpoint.isTls
+        ) {
             return endpoint.toDisplayString()
         }
         val socksHost =

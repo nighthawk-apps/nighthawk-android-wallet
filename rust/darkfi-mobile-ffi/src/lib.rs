@@ -664,6 +664,9 @@ impl DarkfiWalletHandle {
                 config.tor_socks_port
             };
             crate::tor::start_arti_proxy(port)?;
+            // Bind happens quickly; circuit bootstrap can take up to ~2 minutes
+            // on first launch. Do not dial lightwalletd until SOCKS CONNECT works.
+            crate::tor::wait_until_running(std::time::Duration::from_secs(120))?;
             crate::lightwallet_client::set_default_socks5_proxy(Some((
                 "127.0.0.1".to_string(),
                 port,

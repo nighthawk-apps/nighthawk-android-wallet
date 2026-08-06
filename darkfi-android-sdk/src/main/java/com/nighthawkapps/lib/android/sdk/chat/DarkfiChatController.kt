@@ -13,11 +13,10 @@ import com.nighthawkapps.lib.android.sdk.chat.dm.DmConversationStore
 import com.nighthawkapps.lib.android.sdk.daemon.DarkfiChatStatusRegistry
 import com.nighthawkapps.lib.android.spackle.Twig
 import com.nighthawkapps.lib.uniffi.darkfi_mobile_ffi.DarkircEventCallback
+import com.nighthawkapps.lib.uniffi.darkfi_mobile_ffi.darkircConnectionPhase
 import com.nighthawkapps.lib.uniffi.darkfi_mobile_ffi.darkircStatus
 import com.nighthawkapps.lib.uniffi.darkfi_mobile_ffi.sendChatMessage
-import com.nighthawkapps.lib.uniffi.darkfi_mobile_ffi.startArtiProxy
 import com.nighthawkapps.lib.uniffi.darkfi_mobile_ffi.startDarkirc
-import com.nighthawkapps.lib.uniffi.darkfi_mobile_ffi.stopArtiProxy
 import com.nighthawkapps.lib.uniffi.darkfi_mobile_ffi.stopDarkirc
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -123,15 +122,7 @@ class DarkfiChatController(
             if (preferences.runEmbeddedDarkirc) {
                 DarkircDaemonService.start(app)
             }
-            if (status == "running") {
-                setConnectionState(connectedState)
-                _embeddedNodeStatus.value = EmbeddedDarkircNodeStatus.Running
-                _diagnosticDetail.value =
-                    if (useTor) "Native FFI EventGraph Connected (Tor)" else "Native FFI EventGraph Connected"
-            } else {
-                setConnectionState(DarkfiChatConnectionState.Connecting)
-                _embeddedNodeStatus.value = EmbeddedDarkircNodeStatus.Starting
-            }
+            applyDarkircPhaseToUi(connectedState, useTor)
             if (readJob?.isActive != true) {
                 readJob =
                     scope.launch(Dispatchers.IO) {
@@ -143,18 +134,8 @@ class DarkfiChatController(
                                     break
                                 }
 
-                                "running" -> {
-                                    if (_connectionState.value != connectedState) {
-                                        setConnectionState(connectedState)
-                                        _embeddedNodeStatus.value = EmbeddedDarkircNodeStatus.Running
-                                    }
-                                }
-
-                                "starting" -> {
-                                    if (_connectionState.value != DarkfiChatConnectionState.Connecting) {
-                                        setConnectionState(DarkfiChatConnectionState.Connecting)
-                                        _embeddedNodeStatus.value = EmbeddedDarkircNodeStatus.Starting
-                                    }
+                                "running", "starting" -> {
+                                    applyDarkircPhaseToUi(connectedState, useTor)
                                 }
 
                                 "stopping", "not_running" -> {
@@ -250,32 +231,27 @@ class DarkfiChatController(
             val connectedState =
                 if (useTor) DarkfiChatConnectionState.ConnectedViaTor else DarkfiChatConnectionState.ConnectedDirect
 
-            // Poll status to update UI
+            // Poll fine-grained phase so UI stays on Connecting until peers + DAG sync.
             readJob =
                 scope.launch(Dispatchers.IO) {
                     while (isActive) {
-                        val status = darkircStatus()
-                        when (status) {
+                        when (darkircStatus()) {
                             "failed" -> {
                                 setConnectionState(DarkfiChatConnectionState.Error)
                                 _embeddedNodeStatus.value = EmbeddedDarkircNodeStatus.Failed
                                 break
                             }
 
-                            "running" -> {
-                                if (_connectionState.value != connectedState) {
-                                    setConnectionState(connectedState)
-                                    _embeddedNodeStatus.value = EmbeddedDarkircNodeStatus.Running
-                                    _diagnosticDetail.value =
-                                        if (useTor) "Native FFI EventGraph Connected (Tor)" else "Native FFI EventGraph Connected"
+                            "running", "starting" -> {
+                                val wasConnected =
+                                    _connectionState.value == DarkfiChatConnectionState.ConnectedDirect ||
+                                        _connectionState.value == DarkfiChatConnectionState.ConnectedViaTor
+                                applyDarkircPhaseToUi(connectedState, useTor)
+                                val nowConnected =
+                                    _connectionState.value == DarkfiChatConnectionState.ConnectedDirect ||
+                                        _connectionState.value == DarkfiChatConnectionState.ConnectedViaTor
+                                if (!wasConnected && nowConnected) {
                                     drainOutgoingQueue()
-                                }
-                            }
-
-                            "starting" -> {
-                                if (_connectionState.value != DarkfiChatConnectionState.Connecting) {
-                                    setConnectionState(DarkfiChatConnectionState.Connecting)
-                                    _embeddedNodeStatus.value = EmbeddedDarkircNodeStatus.Starting
                                 }
                             }
 
@@ -298,23 +274,59 @@ class DarkfiChatController(
 
     /**
      * Resolve a reachable Tor SOCKS5 port for the chat daemon, or null if none
-     * is available. Prefers the embedded Guardian tor-android proxy (started on
-     * demand); falls back to an externally-configured SOCKS endpoint.
+     * is available. Uses the same [AppTorCoordinator] path as wallet routing so
+     * we wait for Arti to finish bootstrapping (not only TCP bind).
      */
     private suspend fun resolveTorSocksPortOrNull(): Int? {
         _diagnosticDetail.value = "Waiting for Tor SOCKS proxy..."
-        // Try starting the embedded Arti SOCKS proxy
-        try {
-            startArtiProxy(preferences.socksPort.toString())
-        } catch (_: Exception) {
-            // ignore if already running
-        }
+        return com.nighthawkapps.lib.android.sdk.tor.AppTorCoordinator.ensureSocksReady(app)
+    }
 
-        // Probe the configured SOCKS endpoint.
-        val host = preferences.socksHost
-        val port = preferences.socksPort
-        val reachable = TorSocksReadiness.awaitTcpReachable(host, port, deadlineMs = EXTERNAL_SOCKS_DEADLINE_MS)
-        return if (reachable) port else null
+    /**
+     * Map native `darkirc_connection_phase` onto UI connection state.
+     * Only reports Connected when phase is `connected` — earlier phases stay Connecting.
+     */
+    private fun applyDarkircPhaseToUi(
+        connectedState: DarkfiChatConnectionState,
+        useTor: Boolean,
+    ) {
+        val phase =
+            runCatching { darkircConnectionPhase() }.getOrDefault("starting")
+        _diagnosticDetail.value =
+            when (phase) {
+                "connected" ->
+                    if (useTor) {
+                        "Native FFI EventGraph Connected (Tor)"
+                    } else {
+                        "Native FFI EventGraph Connected"
+                    }
+                "waiting_for_peers" -> "Waiting for darkirc peers..."
+                "static_sync" -> "Syncing darkirc static DAG..."
+                "syncing_dag" -> "Syncing darkirc message history..."
+                "loading_history" -> "Loading darkirc history..."
+                "failed" -> "DarkIRC failed"
+                "stopping" -> "Stopping DarkIRC..."
+                "stopped" -> "DarkIRC stopped"
+                else -> "Starting DarkIRC ($phase)..."
+            }
+        when (phase) {
+            "connected" -> {
+                setConnectionState(connectedState)
+                _embeddedNodeStatus.value = EmbeddedDarkircNodeStatus.Running
+            }
+            "failed" -> {
+                setConnectionState(DarkfiChatConnectionState.Error)
+                _embeddedNodeStatus.value = EmbeddedDarkircNodeStatus.Failed
+            }
+            "stopped", "stopping" -> {
+                setConnectionState(DarkfiChatConnectionState.Disconnected)
+                _embeddedNodeStatus.value = EmbeddedDarkircNodeStatus.NotUsed
+            }
+            else -> {
+                setConnectionState(DarkfiChatConnectionState.Connecting)
+                _embeddedNodeStatus.value = EmbeddedDarkircNodeStatus.Starting
+            }
+        }
     }
 
     private suspend fun awaitDaemonNotRunning(timeoutMs: Long = 10_000) {
@@ -709,9 +721,6 @@ class DarkfiChatController(
                     instance = it
                 }
             }
-
-        /** How long to wait for an external (non-embedded) Tor SOCKS port. */
-        private const val EXTERNAL_SOCKS_DEADLINE_MS = 30_000L
 
         /** Cap for the seenEventIds dedup set. Oldest entries are pruned when
          *  the set exceeds this size to prevent unbounded memory growth. */
