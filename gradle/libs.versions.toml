@@ -1,6 +1,6 @@
 [versions]
 detektGradlePlugin = "1.23.8"
-gradle = "9.1.1"
+gradle = "9.3.1"
 jetbrainsKotlinxKover = "0.9.8"
 kotlinGradlePlugin = "2.2.10"
 orgEclipseJgit = "6.4.0.202211300538-r"

@@ -30,8 +30,8 @@ tor-rtcompat = { version = "0.45.0", features = ["async-std", "rustls"] }
 darkfi-serial = { path = "../../third_party/darkfi/src/serial" }
 darkfi_money_contract = { path = "../../third_party/darkfi/src/contract/money", features = ["no-entrypoint", "client"] }
 darkfi_dao_contract = { path = "../../third_party/darkfi/src/contract/dao", features = ["no-entrypoint", "client"] }
-bip39 = "2.2.0"
-blake3 = "1.8.5"
+bip39 = "2.2.2"
+blake3 = "1.8.6"
 bs58 = "0.5.1"
 crypto_box = { version = "0.9.1", features = ["chacha20"] }
 futures = "0.3.32"
@@ -44,12 +44,12 @@ sha2 = "0.10.9"
 smol = "2.0.2"
 unicode-normalization = "0.1.24"
 url = "2.5.8"
-zeroize = "1.8"
-x509-parser = "0.16"
-uniffi = { version = "0.31.1", features = ["scaffolding-ffi-buffer-fns", "cli"] }
+zeroize = "1.9"
+x509-parser = "0.18"
+uniffi = { version = "0.32.0", features = ["scaffolding-ffi-buffer-fns", "cli"] }
 thiserror = "2"
 log = "0.4"
-android_logger = "0.14"
+android_logger = "0.15"
 tracing-subscriber = { version = "0.3", default-features = false, features = ["fmt", "env-filter"] }
 tonic = { version = "0.12", features = ["tls", "tls-webpki-roots"] }
 prost = "0.13"
@@ -70,5 +70,5 @@ hyper-util = { version = "0.1", features = ["tokio"] }
 tokio-socks = "0.5"
 
 [build-dependencies]
-uniffi = { version = "0.31.1", features = ["build", "scaffolding-ffi-buffer-fns"] }
+uniffi = { version = "0.32.0", features = ["build", "scaffolding-ffi-buffer-fns"] }
 tonic-build = "0.12"
