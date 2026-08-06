@@ -2,7 +2,7 @@ package com.nighthawkapps.lib.android.configuration.test
 
 import com.nighthawkapps.lib.android.configuration.model.entry.ConfigKey
 import com.nighthawkapps.lib.android.configuration.model.map.Configuration
-import kotlinx.datetime.Instant
+import kotlin.time.Instant
 
 /**
  * @param configurationMapping A mapping of key-value pairs to be returned

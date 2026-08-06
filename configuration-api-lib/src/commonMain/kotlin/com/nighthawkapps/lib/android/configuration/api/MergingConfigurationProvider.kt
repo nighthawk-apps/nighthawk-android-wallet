@@ -8,7 +8,7 @@ import kotlinx.collections.immutable.toPersistentList
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flowOf
-import kotlinx.datetime.Instant
+import kotlin.time.Instant
 
 class MergingConfigurationProvider(
     private val configurationProviders: PersistentList<ConfigurationProvider>

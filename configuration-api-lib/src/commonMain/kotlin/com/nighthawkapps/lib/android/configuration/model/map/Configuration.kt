@@ -1,7 +1,7 @@
 package com.nighthawkapps.lib.android.configuration.model.map
 
 import com.nighthawkapps.lib.android.configuration.model.entry.ConfigKey
-import kotlinx.datetime.Instant
+import kotlin.time.Instant
 
 /**
  * An immutable snapshot of a key-value configuration.

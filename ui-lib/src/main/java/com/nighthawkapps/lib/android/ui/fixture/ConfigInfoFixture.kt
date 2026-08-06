@@ -1,7 +1,7 @@
 package com.nighthawkapps.lib.android.ui.fixture
 
 import com.nighthawkapps.lib.android.ui.screen.support.model.ConfigInfo
-import kotlinx.datetime.Instant
+import kotlin.time.Instant
 
 // Magic Number doesn't matter here for hard-coded fixture values
 @Suppress("MagicNumber")

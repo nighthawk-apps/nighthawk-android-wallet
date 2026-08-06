@@ -62,6 +62,7 @@ fun Project.configureStealthKotlinJvmCompileTasksFromAgpBuiltInKotlin() {
             jvmTarget.set(JvmTarget.fromTarget(project.property("ANDROID_JVM_TARGET").toString()))
             allWarningsAsErrors.set(project.property("WALLET_IS_TREAT_WARNINGS_AS_ERRORS").toString().toBoolean())
             freeCompilerArgs.add("-opt-in=kotlin.RequiresOptIn")
+            freeCompilerArgs.add("-opt-in=kotlin.time.ExperimentalTime")
             freeCompilerArgs.add("-Xannotation-default-target=param-property")
         }
     }

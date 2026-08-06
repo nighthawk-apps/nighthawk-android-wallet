@@ -4,8 +4,8 @@ package com.nighthawkapps.lib.android.ui.screen.support.model
 
 import android.content.pm.PackageInfo
 import android.os.SystemClock
-import kotlinx.datetime.Clock
-import kotlinx.datetime.Instant
+import kotlin.time.Instant
+import kotlin.time.Clock
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale

@@ -12,7 +12,7 @@ kotlin {
     sourceSets {
         getByName("commonMain") {
             dependencies {
-                api(libs.kotlinx.datetime)
+
                 api(libs.kotlinx.coroutines.core)
                 api(libs.kotlinx.immutable)
             }

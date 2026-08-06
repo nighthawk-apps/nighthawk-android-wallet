@@ -7,7 +7,7 @@ import com.nighthawkapps.lib.android.crash.new
 import com.nighthawkapps.lib.android.spackle.io.listFilesSuspend*/
 import android.content.Context
 import com.nighthawkapps.lib.android.spackle.Twig
-import kotlinx.datetime.Instant
+import kotlin.time.Instant
 
 data class CrashInfo(
     val exceptionClassName: String,

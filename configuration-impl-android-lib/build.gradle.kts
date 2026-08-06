@@ -18,7 +18,7 @@ dependencies {
     implementation(libs.kotlin.stdlib)
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.kotlinx.coroutines.core)
-    implementation(libs.kotlinx.datetime)
+
     implementation(libs.kotlinx.immutable)
     api(projects.configurationApiLib)
     implementation(projects.spackleLib)

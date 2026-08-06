@@ -33,10 +33,8 @@ import com.nighthawkapps.lib.android.ui.design.theme.WalletTheme
 import com.nighthawkapps.lib.android.ui.fixture.DarkfiTransactionOverviewFixture
 import com.nighthawkapps.lib.android.ui.screen.fiatcurrency.model.FiatCurrency
 import com.nighthawkapps.lib.android.ui.screen.fiatcurrency.model.FiatCurrencyUiState
-import kotlinx.datetime.Instant
-import kotlinx.datetime.TimeZone
-import kotlinx.datetime.toJavaLocalDateTime
-import kotlinx.datetime.toLocalDateTime
+import java.time.LocalDateTime
+import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
 
@@ -99,11 +97,10 @@ fun TransactionOverviewHistoryRow(
                 Spacer(modifier = Modifier.height(4.dp))
                 val timeText =
                     transactionOverview.timestampEpochMillis?.let { ms ->
-                        Instant
-                            .fromEpochMilliseconds(ms)
-                            .toLocalDateTime(TimeZone.UTC)
-                            .toJavaLocalDateTime()
-                            .format(DateTimeFormatter.ofLocalizedDate(FormatStyle.SHORT))
+                        LocalDateTime.ofInstant(
+                            java.time.Instant.ofEpochMilli(ms),
+                            ZoneOffset.UTC
+                        ).format(DateTimeFormatter.ofLocalizedDate(FormatStyle.SHORT))
                     } ?: stringResource(id = R.string.ns_transaction_date_error)
                 BodySmall(text = timeText)
             }

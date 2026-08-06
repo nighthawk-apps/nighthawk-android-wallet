@@ -2,7 +2,7 @@ package com.nighthawkapps.lib.android.configuration.model.map
 
 import com.nighthawkapps.lib.android.configuration.model.entry.ConfigKey
 import kotlinx.collections.immutable.PersistentMap
-import kotlinx.datetime.Instant
+import kotlin.time.Instant
 
 // The configurationMapping is intended to be a public API for configuration implementations rather
 // than a public API for configuration clients.

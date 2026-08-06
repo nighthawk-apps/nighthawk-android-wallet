@@ -10,7 +10,7 @@ pluginManager.withPlugin("org.jetbrains.kotlin.multiplatform") {
                         allWarningsAsErrors.set(
                             project.property("WALLET_IS_TREAT_WARNINGS_AS_ERRORS").toString().toBoolean()
                         )
-                        freeCompilerArgs.addAll("-opt-in=kotlin.RequiresOptIn")
+                        freeCompilerArgs.addAll("-opt-in=kotlin.RequiresOptIn", "-opt-in=kotlin.time.ExperimentalTime")
                     }
                 }
             }

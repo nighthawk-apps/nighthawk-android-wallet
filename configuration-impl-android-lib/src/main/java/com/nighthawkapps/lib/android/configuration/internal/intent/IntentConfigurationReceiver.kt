@@ -6,7 +6,7 @@ import android.content.Intent
 import android.content.pm.ApplicationInfo
 import com.nighthawkapps.lib.android.configuration.model.map.StringConfiguration
 import kotlinx.collections.immutable.toPersistentMap
-import kotlinx.datetime.Clock
+import kotlin.time.Clock
 
 class IntentConfigurationReceiver : BroadcastReceiver() {
     override fun onReceive(

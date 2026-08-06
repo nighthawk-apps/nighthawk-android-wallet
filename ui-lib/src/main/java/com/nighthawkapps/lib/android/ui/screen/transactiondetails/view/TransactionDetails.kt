@@ -59,9 +59,8 @@ import com.nighthawkapps.lib.android.ui.screen.transactiondetails.model.Transact
 import com.nighthawkapps.lib.android.ui.screen.transactiondetails.model.blockTimeEpochSeconds
 import com.nighthawkapps.lib.android.ui.screen.transactiondetails.model.uiTransactionState
 import com.nighthawkapps.lib.android.ui.screen.wallet.model.BalanceUIModel
-import kotlinx.datetime.Instant
-import kotlinx.datetime.TimeZone
-import kotlinx.datetime.toLocalDateTime
+import java.time.LocalDateTime
+import java.time.ZoneOffset
 
 @Preview
 @Composable
@@ -265,10 +264,10 @@ fun TransactionDetails(
                 )
                 val timeText =
                     overview.blockTimeEpochSeconds?.let {
-                        Instant
-                            .fromEpochSeconds(it)
-                            .toLocalDateTime(TimeZone.UTC)
-                            .toString()
+                        LocalDateTime.ofInstant(
+                            java.time.Instant.ofEpochSecond(it),
+                            ZoneOffset.UTC
+                        ).toString()
                             .replace("T", " ")
                     } ?: stringResource(id = R.string.ns_transaction_date_error)
                 BodyMedium(

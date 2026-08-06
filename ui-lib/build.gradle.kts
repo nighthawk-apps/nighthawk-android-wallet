@@ -89,7 +89,7 @@ dependencies {
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.kotlinx.coroutines.core)
     implementation(libs.kotlinx.coroutines.guava)
-    implementation(libs.kotlinx.datetime)
+
     implementation(libs.kotlinx.immutable)
     implementation(projects.darkfiAndroidSdk)
     implementation(libs.zxing)
