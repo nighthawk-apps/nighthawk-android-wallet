@@ -1,21 +1,25 @@
-Nighthawk is a self-custodial, privacy-first wallet built on DarkFi. Your keys, your coins — no intermediaries.
+TESTNET EDITION — This Nighthawk release targets the DarkFi testnet only (not mainnet). It is built for alpha testing against the Studio testnet lightwalletd endpoint (ngrok TLS).
+
+Nighthawk is a self-custodial, privacy-first wallet for the DarkFi network. Your keys, your coins — no intermediaries.
 
 Features
-- Self-custodial 22-word recovery phrase with PDF backup
-- Native DarkFi wallet sync via Rust core (darkfid RPC)
-- Send and receive DRK with full privacy
-- DAO governance hub — browse DAOs and proposals on-chain
-- Experimental DarkIRC-aligned encrypted chat
-- Configurable DarkFi RPC endpoints
-- Fiat price hints via public APIs
+- Self-custodial 22-word DarkFi recovery phrase with PDF backup
+- Native DarkFi wallet sync via UniFFI Rust core (lightwalletd / UnifOMR)
+- Send and receive testnet DRK with full privacy
+- Trial-decrypt fallback (default on) so you can receive from non-UnifOMR wallets
+- Optional Strict UnifOMR sync in Advanced settings
+- DAO governance hub — browse DAOs and proposals
+- DarkIRC encrypted chat (in-process)
+- Embedded Tor (Arti) on by default; disable anytime in Settings or on the splash screen
+- Configurable lightwalletd endpoints and TLS pinning (defaults to Studio ngrok testnet)
 
 Privacy by default
-- Single DarkFi address derived from your recovery phrase
-- No analytics, no tracking, no third-party services
-- All wallet data stays on your device
+- DarkFi addresses derived from your recovery phrase
+- No analytics, no tracking SDKs in the F-Droid build path
+- Wallet data stays on your device
 
 Note
-This is a work-in-progress release. Some features are still under active development. Nighthawk is provided "as is", without warranty.
+This is the DarkFi testnet edition (package com.nighthawkwallet.android.testnet, flavor darkfitestnet), not the legacy Zcash listing and not a mainnet release. The app is provided "as is", without warranty.
 
-Source code: https://github.com/nickhawk/new-nighthawk-android-wallet
+Source code: https://github.com/nighthawk-apps/nighthawk-android-wallet
 Support: nighthawkwallet@protonmail.com

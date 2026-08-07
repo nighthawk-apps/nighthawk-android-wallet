@@ -1,4 +1,7 @@
-# F-Droid does not use Google Play credentials.
-# Set json_key_file only if deploying to Google Play.
+# DarkFi testnet edition application id (flavor darkfitestnet).
+# Distinct from legacy Zcash F-Droid package com.nighthawkapps.wallet.android
+# and from a future mainnet package com.nighthawkwallet.android.
+# F-Droid builds are unsigned; F-Droid signs with its own key.
+# Set json_key_file only if deploying to Google Play via supply.
 json_key_file(ENV["SUPPLY_JSON_KEY"] || "")
-package_name("com.nighthawkwallet.android")
+package_name("com.nighthawkwallet.android.testnet")

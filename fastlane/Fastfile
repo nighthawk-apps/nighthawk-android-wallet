@@ -17,19 +17,22 @@ platform :android do
   # ── F-Droid ────────────────────────────────────────────────────────────
   #
   # F-Droid builds are unsigned — F-Droid signs with its own key.
-  # This lane produces the mainnet release APK without signing, ready for
-  # F-Droid's build server to pick up.
+  # This lane produces the testnet release APK without signing, ready for
+  # F-Droid's build server to pick up (Studio ngrok LWD defaults).
 
-  desc "Build unsigned mainnet release APK for F-Droid"
+  desc "Build unsigned DarkFi testnet release APK for F-Droid"
   lane :fdroid do
+    # Matches package com.nighthawkwallet.android.testnet / flavor darkfitestnet.
+    # Native libdarkfi_mobile_ffi.so must already be in jniLibs (see
+    # ./scripts/build-darkfi-mobile-ffi-android.sh). F-Droid's server recipe
+    # runs that script in prebuild; local `fastlane fdroid` expects a prior build.
     gradle(
-      task: "clean assembleDarkfimainnetRelease",
+      task: "clean assembleDarkfitestnetRelease",
       properties: {
         # F-Droid builds without signing; their server applies their own key.
         "IS_SIGN_RELEASE_BUILD_WITH_DEBUG_KEY" => "false",
       }
     )
-    # Log the output APK path for CI
     apk_path = lane_context[SharedValues::GRADLE_APK_OUTPUT_PATH]
     UI.success("F-Droid APK: #{apk_path}") if apk_path
   end
