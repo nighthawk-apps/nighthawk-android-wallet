@@ -24,6 +24,7 @@ pub async fn bootstrap_drk(
         .filter(|s| !s.is_empty())
         .map(|s| url::Url::parse(s).map_err(|e| format!("darkfid_rpc_url: {e}")))
         .transpose()?;
+    let has_darkfid = darkfid_endpoint.is_some();
 
     let drk = Drk::new(
         parse_network(&config.network),
@@ -47,14 +48,36 @@ pub async fn bootstrap_drk(
         .map_err(|e| format!("initialize_money: {e}"))?;
 
     let _ = drk.initialize_dao().await;
-    let _ = drk.initialize_deployooor();
+    let _ = drk.initialize_deployooor().await;
 
     ensure_default_money_key(&drk, &config.mnemonic, &mut output).await?;
 
     if config.birthday_height > 0 {
         let birthday = u32::try_from(config.birthday_height)
             .map_err(|_| format!("birthday_height out of range: {}", config.birthday_height))?;
-        seed_birthday_scan_cursor(&drk, birthday).await?;
+        // Prefer a real block hash when darkfid is configured. Seeding with
+        // placeholder "-" makes scan_blocks treat the cursor as a reorg and
+        // fail with RowNotFound while walking missing heights.
+        let cursor = birthday.saturating_sub(1);
+        let real_hash = if cursor > 0 && has_darkfid {
+            match drk.get_block_by_height(cursor).await {
+                Ok(block) => Some(block.hash().to_string()),
+                Err(e) => {
+                    tracing::warn!(
+                        target: "wallet-bootstrap",
+                        "birthday block {cursor} hash fetch failed ({e}); using placeholder"
+                    );
+                    None
+                }
+            }
+        } else {
+            None
+        };
+        if let Some(ref hash) = real_hash {
+            seed_scan_cursor(&drk, cursor, Some(hash.as_str()))?;
+        } else {
+            seed_birthday_scan_cursor(&drk, birthday).await?;
+        }
     } else if config.birthday_height == 0 {
         // Fresh create (birthday 0): jump scan cursor to LWD tip — new wallets
         // have no history; walking genesis → tip only causes trial-decrypt /
