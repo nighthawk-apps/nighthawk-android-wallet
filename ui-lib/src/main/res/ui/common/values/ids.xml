@@ -1,4 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <item name="splash_tagline_attached" type="id" />
+    <item name="splash_tor_status" type="id" />
 </resources>

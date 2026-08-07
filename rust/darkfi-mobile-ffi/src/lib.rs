@@ -195,7 +195,7 @@ pub struct DrkBootstrapConfig {
     /// bootstrapping (or if it fails), remote connections error out and the
     /// sync engine retries — traffic is never silently sent directly.
     pub use_tor: bool,
-    /// SOCKS5 port for the arti proxy (default: 9150). Ignored when `use_tor` is false.
+    /// SOCKS5 port for the arti proxy (default: 9050). Ignored when `use_tor` is false.
     pub tor_socks_port: u16,
     /// Optional darkfid JSON-RPC for broadcast fallback only. Empty/`None` = LWD-only.
     pub darkfid_rpc_url: Option<String>,
@@ -664,7 +664,7 @@ impl DarkfiWalletHandle {
         // downgrade to a direct connection.
         if config.use_tor {
             let port = if config.tor_socks_port == 0 {
-                9150
+                9050
             } else {
                 config.tor_socks_port
             };
@@ -1243,7 +1243,7 @@ mod tests {
             birthday_height: -1,
             lightwallet_tls_pin_sha256: None,
             use_tor: false,
-            tor_socks_port: 9150,
+            tor_socks_port: 9050,
             darkfid_rpc_url: None,
             strict_omr_only: false,
         }

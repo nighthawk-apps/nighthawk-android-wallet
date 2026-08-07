@@ -20,7 +20,28 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+
+/** Splash / Settings-facing Tor bootstrap progress (embedded Arti or external SOCKS). */
+enum class TorBootstrapUiState {
+    /** Not observed yet (before [AppTorCoordinator.warmStartIfEnabled]). */
+    Idle,
+
+    /** User turned Tor off — splash should not wait. */
+    Disabled,
+
+    /** Arti / SOCKS coming up. */
+    Bootstrapping,
+
+    /** SOCKS ready (`isArtiRunning` or external probe). */
+    Ready,
+
+    /** Timeout or start failure — splash may dismiss; chat/wallet can retry. */
+    Failed,
+}
 
 /**
  * App-wide Tor lifecycle (Guardian tor-android / Arti SOCKS), modeled after wallets that route
@@ -32,12 +53,36 @@ import kotlinx.coroutines.launch
 object AppTorCoordinator {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
+    private val _bootstrapState = MutableStateFlow(TorBootstrapUiState.Idle)
+    val bootstrapState: StateFlow<TorBootstrapUiState> = _bootstrapState.asStateFlow()
+
+    /**
+     * Do not pin the system splash on Tor — Compose must stay interactive so the user can
+     * tap “Continue without Tor” if bootstrap stalls.
+     */
+    fun isKeepingSplash(): Boolean = false
+
+    /**
+     * Splash escape hatch: persist Tor off, stop Arti, continue over clearnet.
+     * In-flight [ensureSocksReady] will observe the pref and abort.
+     */
+    fun disableTorFromSplash(context: Context) {
+        val app = context.applicationContext
+        val prefs = DarkfiChatPreferences(app)
+        prefs.routeOutboundThroughTor = false
+        runCatching { stopArtiProxy() }
+        _bootstrapState.value = TorBootstrapUiState.Disabled
+        Twig.info { "AppTor: disabled from splash — using clearnet" }
+    }
+
     /** Non-blocking: start embedded Tor when prefs demand it (Application / daemon coordinator). */
     fun warmStartIfEnabled(context: Context) {
         val prefs = DarkfiChatPreferences(context.applicationContext)
         if (!prefs.routeOutboundThroughTor) {
+            _bootstrapState.value = TorBootstrapUiState.Disabled
             return
         }
+        _bootstrapState.value = TorBootstrapUiState.Bootstrapping
         scope.launch {
             ensureSocksReady(context)
         }
@@ -50,58 +95,92 @@ object AppTorCoordinator {
     suspend fun ensureSocksReady(context: Context): Int? {
         val app = context.applicationContext
         val prefs = DarkfiChatPreferences(app)
-        return when {
-            !prefs.routeOutboundThroughTor -> {
-                null
-            }
-
-            prefs.useEmbeddedTor -> {
-                Twig.info { "AppTor: starting in-process Arti proxy on port ${prefs.socksPort}..." }
-                val started = startArtiProxy(prefs.socksPort.toString())
-                if (started) {
-                    // Arti boots asynchronously via UniFFI thread; wait briefly before nudging SOCKS
-                    delay(500)
+        val port =
+            when {
+                !prefs.routeOutboundThroughTor -> {
+                    _bootstrapState.value = TorBootstrapUiState.Disabled
+                    null
                 }
-                // TCP bind can succeed before Tor circuits are ready (listener opens first).
-                // Wait for real bootstrap via isArtiRunning before handing the port to darkirc / LWD.
-                val port =
-                    TorSocksReadiness.awaitFirstReachablePort(
-                        "127.0.0.1",
-                        listOf(prefs.socksPort),
-                        deadlineMs = EXTERNAL_SOCKS_DEADLINE_MS,
-                    ) ?: return null
-                val bootstrapDeadline = System.currentTimeMillis() + ARTI_BOOTSTRAP_DEADLINE_MS
-                while (System.currentTimeMillis() < bootstrapDeadline) {
-                    if (runCatching { isArtiRunning() }.getOrDefault(false)) {
-                        Twig.info { "AppTor: Arti bootstrapped on port $port" }
-                        return port
+
+                prefs.useEmbeddedTor -> {
+                    if (_bootstrapState.value != TorBootstrapUiState.Ready) {
+                        _bootstrapState.value = TorBootstrapUiState.Bootstrapping
                     }
-                    delay(500)
+                    Twig.info { "AppTor: starting in-process Arti proxy on port ${prefs.socksPort}..." }
+                    val started = startArtiProxy(prefs.socksPort.toString())
+                    if (started) {
+                        // Arti boots asynchronously via UniFFI thread; wait briefly before nudging SOCKS
+                        delay(500)
+                    }
+                    if (!prefs.routeOutboundThroughTor) {
+                        null
+                    } else {
+                        // TCP bind can succeed before Tor circuits are ready (listener opens first).
+                        // Wait for real bootstrap via isArtiRunning before handing the port to darkirc / LWD.
+                        val bound =
+                            TorSocksReadiness.awaitFirstReachablePort(
+                                "127.0.0.1",
+                                listOf(prefs.socksPort),
+                                deadlineMs = EXTERNAL_SOCKS_DEADLINE_MS,
+                            )
+                        if (bound == null || !prefs.routeOutboundThroughTor) {
+                            if (bound == null && prefs.routeOutboundThroughTor) {
+                                Twig.warn { "AppTor: Arti SOCKS bind timed out" }
+                            }
+                            null
+                        } else {
+                            val bootstrapDeadline = System.currentTimeMillis() + ARTI_BOOTSTRAP_DEADLINE_MS
+                            var readyPort: Int? = null
+                            while (System.currentTimeMillis() < bootstrapDeadline) {
+                                if (!prefs.routeOutboundThroughTor) {
+                                    break
+                                }
+                                if (runCatching { isArtiRunning() }.getOrDefault(false)) {
+                                    Twig.info { "AppTor: Arti bootstrapped on port $bound" }
+                                    readyPort = bound
+                                    break
+                                }
+                                delay(500)
+                            }
+                            if (readyPort == null && prefs.routeOutboundThroughTor) {
+                                Twig.warn { "AppTor: Arti SOCKS bound on $bound but bootstrap timed out" }
+                            }
+                            readyPort
+                        }
+                    }
                 }
-                Twig.warn { "AppTor: Arti SOCKS bound on $port but bootstrap timed out" }
-                null
-            }
 
-            else -> {
-                val host =
-                    prefs.socksHost.trim().ifBlank { TorIntegrationHelper.DEFAULT_SOCKS_HOST }
-                val ports =
-                    buildList {
-                        add(prefs.socksPort)
-                        if (prefs.socksPort != TorIntegrationHelper.DEFAULT_SOCKS_PORT) {
-                            add(TorIntegrationHelper.DEFAULT_SOCKS_PORT)
-                        }
-                        if (prefs.socksPort != TorIntegrationHelper.ALT_SOCKS_PORT) {
-                            add(TorIntegrationHelper.ALT_SOCKS_PORT)
-                        }
-                    }.distinct()
-                TorSocksReadiness.awaitFirstReachablePort(
-                    host,
-                    ports,
-                    deadlineMs = EXTERNAL_SOCKS_DEADLINE_MS,
-                )
+                else -> {
+                    if (_bootstrapState.value != TorBootstrapUiState.Ready) {
+                        _bootstrapState.value = TorBootstrapUiState.Bootstrapping
+                    }
+                    val host =
+                        prefs.socksHost.trim().ifBlank { TorIntegrationHelper.DEFAULT_SOCKS_HOST }
+                    val ports =
+                        buildList {
+                            add(prefs.socksPort)
+                            if (prefs.socksPort != TorIntegrationHelper.DEFAULT_SOCKS_PORT) {
+                                add(TorIntegrationHelper.DEFAULT_SOCKS_PORT)
+                            }
+                            if (prefs.socksPort != TorIntegrationHelper.ALT_SOCKS_PORT) {
+                                add(TorIntegrationHelper.ALT_SOCKS_PORT)
+                            }
+                        }.distinct()
+                    TorSocksReadiness.awaitFirstReachablePort(
+                        host,
+                        ports,
+                        deadlineMs = EXTERNAL_SOCKS_DEADLINE_MS,
+                    )
+                }
             }
+        // Re-read prefs: splash may have disabled Tor while we were waiting.
+        val stillWantsTor = DarkfiChatPreferences(app).routeOutboundThroughTor
+        when {
+            !stillWantsTor -> _bootstrapState.value = TorBootstrapUiState.Disabled
+            port != null -> _bootstrapState.value = TorBootstrapUiState.Ready
+            else -> _bootstrapState.value = TorBootstrapUiState.Failed
         }
+        return if (stillWantsTor) port else null
     }
 
     /**
@@ -119,6 +198,7 @@ object AppTorCoordinator {
             ensureSocksReady(app)
         } else {
             stopArtiProxy()
+            _bootstrapState.value = TorBootstrapUiState.Disabled
         }
         restartEmbeddedDarkircForTransport(app)
         restartEmbeddedDarkfidForTransport(app)

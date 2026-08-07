@@ -14,14 +14,28 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
 import androidx.annotation.VisibleForTesting
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.colorResource
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import androidx.core.splashscreen.SplashScreen
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
@@ -31,6 +45,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.navigation.NavHostController
+import com.nighthawkapps.lib.android.sdk.tor.AppTorCoordinator
+import com.nighthawkapps.lib.android.sdk.tor.TorBootstrapUiState
 import com.nighthawkapps.lib.android.spackle.Twig
 import com.nighthawkapps.lib.android.ui.common.BindCompLocalProvider
 import com.nighthawkapps.lib.android.ui.common.ShortcutAction
@@ -81,6 +97,7 @@ class MainActivity : FragmentActivity() {
 
         configureSplashScreenKeepCondition(splashScreen)
         attachSplashBuiltOnDarkFiTagline()
+        attachSplashTorStatus()
 
         setupUiContent()
 
@@ -107,8 +124,10 @@ class MainActivity : FragmentActivity() {
                 }
             }
 
-            // Note this condition needs to be kept in sync with the condition in MainContent()
-            homeViewModel.configurationFlow.value == null || SecretState.Loading == walletViewModel.secretState.value
+            // Note this condition needs to be kept in sync with the condition in MainContent().
+            // Tor bootstrap is NOT kept here — Compose must stay interactive for “Continue without Tor”.
+            homeViewModel.configurationFlow.value == null ||
+                SecretState.Loading == walletViewModel.secretState.value
         }
     }
 
@@ -144,6 +163,109 @@ class MainActivity : FragmentActivity() {
                         bottomMargin = bottomPx
                     }
             splashHost.addView(tagline, lp)
+        }
+    }
+
+    /**
+     * Shows Tor bootstrap progress on the Android 12+ splash (iOS splash parity).
+     * Kept in sync with [AppTorCoordinator.bootstrapState].
+     */
+    private fun attachSplashTorStatus() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) {
+            return
+        }
+        window.decorView.post {
+            val splashHost = findSplashScreenView(window.decorView) ?: return@post
+            val existing = splashHost.findViewById<TextView>(R.id.splash_tor_status)
+            val statusView =
+                existing ?: TextView(this).apply {
+                    id = R.id.splash_tor_status
+                    setTextColor(ContextCompat.getColor(this@MainActivity, R.color.splash_tagline_text))
+                    textSize = 12f
+                    letterSpacing = 0.02f
+                    includeFontPadding = false
+                    visibility = View.GONE
+                    val bottomPx = (resources.displayMetrics.density * 58).toInt()
+                    val lp =
+                        FrameLayout
+                            .LayoutParams(
+                                FrameLayout.LayoutParams.WRAP_CONTENT,
+                                FrameLayout.LayoutParams.WRAP_CONTENT,
+                                Gravity.BOTTOM or Gravity.CENTER_HORIZONTAL,
+                            ).apply {
+                                bottomMargin = bottomPx
+                            }
+                    splashHost.addView(this, lp)
+                }
+            fun applyState(state: TorBootstrapUiState) {
+                val label =
+                    when (state) {
+                        TorBootstrapUiState.Bootstrapping,
+                        TorBootstrapUiState.Idle,
+                        -> getString(R.string.splash_tor_bootstrapping)
+                        TorBootstrapUiState.Ready -> getString(R.string.splash_tor_ready)
+                        TorBootstrapUiState.Failed -> getString(R.string.splash_tor_failed)
+                        TorBootstrapUiState.Disabled -> null
+                    }
+                if (label == null) {
+                    statusView.visibility = View.GONE
+                } else {
+                    statusView.visibility = View.VISIBLE
+                    statusView.text = label
+                }
+            }
+            applyState(AppTorCoordinator.bootstrapState.value)
+            lifecycleScope.launch {
+                AppTorCoordinator.bootstrapState.collectLatest { applyState(it) }
+            }
+        }
+    }
+
+    @Composable
+    private fun SplashTorStatusOverlay(torState: TorBootstrapUiState) {
+        val context = LocalContext.current
+        val label =
+            when (torState) {
+                TorBootstrapUiState.Bootstrapping,
+                TorBootstrapUiState.Idle,
+                -> stringResource(R.string.splash_tor_bootstrapping)
+                TorBootstrapUiState.Ready -> stringResource(R.string.splash_tor_ready)
+                TorBootstrapUiState.Failed -> stringResource(R.string.splash_tor_failed)
+                TorBootstrapUiState.Disabled -> null
+            } ?: return
+        val showDisable =
+            torState == TorBootstrapUiState.Bootstrapping ||
+                torState == TorBootstrapUiState.Idle ||
+                torState == TorBootstrapUiState.Failed
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.BottomCenter,
+        ) {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.padding(bottom = 48.dp, start = 24.dp, end = 24.dp),
+            ) {
+                Text(
+                    text = label,
+                    color = colorResource(R.color.splash_tagline_text),
+                    fontSize = 12.sp,
+                    textAlign = TextAlign.Center,
+                )
+                if (showDisable) {
+                    TextButton(
+                        onClick = { AppTorCoordinator.disableTorFromSplash(context) },
+                    ) {
+                        Text(stringResource(R.string.splash_tor_continue_without))
+                    }
+                    Text(
+                        text = stringResource(R.string.splash_tor_continue_without_hint),
+                        color = colorResource(R.color.splash_tagline_text),
+                        fontSize = 11.sp,
+                        textAlign = TextAlign.Center,
+                    )
+                }
+            }
         }
     }
 
@@ -195,10 +317,19 @@ class MainActivity : FragmentActivity() {
         val configuration = homeViewModel.configurationFlow.collectAsStateWithLifecycle().value
         val secretState = walletViewModel.secretState.collectAsStateWithLifecycle().value
 
+        val torState by AppTorCoordinator.bootstrapState.collectAsStateWithLifecycle()
+
         // Note this condition needs to be kept in sync with the condition in setupSplashScreen()
-        if (null == configuration || secretState == SecretState.Loading) {
-            // For now, keep displaying splash screen using condition above.
-            // In the future, we might consider displaying something different here.
+        val waitingOnWallet = null == configuration || secretState == SecretState.Loading
+        // Offer escape hatch while Tor is starting or after bootstrap failure.
+        val showTorEscape =
+            torState == TorBootstrapUiState.Bootstrapping ||
+                torState == TorBootstrapUiState.Idle ||
+                torState == TorBootstrapUiState.Failed
+        if (waitingOnWallet || showTorEscape) {
+            if (showTorEscape) {
+                SplashTorStatusOverlay(torState)
+            }
         } else {
             // Note that the deeply nested child views will probably receive arguments derived from
             // the configuration.  The CompositionLocalProvider is helpful for passing the configuration

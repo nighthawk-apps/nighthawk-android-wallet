@@ -25,6 +25,11 @@
     <string name="ns_motto">Where privacy is proven, not promised.</string>
     <string name="ns_powered_by">Powered by DarkFi</string>
     <string name="splash_built_on_darkfi" translatable="false">Built on DarkFi</string>
+    <string name="splash_tor_bootstrapping" translatable="false">Tor bootstrapping…</string>
+    <string name="splash_tor_ready" translatable="false">Tor ready</string>
+    <string name="splash_tor_failed" translatable="false">Tor bootstrap failed</string>
+    <string name="splash_tor_continue_without" translatable="false">Continue without Tor</string>
+    <string name="splash_tor_continue_without_hint" translatable="false">Uses your regular network. You can re-enable Tor in Settings.</string>
     <string name="ns_get_started">Get Started</string>
     <string name="ns_landing_text">If it\'s your first time using Nighthawk, you\'ll need to create a wallet. If you are returning to Nighthawk, you can try to restore your previous wallet.</string>
     <string name="ns_landing_footer">By using this app you accept our</string>
