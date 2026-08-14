@@ -61,6 +61,12 @@ android {
         }
     }
 
+    // Omit Google Play SDK dependency metadata from APK/AAB (F-Droid / sideload).
+    dependenciesInfo {
+        includeInApk = false
+        includeInBundle = false
+    }
+
     flavorDimensions.add("network")
 
     val testNetFlavorName = "darkfitestnet"
@@ -185,8 +191,6 @@ dependencies {
     }
 }
 
-val googlePlayServiceKeyFilePath = project.property("WALLET_GOOGLE_PLAY_SERVICE_KEY_FILE_PATH").toString()
-
 androidComponents {
     onVariants { variant ->
         val defaultAppName = project.property("WALLET_RELEASE_APP_NAME").toString()
@@ -217,38 +221,14 @@ androidComponents {
             ),
         )
 
-        for (output in variant.outputs) {
-            variant.buildConfigFields!!.put(
-                "IS_STRICT_MODE_CRASH_ENABLED",
-                BuildConfigField(
-                    type = "boolean",
-                    value = project.property("IS_CRASH_ON_STRICT_MODE_VIOLATION").toString(),
-                    comment = "Whether is the strict mode enabled"
-                )
+        variant.buildConfigFields!!.put(
+            "IS_STRICT_MODE_CRASH_ENABLED",
+            BuildConfigField(
+                type = "boolean",
+                value = project.property("IS_CRASH_ON_STRICT_MODE_VIOLATION").toString(),
+                comment = "Whether is the strict mode enabled"
             )
-
-            if (googlePlayServiceKeyFilePath.isNotEmpty()) {
-                // Update the versionName to reflect bumps in versionCode
-
-                val versionCodeOffset = 0  // Change this to zero the final digit of the versionName
-
-                val processedVersionCode = output.versionCode.map { playVersionCode ->
-                    val defaultVersionName = project.property("WALLET_VERSION_NAME").toString()
-                    // Version names will look like `myCustomVersionName.123`
-                    @Suppress("UNNECESSARY_SAFE_CALL")
-                    playVersionCode?.let {
-                        val delta = it - versionCodeOffset
-                        if (delta < 0) {
-                            defaultVersionName
-                        } else {
-                            "$defaultVersionName.$delta"
-                        }
-                    } ?: defaultVersionName
-                }
-
-                output.versionName.set(processedVersionCode)
-            }
-        }
+        )
 
         variant.packaging.resources.excludes.addAll(listOf(
             ".readme",
@@ -279,24 +259,3 @@ androidComponents {
         }
     }
 }
-
-/*if (googlePlayServiceKeyFilePath.isNotEmpty()) {
-    configure<com.github.triplet.gradle.play.PlayPublisherExtension> {
-        serviceAccountCredentials.set(File(googlePlayServiceKeyFilePath))
-
-        // For safety, only allow deployment to internal testing track
-        track.set("internal")
-
-        // Automatically manage version incrementing
-        resolutionStrategy.set(com.github.triplet.gradle.androidpublisher.ResolutionStrategy.AUTO)
-
-        val deployMode = project.property("WALLET_GOOGLE_PLAY_DEPLOY_MODE").toString()
-        if ("build" == deployMode) {
-            releaseStatus.set(com.github.triplet.gradle.androidpublisher.ReleaseStatus.DRAFT)
-            // Prevent upload; only generates a build with the correct version number
-            commit.set(false)
-        } else if ("deploy" == deployMode) {
-            releaseStatus.set(com.github.triplet.gradle.androidpublisher.ReleaseStatus.COMPLETED)
-        }
-    }
-}*/

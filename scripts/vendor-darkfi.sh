@@ -4,6 +4,9 @@
 # Pin format: line 1 must start with a full 40-char lowercase hex SHA.
 # Further tokens / later lines may be comments.
 #
+# For F-Droid: prefer declaring DarkFi as a srclib and symlinking into
+# third_party/darkfi instead of cloning here (no developer-machine paths).
+#
 # After checkout, compiles event_graph *.zk.bin (required by the darkfi crate).
 set -euo pipefail
 
@@ -17,7 +20,16 @@ if [[ ! "${first_token}" =~ ^[0-9a-f]{40}$ ]]; then
   exit 1
 fi
 
+# Already a usable checkout (e.g. F-Droid srclib symlink) — just pin + compile proofs.
+if [[ -d "${DEST}/bin/drk" && ! -d "${DEST}/.git" ]]; then
+  echo "Using existing DarkFi tree at ${DEST} (no .git — skip clone)."
+  DARKFI_SRC="$DEST" "$ROOT/scripts/compile-darkfi-zkas-proofs.sh"
+  echo "Prepared darkfi @ ${first_token} → ${DEST}"
+  exit 0
+fi
+
 if [[ ! -d "${DEST}/.git" ]]; then
+  mkdir -p "$(dirname "${DEST}")"
   git clone --filter=blob:none https://github.com/darkrenaissance/darkfi.git "${DEST}"
 fi
 
