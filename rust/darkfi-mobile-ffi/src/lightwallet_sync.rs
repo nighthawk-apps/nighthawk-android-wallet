@@ -261,7 +261,8 @@ impl SyncEngine {
 
     /// When true, never fall back to full-window / gap trial decrypt (privacy mode).
     pub fn strict_omr_only(&self) -> bool {
-        self.strict_omr_only.load(std::sync::atomic::Ordering::Relaxed)
+        self.strict_omr_only
+            .load(std::sync::atomic::Ordering::Relaxed)
     }
 
     /// Enable or disable strict OMR-only mode.
@@ -439,17 +440,24 @@ impl SyncEngine {
         let mut state = self.state.lock().unwrap();
         state.omr_failure_count += 1;
 
-        // Strict mode: halt instead of degrade
+        // Strict mode: halt instead of degrade. Return false so the caller
+        // does not run trial decrypt (that would break the privacy contract).
         if self.strict_omr_only() && state.omr_failure_count >= self.max_omr_failures {
             state.status = LightSyncStatus::Error;
             state.sync_type = LightSyncType::Idle;
             state.refresh_messages();
-            return true;
+            return false;
         }
 
         // Exponential backoff: wait 2^n cycles (capped at 2^6 = 64)
         let exponent = state.omr_failure_count.min(MAX_BACKOFF_EXPONENT);
         state.omr_backoff_remaining = 1u32 << exponent;
+        if self.strict_omr_only() {
+            state.sync_type = LightSyncType::Omr;
+            state.status = LightSyncStatus::Degraded;
+            state.refresh_messages();
+            return false;
+        }
         state.sync_type = LightSyncType::TrialDecryptionFallback;
         state.status = LightSyncStatus::Degraded;
         state.refresh_messages();
@@ -519,8 +527,7 @@ impl SyncEngine {
                 state.status = LightSyncStatus::Error;
                 state.sync_type = LightSyncType::Idle;
                 state.last_error = Some(
-                    "Server reports OMR unsupported; strict_omr_only refuses trial decrypt"
-                        .into(),
+                    "Server reports OMR unsupported; strict_omr_only refuses trial decrypt".into(),
                 );
             } else {
                 state.sync_type = LightSyncType::TrialDecryption;
@@ -545,6 +552,9 @@ impl SyncEngine {
         }
 
         if !state.omr_available {
+            if self.strict_omr_only() {
+                return LightSyncType::Idle;
+            }
             return LightSyncType::TrialDecryption;
         }
 
@@ -556,6 +566,9 @@ impl SyncEngine {
                 state.sync_type = LightSyncType::Omr;
                 state.status = LightSyncStatus::Syncing;
                 state.refresh_messages();
+            }
+            if self.strict_omr_only() {
+                return LightSyncType::Idle;
             }
             return LightSyncType::TrialDecryptionFallback;
         }
@@ -903,6 +916,24 @@ mod tests {
     }
 
     #[test]
+    fn test_choose_sync_type_strict_without_omr_is_idle() {
+        let engine = SyncEngine::new_strict("x".to_string());
+        assert_eq!(engine.choose_sync_type(), LightSyncType::Idle);
+    }
+
+    #[test]
+    fn test_strict_backoff_does_not_trial_decrypt() {
+        let engine = SyncEngine::new_strict("x".to_string());
+        engine.set_omr_available(true);
+        assert!(!engine.record_omr_failure());
+        assert_eq!(engine.choose_sync_type(), LightSyncType::Idle);
+        assert_ne!(
+            engine.snapshot().sync_type,
+            LightSyncType::TrialDecryptionFallback
+        );
+    }
+
+    #[test]
     fn test_choose_sync_type_with_omr() {
         let engine = SyncEngine::new("x".to_string());
         engine.set_omr_available(true);
@@ -1161,13 +1192,19 @@ mod tests {
 
         // Rewind clears the flag
         engine.rewind_to_height(50);
-        assert!(!engine.needs_reorg_recovery(), "rewind should clear reorg flag");
+        assert!(
+            !engine.needs_reorg_recovery(),
+            "rewind should clear reorg flag"
+        );
 
         // Re-detect and test clear_reorg_flag
         engine.update_chain_tip_hash(100, &[0xCC; 32]);
         engine.update_chain_tip_hash(100, &[0xDD; 32]);
         assert!(engine.needs_reorg_recovery());
         engine.clear_reorg_flag();
-        assert!(!engine.needs_reorg_recovery(), "clear_reorg_flag should reset");
+        assert!(
+            !engine.needs_reorg_recovery(),
+            "clear_reorg_flag should reset"
+        );
     }
 }

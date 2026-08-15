@@ -1035,37 +1035,11 @@ impl DarkfiWalletHandle {
             }
         });
 
-        // Step 4: Invalidate money_coins DB & transactions above fork point via drk
+        // Step 4: Rewind coins, Money Merkle tree, and tx history
+        let client = self.sync_engine.lightwallet_client();
         let txs_affected = block_on(async {
             let drk_guard = drk.write().await;
-
-            // Delete coins created after rollback height
-            if let Err(e) = drk_guard
-                .wallet
-                .exec_sql(
-                    "DELETE FROM money_coins WHERE creation_height > ?1",
-                    vec![drk::walletdb::Value::from(i64::from(rewind_to_height))],
-                )
-                .await
-            {
-                tracing::error!(target: "reorg", "Failed to delete post-reorg coins: {e}");
-            }
-
-            // Un-spend coins that were marked spent after rollback height
-            if let Err(e) = drk_guard
-                .wallet
-                .exec_sql(
-                    "UPDATE money_coins SET is_spent = 0, spent_height = NULL WHERE spent_height > ?1",
-                    vec![drk::walletdb::Value::from(i64::from(rewind_to_height))],
-                )
-                .await
-            {
-                tracing::error!(target: "reorg", "Failed to un-spend post-reorg coins: {e}");
-            }
-
-            let _ = sync::persist_scanned_height(&drk_guard, rewind_to_height);
-
-            transactions::invalidate_transactions_above(&drk_guard, rewind_to_height).await
+            sync::rewind_wallet_after_reorg(&drk_guard, Some(&client), rewind_to_height).await
         })
         .unwrap_or(0);
 

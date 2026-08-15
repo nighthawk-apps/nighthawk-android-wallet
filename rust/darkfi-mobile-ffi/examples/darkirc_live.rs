@@ -23,7 +23,7 @@ impl DarkircEventCallback for CountingCallback {
     fn on_message(&self, _event_id: String, channel: String, nick: String, msg: String, ts: u64) {
         let n = self.received.fetch_add(1, Ordering::Relaxed) + 1;
         // Print a small sample so the operator can eyeball real traffic.
-        if n <= 10 || n % 500 == 0 {
+        if n <= 10 || n.is_multiple_of(500) {
             println!("[{n}] {ts} {channel} <{nick}> {msg}");
         }
     }
@@ -41,15 +41,26 @@ fn main() {
 
     let datastore = std::env::temp_dir().join(format!("darkirc-live-{}", std::process::id()));
     let received = Arc::new(AtomicU64::new(0));
-    let cb = Box::new(CountingCallback { received: received.clone() });
+    let cb = Box::new(CountingCallback {
+        received: received.clone(),
+    });
 
     println!(
         "Starting embedded darkirc ({}) datastore={}",
-        if use_tor { "tor socks5" } else { "tcp+tls clearnet" },
+        if use_tor {
+            "tor socks5"
+        } else {
+            "tcp+tls clearnet"
+        },
         datastore.display()
     );
-    start_darkirc(datastore.display().to_string(), use_tor, socks_port, Some(cb))
-        .expect("start_darkirc");
+    start_darkirc(
+        datastore.display().to_string(),
+        use_tor,
+        socks_port,
+        Some(cb),
+    )
+    .expect("start_darkirc");
 
     // Wait up to 4 minutes for DAG sync + history replay (tor is slower).
     let deadline = std::time::Instant::now() + std::time::Duration::from_secs(240);

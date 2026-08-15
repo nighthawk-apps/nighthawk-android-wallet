@@ -149,14 +149,7 @@ pub async fn build_transfer(
         .map(|s| s.as_bytes().to_vec());
 
     let tx = drk
-        .transfer(
-            amount,
-            token,
-            *recipient.public_key(),
-            None,
-            None,
-            false,
-        )
+        .transfer(amount, token, *recipient.public_key(), None, None, false)
         .await
         .map_err(|e| format!("transfer: {e}"))?;
 
@@ -285,11 +278,7 @@ pub async fn broadcast_transfer(
     }
 
     let send_result = client
-        .send_transaction(
-            raw_tx.to_vec(),
-            unifomr_clue.clone(),
-            omr_metadata_enc,
-        )
+        .send_transaction(raw_tx.to_vec(), unifomr_clue.clone(), omr_metadata_enc)
         .await;
 
     match send_result {
@@ -366,6 +355,10 @@ pub async fn get_transaction_memo(drk: &Drk, tx_hash: &str) -> Result<Option<Str
         .ok()
         .and_then(|m| m.get(tx_hash).and_then(|(memo, _)| memo.clone()))
     {
+        return Ok(Some(memo));
+    }
+
+    if let Some(memo) = crate::sync::load_received_memo(drk, tx_hash) {
         return Ok(Some(memo));
     }
 
@@ -512,6 +505,23 @@ fn extract_envelope_omr_memo(data: &[u8]) -> Option<Vec<u8>> {
     }
 }
 
+/// Invalidate transactions confirmed at heights above `rewind_height`.
+///
+/// Uses upstream `drk.revert_transactions_after`, which matches the
+/// `"Confirmed"` / `"Broadcasted"` status strings stored by `drk`.
+pub async fn invalidate_transactions_above(drk: &Drk, rewind_height: u32) -> Result<u32, String> {
+    let mut output = Vec::new();
+    drk.revert_transactions_after(&rewind_height, &mut output)
+        .await
+        .map_err(|e| format!("revert_transactions_after: {e}"))?;
+    tracing::debug!(
+        target: "reorg",
+        "Reverted transactions above height {rewind_height}: {}",
+        output.join("; ")
+    );
+    Ok(1)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -599,35 +609,4 @@ mod tests {
             crate::unifomr::R_PRIME
         );
     }
-}
-
-/// Invalidate transactions confirmed at heights above `rewind_height`.
-///
-/// **Known no-op (acceptable for TestFlight):** this SQL targets
-/// `status = 'confirmed'` but upstream `drk` stores `"Confirmed"` (capital C)
-/// and sends as `"Broadcasted"`. SQLite text `=` is case-sensitive, so the
-/// UPDATE never matches. The correct post-TestFlight fix is to call
-/// `drk.revert_transactions_after(&height, &mut output).await` which sets
-/// status to `'Reverted'` and NULLs `block_height` — matching upstream.
-/// Coin rewind (DELETE/unspend `money_coins`) + rescan handle actual recovery.
-///
-// TODO(post-TestFlight): replace this raw SQL with `drk.revert_transactions_after`.
-///
-/// Returns the number of transactions affected (always 0 today — see above).
-pub async fn invalidate_transactions_above(drk: &Drk, rewind_height: u32) -> Result<u32, String> {
-    // Tip `WalletDb` is async turso — update via exec_sql (no raw connection handle).
-    drk.wallet
-        .exec_sql(
-            "UPDATE tx_history SET status = 'unconfirmed' WHERE block_height > ?1 AND status = 'confirmed'",
-            vec![drk::walletdb::Value::from(i64::from(rewind_height))],
-        )
-        .await
-        .map_err(|e| format!("invalidate_transactions_above: {e}"))?;
-
-    tracing::debug!(
-        target: "reorg",
-        "Ran tx invalidation above height {rewind_height} (row count unavailable with turso)"
-    );
-    // Row-count is not exposed by turso exec_sql; callers treat this as best-effort.
-    Ok(0)
 }

@@ -40,6 +40,10 @@ static ARTI_STOP_REQUESTED: std::sync::atomic::AtomicBool =
 /// a background thread; poll [`is_arti_running`] / the FFI status to observe
 /// real progress.
 pub fn start_arti_proxy(socks_port: u16) -> Result<bool, crate::DarkfiWalletNativeError> {
+    // rustls 0.23 requires an explicit process-level CryptoProvider when both
+    // `ring` and `aws-lc-rs` may be pulled in transitively (Arti + tonic).
+    let _ = rustls::crypto::ring::default_provider().install_default();
+
     // Only one proxy at a time.
     if ARTI_STATE
         .compare_exchange(
@@ -108,7 +112,9 @@ pub fn is_arti_running() -> bool {
 /// Callers that install the process-wide SOCKS route must wait here before the
 /// first remote dial, otherwise lightwalletd / darkirc hit a listening-but-idle
 /// socket and fail.
-pub fn wait_until_running(timeout: std::time::Duration) -> Result<(), crate::DarkfiWalletNativeError> {
+pub fn wait_until_running(
+    timeout: std::time::Duration,
+) -> Result<(), crate::DarkfiWalletNativeError> {
     let deadline = std::time::Instant::now() + timeout;
     loop {
         match ARTI_STATE.load(Ordering::SeqCst) {
@@ -146,9 +152,7 @@ async fn run_socks_proxy(socks_port: u16) -> Result<(), String> {
     let listener = TcpListener::bind(("127.0.0.1", socks_port))
         .await
         .map_err(|e| format!("SOCKS bind on 127.0.0.1:{socks_port} failed: {e}"))?;
-    tracing::info!(
-        "arti SOCKS bound on 127.0.0.1:{socks_port}; bootstrapping Tor client..."
-    );
+    tracing::info!("arti SOCKS bound on 127.0.0.1:{socks_port}; bootstrapping Tor client...");
 
     let config = TorClientConfig::default();
     // Arti ≥0.45 returns Arc<TorClient<_>>; isolated_client() also yields Arc.

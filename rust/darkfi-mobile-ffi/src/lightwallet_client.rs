@@ -183,6 +183,10 @@ pub struct LightCompactOutput {
     pub value_commit: Vec<u8>,
     /// Commitment for token ID (32 bytes)
     pub token_commit: Vec<u8>,
+    /// UnifOMR clue attached to this output (may be empty).
+    pub omr_clue: Vec<u8>,
+    /// Recipient-encrypted OMR metadata (scheme + clue seed + user memo).
+    pub omr_metadata_enc: Vec<u8>,
 }
 
 /// Server info returned by GetLightInfo.
@@ -1310,6 +1314,8 @@ pub(crate) fn proto_compact_to_light(pb: lightwallet_proto::CompactBlock) -> Lig
                         encrypted_note: o.encrypted_note,
                         value_commit: o.value_commit,
                         token_commit: o.token_commit,
+                        omr_clue: o.omr_clue,
+                        omr_metadata_enc: o.omr_metadata_enc,
                     })
                     .collect(),
                 nullifiers: tx.nullifiers,
@@ -1591,10 +1597,7 @@ mod tests {
         assert!(dns_name_matches("lw.example.com", "lw.example.com"));
         assert!(dns_name_matches("LW.EXAMPLE.COM", "lw.example.com"));
         assert!(!dns_name_matches("*.ngrok-free.dev", "ngrok-free.dev"));
-        assert!(!dns_name_matches(
-            "*.ngrok-free.dev",
-            "a.b.ngrok-free.dev"
-        ));
+        assert!(!dns_name_matches("*.ngrok-free.dev", "a.b.ngrok-free.dev"));
         assert!(!dns_name_matches("lw.example.com", "other.example.com"));
     }
 
@@ -1956,6 +1959,8 @@ mod tests {
                     encrypted_note: vec![4u8; 128],
                     value_commit: vec![5u8; 33],
                     token_commit: vec![6u8; 32],
+                    omr_clue: Vec::new(),
+                    omr_metadata_enc: Vec::new(),
                 }],
                 nullifiers: vec![vec![7u8; 32]],
                 fee: 1000,

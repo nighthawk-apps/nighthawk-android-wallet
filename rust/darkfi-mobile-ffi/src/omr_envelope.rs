@@ -15,11 +15,7 @@ pub const MAX_OMR_MEMO_BYTES: usize = 4096;
 pub const MAX_FHE_CLUE_BYTES: usize = 65_536;
 
 /// Build an OMR envelope. Rejects oversized memo/clue (no silent u16 truncation).
-pub fn wrap_envelope(
-    omr_memo: &[u8],
-    fhe_clue: &[u8],
-    tx_bytes: &[u8],
-) -> Result<Vec<u8>, String> {
+pub fn wrap_envelope(omr_memo: &[u8], fhe_clue: &[u8], tx_bytes: &[u8]) -> Result<Vec<u8>, String> {
     if omr_memo.len() > MAX_OMR_MEMO_BYTES {
         return Err(format!(
             "OMR memo too large: {} (max {MAX_OMR_MEMO_BYTES})",

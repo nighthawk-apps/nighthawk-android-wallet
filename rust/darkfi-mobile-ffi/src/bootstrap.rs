@@ -85,9 +85,7 @@ pub async fn bootstrap_drk(
         // Non-fatal: devices often default to 127.0.0.1:9067 which is unreachable
         // until a remote LWD is configured. Sync can seed the tip later.
         let pin = pin_from_config(config);
-        if let Err(e) =
-            seed_fresh_wallet_at_tip(&drk, &config.lightwallet_server_url, pin).await
-        {
+        if let Err(e) = seed_fresh_wallet_at_tip(&drk, &config.lightwallet_server_url, pin).await {
             tracing::warn!(
                 target: "wallet-bootstrap",
                 "Fresh-wallet tip probe skipped (wallet still opens): {e}"

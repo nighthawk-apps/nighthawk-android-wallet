@@ -263,7 +263,11 @@ impl RlweSecretKey {
         for i in 0..CLUE_H {
             let j = i + (rng.next_u32() as usize) % (CLUE_N - i);
             idxs.swap(i, j);
-            coeffs[idxs[i]] = if rng.next_u32().is_multiple_of(2) { 1 } else { -1 };
+            coeffs[idxs[i]] = if rng.next_u32().is_multiple_of(2) {
+                1
+            } else {
+                -1
+            };
         }
         Self { coeffs }
     }
@@ -307,7 +311,11 @@ impl RlwePublicKey {
         for i in 0..h {
             let j = i + (rng.next_u32() as usize) % (CLUE_N - i);
             idxs.swap(i, j);
-            u[idxs[i]] = if rng.next_u32().is_multiple_of(2) { 1 } else { -1 };
+            u[idxs[i]] = if rng.next_u32().is_multiple_of(2) {
+                1
+            } else {
+                -1
+            };
         }
         // Discrete Gaussian σ=0.5 (paper Param2), not uniform.
         let e1: Vec<i64> = (0..CLUE_N)
@@ -1030,8 +1038,8 @@ pub fn verify_clue_pk_ownership(
     };
     let pk = PublicKey::from_bytes(*payment_pubkey)
         .map_err(|e| format!("invalid payment pubkey: {e}"))?;
-    let sig: darkfi_sdk::crypto::schnorr::Signature = deserialize(proof_bytes)
-        .map_err(|e| format!("invalid ownership proof encoding: {e}"))?;
+    let sig: darkfi_sdk::crypto::schnorr::Signature =
+        deserialize(proof_bytes).map_err(|e| format!("invalid ownership proof encoding: {e}"))?;
     let msg = clue_pk_ownership_message(network, key_version, payment_pubkey, clue_public_key);
     if !pk.verify(&msg, &sig) {
         return Err("clue public key ownership proof verification failed".into());

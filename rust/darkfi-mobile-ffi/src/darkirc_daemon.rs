@@ -23,22 +23,7 @@ const STATUS_FAILED: u8 = 4;
 /// Global daemon state (atomically updated).
 static DAEMON_STATUS: AtomicU8 = AtomicU8::new(STATUS_NOT_RUNNING);
 
-/// Global stop channel (single pair — previously Sender/Receiver were
-/// constructed independently, so stop never woke the daemon loops).
-static STOP_CHANNEL: std::sync::LazyLock<(smol::channel::Sender<()>, smol::channel::Receiver<()>)> =
-    std::sync::LazyLock::new(|| smol::channel::bounded(1));
-
-/// UI callback registered at `start_darkirc`. Kept globally so
-/// `send_chat_message` can self-echo even if `event_pub` delivery races
-/// across executors (common mobile failure: Connected but own "hi" missing).
-static CALLBACK: std::sync::LazyLock<smol::lock::RwLock<Option<Arc<dyn DarkircEventCallback>>>> =
-    std::sync::LazyLock::new(|| smol::lock::RwLock::new(None));
-
-/// Set after static_sync + sync_selected + history replay finish.
-static DAG_SYNCED: AtomicU8 = AtomicU8::new(0);
-
 /// Fine-grained connection phase for UI (independent of coarse DAEMON_STATUS).
-/// Kept separate so `darkirc_status()` remains backward-compatible for mobile.
 const PHASE_STOPPED: u8 = 0;
 const PHASE_STARTING: u8 = 1;
 const PHASE_WAITING_FOR_PEERS: u8 = 2;
@@ -54,6 +39,20 @@ static CONNECTION_PHASE: AtomicU8 = AtomicU8::new(PHASE_STOPPED);
 fn set_phase(phase: u8) {
     CONNECTION_PHASE.store(phase, Ordering::Relaxed);
 }
+
+/// Global stop channel (single pair — previously Sender/Receiver were
+/// constructed independently, so stop never woke the daemon loops).
+static STOP_CHANNEL: std::sync::LazyLock<(smol::channel::Sender<()>, smol::channel::Receiver<()>)> =
+    std::sync::LazyLock::new(|| smol::channel::bounded(1));
+
+/// UI callback registered at `start_darkirc`. Kept globally so
+/// `send_chat_message` can self-echo even if `event_pub` delivery races
+/// across executors (common mobile failure: Connected but own "hi" missing).
+static CALLBACK: std::sync::LazyLock<smol::lock::RwLock<Option<Arc<dyn DarkircEventCallback>>>> =
+    std::sync::LazyLock::new(|| smol::lock::RwLock::new(None));
+
+/// Set after static_sync + sync_selected + history replay finish.
+static DAG_SYNCED: AtomicU8 = AtomicU8::new(0);
 
 /// Global handles for sending messages
 static EVENT_GRAPH: std::sync::LazyLock<
@@ -181,14 +180,11 @@ pub fn darkirc_status() -> String {
 /// Values: `stopped` | `starting` | `waiting_for_peers` | `static_sync` |
 /// `syncing_dag` | `loading_history` | `connected` | `stopping` | `failed`.
 pub fn darkirc_connection_phase() -> String {
-    // Prefer daemon lifecycle when it has moved past the phase tracker.
     match DAEMON_STATUS.load(Ordering::Relaxed) {
         STATUS_FAILED => return "failed".to_string(),
         STATUS_STOPPING => return "stopping".to_string(),
-        STATUS_NOT_RUNNING => {
-            if CONNECTION_PHASE.load(Ordering::Relaxed) != PHASE_FAILED {
-                return "stopped".to_string();
-            }
+        STATUS_NOT_RUNNING if CONNECTION_PHASE.load(Ordering::Relaxed) != PHASE_FAILED => {
+            return "stopped".to_string();
         }
         _ => {}
     }
@@ -205,7 +201,6 @@ pub fn darkirc_connection_phase() -> String {
     }
     .to_string()
 }
-
 
 /// Start the darkirc daemon on a background thread.
 ///
@@ -287,7 +282,14 @@ pub fn start_darkirc(
                     })
                     .finish(|| {
                         smol::block_on(async {
-                            let result = run_darkirc_daemon(db_path, use_tor, tor_socks_port, ex.clone(), cb).await;
+                            let result = run_darkirc_daemon(
+                                db_path,
+                                use_tor,
+                                tor_socks_port,
+                                ex.clone(),
+                                cb,
+                            )
+                            .await;
                             // Signal workers to stop
                             drop(stop_tx);
                             result
@@ -367,6 +369,11 @@ pub fn send_chat_message(
             "darkirc daemon is not running".to_string(),
         ));
     }
+    if DAG_SYNCED.load(Ordering::Relaxed) != 1 {
+        return Err(DarkfiWalletNativeError::NativeDrkUnavailable(
+            "darkirc DAG is not synced yet; wait until connected".to_string(),
+        ));
+    }
 
     crate::block_on(async move {
         let eg_lock = EVENT_GRAPH.read().await;
@@ -375,11 +382,7 @@ pub fn send_chat_message(
         if let (Some(eg), Some(p2p)) = (&*eg_lock, &*p2p_lock) {
             let msg = new_privmsg(channel.clone(), nick.clone(), message.clone());
 
-            let event = match darkfi::event_graph::Event::new(
-                serialize_async(&msg).await,
-                eg,
-            )
-            .await
+            let event = match darkfi::event_graph::Event::new(serialize_async(&msg).await, eg).await
             {
                 Ok(ev) => ev,
                 Err(e) => {
@@ -400,10 +403,7 @@ pub fn send_chat_message(
             // header insert + optional RLN blob verify + body commit.
             // `dag_insert` is crate-private; with RLN disabled the blob is empty.
             let blob: Vec<u8> = Vec::new();
-            let inserted = match eg
-                .insert_signal_with_blob(&event, &blob, &dag_name)
-                .await
-            {
+            let inserted = match eg.insert_signal_with_blob(&event, &blob, &dag_name).await {
                 Ok(ids) => ids,
                 Err(e) => {
                     log::error!("Failed inserting signal event to DAG: {}", e);
@@ -658,8 +658,9 @@ async fn run_darkirc_daemon(
         if use_tor { "tor (socks5)" } else { "tcp+tls" }
     );
 
-    let dags_count = 8usize;
+    let dags_count = DARKIRC_MAX_DAGS;
     let comms_timeout = 5u64;
+    const DAG_REFRESH_SECS: u64 = 3600;
 
     // Relay events — track relayed IDs so the history replay can skip them.
     let relayed_ids: Arc<smol::lock::Mutex<std::collections::HashSet<String>>> =
@@ -773,9 +774,7 @@ async fn run_darkirc_daemon(
                 if !seen.insert(eid.clone()) {
                     continue;
                 }
-                if let Ok((privmsg, _)) =
-                    deserialize_async_partial::<Privmsg>(ev.content()).await
-                {
+                if let Ok((privmsg, _)) = deserialize_async_partial::<Privmsg>(ev.content()).await {
                     cb.on_message(
                         eid,
                         privmsg.channel,
@@ -791,7 +790,9 @@ async fn run_darkirc_daemon(
         log::info!("darkirc daemon DAG synced and history replayed");
 
         // Monitor until stop or loss of all peers, then outer loop resyncs.
+        // Periodic sync_selected covers missed live relays / DAG rotation.
         let net_sub = p2p.hosts().subscribe_disconnect().await;
+        let mut last_dag_refresh = std::time::Instant::now();
         loop {
             if DAEMON_STATUS.load(Ordering::Relaxed) == STATUS_STOPPING {
                 break;
@@ -821,9 +822,7 @@ async fn run_darkirc_daemon(
             )
             .await;
 
-            if stop_or_disc == "stop"
-                || DAEMON_STATUS.load(Ordering::Relaxed) == STATUS_STOPPING
-            {
+            if stop_or_disc == "stop" || DAEMON_STATUS.load(Ordering::Relaxed) == STATUS_STOPPING {
                 break;
             }
 
@@ -832,6 +831,20 @@ async fn run_darkirc_daemon(
                 DAG_SYNCED.store(0, Ordering::Relaxed);
                 set_phase(PHASE_WAITING_FOR_PEERS);
                 break;
+            }
+
+            if stop_or_disc == "timer"
+                && last_dag_refresh.elapsed() >= std::time::Duration::from_secs(DAG_REFRESH_SECS)
+            {
+                match event_graph.sync_selected(dags_count).await {
+                    Ok(()) => {
+                        last_dag_refresh = std::time::Instant::now();
+                        log::info!("darkirc daemon periodic sync_selected ok");
+                    }
+                    Err(e) => {
+                        log::warn!("darkirc daemon periodic sync_selected failed: {e}");
+                    }
+                }
             }
         }
 
