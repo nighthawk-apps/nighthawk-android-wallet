@@ -180,6 +180,13 @@ async fn resolve_outgoing_omr_clue(
         lightwallet_tls_pin,
     );
 
+    let info = client
+        .get_light_info()
+        .await
+        .map_err(|e| format!("GetLightInfo failed: {e}"))?;
+    if info.directory_attest_pubkey.len() != 32 {
+        return Err("GetLightInfo missing directory_attest_pubkey; upgrade lightwalletd".into());
+    }
     let (_found, clue_pk, ownership_proof, key_version) = client
         .get_clue_public_key(recipient_pk.to_vec())
         .await
@@ -190,7 +197,8 @@ async fn resolve_outgoing_omr_clue(
                 .into(),
         );
     }
-    crate::unifomr::verify_clue_pk_ownership(
+    crate::unifomr::verify_directory_attestation(
+        &info.directory_attest_pubkey,
         network_byte,
         key_version,
         recipient_pk,
@@ -199,8 +207,8 @@ async fn resolve_outgoing_omr_clue(
     )
     .map_err(|e| {
         format!(
-            "GetCluePublicKey ownership verify failed ({e}); treating as unregistered \
-             (possible MITM or decoy)"
+            "GetCluePublicKey directory attestation failed ({e}); treating as unregistered \
+             or MITM"
         )
     })?;
     let pk = crate::unifomr::deserialize_public_key(&clue_pk)

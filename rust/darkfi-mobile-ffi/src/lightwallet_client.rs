@@ -202,6 +202,8 @@ pub struct LightServerInfo {
     /// Backend node (darkfid) version (finding 5.9).
     /// Empty string if server doesn't report it.
     pub backend_version: String,
+    /// 32-byte directory attest public key for GetCluePublicKey proofs.
+    pub directory_attest_pubkey: Vec<u8>,
 }
 
 /// OMR capabilities returned by GetOmrCapabilities.
@@ -789,6 +791,7 @@ impl LightwalletClient {
                 omr_supported: info.omr_supported,
                 best_block_hash: info.best_block_hash,
                 backend_version: info.backend_version,
+                directory_attest_pubkey: info.directory_attest_pubkey,
             })
         })
         .await;
@@ -2087,6 +2090,7 @@ mod tests {
             omr_supported: true,
             best_block_hash: vec![0xAA; 32],
             backend_version: "darkfid 0.5.0".into(),
+            directory_attest_pubkey: vec![0xBB; 32],
         };
         assert_eq!(info.best_block_hash.len(), 32);
         assert_eq!(info.backend_version, "darkfid 0.5.0");
@@ -2101,6 +2105,7 @@ mod tests {
             omr_supported: false,
             best_block_hash: vec![],
             backend_version: String::new(),
+            directory_attest_pubkey: vec![],
         };
         assert!(info.best_block_hash.is_empty());
         assert!(info.backend_version.is_empty());

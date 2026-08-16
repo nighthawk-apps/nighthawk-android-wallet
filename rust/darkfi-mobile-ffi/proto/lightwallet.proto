@@ -251,6 +251,9 @@ message LightInfo {
   bytes best_block_hash = 7;
   // Backing node version string
   string backend_version = 8;
+  // 32-byte Schnorr public key for GetCluePublicKey directory attestations.
+  // Clients verify ownership_proof against this key (not the payment key).
+  bytes directory_attest_pubkey = 9;
 }
 
 // === OMR Messages ===
@@ -323,12 +326,13 @@ message CluePublicKeyRegistration {
 message CluePublicKey {
   bytes clue_public_key = 1;
   bool found = 2;
-  // Schnorr ownership proof (same encoding as RegisterCluePublicKey).
-  // Always present at a fixed padded wire length: real registrations carry a
-  // verifiable proof; decoys carry random bytes of equal size so registration
-  // status is not leaked by response length. Clients MUST verify before use.
+  // Directory attestation (fixed padded wire length), signed by
+  // LightInfo.directory_attest_pubkey over:
+  //   b"DarkFi-UnifOMR-DirAttest-v1" || network || key_version || payment_pk || clue_pk
+  // Real and decoy entries both verify. Clients MUST verify this (not a
+  // payment-key Schnorr) before building a clue.
   bytes ownership_proof = 3;
-  // key_version from registration (0 for decoys).
+  // key_version from registration, or a plausible decoy timestamp.
   uint64 key_version = 4;
 }
 

@@ -213,6 +213,10 @@ pub struct LightInfo {
     /// Backing node version string
     #[prost(string, tag = "8")]
     pub backend_version: ::prost::alloc::string::String,
+    /// 32-byte Schnorr public key for GetCluePublicKey directory attestations.
+    /// Clients verify ownership_proof against this key (not the payment key).
+    #[prost(bytes = "vec", tag = "9")]
+    pub directory_attest_pubkey: ::prost::alloc::vec::Vec<u8>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct OmrDigestResponse {
@@ -298,13 +302,14 @@ pub struct CluePublicKey {
     pub clue_public_key: ::prost::alloc::vec::Vec<u8>,
     #[prost(bool, tag = "2")]
     pub found: bool,
-    /// Schnorr ownership proof (same encoding as RegisterCluePublicKey).
-    /// Always present at a fixed padded wire length: real registrations carry a
-    /// verifiable proof; decoys carry random bytes of equal size so registration
-    /// status is not leaked by response length. Clients MUST verify before use.
+    /// Directory attestation (fixed padded wire length), signed by
+    /// LightInfo.directory_attest_pubkey over:
+    ///    b"DarkFi-UnifOMR-DirAttest-v1" || network || key_version || payment_pk || clue_pk
+    /// Real and decoy entries both verify. Clients MUST verify this (not a
+    /// payment-key Schnorr) before building a clue.
     #[prost(bytes = "vec", tag = "3")]
     pub ownership_proof: ::prost::alloc::vec::Vec<u8>,
-    /// key_version from registration (0 for decoys).
+    /// key_version from registration, or a plausible decoy timestamp.
     #[prost(uint64, tag = "4")]
     pub key_version: u64,
 }
