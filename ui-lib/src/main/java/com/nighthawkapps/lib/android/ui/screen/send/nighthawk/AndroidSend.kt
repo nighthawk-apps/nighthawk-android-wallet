@@ -182,6 +182,11 @@ private fun NighthawkSendFlow(
                     onBack = { goBackStage() },
                     onAmountChanged = { amountText = it },
                     onTokenSelected = { selectedTokenId = it },
+                    onMaxAmount = {
+                        val token = tokenBalances.firstOrNull { it.tokenId == selectedTokenId }
+                        val rawAtomic = token?.balanceAtomic ?: balanceAtomic
+                        amountText = DarkfiAmountFormatter.formatAtomic(rawAtomic)
+                    },
                     onContinue = { stage = SendStage.Recipient },
                     onScanPaymentRequest = onScan,
                 )

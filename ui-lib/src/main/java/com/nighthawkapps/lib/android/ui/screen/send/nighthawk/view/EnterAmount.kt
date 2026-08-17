@@ -15,8 +15,10 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -54,6 +56,7 @@ fun EnterAmount(
     onBack: () -> Unit,
     onAmountChanged: (String) -> Unit,
     onTokenSelected: (String?) -> Unit,
+    onMaxAmount: (() -> Unit)? = null,
     onContinue: () -> Unit,
     onScanPaymentRequest: () -> Unit,
 ) {
@@ -141,6 +144,18 @@ fun EnterAmount(
             onValueChange = onAmountChanged,
             modifier = Modifier.fillMaxWidth(),
             label = { Text(stringResource(R.string.send_amount_label)) },
+            trailingIcon =
+                onMaxAmount?.let { onMax ->
+                    {
+                        TextButton(onClick = onMax) {
+                            Text(
+                                text = "MAX",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.primary,
+                            )
+                        }
+                    }
+                },
             singleLine = true,
             colors = TextFieldDefaults.customColors(),
         )
