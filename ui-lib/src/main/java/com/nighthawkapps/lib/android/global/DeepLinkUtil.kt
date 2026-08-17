@@ -2,6 +2,7 @@ package com.nighthawkapps.lib.android.global
 
 import android.net.Uri
 import android.util.Base64
+import com.nighthawkapps.lib.android.sdk.wallet.DarkfiPaymentMemo
 import com.nighthawkapps.lib.android.spackle.Twig
 import com.nighthawkapps.lib.android.ui.common.AMOUNT_QUERY
 import com.nighthawkapps.lib.android.ui.common.MEMO_QUERY
@@ -10,7 +11,6 @@ import com.nighthawkapps.lib.android.ui.common.toAtomicDrk
 object DeepLinkUtil {
     private const val SCHEME = "drk"
     private const val MAX_ADDRESS_LENGTH = 256
-    private const val MAX_MEMO_LENGTH = 512
     private const val MAX_AMOUNT_HUMAN = 21_000_000.0
 
     fun getSendDeepLinkData(uri: Uri): SendDeepLinkData? {
@@ -65,7 +65,10 @@ object DeepLinkUtil {
                     runCatching {
                         String(Base64.decode(memoParam, Base64.DEFAULT), Charsets.UTF_8)
                     }.getOrNull()
-                        ?.takeIf { it.length <= MAX_MEMO_LENGTH && it.none(Char::isISOControl) }
+                        ?.takeIf {
+                            DarkfiPaymentMemo.utf8Size(it) <= DarkfiPaymentMemo.MAX_BYTES &&
+                                it.none(Char::isISOControl)
+                        }
                 }
 
             SendDeepLinkData(address = address, amount = amountAtomic, memo = memo)

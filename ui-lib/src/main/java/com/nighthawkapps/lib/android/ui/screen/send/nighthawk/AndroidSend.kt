@@ -17,7 +17,9 @@ import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.nighthawkapps.lib.android.sdk.wallet.DarkfiAmountFormatter
 import com.nighthawkapps.lib.android.sdk.wallet.DarkfiAmountParser
+import com.nighthawkapps.lib.android.sdk.wallet.DarkfiPaymentMemo
 import com.nighthawkapps.lib.android.sdk.wallet.SendBalanceCheck
+import com.nighthawkapps.lib.android.sdk.wallet.maxSpendableAtomic
 import com.nighthawkapps.lib.android.ui.MainActivity
 import com.nighthawkapps.lib.android.ui.R
 import com.nighthawkapps.lib.android.ui.screen.home.viewmodel.WalletViewModel
@@ -86,7 +88,9 @@ private fun NighthawkSendFlow(
         mutableStateOf(sendArgumentsWrapper?.recipientAddress.orEmpty())
     }
     var memoText by remember(sendArgumentsWrapper) {
-        mutableStateOf(sendArgumentsWrapper?.memo.orEmpty())
+        mutableStateOf(
+            DarkfiPaymentMemo.truncateToMaxBytes(sendArgumentsWrapper?.memo.orEmpty()),
+        )
     }
     var selectedTokenId by remember { mutableStateOf<String?>(null) }
 
@@ -185,7 +189,17 @@ private fun NighthawkSendFlow(
                     onMaxAmount = {
                         val token = tokenBalances.firstOrNull { it.tokenId == selectedTokenId }
                         val rawAtomic = token?.balanceAtomic ?: balanceAtomic
-                        amountText = DarkfiAmountFormatter.formatAtomic(rawAtomic)
+                        val feeFromThisAsset =
+                            token == null ||
+                                token.displayName.equals("DRK", ignoreCase = true)
+                        amountText =
+                            DarkfiAmountFormatter.formatAtomic(
+                                maxSpendableAtomic(
+                                    availableAtomic = rawAtomic,
+                                    feeAtomic = feeAtomic,
+                                    feePaidFromThisAsset = feeFromThisAsset,
+                                ),
+                            )
                     },
                     onContinue = { stage = SendStage.Recipient },
                     onScanPaymentRequest = onScan,

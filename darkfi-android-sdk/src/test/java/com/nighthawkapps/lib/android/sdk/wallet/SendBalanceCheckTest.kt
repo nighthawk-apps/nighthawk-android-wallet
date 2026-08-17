@@ -33,4 +33,19 @@ class SendBalanceCheckTest {
         val check = evaluateSendBalance(confirmedBalanceAtomic = 1_000_000L, amountDisplay = "1", feeAtomic = null)
         assertEquals(SendBalanceCheck.FeePending, check)
     }
+
+    @Test
+    fun max_spendable_subtracts_fee_from_same_asset() {
+        assertEquals(90L, maxSpendableAtomic(availableAtomic = 100L, feeAtomic = 10L, feePaidFromThisAsset = true))
+    }
+
+    @Test
+    fun max_spendable_keeps_full_balance_for_other_assets() {
+        assertEquals(100L, maxSpendableAtomic(availableAtomic = 100L, feeAtomic = 10L, feePaidFromThisAsset = false))
+    }
+
+    @Test
+    fun max_spendable_without_fee_is_full_balance() {
+        assertEquals(100L, maxSpendableAtomic(availableAtomic = 100L, feeAtomic = null))
+    }
 }

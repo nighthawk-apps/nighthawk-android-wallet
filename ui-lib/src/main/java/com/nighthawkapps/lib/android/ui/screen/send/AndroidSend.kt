@@ -34,6 +34,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.nighthawkapps.lib.android.sdk.wallet.DarkfiAmountFormatter
 import com.nighthawkapps.lib.android.sdk.wallet.DarkfiAmountParser
+import com.nighthawkapps.lib.android.sdk.wallet.DarkfiPaymentMemo
 import com.nighthawkapps.lib.android.sdk.wallet.SendBalanceCheck
 import com.nighthawkapps.lib.android.ui.MainActivity
 import com.nighthawkapps.lib.android.ui.R
@@ -96,7 +97,9 @@ private fun WrapSend(
         mutableStateOf(sendArgumentsWrapper?.amount.orEmpty())
     }
     var memoText by remember(sendArgumentsWrapper) {
-        mutableStateOf(sendArgumentsWrapper?.memo.orEmpty())
+        mutableStateOf(
+            DarkfiPaymentMemo.truncateToMaxBytes(sendArgumentsWrapper?.memo.orEmpty()),
+        )
     }
     var showConfirmDialog by remember { mutableStateOf(false) }
     var showSuccessDialog by remember { mutableStateOf(false) }
@@ -252,9 +255,12 @@ private fun WrapSend(
         Spacer(Modifier.height(12.dp))
         OutlinedTextField(
             value = memoText,
-            onValueChange = { memoText = it },
+            onValueChange = { memoText = DarkfiPaymentMemo.truncateToMaxBytes(it) },
             modifier = Modifier.fillMaxWidth(),
             label = { Text(stringResource(R.string.send_memo)) },
+            supportingText = {
+                Text("${DarkfiPaymentMemo.utf8Size(memoText)}/${DarkfiPaymentMemo.MAX_BYTES}")
+            },
             minLines = 2,
         )
         Spacer(Modifier.height(24.dp))

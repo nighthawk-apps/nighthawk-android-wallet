@@ -19,6 +19,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
+import com.nighthawkapps.lib.android.sdk.wallet.DarkfiPaymentMemo
 import com.nighthawkapps.lib.android.ui.R
 import com.nighthawkapps.lib.android.ui.common.customColors
 import com.nighthawkapps.lib.android.ui.design.component.BodyMedium
@@ -28,8 +29,8 @@ import com.nighthawkapps.lib.android.ui.design.component.PrimaryButton
 import com.nighthawkapps.lib.android.ui.design.component.TitleLarge
 import com.nighthawkapps.lib.android.ui.design.theme.WalletTheme
 
-/** Max UTF-8 bytes for payment memo (matches Rust MAX_PAYMENT_MEMO_BYTES / OMR envelope). */
-const val SEND_MEMO_MAX_CHARS = 255
+/** Max UTF-8 bytes for payment memo (UnifOMR `u8` length / FFI `MAX_PAYMENT_MEMO_BYTES`). */
+const val SEND_MEMO_MAX_CHARS = DarkfiPaymentMemo.MAX_BYTES
 
 @Composable
 fun EnterMemo(
@@ -69,7 +70,7 @@ fun EnterMemo(
         OutlinedTextField(
             value = memoText,
             onValueChange = { next ->
-                onMemoChanged(next.take(SEND_MEMO_MAX_CHARS))
+                onMemoChanged(DarkfiPaymentMemo.truncateToMaxBytes(next))
             },
             modifier = Modifier.fillMaxWidth(),
             placeholder = {
@@ -82,7 +83,7 @@ fun EnterMemo(
             colors = TextFieldDefaults.customColors(),
         )
         BodyMedium(
-            text = "${memoText.length}/$SEND_MEMO_MAX_CHARS",
+            text = "${DarkfiPaymentMemo.utf8Size(memoText)}/$SEND_MEMO_MAX_CHARS",
             color = WalletTheme.colors.secondaryTitleText,
             modifier = Modifier.align(Alignment.End),
         )

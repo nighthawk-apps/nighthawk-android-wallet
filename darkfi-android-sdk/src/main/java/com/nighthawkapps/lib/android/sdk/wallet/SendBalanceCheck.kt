@@ -15,6 +15,20 @@ sealed interface SendBalanceCheck {
     ) : SendBalanceCheck
 }
 
+/**
+ * Largest amount that still leaves room for [feeAtomic] when the fee is paid
+ * from the same asset. Unknown fees reserve nothing; callers should re-clamp
+ * after [evaluateSendBalance] once a fee estimate arrives.
+ */
+fun maxSpendableAtomic(
+    availableAtomic: Long,
+    feeAtomic: Long?,
+    feePaidFromThisAsset: Boolean = true,
+): Long {
+    val reserve = if (feePaidFromThisAsset) feeAtomic?.coerceAtLeast(0L) ?: 0L else 0L
+    return (availableAtomic - reserve).coerceAtLeast(0L)
+}
+
 fun evaluateSendBalance(
     confirmedBalanceAtomic: Long,
     amountDisplay: String,

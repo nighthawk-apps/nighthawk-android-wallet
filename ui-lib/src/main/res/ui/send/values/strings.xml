@@ -8,6 +8,7 @@
     <string name="send_recipient_label">Recipient address</string>
     <string name="send_token_label">Token</string>
     <string name="send_amount_label">Amount (DRK)</string>
+    <string name="send_max">MAX</string>
     <string name="send_memo">Memo (optional)</string>
     <string name="send_confirmation_memo_format" formatted="true">Memo: %1$s</string>
     <string name="send_insufficient_balance" formatted="true">Insufficient balance. This transfer needs about %1$s DRK (amount + fee) but you only have %2$s DRK available. Add more funds to continue.</string>

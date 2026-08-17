@@ -149,7 +149,7 @@ fun EnterAmount(
                     {
                         TextButton(onClick = onMax) {
                             Text(
-                                text = "MAX",
+                                text = stringResource(R.string.send_max),
                                 style = MaterialTheme.typography.labelMedium,
                                 color = MaterialTheme.colorScheme.primary,
                             )

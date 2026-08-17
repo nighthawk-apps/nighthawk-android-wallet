@@ -59,7 +59,7 @@ Canonical list of **Android** capabilities for the DarkFi wallet APK (`com.night
 | Send without native lib | 🟡 | Stub synchronizer; transfer disabled with message |
 | Fee estimate before send | ✅ | `estimateTransferFee` |
 | Send confirmation dialog | ✅ | Amount, recipient, fee, memo |
-| Payment memo (private, encrypted note) | ✅ | Up to 512 UTF-8 bytes; P0 UniFFI + send field |
+| Payment memo (private, UnifOMR metadata) | ✅ | Up to 255 UTF-8 bytes (`u8` length in OMR envelope; FFI `MAX_PAYMENT_MEMO_BYTES`) |
 | Memo on transaction details | ✅ | Decrypt incoming / stored outgoing (P0) |
 | QR scan recipient / amount | ✅ | SCAN route; deep link `drk:…?amount=&memo=` |
 | Receive QR display | ✅ | Receive money + QR codes screens |
@@ -147,7 +147,7 @@ Canonical list of **Android** capabilities for the DarkFi wallet APK (`com.night
 |--------------------------|-------------------|
 | ZEC transparent + shielded pools | Single private DRK balance |
 | Unified address / uview | `drk` deposit address |
-| Memo field (512 bytes) | `MoneyNote::memo` (OMR-aware encrypted note memo) |
+| Memo field (512 bytes) | UnifOMR user memo, max **255 UTF-8 bytes** (off-chain `omr_metadata_enc`; on-chain `MoneyNote.memo` is unbounded `Vec<u8>` and left empty by `drk.transfer`) |
 | Lightwalletd | `darkfi-lightwalletd` gRPC **:9067** (UnifOMR) → `darkfid` |
 | Tor via librustzcash | tor-android SOCKS + optional daemon Tor |
 | ZIP-321 | Payment URI `drk:address?amount=&memo=` |
