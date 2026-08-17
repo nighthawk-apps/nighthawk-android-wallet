@@ -41,6 +41,13 @@ class StubDarkfiSynchronizer(
 
     override val supportsNativeTransfer: Boolean = false
 
+    var closeCount: Int = 0
+        private set
+
+    override fun close() {
+        closeCount++
+    }
+
     override suspend fun getRecipients(tx: DarkfiTransactionOverview): List<DarkfiTransactionRecipient> = emptyList()
 
     override suspend fun estimateTransferFee(

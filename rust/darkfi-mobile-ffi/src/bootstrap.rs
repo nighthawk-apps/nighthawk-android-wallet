@@ -55,36 +55,11 @@ pub async fn bootstrap_drk(
     if config.birthday_height > 0 {
         let birthday = u32::try_from(config.birthday_height)
             .map_err(|_| format!("birthday_height out of range: {}", config.birthday_height))?;
-        // Prefer a real block hash when darkfid is configured. Seeding with
-        // placeholder "-" makes scan_blocks treat the cursor as a reorg and
-        // fail with RowNotFound while walking missing heights.
-        let cursor = birthday.saturating_sub(1);
-        let real_hash = if cursor > 0 && has_darkfid {
-            match drk.get_block_by_height(cursor).await {
-                Ok(block) => Some(block.hash().to_string()),
-                Err(e) => {
-                    tracing::warn!(
-                        target: "wallet-bootstrap",
-                        "birthday block {cursor} hash fetch failed ({e}); using placeholder"
-                    );
-                    None
-                }
-            }
-        } else {
-            None
-        };
-        if let Some(ref hash) = real_hash {
-            seed_scan_cursor(&drk, cursor, Some(hash.as_str()))?;
-        } else {
-            seed_birthday_scan_cursor(&drk, birthday).await?;
-        }
-
-        // Backfill the Money Merkle tree with pre-birthday note commitments so
-        // spend proofs use a root that includes genesis..birthday-1. Without
-        // this, the local tree only has leaves from birthday..tip and computed
-        // Merkle roots won't match any valid on-chain anchor.
+        // Backfill genesis..birthday-1 *before* seeding the scan cursor.
+        // Seeding first left a truncated tree whenever LWD was unreachable,
+        // and later sync only appended birthday..tip (invalid spend roots).
         let pin = pin_from_config(config);
-        if let Err(e) = backfill_money_tree_to_birthday(
+        match backfill_money_tree_to_birthday(
             &drk,
             birthday,
             &config.lightwallet_server_url,
@@ -92,10 +67,38 @@ pub async fn bootstrap_drk(
         )
         .await
         {
-            tracing::warn!(
-                target: "wallet-bootstrap",
-                "Birthday tree backfill skipped (sync will rebuild later): {e}"
-            );
+            Ok(()) => {
+                // Prefer a real block hash when darkfid is configured. Seeding
+                // with placeholder "-" makes scan_blocks treat the cursor as a
+                // reorg and fail with RowNotFound while walking missing heights.
+                let cursor = birthday.saturating_sub(1);
+                let real_hash = if cursor > 0 && has_darkfid {
+                    match drk.get_block_by_height(cursor).await {
+                        Ok(block) => Some(block.hash().to_string()),
+                        Err(e) => {
+                            tracing::warn!(
+                                target: "wallet-bootstrap",
+                                "birthday block {cursor} hash fetch failed ({e}); using placeholder"
+                            );
+                            None
+                        }
+                    }
+                } else {
+                    None
+                };
+                if let Some(ref hash) = real_hash {
+                    seed_scan_cursor(&drk, cursor, Some(hash.as_str()))?;
+                } else {
+                    seed_birthday_scan_cursor(&drk, birthday).await?;
+                }
+            }
+            Err(e) => {
+                tracing::warn!(
+                    target: "wallet-bootstrap",
+                    "Birthday tree backfill failed; leaving scan cursor at genesis \
+                     so the next sync rebuilds a valid Money tree: {e}"
+                );
+            }
         }
     } else if config.birthday_height == 0 {
         // Fresh create (birthday 0): jump scan cursor to LWD tip — new wallets
@@ -197,23 +200,19 @@ fn parse_network(network: &str) -> Network {
 /// from the on-chain anchor and `tx.calculate_fee` / broadcast fails with
 /// an invalid anchor error.
 ///
-/// Non-fatal: if LWD is unreachable the sync engine will rebuild the tree
-/// on next successful connection (via `rebuild_money_tree_to_height`).
+/// Starts at height 0 (genesis mint coins). The ZERO sentinel in
+/// `empty_money_tree` is a dummy leaf, not block 0.
 async fn backfill_money_tree_to_birthday(
     drk: &Drk,
     birthday: u32,
     lwd_url: &str,
     tls_pin: Option<[u8; 32]>,
 ) -> Result<(), String> {
-    use darkfi_sdk::crypto::MerkleNode;
-    use darkfi_sdk::pasta::group::ff::PrimeField;
-    use darkfi_sdk::pasta::pallas;
-    use std::collections::{BTreeMap, HashSet};
+    use std::collections::HashSet;
 
-    let end = birthday.saturating_sub(1);
-    if end == 0 {
+    let Some((start, end)) = crate::birthday::pre_birthday_commitment_range(birthday) else {
         return Ok(());
-    }
+    };
 
     let client = LightwalletClient::from_endpoint_and_pin(lwd_url, tls_pin);
 
@@ -228,45 +227,8 @@ async fn backfill_money_tree_to_birthday(
     };
 
     let mut tree = crate::sync::empty_money_tree();
-    let mut appended = 0u64;
-
-    const CHUNK: u32 = 4096;
-    let mut start = 1u32;
-    while start <= end {
-        let chunk_end = end.min(start.saturating_add(CHUNK.saturating_sub(1)));
-        let updates = client.get_note_commitments(start, chunk_end).await?;
-
-        let mut by_h: BTreeMap<u32, Vec<Vec<u8>>> = BTreeMap::new();
-        for (height, coins) in updates {
-            if height >= start && height <= chunk_end {
-                by_h.entry(height).or_default().extend(coins);
-            }
-        }
-
-        for height in start..=chunk_end {
-            for coin_bytes in by_h.get(&height).map(|v| v.as_slice()).unwrap_or(&[]) {
-                if coin_bytes.len() != 32 {
-                    continue;
-                }
-                let mut repr = [0u8; 32];
-                repr.copy_from_slice(coin_bytes);
-                let Some(base) = Option::<pallas::Base>::from(pallas::Base::from_repr(repr))
-                else {
-                    continue;
-                };
-                tree.append(MerkleNode::from(base));
-                appended += 1;
-                if owned.contains(coin_bytes) {
-                    let _ = tree.mark();
-                }
-            }
-        }
-
-        start = chunk_end.saturating_add(1);
-        if start == 0 {
-            break; // overflow guard
-        }
-    }
+    let appended =
+        crate::sync::append_note_commitments(&mut tree, &client, start, end, &owned).await?;
 
     drk.cache
         .insert_merkle_trees(&[(drk::money::SLED_MERKLE_TREES_MONEY, &tree)])
@@ -275,7 +237,7 @@ async fn backfill_money_tree_to_birthday(
 
     tracing::info!(
         target: "wallet-bootstrap",
-        "Birthday backfill complete: appended {appended} pre-birthday commitments (1..={end})"
+        "Birthday backfill complete: appended {appended} pre-birthday commitments ({start}..={end})"
     );
     Ok(())
 }

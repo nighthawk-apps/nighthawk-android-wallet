@@ -1420,6 +1420,66 @@ pub(crate) fn empty_money_tree() -> darkfi_sdk::crypto::MerkleTree {
     tree
 }
 
+pub(crate) fn merkle_node_from_coin_bytes(
+    coin_bytes: &[u8],
+) -> Option<darkfi_sdk::crypto::MerkleNode> {
+    if coin_bytes.len() != 32 {
+        return None;
+    }
+    let mut repr = [0u8; 32];
+    repr.copy_from_slice(coin_bytes);
+    darkfi_sdk::crypto::MerkleNode::from_bytes(repr)
+}
+
+/// Append LWD `GetNoteCommitments` leaves for `[start_height, end_height]`.
+///
+/// Height 0 is genesis (real coins). Callers must start from an
+/// `empty_money_tree()` so the ZERO sentinel is already present.
+pub(crate) async fn append_note_commitments(
+    tree: &mut darkfi_sdk::crypto::MerkleTree,
+    client: &crate::lightwallet_client::LightwalletClient,
+    start_height: u32,
+    end_height: u32,
+    owned: &std::collections::HashSet<Vec<u8>>,
+) -> Result<u64, String> {
+    use std::collections::BTreeMap;
+
+    if start_height > end_height {
+        return Ok(0);
+    }
+
+    const CHUNK: u32 = 4096;
+    let mut appended = 0u64;
+    let mut start = start_height;
+    while start <= end_height {
+        let chunk_end = end_height.min(start.saturating_add(CHUNK.saturating_sub(1)));
+        let updates = client.get_note_commitments(start, chunk_end).await?;
+        let mut by_h: BTreeMap<u32, Vec<Vec<u8>>> = BTreeMap::new();
+        for (height, coins) in updates {
+            if height >= start && height <= chunk_end {
+                by_h.entry(height).or_default().extend(coins);
+            }
+        }
+        for height in start..=chunk_end {
+            for coin_bytes in by_h.get(&height).map(|v| v.as_slice()).unwrap_or(&[]) {
+                let Some(node) = merkle_node_from_coin_bytes(coin_bytes) else {
+                    continue;
+                };
+                tree.append(node);
+                appended += 1;
+                if owned.contains(coin_bytes) {
+                    let _ = tree.mark();
+                }
+            }
+        }
+        start = chunk_end.saturating_add(1);
+        if start == 0 {
+            break;
+        }
+    }
+    Ok(appended)
+}
+
 /// Rewind coins, Money Merkle tree, scan cursor, and tx history after a reorg.
 ///
 /// Prefers `drk.reset_to_height` (inverse diffs). LWD-only wallets rebuild the
@@ -1487,11 +1547,6 @@ async fn rebuild_money_tree_to_height(
     client: &crate::lightwallet_client::LightwalletClient,
     rollback_height: u32,
 ) -> Result<(), String> {
-    use darkfi_money_contract::model::Coin;
-    use darkfi_sdk::crypto::MerkleNode;
-    use darkfi_sdk::pasta::group::ff::PrimeField;
-    use darkfi_sdk::pasta::pallas;
-
     let mut tree = empty_money_tree();
     let owned: std::collections::HashSet<Vec<u8>> = match drk.get_coins(false).await {
         Ok(coins) => coins
@@ -1501,40 +1556,7 @@ async fn rebuild_money_tree_to_height(
         Err(_) => std::collections::HashSet::new(),
     };
 
-    const CHUNK: u32 = 4096;
-    let mut start = 1u32;
-    while start <= rollback_height {
-        let end = rollback_height.min(start.saturating_add(CHUNK.saturating_sub(1)));
-        let updates = client.get_note_commitments(start, end).await?;
-        let mut by_h: std::collections::BTreeMap<u32, Vec<Vec<u8>>> =
-            std::collections::BTreeMap::new();
-        for (height, coins) in updates {
-            if height >= start && height <= end {
-                by_h.entry(height).or_default().extend(coins);
-            }
-        }
-        for height in start..=end {
-            for coin_bytes in by_h.get(&height).map(|v| v.as_slice()).unwrap_or(&[]) {
-                if coin_bytes.len() != 32 {
-                    continue;
-                }
-                let mut repr = [0u8; 32];
-                repr.copy_from_slice(coin_bytes);
-                let Some(base) = Option::<pallas::Base>::from(pallas::Base::from_repr(repr)) else {
-                    continue;
-                };
-                let coin = Coin::from(base);
-                tree.append(MerkleNode::from(coin.inner()));
-                if owned.contains(coin_bytes) {
-                    let _ = tree.mark();
-                }
-            }
-        }
-        start = end.saturating_add(1);
-        if start == 0 {
-            break;
-        }
-    }
+    append_note_commitments(&mut tree, client, 0, rollback_height, &owned).await?;
 
     drk.cache
         .insert_merkle_trees(&[(drk::money::SLED_MERKLE_TREES_MONEY, &tree)])
@@ -1934,6 +1956,27 @@ fn redact_sync_error(error: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn empty_money_tree_root_matches_zero_leaf_only() {
+        use darkfi_sdk::crypto::{MerkleNode, MerkleTree};
+        use darkfi_sdk::pasta::group::ff::Field;
+        use darkfi_sdk::pasta::pallas;
+        let tree = empty_money_tree();
+        let mut expected = MerkleTree::new(u32::MAX as usize);
+        expected.append(MerkleNode::from(pallas::Base::ZERO));
+        assert_eq!(tree.root(0).unwrap(), expected.root(0).unwrap());
+    }
+
+    #[test]
+    fn merkle_node_from_coin_bytes_rejects_short() {
+        assert!(merkle_node_from_coin_bytes(&[1, 2, 3]).is_none());
+    }
+
+    #[test]
+    fn merkle_node_from_coin_bytes_accepts_zero() {
+        assert!(merkle_node_from_coin_bytes(&[0u8; 32]).is_some());
+    }
 
     #[test]
     fn test_ensure_chain_matches_wallet() {

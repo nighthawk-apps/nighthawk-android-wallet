@@ -54,8 +54,39 @@ class DarkfiWalletCoordinatorTest {
         runTest {
             val flow = MutableStateFlow(wallet)
             val coordinator = DarkfiWalletCoordinator(context, flow, useNativeSynchronizer = false)
-            testScheduler.advanceUntilIdle()
+            val sync = awaitStub(coordinator)
             coordinator.resetSdk()
             assertNull(coordinator.synchronizer.value)
+            assertTrue(sync.closeCount >= 1)
         }
+
+    @Test
+    fun walletSwitch_closesPreviousSynchronizer() =
+        runTest {
+            val flow = MutableStateFlow<PersistableDarkfiWallet?>(wallet)
+            val coordinator = DarkfiWalletCoordinator(context, flow, useNativeSynchronizer = false)
+            val first = awaitStub(coordinator)
+            flow.value = null
+            awaitNull(coordinator)
+            assertNull(coordinator.synchronizer.value)
+            assertTrue(first.closeCount >= 1)
+        }
+
+    private fun awaitStub(coordinator: DarkfiWalletCoordinator): StubDarkfiSynchronizer {
+        repeat(50) {
+            (coordinator.synchronizer.value as? StubDarkfiSynchronizer)?.let { return it }
+            Thread.sleep(20)
+        }
+        val value = coordinator.synchronizer.value
+        assertTrue("expected stub synchronizer, got $value", value is StubDarkfiSynchronizer)
+        return value as StubDarkfiSynchronizer
+    }
+
+    private fun awaitNull(coordinator: DarkfiWalletCoordinator) {
+        repeat(50) {
+            if (coordinator.synchronizer.value == null) return
+            Thread.sleep(20)
+        }
+        assertNull(coordinator.synchronizer.value)
+    }
 }

@@ -24,6 +24,11 @@ class FakeDarkfiSynchronizer(
 
     var estimateCalls = 0
     var submitCalls = 0
+    var closeCount = 0
+
+    override fun close() {
+        closeCount++
+    }
 
     override suspend fun getRecipients(tx: DarkfiTransactionOverview): List<DarkfiTransactionRecipient> = emptyList()
 

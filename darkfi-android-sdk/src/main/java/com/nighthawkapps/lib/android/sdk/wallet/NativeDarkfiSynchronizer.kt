@@ -360,6 +360,7 @@ class NativeDarkfiSynchronizer internal constructor(
     override fun close() {
         syncJob?.cancel()
         syncScope.cancel()
+        handle.close()
     }
 
     private companion object {

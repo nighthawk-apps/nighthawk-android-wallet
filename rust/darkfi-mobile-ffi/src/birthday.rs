@@ -46,3 +46,37 @@ pub async fn seed_birthday_scan_cursor(drk: &Drk, birthday_height: u32) -> Resul
     // No darkfid fetch — placeholder hash is fine for LWD-first wallets.
     seed_scan_cursor(drk, cursor, None)
 }
+
+/// Inclusive LWD height range that must be appended after the ZERO sentinel
+/// so a birthday restore's Money tree matches the on-chain coin tree.
+///
+/// The sentinel is a dummy leaf, not block 0. Genesis mint coins live at
+/// height 0 and must be included. Returns `None` for a fresh wallet
+/// (`birthday_height == 0`) that has no pre-history to backfill.
+pub fn pre_birthday_commitment_range(birthday_height: u32) -> Option<(u32, u32)> {
+    if birthday_height == 0 {
+        None
+    } else {
+        Some((0, birthday_height.saturating_sub(1)))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn fresh_wallet_has_no_pre_birthday_range() {
+        assert_eq!(pre_birthday_commitment_range(0), None);
+    }
+
+    #[test]
+    fn birthday_one_includes_genesis_height_zero() {
+        assert_eq!(pre_birthday_commitment_range(1), Some((0, 0)));
+    }
+
+    #[test]
+    fn mid_chain_birthday_starts_at_genesis() {
+        assert_eq!(pre_birthday_commitment_range(46990), Some((0, 46989)));
+    }
+}
