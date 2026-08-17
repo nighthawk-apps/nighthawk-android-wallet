@@ -13,7 +13,9 @@ import kotlinx.coroutines.flow.flowOf
  * **Chain / tx submission** is expected to flow through **darkfid** JSON-RPC (`DarkfidJsonRpc`) or
  * JNI from `drk`; this interface stays transport-agnostic until the native layer lands.
  */
-interface DarkfiSynchronizer {
+interface DarkfiSynchronizer : java.io.Closeable {
+    override fun close() {}
+
     val status: Flow<DarkfiSyncStatus>
     val processorInfo: Flow<DarkfiProcessorInfo>
     val progress: Flow<DarkfiPercent>

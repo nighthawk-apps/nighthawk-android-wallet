@@ -91,3 +91,7 @@ seed.txt
 seed.txt
 *.seed
 *.mnemonic
+
+# Testnet build & runtime data
+app/darkfitestnet/
+

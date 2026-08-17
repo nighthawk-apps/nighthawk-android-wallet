@@ -10,7 +10,9 @@ import com.nighthawkapps.lib.uniffi.darkfi_mobile_ffi.ReorgEvent
 import com.nighthawkapps.lib.uniffi.darkfi_mobile_ffi.ReorgEventCallback
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -51,6 +53,7 @@ class NativeDarkfiSynchronizer internal constructor(
     private val _fallbackReason = MutableStateFlow("")
     private val _fallbackUserMessage = MutableStateFlow("")
     private val syncScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private var syncJob: Job? = null
 
     init {
         handle.setReorgCallback(
@@ -92,14 +95,11 @@ class NativeDarkfiSynchronizer internal constructor(
     override fun applyDarkfidReachability(reachable: Boolean) {
         if (reachable) {
             _walletErrors.value = null
-        }
-        _status.value =
-            when {
-                !reachable -> DarkfiSyncStatus.DISCONNECTED
-                _status.value == DarkfiSyncStatus.SYNCING -> DarkfiSyncStatus.SYNCING
-                else -> DarkfiSyncStatus.SYNCED
-            }
-        if (!reachable) {
+            // Don't prematurely set SYNCED — delegate to the snapshot so the
+            // reported status reflects the actual sync state from the FFI layer.
+            applySyncSnapshotBestEffort()
+        } else {
+            _status.value = DarkfiSyncStatus.DISCONNECTED
             _walletErrors.value =
                 DarkfiWalletError.Processor(
                     IllegalStateException(
@@ -349,12 +349,17 @@ class NativeDarkfiSynchronizer internal constructor(
     }
 
     private fun startSyncProgressPolling() {
-        syncScope.launch {
+        syncJob = syncScope.launch {
             while (isActive) {
                 applySyncSnapshotBestEffort()
                 delay(SYNC_PROGRESS_POLL_MS)
             }
         }
+    }
+
+    override fun close() {
+        syncJob?.cancel()
+        syncScope.cancel()
     }
 
     private companion object {

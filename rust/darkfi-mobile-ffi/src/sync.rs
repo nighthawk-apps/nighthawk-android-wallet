@@ -1410,7 +1410,7 @@ pub(crate) fn load_received_memo(drk: &drk::Drk, tx_hash: &str) -> Option<String
         .filter(|s| !s.is_empty())
 }
 
-fn empty_money_tree() -> darkfi_sdk::crypto::MerkleTree {
+pub(crate) fn empty_money_tree() -> darkfi_sdk::crypto::MerkleTree {
     use darkfi_sdk::crypto::{MerkleNode, MerkleTree};
     use darkfi_sdk::pasta::group::ff::Field;
     use darkfi_sdk::pasta::pallas;

@@ -34,6 +34,7 @@ class DarkfiWalletCoordinator internal constructor(
     init {
         scope.launch(Dispatchers.IO) {
             walletFlow.collectLatest { wallet ->
+                _synchronizer.value?.close()
                 _synchronizer.value =
                     wallet?.let { w ->
                         DarkfiSynchronizerFactory.create(w, appContext, useNativeSynchronizer)
@@ -52,6 +53,7 @@ class DarkfiWalletCoordinator internal constructor(
     fun reloadSynchronizer() {
         scope.launch(Dispatchers.IO) {
             val wallet = persistableWallet.value ?: return@launch
+            _synchronizer.value?.close()
             _synchronizer.value =
                 DarkfiSynchronizerFactory.create(wallet, appContext, useNativeSynchronizer)
         }
@@ -67,6 +69,7 @@ class DarkfiWalletCoordinator internal constructor(
     }
 
     fun resetSdk() {
+        _synchronizer.value?.close()
         _synchronizer.value = null
     }
 
