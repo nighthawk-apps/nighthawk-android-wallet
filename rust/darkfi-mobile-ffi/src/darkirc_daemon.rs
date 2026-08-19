@@ -248,9 +248,8 @@ pub fn start_darkirc(
     DAG_SYNCED.store(0, Ordering::Relaxed);
     set_phase(PHASE_STARTING);
 
-    // Create a fresh stop channel for this daemon lifecycle.
-    // Per-lifecycle channels eliminate stale-signal bugs and make the
-    // design safe for future multi-instance support.
+    // Fresh stop channel for this daemon lifecycle so a leftover token
+    // from the previous run cannot wake the new wait loops.
     let (stop_tx, stop_rx) = smol::channel::bounded(1);
     crate::block_on(async {
         *STOP_CHANNEL.write().await = Some((stop_tx, stop_rx.clone()));

@@ -329,7 +329,7 @@ class DarkfiChatController(
         }
     }
 
-    private suspend fun awaitDaemonNotRunning(timeoutMs: Long = 10_000) {
+    private suspend fun awaitDaemonNotRunning(timeoutMs: Long = 5_000) {
         val deadline = System.currentTimeMillis() + timeoutMs
         while (System.currentTimeMillis() < deadline) {
             when (darkircStatus()) {
