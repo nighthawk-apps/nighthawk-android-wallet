@@ -40,10 +40,12 @@ fn set_phase(phase: u8) {
     CONNECTION_PHASE.store(phase, Ordering::Relaxed);
 }
 
-/// Global stop channel (single pair — previously Sender/Receiver were
-/// constructed independently, so stop never woke the daemon loops).
-static STOP_CHANNEL: std::sync::LazyLock<(smol::channel::Sender<()>, smol::channel::Receiver<()>)> =
-    std::sync::LazyLock::new(|| smol::channel::bounded(1));
+/// Per-lifecycle stop channel. Each `start_darkirc` installs a fresh
+/// `(Sender, Receiver)` pair so a leftover stop token cannot wake the
+/// next daemon. The rest of DarkIRC is still a process-wide singleton.
+static STOP_CHANNEL: std::sync::LazyLock<
+    smol::lock::RwLock<Option<(smol::channel::Sender<()>, smol::channel::Receiver<()>)>>,
+> = std::sync::LazyLock::new(|| smol::lock::RwLock::new(None));
 
 /// UI callback registered at `start_darkirc`. Kept globally so
 /// `send_chat_message` can self-echo even if `event_pub` delivery races
@@ -246,11 +248,13 @@ pub fn start_darkirc(
     DAG_SYNCED.store(0, Ordering::Relaxed);
     set_phase(PHASE_STARTING);
 
-    // Drain any stale stop signal left over from a previous daemon lifecycle.
-    // The STOP_CHANNEL is a global bounded(1) that persists across restarts;
-    // without this drain a leftover () would cause the new daemon's race loops
-    // to wake up prematurely on the first iteration.
-    let _ = STOP_CHANNEL.1.try_recv();
+    // Create a fresh stop channel for this daemon lifecycle.
+    // Per-lifecycle channels eliminate stale-signal bugs and make the
+    // design safe for future multi-instance support.
+    let (stop_tx, stop_rx) = smol::channel::bounded(1);
+    crate::block_on(async {
+        *STOP_CHANNEL.write().await = Some((stop_tx, stop_rx.clone()));
+    });
 
     // Register callback before spawning so early sends (once RUNNING) can echo.
     crate::block_on(async {
@@ -259,71 +263,76 @@ pub fn start_darkirc(
 
     std::thread::Builder::new()
         .name("darkirc".to_string())
-        .spawn(move || {
-            // Wrap the entire daemon body in catch_unwind so DAEMON_STATUS
-            // is always reset, even on panics. Without this, a panic leaves
-            // the status stuck at STARTING/RUNNING and all subsequent
-            // start_darkirc calls are permanently rejected.
-            let outcome = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-                let ex = Arc::new(Executor::new());
-                let ex_clone = ex.clone();
+        .spawn({
+            let daemon_stop_rx = stop_rx;
+            move || {
+                // Wrap the entire daemon body in catch_unwind so DAEMON_STATUS
+                // is always reset, even on panics. Without this, a panic leaves
+                // the status stuck at STARTING/RUNNING and all subsequent
+                // start_darkirc calls are permanently rejected.
+                let outcome = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+                    let ex = Arc::new(Executor::new());
+                    let ex_clone = ex.clone();
 
-                // M4: Use a stop signal so worker threads exit cleanly when the
-                // main daemon finishes, instead of blocking on pending::<()>()
-                // which can deadlock if executor tasks are stuck on I/O.
-                let (stop_tx, stop_rx) = smol::channel::bounded::<()>(1);
+                    // M4: Use a stop signal so worker threads exit cleanly when the
+                    // main daemon finishes, instead of blocking on pending::<()>()
+                    // which can deadlock if executor tasks are stuck on I/O.
+                    let (worker_stop_tx, worker_stop_rx) = smol::channel::bounded::<()>(1);
 
-                let result = easy_parallel::Parallel::new()
-                    .each(0..4, |_| {
-                        let stop = stop_rx.clone();
-                        smol::block_on(ex_clone.run(async move {
-                            let _ = stop.recv().await;
-                        }))
-                    })
-                    .finish(|| {
-                        smol::block_on(async {
-                            let result = run_darkirc_daemon(
-                                db_path,
-                                use_tor,
-                                tor_socks_port,
-                                ex.clone(),
-                                cb,
-                            )
-                            .await;
-                            // Signal workers to stop
-                            drop(stop_tx);
-                            result
+                    let result = easy_parallel::Parallel::new()
+                        .each(0..4, |_| {
+                            let stop = worker_stop_rx.clone();
+                            smol::block_on(ex_clone.run(async move {
+                                let _ = stop.recv().await;
+                            }))
                         })
-                    })
-                    .1;
+                        .finish(|| {
+                            smol::block_on(async {
+                                let result = run_darkirc_daemon(
+                                    db_path,
+                                    use_tor,
+                                    tor_socks_port,
+                                    ex.clone(),
+                                    cb,
+                                    daemon_stop_rx,
+                                )
+                                .await;
+                                // Signal workers to stop
+                                drop(worker_stop_tx);
+                                result
+                            })
+                        })
+                        .1;
 
-                match result {
-                    Ok(()) => {
-                        DAEMON_STATUS.store(STATUS_NOT_RUNNING, Ordering::Relaxed);
-                        set_phase(PHASE_STOPPED);
+                    match result {
+                        Ok(()) => {
+                            DAEMON_STATUS.store(STATUS_NOT_RUNNING, Ordering::Relaxed);
+                            set_phase(PHASE_STOPPED);
+                        }
+                        Err(e) => {
+                            log::error!("darkirc daemon failed: {e}");
+                            DAEMON_STATUS.store(STATUS_FAILED, Ordering::Relaxed);
+                            set_phase(PHASE_FAILED);
+                        }
                     }
-                    Err(e) => {
-                        log::error!("darkirc daemon failed: {e}");
-                        DAEMON_STATUS.store(STATUS_FAILED, Ordering::Relaxed);
-                        set_phase(PHASE_FAILED);
-                    }
+                }));
+
+                if outcome.is_err() {
+                    log::error!("darkirc daemon thread panicked — forcing status to FAILED");
+                    DAEMON_STATUS.store(STATUS_FAILED, Ordering::Relaxed);
+                    set_phase(PHASE_FAILED);
                 }
-            }));
 
-            if outcome.is_err() {
-                log::error!("darkirc daemon thread panicked — forcing status to FAILED");
-                DAEMON_STATUS.store(STATUS_FAILED, Ordering::Relaxed);
-                set_phase(PHASE_FAILED);
+                // Always clean up global state, panic or not.
+                DAG_SYNCED.store(0, Ordering::Relaxed);
+                if DAEMON_STATUS.load(Ordering::Relaxed) != STATUS_FAILED {
+                    set_phase(PHASE_STOPPED);
+                }
+                smol::block_on(async {
+                    *CALLBACK.write().await = None;
+                    *STOP_CHANNEL.write().await = None;
+                });
             }
-
-            // Always clean up global state, panic or not.
-            DAG_SYNCED.store(0, Ordering::Relaxed);
-            if DAEMON_STATUS.load(Ordering::Relaxed) != STATUS_FAILED {
-                set_phase(PHASE_STOPPED);
-            }
-            smol::block_on(async {
-                *CALLBACK.write().await = None;
-            });
         })
         .map_err(|e| {
             DarkfiWalletNativeError::NativeDrkUnavailable(format!(
@@ -353,7 +362,11 @@ pub fn stop_darkirc() -> Result<(), DarkfiWalletNativeError> {
     }
 
     set_phase(PHASE_STOPPING);
-    let _ = STOP_CHANNEL.0.try_send(());
+    crate::block_on(async {
+        if let Some((ref tx, _)) = *STOP_CHANNEL.read().await {
+            let _ = tx.try_send(());
+        }
+    });
     Ok(())
 }
 
@@ -497,6 +510,7 @@ async fn run_darkirc_daemon(
     tor_socks_port: u16,
     ex: Arc<Executor<'static>>,
     callback: Option<Arc<dyn DarkircEventCallback>>,
+    stop_rx: smol::channel::Receiver<()>,
 ) -> Result<(), String> {
     use darkfi::{
         event_graph::{proto::ProtocolEventGraph, EventGraph, EventGraphConfig},
@@ -700,7 +714,7 @@ async fn run_darkirc_daemon(
             log::info!("darkirc daemon waiting for P2P peers...");
             smol::future::race(
                 async {
-                    let _ = STOP_CHANNEL.1.recv().await;
+                    let _ = stop_rx.recv().await;
                 },
                 async {
                     smol::Timer::after(std::time::Duration::from_secs(comms_timeout)).await;
@@ -717,7 +731,7 @@ async fn run_darkirc_daemon(
             set_phase(PHASE_WAITING_FOR_PEERS);
             smol::future::race(
                 async {
-                    let _ = STOP_CHANNEL.1.recv().await;
+                    let _ = stop_rx.recv().await;
                 },
                 async {
                     smol::Timer::after(std::time::Duration::from_secs(comms_timeout)).await;
@@ -736,7 +750,7 @@ async fn run_darkirc_daemon(
             set_phase(PHASE_WAITING_FOR_PEERS);
             smol::future::race(
                 async {
-                    let _ = STOP_CHANNEL.1.recv().await;
+                    let _ = stop_rx.recv().await;
                 },
                 async {
                     smol::Timer::after(std::time::Duration::from_secs(comms_timeout)).await;
@@ -755,7 +769,7 @@ async fn run_darkirc_daemon(
                 set_phase(PHASE_WAITING_FOR_PEERS);
                 smol::future::race(
                     async {
-                        let _ = STOP_CHANNEL.1.recv().await;
+                        let _ = stop_rx.recv().await;
                     },
                     async {
                         smol::Timer::after(std::time::Duration::from_secs(comms_timeout)).await;
@@ -811,7 +825,7 @@ async fn run_darkirc_daemon(
                 },
                 smol::future::race(
                     async {
-                        let _ = STOP_CHANNEL.1.recv().await;
+                        let _ = stop_rx.recv().await;
                         "stop"
                     },
                     async {
