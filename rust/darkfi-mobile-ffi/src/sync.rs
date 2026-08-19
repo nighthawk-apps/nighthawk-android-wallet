@@ -844,15 +844,17 @@ async fn try_omr_sync(
     //
     // Threshold lowered from 50 to 10 blocks to catch short sync windows
     // (e.g. user restores from seed and immediately sends via `drk` CLI).
-    let scan_range = window_tip.saturating_sub(scan_start);
+    // Inclusive height count: a 1-block window has scan_start == window_tip and
+    // saturating_sub == 0, but still must trial-decrypt (drk fee buffers, UnifOMR
+    // digest misses). Skipping that dropped every catch-up block at tip.
+    let scan_blocks = window_tip.saturating_sub(scan_start).saturating_add(1);
     // Privacy: supplemental trial downloads the full window and reveals interest
     // to lightwalletd. Skip when SyncEngine is in strict OMR-only mode.
-    if matching_heights.is_empty() && scan_range > 0 && !sync_engine.strict_omr_only() {
+    if matching_heights.is_empty() && window_tip >= scan_start && !sync_engine.strict_omr_only() {
         tracing::warn!(
             target: "wallet-sync",
-            "OMR returned 0 matches for {} blocks — supplemental trial decrypt \
-             (privacy-degrading fallback for non-OMR counterparties)",
-            scan_range
+            "OMR returned 0 matches for {scan_blocks} blocks — supplemental trial decrypt \
+             (privacy-degrading fallback for non-OMR counterparties)"
         );
         sync_engine.set_status(LightSyncStatus::Degraded);
         sync_engine.set_status_message(

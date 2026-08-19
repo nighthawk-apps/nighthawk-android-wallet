@@ -431,7 +431,9 @@ impl LightwalletClient {
         Self {
             endpoint: parsed.grpc_url,
             connect_timeout: Duration::from_secs(10),
-            request_timeout: Duration::from_secs(30),
+            // Match lightwalletd `request_timeout_s` (300). UnifOMR Param2
+            // GetUnifOmrDigest streams ~120 MiB detection keys; 30s cancels it.
+            request_timeout: Duration::from_secs(300),
             tls_pin_sha256: None,
             socks5_proxy,
             require_https_over_socks: true,
@@ -455,7 +457,9 @@ impl LightwalletClient {
         Self {
             endpoint: parsed.grpc_url,
             connect_timeout: Duration::from_secs(10),
-            request_timeout: Duration::from_secs(30),
+            // Match lightwalletd `request_timeout_s` (300). UnifOMR Param2
+            // GetUnifOmrDigest streams ~120 MiB detection keys; 30s cancels it.
+            request_timeout: Duration::from_secs(300),
             tls_pin_sha256: Some(pin_sha256),
             socks5_proxy,
             require_https_over_socks: true,
