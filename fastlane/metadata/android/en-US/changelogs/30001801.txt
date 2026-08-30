@@ -1,0 +1,3 @@
+- Create Wallet now shows the 22-word backup phrase instead of hanging on Tor.
+- Native wallet / lightwalletd sync starts only after seed backup is confirmed.
+- Tor splash no longer covers onboarding.

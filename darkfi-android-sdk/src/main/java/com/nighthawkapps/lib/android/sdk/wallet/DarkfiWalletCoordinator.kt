@@ -11,7 +11,9 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
@@ -19,6 +21,7 @@ class DarkfiWalletCoordinator internal constructor(
     private val context: Context,
     walletFlow: Flow<PersistableDarkfiWallet?>,
     private val useNativeSynchronizer: Boolean = DarkfiNativeProbe.run() is DarkfiNativeProbe.Ok,
+    synchronizerAllowed: Flow<Boolean> = flowOf(true),
 ) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
     private val appContext = context.applicationContext
@@ -31,13 +34,23 @@ class DarkfiWalletCoordinator internal constructor(
     private val _synchronizer = MutableStateFlow<DarkfiSynchronizer?>(null)
     val synchronizer: StateFlow<DarkfiSynchronizer?> = _synchronizer
 
+    private val synchronizerAllowedState: StateFlow<Boolean> =
+        synchronizerAllowed.stateIn(scope, SharingStarted.Eagerly, true)
+
     init {
         scope.launch(Dispatchers.IO) {
-            walletFlow.collectLatest { wallet ->
+            combine(walletFlow, synchronizerAllowed) { wallet, allowed ->
+                wallet to allowed
+            }.collectLatest { (wallet, allowed) ->
                 _synchronizer.value?.close()
+                // Do not construct DarkfiWalletHandle (Arti wait ≤120s + LWD tip
+                // probe) until the user finishes seed backup. Create Wallet used
+                // to look dead because persist immediately opened the handle.
                 _synchronizer.value =
-                    wallet?.let { w ->
-                        DarkfiSynchronizerFactory.create(w, appContext, useNativeSynchronizer)
+                    if (wallet != null && allowed) {
+                        DarkfiSynchronizerFactory.create(wallet, appContext, useNativeSynchronizer)
+                    } else {
+                        null
                     }
             }
         }
@@ -55,7 +68,11 @@ class DarkfiWalletCoordinator internal constructor(
             val wallet = persistableWallet.value ?: return@launch
             _synchronizer.value?.close()
             _synchronizer.value =
-                DarkfiSynchronizerFactory.create(wallet, appContext, useNativeSynchronizer)
+                if (synchronizerAllowedState.value) {
+                    DarkfiSynchronizerFactory.create(wallet, appContext, useNativeSynchronizer)
+                } else {
+                    null
+                }
         }
     }
 
@@ -77,6 +94,12 @@ class DarkfiWalletCoordinator internal constructor(
         fun create(
             context: Context,
             walletFlow: Flow<PersistableDarkfiWallet?>,
-        ): DarkfiWalletCoordinator = DarkfiWalletCoordinator(context.applicationContext, walletFlow)
+            synchronizerAllowed: Flow<Boolean> = flowOf(true),
+        ): DarkfiWalletCoordinator =
+            DarkfiWalletCoordinator(
+                context.applicationContext,
+                walletFlow,
+                synchronizerAllowed = synchronizerAllowed,
+            )
     }
 }

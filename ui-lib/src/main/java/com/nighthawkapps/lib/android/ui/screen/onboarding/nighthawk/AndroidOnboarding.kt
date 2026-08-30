@@ -40,6 +40,7 @@ internal fun WrapOnBoarding(activity: ComponentActivity) {
             showCarousel = false
         })
     } else if (!onBoardingViewModel.isImporting.collectAsStateWithLifecycle().value) {
+        val createWalletError = walletViewModel.createWalletError.collectAsStateWithLifecycle().value
         val onCreateWallet = {
             walletViewModel.persistNewWallet()
         }
@@ -52,7 +53,8 @@ internal fun WrapOnBoarding(activity: ComponentActivity) {
             onRestore = onRestore,
             onReference = {
                 activity.onLaunchUrl(url = activity.getString(R.string.ns_privacy_policy_link))
-            }
+            },
+            createWalletError = createWalletError,
         )
     } else {
         RestoreWallet(activity)

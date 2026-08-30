@@ -50,6 +50,25 @@ class DarkfiWalletCoordinatorTest {
         }
 
     @Test
+    fun backupNotComplete_doesNotOpenSynchronizer() =
+        runTest {
+            val walletFlow = MutableStateFlow<PersistableDarkfiWallet?>(wallet)
+            val allowed = MutableStateFlow(false)
+            val coordinator =
+                DarkfiWalletCoordinator(
+                    context,
+                    walletFlow,
+                    useNativeSynchronizer = false,
+                    synchronizerAllowed = allowed,
+                )
+            testScheduler.advanceUntilIdle()
+            awaitNull(coordinator)
+            assertNull(coordinator.synchronizer.value)
+            allowed.value = true
+            awaitStub(coordinator)
+        }
+
+    @Test
     fun resetSdk_clearsSynchronizer() =
         runTest {
             val flow = MutableStateFlow(wallet)

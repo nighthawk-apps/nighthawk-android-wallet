@@ -57,6 +57,9 @@ class WalletViewModel(
     private val _endpointSaveError = MutableStateFlow<String?>(null)
     val endpointSaveError: StateFlow<String?> = _endpointSaveError
 
+    private val _createWalletError = MutableStateFlow<String?>(null)
+    val createWalletError: StateFlow<String?> = _createWalletError
+
     val synchronizer: StateFlow<DarkfiSynchronizer?> =
         walletCoordinator.synchronizer.stateIn(
             viewModelScope,
@@ -206,7 +209,8 @@ class WalletViewModel(
 
     fun persistNewWallet() {
         val application = getApplication<Application>()
-        viewModelScope.launch {
+        _createWalletError.value = null
+        viewModelScope.launch(Dispatchers.IO) {
             runCatching {
                 val network = darkfiNetworkFromPackage(application)
                 val newWallet =
@@ -215,22 +219,27 @@ class WalletViewModel(
                         network,
                         WalletInitMode.NewWallet,
                     )
-                persistExistingWallet(newWallet)
+                persistExistingWalletSuspend(newWallet)
             }.onFailure { e ->
                 Twig.error(e) {
                     "Create wallet failed (rebuild ./scripts/build-darkfi-mobile-ffi-android.sh if UniFFI checksum mismatch)"
                 }
+                _createWalletError.value = e.message ?: "Create wallet failed"
             }
         }
     }
 
     fun persistExistingWallet(persistableWallet: PersistableDarkfiWallet) {
+        viewModelScope.launch(Dispatchers.IO) {
+            persistExistingWalletSuspend(persistableWallet)
+        }
+    }
+
+    private suspend fun persistExistingWalletSuspend(persistableWallet: PersistableDarkfiWallet) {
         val application = getApplication<Application>()
-        viewModelScope.launch {
-            val preferenceProvider = EncryptedPreferenceSingleton.getInstance(application)
-            persistWalletMutex.withLock {
-                EncryptedPreferenceKeys.PERSISTABLE_DARKFI_WALLET.putValue(preferenceProvider, persistableWallet)
-            }
+        val preferenceProvider = EncryptedPreferenceSingleton.getInstance(application)
+        persistWalletMutex.withLock {
+            EncryptedPreferenceKeys.PERSISTABLE_DARKFI_WALLET.putValue(preferenceProvider, persistableWallet)
         }
     }
 

@@ -61,7 +61,8 @@ fun ComposablePreview() {
 fun GetStarted(
     onCreateWallet: () -> Unit,
     onRestore: () -> Unit,
-    onReference: () -> Unit
+    onReference: () -> Unit,
+    createWalletError: String? = null,
 ) {
     Box(
         modifier = Modifier.fillMaxSize(),
@@ -109,6 +110,13 @@ fun GetStarted(
                     onClick = onReference
                 )
                 Spacer(modifier = Modifier.weight(1f))
+                if (createWalletError != null) {
+                    BodySmall(
+                        text = createWalletError,
+                        modifier = Modifier.fillMaxWidth(0.8f).padding(bottom = 8.dp),
+                        textAlign = TextAlign.Center
+                    )
+                }
                 PrimaryButton(
                     onClick = onCreateWallet,
                     text = stringResource(id = R.string.ns_create_wallet).uppercase(),

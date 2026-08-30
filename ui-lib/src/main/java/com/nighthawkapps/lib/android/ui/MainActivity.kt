@@ -306,8 +306,8 @@ class MainActivity : FragmentActivity() {
                 }
             }
 
-            // Force collection to improve performance; sync can start happening while
-            // the user is going through the backup flow.
+            // Collect so an existing (backed-up) wallet can start sync. New-wallet
+            // persist does not open DarkfiWalletHandle until backup is complete.
             walletViewModel.synchronizer.collectAsStateWithLifecycle()
         }
     }
@@ -321,15 +321,20 @@ class MainActivity : FragmentActivity() {
 
         // Note this condition needs to be kept in sync with the condition in setupSplashScreen()
         val waitingOnWallet = null == configuration || secretState == SecretState.Loading
-        // Offer escape hatch while Tor is starting or after bootstrap failure.
-        val showTorEscape =
-            torState == TorBootstrapUiState.Bootstrapping ||
-                torState == TorBootstrapUiState.Idle ||
-                torState == TorBootstrapUiState.Failed
-        if (waitingOnWallet || showTorEscape) {
-            if (showTorEscape) {
-                SplashTorStatusOverlay(torState)
-            }
+        // Tor splash only when opening a backed-up wallet. Onboarding and seed
+        // backup must stay on screen — Create Wallet used to persist the seed
+        // then vanish behind this overlay while Arti bootstrapped.
+        val blockReadyWalletOnTor =
+            secretState is SecretState.Ready &&
+                (
+                    torState == TorBootstrapUiState.Bootstrapping ||
+                        torState == TorBootstrapUiState.Idle ||
+                        torState == TorBootstrapUiState.Failed
+                )
+        if (waitingOnWallet) {
+            // Splash keep-on-screen until configuration / secret state resolve.
+        } else if (blockReadyWalletOnTor) {
+            SplashTorStatusOverlay(torState)
         } else {
             // Note that the deeply nested child views will probably receive arguments derived from
             // the configuration.  The CompositionLocalProvider is helpful for passing the configuration
