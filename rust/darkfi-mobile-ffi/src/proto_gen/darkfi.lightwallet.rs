@@ -221,14 +221,24 @@ pub struct LightInfo {
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct OmrDigestResponse {
     /// FHE encrypted digest containing the matching block heights.
+    /// Paper-faithful per-message packing: window clues are flattened in canonical
+    /// order (height asc, then output order) and packed one clue per SIMD slot.
     /// For multi-key requests: length-prefixed frames, one digest per key
     /// ([u32 LE len][digest]…), decrypted client-side with the matching key.
     /// The client decrypts this locally.
     #[prost(bytes = "vec", tag = "1")]
     pub encrypted_digest: ::prost::alloc::vec::Vec<u8>,
-    /// Whether the digest covers the full requested range
+    /// Whether the digest covers the full requested range. false ⇒ the server
+    /// truncated at a whole-height boundary (> MAX_OMR_MESSAGES clues); the client
+    /// must clamp its persisted scan height to the covered range (max slot_heights).
     #[prost(bool, tag = "2")]
     pub complete: bool,
+    /// Packed little-endian u32 slot → block-height map (length = message count).
+    /// slot_heights\[i\] is the block height of the clue packed into SIMD slot i;
+    /// slots beyond this length are padding. Identical for every key in a
+    /// multi-key response.
+    #[prost(bytes = "vec", tag = "3")]
+    pub slot_heights: ::prost::alloc::vec::Vec<u8>,
 }
 /// Client-streaming message for StreamDetectionKey.
 /// The first chunk MUST carry the header fields (start/end height, key count).

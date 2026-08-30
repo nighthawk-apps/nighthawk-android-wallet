@@ -230,10 +230,9 @@ impl SyncEngine {
             server_endpoint,
             tls_pin_sha256,
             max_omr_failures: DEFAULT_MAX_OMR_FAILURES,
-            // Nighthawk default: allow supplemental trial decrypt so users can
-            // receive from non-UnifOMR wallets (e.g. upstream `drk`). Enable
-            // via Advanced Settings / DrkBootstrapConfig for max privacy.
-            strict_omr_only: std::sync::atomic::AtomicBool::new(false),
+            // Default: UnifOMR-only. Supplemental trial-decrypt is an explicit
+            // Advanced Settings opt-in (privacy leak of the scan window to LWD).
+            strict_omr_only: std::sync::atomic::AtomicBool::new(true),
             prev_chain_tip: std::sync::atomic::AtomicU32::new(0),
             last_tip_update: std::sync::atomic::AtomicU64::new(0),
             reorg_callback: std::sync::Mutex::new(None),
@@ -425,17 +424,10 @@ impl SyncEngine {
     ///
     /// ## Exponential backoff
     ///
-    /// Instead of permanently falling back to trial decryption after
-    /// `max_omr_failures`, the engine uses exponential backoff:
-    /// - After failure N, wait `2^min(N, 6)` sync cycles before retrying OMR.
-    /// - During the backoff window, `choose_sync_type()` returns
-    ///   `TrialDecryptionFallback` and decrements the counter.
-    /// - Once the counter reaches 0, OMR is retried.
-    ///
-    /// ## Strict mode
-    ///
-    /// If `strict_omr_only` is enabled and `max_omr_failures` is exceeded,
-    /// the engine enters `LightSyncStatus::Error` and halts sync entirely.
+    /// After failure N, wait `2^min(N, 6)` sync cycles before retrying OMR.
+    /// Below `max_omr_failures`, backoff still retries OMR (never trial-decrypt).
+    /// At/above the threshold, non-strict mode switches to
+    /// `TrialDecryptionFallback`; strict mode halts.
     pub fn record_omr_failure(&self) -> bool {
         let mut state = self.state.lock().unwrap();
         state.omr_failure_count += 1;
@@ -452,7 +444,8 @@ impl SyncEngine {
         // Exponential backoff: wait 2^n cycles (capped at 2^6 = 64)
         let exponent = state.omr_failure_count.min(MAX_BACKOFF_EXPONENT);
         state.omr_backoff_remaining = 1u32 << exponent;
-        if self.strict_omr_only() {
+        let at_threshold = state.omr_failure_count >= self.max_omr_failures;
+        if self.strict_omr_only() || !at_threshold {
             state.sync_type = LightSyncType::Omr;
             state.status = LightSyncStatus::Degraded;
             state.refresh_messages();
@@ -461,9 +454,7 @@ impl SyncEngine {
         state.sync_type = LightSyncType::TrialDecryptionFallback;
         state.status = LightSyncStatus::Degraded;
         state.refresh_messages();
-
-        // Same-cycle trial-decrypt fallback only at/above the threshold.
-        state.omr_failure_count >= self.max_omr_failures
+        true
     }
 
     /// Record an OMR success.
@@ -558,19 +549,22 @@ impl SyncEngine {
             return LightSyncType::TrialDecryption;
         }
 
-        // Backoff in progress: use trial decryption but count down
+        // Backoff in progress: count down. Trial-decrypt only after the
+        // failure threshold; below it keep retrying OMR.
         if state.omr_backoff_remaining > 0 {
             state.omr_backoff_remaining -= 1;
             if state.omr_backoff_remaining == 0 {
-                // Backoff expired — next call will try OMR again
                 state.sync_type = LightSyncType::Omr;
                 state.status = LightSyncStatus::Syncing;
                 state.refresh_messages();
             }
-            if self.strict_omr_only() {
+            if self.strict_omr_only() && state.omr_failure_count >= self.max_omr_failures {
                 return LightSyncType::Idle;
             }
-            return LightSyncType::TrialDecryptionFallback;
+            if !self.strict_omr_only() && state.omr_failure_count >= self.max_omr_failures {
+                return LightSyncType::TrialDecryptionFallback;
+            }
+            return LightSyncType::Omr;
         }
 
         LightSyncType::Omr
@@ -698,6 +692,7 @@ mod tests {
         assert_eq!(snap.omr_failure_count, 0);
         assert_eq!(snap.status_message, "Server unreachable");
         assert_eq!(snap.sync_type_message, "Idle");
+        assert!(engine.strict_omr_only());
     }
 
     #[test]
@@ -804,7 +799,7 @@ mod tests {
     #[test]
     fn test_set_omr_unavailable_switches_omr_to_trial_when_not_strict() {
         let engine = SyncEngine::new("x".to_string());
-        // Default is non-strict (cross-wallet receive).
+        engine.set_strict_omr_only(false);
         engine.set_omr_available(true);
         engine.set_omr_available(false);
         assert_eq!(engine.snapshot().sync_type, LightSyncType::TrialDecryption);
@@ -824,27 +819,20 @@ mod tests {
         engine.set_strict_omr_only(false);
         engine.set_omr_available(true);
 
-        // First failure (below threshold): backoff applied, no same-cycle fallback
+        // First failure (below threshold): backoff applied, still OMR (no leak)
         assert!(!engine.record_omr_failure());
         let snap = engine.snapshot();
-        assert_eq!(snap.sync_type, LightSyncType::TrialDecryptionFallback);
+        assert_eq!(snap.sync_type, LightSyncType::Omr);
         assert_eq!(snap.status, LightSyncStatus::Degraded);
         assert_eq!(snap.omr_failure_count, 1);
         assert_eq!(snap.omr_backoff_remaining, 2); // 2^1 = 2
 
-        // Backoff: choose_sync_type returns Fallback and decrements
-        assert_eq!(
-            engine.choose_sync_type(),
-            LightSyncType::TrialDecryptionFallback
-        );
+        assert_eq!(engine.choose_sync_type(), LightSyncType::Omr);
         assert_eq!(engine.snapshot().omr_backoff_remaining, 1);
-        assert_eq!(
-            engine.choose_sync_type(),
-            LightSyncType::TrialDecryptionFallback
-        );
+        assert_eq!(engine.choose_sync_type(), LightSyncType::Omr);
         assert_eq!(engine.snapshot().omr_backoff_remaining, 0);
 
-        // Backoff expired: next call returns Omr
+        // Backoff expired: still Omr
         assert_eq!(engine.choose_sync_type(), LightSyncType::Omr);
     }
 
@@ -912,7 +900,15 @@ mod tests {
     #[test]
     fn test_choose_sync_type_without_omr() {
         let engine = SyncEngine::new("x".to_string());
+        engine.set_strict_omr_only(false);
         assert_eq!(engine.choose_sync_type(), LightSyncType::TrialDecryption);
+    }
+
+    #[test]
+    fn test_default_strict_without_omr_is_idle() {
+        let engine = SyncEngine::new("x".to_string());
+        assert!(engine.strict_omr_only());
+        assert_eq!(engine.choose_sync_type(), LightSyncType::Idle);
     }
 
     #[test]
@@ -926,7 +922,7 @@ mod tests {
         let engine = SyncEngine::new_strict("x".to_string());
         engine.set_omr_available(true);
         assert!(!engine.record_omr_failure());
-        assert_eq!(engine.choose_sync_type(), LightSyncType::Idle);
+        assert_eq!(engine.choose_sync_type(), LightSyncType::Omr);
         assert_ne!(
             engine.snapshot().sync_type,
             LightSyncType::TrialDecryptionFallback
@@ -991,12 +987,9 @@ mod tests {
         engine.set_chain_tip(50_000);
         engine.set_scanned_height(0);
 
-        // First failure triggers backoff
+        // First failure triggers backoff but still retries OMR
         engine.record_omr_failure();
-        assert_eq!(
-            engine.choose_sync_type(),
-            LightSyncType::TrialDecryptionFallback
-        );
+        assert_eq!(engine.choose_sync_type(), LightSyncType::Omr);
 
         engine.set_sync_type(LightSyncType::TrialDecryption);
         engine.set_scanned_height(25_000);
@@ -1018,17 +1011,10 @@ mod tests {
         engine.set_status(LightSyncStatus::Syncing);
         engine.set_chain_tip(100);
 
-        // First failure: backoff = 2 cycles
+        // First failure: backoff = 2 cycles, still OMR
         engine.record_omr_failure();
-        assert_eq!(
-            engine.choose_sync_type(),
-            LightSyncType::TrialDecryptionFallback
-        );
-        assert_eq!(
-            engine.choose_sync_type(),
-            LightSyncType::TrialDecryptionFallback
-        );
-        // Backoff expired, OMR retried
+        assert_eq!(engine.choose_sync_type(), LightSyncType::Omr);
+        assert_eq!(engine.choose_sync_type(), LightSyncType::Omr);
         assert_eq!(engine.choose_sync_type(), LightSyncType::Omr);
 
         // State should still preserve chain tip
@@ -1046,13 +1032,10 @@ mod tests {
         engine.record_omr_failure();
         engine.record_omr_failure();
 
-        // Should be in fallback with backoff = 2^3 = 8
+        // Below threshold: backoff = 2^3 = 8, still OMR (no trial-decrypt leak)
         assert_eq!(engine.snapshot().omr_backoff_remaining, 8);
         for _ in 0..8 {
-            assert_eq!(
-                engine.choose_sync_type(),
-                LightSyncType::TrialDecryptionFallback
-            );
+            assert_eq!(engine.choose_sync_type(), LightSyncType::Omr);
         }
 
         // After backoff expires, OMR is retried (NOT permanent fallback)

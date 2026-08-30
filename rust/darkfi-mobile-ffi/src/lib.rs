@@ -199,9 +199,8 @@ pub struct DrkBootstrapConfig {
     pub tor_socks_port: u16,
     /// Optional darkfid JSON-RPC for broadcast fallback only. Empty/`None` = LWD-only.
     pub darkfid_rpc_url: Option<String>,
-    /// When `true`, refuse supplemental / gap trial-decrypt (UnifOMR-only).
-    /// Nighthawk defaults this to `false` so users can receive from non-UnifOMR
-    /// wallets (e.g. upstream `drk`). Toggle via Advanced Settings.
+    /// When `true`, refuse supplemental trial-decrypt (UnifOMR-only).
+    /// Default is `true`. Turn off in Advanced Settings to receive from `drk`.
     pub strict_omr_only: bool,
 }
 

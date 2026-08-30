@@ -1,123 +1,283 @@
 package com.nighthawkapps.lib.android.sdk.wallet
 
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import com.nighthawkapps.lib.android.sdk.uniffi.DarkfiMobileFfiApi
+import androidx.test.platform.app.InstrumentationRegistry
 import com.nighthawkapps.lib.android.sdk.uniffi.DarkfiNativeProbe
-import com.nighthawkapps.lib.uniffi.darkfi_mobile_ffi.DarkfiWalletNativeException
-import kotlinx.coroutines.runBlocking
-import org.junit.Assume.assumeTrue
+import com.nighthawkapps.lib.uniffi.darkfi_mobile_ffi.DarkfiWalletHandle
+import com.nighthawkapps.lib.uniffi.darkfi_mobile_ffi.DrkBootstrapConfig
 import org.junit.Test
 import org.junit.runner.RunWith
+import java.io.File
+import java.net.HttpURLConnection
+import java.net.URL
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicReference
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
+import kotlin.test.fail
 
 /**
- * Verifies transfer-related UniFFI symbols resolve on device when [libdarkfi_mobile_ffi] is present.
- * Full transfer execution requires a live darkfid and funded wallet (manual / CI integration).
+ * Fail-closed live DarkFi testnet e2e on the Android emulator.
+ *
+ * Mnemonic is read from `/data/local/tmp/e2e_mnemonic.txt` (adb push) or the
+ * `e2e_mnemonic` instrumentation extra. Never log the phrase.
  */
 @RunWith(AndroidJUnit4::class)
 class DarkfiTransferInstrumentedTest {
     @Test
     fun full_transaction_sync_and_transfer_live_testnet() {
-        assumeTrue(DarkfiNativeProbe.run() is DarkfiNativeProbe.Ok)
+        val probe = DarkfiNativeProbe.run()
+        assertTrue(probe is DarkfiNativeProbe.Ok, "libdarkfi_mobile_ffi missing or broken: $probe")
 
-        val context =
-            androidx.test.platform.app.InstrumentationRegistry
-                .getInstrumentation()
-                .targetContext
+        val args = InstrumentationRegistry.getArguments()
+        val seedWords = loadMnemonic(args)
+        assertEquals(22, seedWords.size, "Restore phrase must be 22 words")
 
-        // Rely on `pm clear` from the script instead of manually deleting dataDir which can break app storage permissions during tests.
+        val recipient =
+            args.getString("e2e_recipient")
+                ?: readOptionalFile("/data/local/tmp/e2e_recipient.txt")
+                ?: "fTh3ZcaehgSEx7Hk2EKLRThygj28Mt29RHhD9RDrN6ePx7jPuKyvp7Pf"
+        val amount = args.getString("e2e_amount") ?: "0.1"
+        val lwd = args.getString("e2e_lwd_url") ?: "tcp://127.0.0.1:9067"
+        val darkfid = args.getString("e2e_darkfid_rpc") ?: "tcp://127.0.0.1:18345"
+        val birthday = args.getString("e2e_birthday")?.toLongOrNull() ?: 53200L
 
-        // Using default abandon seed phrase. This wallet likely has no funds,
-        // but it will successfully sync to the live testnet via lightwalletd.
-        DrkWalletPaths.ensureDirectories(context)
-        val wallet =
-            PersistableDarkfiWallet(
-                seedPhrase = List(22) { "abandon" },
-                network = DarkfiNetwork.Testnet,
-                // Remapped by FFI normalize_lightwallet_url → http://127.0.0.1:9067
-                endpoint = DarkfiEndpoint.defaultForNetwork(DarkfiNetwork.Testnet),
-                // Near tip of testnet 0.3 (~19k) for faster sync in CI/device tests.
-                birthdayHeight = 0L,
+        // AndroidJUnit4 runs on the main thread; UnifOMR + sleeps would ANR/kill
+        // the instrumentation process after ~60s. ZK proof gen also overflows
+        // the default ~1MB native stack (SIGSEGV SEGV_ACCERR). Run off-thread
+        // with a 32MB stack and pump the looper so the runner stays alive.
+        val error = AtomicReference<Throwable>()
+        val done = CountDownLatch(1)
+        Thread(
+            null,
+            {
+                try {
+                    runLiveTransfer(
+                        seedWords = seedWords,
+                        recipient = recipient,
+                        amount = amount,
+                        lwd = lwd,
+                        darkfid = darkfid,
+                        birthday = birthday,
+                    )
+                } catch (t: Throwable) {
+                    error.set(t)
+                } finally {
+                    done.countDown()
+                }
+            },
+            "unifomr-live-e2e",
+            32L * 1024L * 1024L,
+        ).apply { isDaemon = true }.start()
+
+        val inst = InstrumentationRegistry.getInstrumentation()
+        while (!done.await(2, TimeUnit.SECONDS)) {
+            inst.waitForIdleSync()
+        }
+        error.get()?.let { throw it }
+    }
+
+    private fun runLiveTransfer(
+        seedWords: List<String>,
+        recipient: String,
+        amount: String,
+        lwd: String,
+        darkfid: String,
+        birthday: Long,
+    ) {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val stamp = System.currentTimeMillis()
+        val root = File(context.cacheDir, "live_e2e_$stamp").apply { mkdirs() }
+        val walletDb = File(root, "wallet.db")
+        val cache = File(root, "cache").apply { mkdirs() }
+
+        println("E2E_OPENING_WALLET birthday=$birthday lwd=$lwd")
+        val handle =
+            DarkfiWalletHandle(
+                DrkBootstrapConfig(
+                    network = "testnet",
+                    mnemonic = seedWords,
+                    walletDbPath = walletDb.absolutePath,
+                    cachePath = cache.absolutePath,
+                    walletPass = "live_e2e_wallet_pass",
+                    lightwalletServerUrl = lwd,
+                    birthdayHeight = birthday,
+                    lightwalletTlsPinSha256 = null,
+                    useTor = false,
+                    torSocksPort = 0u,
+                    darkfidRpcUrl = darkfid,
+                    strictOmrOnly = false,
+                ),
             )
 
-        val handle =
-            runCatching { DarkfiMobileFfiApi.openWallet(context, wallet) }
-                .getOrElse { error ->
-                    println("WALLET_OPEN_FAILED: $error")
-                    assumeTrue(error !is DarkfiWalletNativeException)
-                    throw error
-                }
+        val address = handle.primaryDepositAddress()
+        println("WALLET_ADDRESS_DUMP: $address")
 
-        val sync = NativeDarkfiSynchronizer(wallet, handle)
-        println("MY_ADDRESS_DUMP: ${handle.primaryDepositAddress()}")
-        assertTrue(sync.supportsNativeTransfer)
+        waitUntilSynced(handle)
+        val balance = waitForSpendableBalance(handle, address)
+        println("E2E_BALANCE_ATOMIC: $balance")
 
-        runBlocking {
-            // 1. Sync with live lightwalletd testnet
-            sync.refreshNow()
+        println("E2E_BUILDING_TRANSFER to $recipient amount=$amount")
+        val txBytes = handle.buildTransfer(recipient, amount, null, null)
+        val txHash = handle.broadcastTransfer(txBytes, null, recipient)
+        println("TXID_DUMP: $txHash")
+        assertEquals(64, txHash.length, "Expected 32-byte hex tx hash, got $txHash")
+        assertTrue(txHash.all { it.isDigit() || it in 'a'..'f' || it in 'A'..'F' })
 
-            // Generate a valid recipient (this test wallet's own address as dummy)o we can fund it
-            val dummyRecipient = "fRGoBKrJuxKutPqQVGu6Mpp94uEREg6yDG9MZponXoJ1KzMGEeSAtjxm" // CLI wallet 2
-            var attempts = 0
-            var feeResult: DarkfiTransferResult<Long>? = null
-            while (attempts < 2) {
-                sync.refreshNow()
-                feeResult = sync.estimateTransferFee(dummyRecipient, "0.1")
-                if (feeResult is DarkfiTransferResult.Failure) {
-                    val msg = feeResult.message ?: ""
-                    if (msg.contains("Did not find any unspent coins") || msg.contains("state transition") || msg.contains("0x5")) {
-                        println("Waiting for unspent coins to be mined... attempt ${attempts + 1}")
-                        kotlinx.coroutines.delay(5000)
-                        attempts++
-                    } else {
-                        throw Exception("Unexpected fee estimation error: $msg")
-                    }
-                } else {
-                    break
-                }
-            }
-            if (feeResult == null || feeResult is DarkfiTransferResult.Failure) {
-                println("FEE_ESTIMATE_FAILED: $feeResult")
-                // Soft-pass when the abandon×22 wallet is not funded on this tip.
-                assertTrue(true)
-                return@runBlocking
-            }
-            if (feeResult is DarkfiTransferResult.Success<*>) {
-                // If it succeeds, it means we have funds! Let's submit the transfer.
-                val txResult = sync.submitTransfer(dummyRecipient, "0.1", null, null)
-                if (txResult is DarkfiTransferResult.Success<*>) {
-                    val txid = txResult.value.toString()
-                    println("TXID_DUMP: $txid")
-
-                    var found = false
-                    val url = java.net.URL("https://explorer.testnet.dark.fi/tx/$txid")
-                    for (i in 1..20) {
-                        println("Checking public explorer for TXID: $txid (attempt $i)")
-                        kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
-                            val connection = url.openConnection() as java.net.HttpURLConnection
-                            connection.requestMethod = "GET"
-                            if (connection.responseCode == 200) {
-                                val content = connection.inputStream.bufferedReader().readText()
-                                if (!content.contains("Page not found") && content.contains(txid)) {
-                                    found = true
-                                    println("TXID found on public explorer!")
-                                }
-                            }
-                        }
-                        if (found) break
-                        kotlinx.coroutines.delay(10000)
-                    }
-                    assertTrue(found, "Transaction should be available on public explorer")
-                } else {
-                    println("TXID_DUMP_FAILED: $txResult")
-                    assertTrue(false)
-                }
-            } else {
-                // We expect a failure if we have no funds.
-                println("FEE_ESTIMATE_FAILED: $feeResult")
-                assertTrue(true) // Pass so we can read the logs
-            }
-        }
+        waitForExplorer(txHash)
+        println("E2E_EXPLORER: https://explorer.testnet.dark.fi/tx/$txHash")
+        handle.close()
     }
+
+    private fun loadMnemonic(args: android.os.Bundle): List<String> {
+        val fromArgs = args.getString("e2e_mnemonic")?.trim().orEmpty()
+        val raw =
+            fromArgs.ifEmpty {
+                readOptionalFile("/sdcard/e2e_mnemonic.txt")
+                    ?: readOptionalFile("/data/local/tmp/e2e_mnemonic.txt")
+                    ?: ""
+            }
+        check(raw.isNotEmpty()) {
+            "Push 22-word phrase to /data/local/tmp/e2e_mnemonic.txt or pass e2e_mnemonic extra"
+        }
+        return raw.split(Regex("\\s+")).filter { it.isNotBlank() }
+    }
+
+    private fun readOptionalFile(path: String): String? =
+        runCatching { File(path).takeIf { it.isFile }?.readText()?.trim() }
+            .getOrNull()
+            ?.takeIf { it.isNotEmpty() }
+
+    private fun waitUntilSynced(handle: DarkfiWalletHandle) {
+        val deadline = System.currentTimeMillis() + 1_500_000
+        var lastLog = 0L
+        while (System.currentTimeMillis() < deadline) {
+            val snap = handle.lightSyncSnapshot()
+            val now = System.currentTimeMillis()
+            if (now - lastLog > 15_000) {
+                println(
+                    "E2E_SYNC status=${snap.status} type=${snap.syncType} scanned=${snap.scannedHeight} tip=${snap.chainTip} omr=${snap.omrAvailable} msg=${snap.statusMessage}",
+                )
+                lastLog = now
+            }
+            if (snap.status == "Error") {
+                fail("UnifOMR sync error: ${snap.statusMessage} fallback=${snap.fallbackUserMessage}")
+            }
+            val caughtUp = snap.chainTip > 0 && snap.scannedHeight + 2 >= snap.chainTip
+            if (caughtUp && (snap.status == "Synced" || snap.status == "Degraded")) {
+                println(
+                    "E2E_SYNC_DONE status=${snap.status} scanned=${snap.scannedHeight} tip=${snap.chainTip} omr=${snap.omrAvailable}",
+                )
+                return
+            }
+            Thread.sleep(5_000)
+        }
+        val snap = handle.lightSyncSnapshot()
+        fail(
+            "Timed out waiting for UnifOMR sync. status=${snap.status} scanned=${snap.scannedHeight} tip=${snap.chainTip} msg=${snap.statusMessage}",
+        )
+    }
+
+    private fun waitForSpendableBalance(handle: DarkfiWalletHandle, address: String): Long {
+        val deadline = System.currentTimeMillis() + 1_200_000
+        var lastLog = 0L
+        while (System.currentTimeMillis() < deadline) {
+            val balance = handle.confirmedBalanceAtomic()
+            val now = System.currentTimeMillis()
+            if (now - lastLog > 10_000) {
+                println("E2E_BALANCE_WAIT atomic=$balance address=$address")
+                lastLog = now
+            }
+            if (balance > 15_000_000L) return balance
+            Thread.sleep(5_000)
+        }
+        val balance = handle.confirmedBalanceAtomic()
+        fail("Android wallet has no spendable testnet funds after UnifOMR sync. Address: $address balance=$balance")
+        return balance
+    }
+
+    private fun waitForExplorer(txHash: String) {
+        val url = URL("https://explorer.testnet.dark.fi/tx/$txHash")
+        val sidecar = URL("http://127.0.0.1:18765/tx/$txHash")
+        val deadline = System.currentTimeMillis() + 3_600_000
+        var attempt = 0
+        var minedLogged = false
+        while (System.currentTimeMillis() < deadline) {
+            attempt++
+            println("E2E_EXPLORER_CHECK attempt=$attempt $url")
+            if (isRealExplorerTxPage(url, txHash) || sidecarConfirmed(sidecar, txHash)) {
+                return
+            }
+            if (!minedLogged && darkfidHasTx(txHash)) {
+                println("E2E_DARKFID_MINED $txHash waiting_for_explorer")
+                minedLogged = true
+            }
+            Thread.sleep(15_000)
+        }
+        fail("Transaction $txHash did not appear on the public DarkFi explorer")
+    }
+
+    private fun isRealExplorerTxPage(url: URL, txHash: String): Boolean =
+        runCatching {
+            val connection = url.openConnection() as HttpURLConnection
+            connection.requestMethod = "GET"
+            connection.connectTimeout = 20_000
+            connection.readTimeout = 20_000
+            val code = connection.responseCode
+            val body =
+                (if (code in 200..299) connection.inputStream else connection.errorStream)
+                    ?.bufferedReader()
+                    ?.readText()
+                    .orEmpty()
+            isRealExplorerBody(body, txHash)
+        }.getOrDefault(false)
+
+    private fun sidecarConfirmed(url: URL, txHash: String): Boolean =
+        runCatching {
+            val connection = url.openConnection() as HttpURLConnection
+            connection.requestMethod = "GET"
+            connection.connectTimeout = 8_000
+            connection.readTimeout = 8_000
+            val code = connection.responseCode
+            val body =
+                (if (code in 200..299) connection.inputStream else connection.errorStream)
+                    ?.bufferedReader()
+                    ?.readText()
+                    .orEmpty()
+            code == 200 && body.contains("CONFIRMED") && body.contains(txHash, ignoreCase = true)
+        }.getOrDefault(false)
+
+    private fun isRealExplorerBody(body: String, txHash: String): Boolean {
+        if (body.isEmpty()) return false
+        val anubis =
+            body.contains("anubis_challenge", ignoreCase = true) ||
+                body.contains("Making sure you're not a bot", ignoreCase = true) ||
+                body.contains("Making sure you&#39;re not a bot", ignoreCase = true)
+        if (anubis) return false
+        if (body.contains("Page not found", ignoreCase = true)) return false
+        if (!body.contains(txHash, ignoreCase = true)) return false
+        return body.contains("Transaction Info") ||
+            body.contains("From Block") ||
+            body.contains("Raw Transaction")
+    }
+
+    private fun darkfidHasTx(txHash: String): Boolean =
+        darkfidRpc("""{"jsonrpc":"2.0","method":"blockchain.get_tx","params":["$txHash"],"id":1}""")
+            .let { it.contains("\"result\"") && !it.contains("\"error\"") }
+
+    private fun darkfidPendingHasTx(txHash: String): Boolean =
+        darkfidRpc("""{"jsonrpc":"2.0","method":"tx.pending","params":[],"id":1}""")
+            .contains(txHash)
+
+    private fun darkfidRpc(req: String): String =
+        runCatching {
+            val socket = java.net.Socket()
+            socket.connect(java.net.InetSocketAddress("127.0.0.1", 18345), 5_000)
+            socket.soTimeout = 8_000
+            socket.getOutputStream().write((req + "\n").toByteArray())
+            val resp = socket.getInputStream().bufferedReader().readLine().orEmpty()
+            socket.close()
+            resp
+        }.getOrDefault("")
 }

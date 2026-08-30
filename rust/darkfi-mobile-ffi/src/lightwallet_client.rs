@@ -431,9 +431,10 @@ impl LightwalletClient {
         Self {
             endpoint: parsed.grpc_url,
             connect_timeout: Duration::from_secs(10),
-            // Match lightwalletd `request_timeout_s` (300). UnifOMR Param2
-            // GetUnifOmrDigest streams ~120 MiB detection keys; 30s cancels it.
-            request_timeout: Duration::from_secs(300),
+            // Match lightwalletd `request_timeout_s` (1800). UnifOMR Param2
+            // GetUnifOmrDigest streams ~120 MiB detection keys and a per-message
+            // SIMD encode (D=4096) can exceed 5 minutes.
+            request_timeout: Duration::from_secs(1800),
             tls_pin_sha256: None,
             socks5_proxy,
             require_https_over_socks: true,
@@ -457,9 +458,10 @@ impl LightwalletClient {
         Self {
             endpoint: parsed.grpc_url,
             connect_timeout: Duration::from_secs(10),
-            // Match lightwalletd `request_timeout_s` (300). UnifOMR Param2
-            // GetUnifOmrDigest streams ~120 MiB detection keys; 30s cancels it.
-            request_timeout: Duration::from_secs(300),
+            // Match lightwalletd `request_timeout_s` (1800). UnifOMR Param2
+            // GetUnifOmrDigest streams ~120 MiB detection keys and a per-message
+            // SIMD encode (D=4096) can exceed 5 minutes.
+            request_timeout: Duration::from_secs(1800),
             tls_pin_sha256: Some(pin_sha256),
             socks5_proxy,
             require_https_over_socks: true,
@@ -1174,12 +1176,19 @@ impl LightwalletClient {
         result
     }
 
+    /// Fetch an OMR digest for `detection_keys` over `[start_height, end_height]`.
+    ///
+    /// Returns `(encrypted_digest, slot_heights, complete)`:
+    /// - `encrypted_digest`: FHE digest (per-message packed; multi-key = framed).
+    /// - `slot_heights`: packed LE-u32 slot → height map (see `OmrDigestResponse`).
+    /// - `complete`: false ⇒ server truncated at a whole-height boundary; the
+    ///   caller must clamp its persisted scan height to `max(slot_heights)`.
     pub async fn get_unif_omr_digest(
         &self,
         detection_keys: Vec<Vec<u8>>,
         start_height: u32,
         end_height: u32,
-    ) -> Result<Vec<u8>, String> {
+    ) -> Result<(Vec<u8>, Vec<u8>, bool), String> {
         validate_block_range(start_height, end_height)?;
         if detection_keys.is_empty() {
             return Err("detection_keys required".into());
@@ -1220,7 +1229,8 @@ impl LightwalletClient {
                 .get_unif_omr_digest(tonic::Request::new(stream))
                 .await
                 .map_err(|e| format!("GetUnifOmrDigest RPC: {e}"))?;
-            Ok(resp.into_inner().encrypted_digest)
+            let inner = resp.into_inner();
+            Ok((inner.encrypted_digest, inner.slot_heights, inner.complete))
         })
         .await;
         result

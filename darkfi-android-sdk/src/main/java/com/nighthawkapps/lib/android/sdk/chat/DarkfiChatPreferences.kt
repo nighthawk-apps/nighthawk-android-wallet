@@ -27,11 +27,11 @@ class DarkfiChatPreferences(
         }
 
     /**
-     * When true, wallet sync is UnifOMR-only (no supplemental/gap trial decrypt).
-     * Default false so Nighthawk can receive from non-UnifOMR wallets (e.g. upstream `drk`).
+     * When true, wallet sync is UnifOMR-only (no supplemental trial decrypt).
+     * Default true. Turn off in Advanced Settings to receive from `drk`.
      */
     var strictOmrOnly: Boolean
-        get() = sp.getBoolean(KEY_STRICT_OMR_ONLY, false)
+        get() = sp.getBoolean(KEY_STRICT_OMR_ONLY, true)
         set(value) {
             sp.edit().putBoolean(KEY_STRICT_OMR_ONLY, value).apply()
         }

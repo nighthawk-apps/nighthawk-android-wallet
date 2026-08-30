@@ -148,6 +148,14 @@ pub async fn build_transfer(
         .filter(|s| !s.is_empty())
         .map(|s| s.as_bytes().to_vec());
 
+    crate::sync::rebuild_spendable_money_tree(
+        drk,
+        lightwallet_server_url,
+        lightwallet_tls_pin,
+    )
+    .await
+    .map_err(|e| format!("merkle rebuild for spend: {e}"))?;
+
     let tx = drk
         .transfer(amount, token, *recipient.public_key(), None, None, false)
         .await
