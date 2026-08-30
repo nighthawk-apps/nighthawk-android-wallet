@@ -1,0 +1,3 @@
+- Sync UnifOMR with current lightwalletd (per-message packing, slot_heights).
+- Default to strict UnifOMR and fetch the padded window instead of match gaps.
+- Rebuild the spendable Money tree before transfer.
