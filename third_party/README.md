@@ -10,7 +10,8 @@ at the commit in `docs/upstream/darkfi-revision.txt` (F-Droid pin:
 
 Git submodule of [darkrenaissance/RandomX](https://github.com/darkrenaissance/RandomX).
 F-Droid cargo-patches DarkFi's Codeberg RandomX git dep onto this path
-(Codeberg 429s on their builders).
+(Codeberg 429s on their builders) and copies `docs/upstream/RandomX.Cargo.lock`
+next to `Cargo.toml` so the scanner has a lockfile.
 
 Init or refresh:
 
