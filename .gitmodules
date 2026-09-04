@@ -1,0 +1,6 @@
+[submodule "third_party/darkfi"]
+	path = third_party/darkfi
+	url = https://github.com/nighthawk24/darkfi.git
+[submodule "third_party/RandomX"]
+	path = third_party/RandomX
+	url = https://github.com/darkrenaissance/RandomX.git

@@ -81,7 +81,9 @@ parent/
   moonshine/
 ```
 
-Vendored DarkFi is **not** committed — run `./scripts/vendor-darkfi.sh` after clone.
+Vendored DarkFi and RandomX are **git submodules** (`third_party/darkfi`,
+`third_party/RandomX`). Clone with `--recurse-submodules`, or run
+`./scripts/vendor-darkfi.sh` after clone.
 The shared UniFFI crate lives at `rust/darkfi-mobile-ffi`. Other clients (desktop, etc.) may
 symlink or copy it to a sibling directory named `darkfi-mobile-ffi`.
 
@@ -95,9 +97,9 @@ symlink or copy it to a sibling directory named `darkfi-mobile-ffi`.
 | **Android SDK** | SDK Manager → set `ANDROID_HOME`; add `platform-tools` to `PATH` for `adb` |
 | **Android NDK** | `$ANDROID_HOME/ndk/<version>`; set `ANDROID_NDK_HOME` for `cargo-ndk` |
 | **Rust + Cargo** | [rustup](https://rustup.rs/) stable |
-| **`cargo-ndk`** | `cargo install cargo-ndk` |
+| **`cargo-ndk`** | `cargo install cargo-ndk@4.1.2` (pin matches F-Droid) |
 | **Android Rust targets** | See command below |
-| **Vendored DarkFi** | `./scripts/vendor-darkfi.sh` (pins `docs/upstream/darkfi-revision.txt`) |
+| **Vendored DarkFi** | git submodule at `docs/upstream/darkfi-revision.txt`; `./scripts/vendor-darkfi.sh` |
 
 ```bash
 rustup target add aarch64-linux-android armv7-linux-androideabi i686-linux-android x86_64-linux-android

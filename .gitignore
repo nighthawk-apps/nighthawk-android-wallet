@@ -35,9 +35,6 @@ darkfi-android-sdk/src/main/jniLibs/**/libdarkfi_mobile_ffi.so
 # Scratch downloads from scripts/fetch-darkfi-upstream-reference.sh (pinned upstream blobs)
 docs/upstream/_scratch/
 
-# Vendored DarkFi workspace (scripts/vendor-darkfi.sh)
-third_party/darkfi/
-
 # Prebuilt DarkIRC binaries for APK (produce via scripts/build-darkirc-android.sh or CI — see artifacts/darkirc/README.md)
 artifacts/darkirc/*/darkirc_exec
 

@@ -1,4 +1,4 @@
-064030ffdbf4d80e5400cef6fe57fcfeb5d07deb
-# darkfi master + Arti 0.45 Tor transport (Arc<TorClient>) — 2026-08-06
-# Pin matches nighthawk24/darkfi @ 064030ffd (Arti 0.45).
-# Wallet: upstream bin/drk turso + experimental aegis256.
+55a81e5c6227fbacd9ae92610853bf2bbcacb10f
+# nighthawk24/darkfi fdroid-arti-0.45 / tag fdroid-55a81e5c6
+# Arti 0.45 Tor transport + keccak overlay (no oversized &KeccakState).
+# Do not pin darkrenaissance/darkfi master — that tree is Arti 0.42 without the overlay.

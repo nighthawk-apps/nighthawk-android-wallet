@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Cross-compile darkfi-mobile-ffi (UniFFI cdylib) for Android ABIs.
-# Prerequisite: third_party/darkfi checked out (./scripts/vendor-darkfi.sh, or
-# F-Droid srclibs symlink). Tip bin/drk = turso + aegis256; no SQLCipher.
+# Prerequisite: third_party/darkfi git submodule (./scripts/vendor-darkfi.sh, or
+# `git submodule update --init`). Tip bin/drk = turso + aegis256; no SQLCipher.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -102,8 +102,8 @@ if [[ "$(id -u)" -eq 0 ]]; then
 fi
 
 if [[ ! -d "$ROOT/third_party/darkfi/bin/drk" ]]; then
-  echo "Expected vendored DarkFi at third_party/darkfi — run ./scripts/vendor-darkfi.sh," >&2
-  echo "or for F-Droid: ln -s \$\$darkfi\$\$ third_party/darkfi from the srclib checkout." >&2
+  echo "Expected vendored DarkFi at third_party/darkfi — run ./scripts/vendor-darkfi.sh" >&2
+  echo "or: git submodule update --init -- third_party/darkfi" >&2
   exit 1
 fi
 

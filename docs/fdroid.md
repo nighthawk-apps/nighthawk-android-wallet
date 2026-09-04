@@ -16,11 +16,16 @@ A future mainnet F-Droid app would use `com.nighthawkwallet.android` / `darkfima
 ## Local unsigned APK (same task F-Droid runs)
 
 ```bash
+git submodule update --init --recursive
 ./scripts/vendor-darkfi.sh
 ./scripts/build-darkfi-mobile-ffi-android.sh
 bundle exec fastlane fdroid
 # → assembleDarkfitestnetRelease (unsigned)
 ```
+
+F-Droid clones this repo with `submodules: true` (DarkFi + RandomX). Bump a
+submodule, commit the gitlink, and tag a new `WALLET_VERSION_*` — no fdroiddata
+srclib SHA edit.
 
 ## AutoUpdate after merge
 
