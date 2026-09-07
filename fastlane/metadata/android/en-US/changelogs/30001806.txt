@@ -1,0 +1,5 @@
+- Testnet 3.00.06: Instant Sync plus proto-mismatch surfacing; pin F-Droid to tag v3.00.06.
+- Lightwalletd 0.2.0 on Studio (range continuity, IBD vs reorg, tip-only TreeState/checkpoint with backfill fallback).
+- Scan still never trial-decrypts below wallet birthday; proto_version stays 1.x.x.
+- F-Droid: WALLET_VERSION_CODE 30001806 / WALLET_VERSION_NAME 3.00.06; tag v3.00.06.
+- Explorer: https://explorer.testnet.dark.fi

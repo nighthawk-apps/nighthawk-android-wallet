@@ -36,14 +36,14 @@ srclib SHA edit.
 
 Tagging alone does **not** run this repo’s GitHub `Deploy` workflow (that is branch/`workflow_dispatch` + Play secrets). F-Droid’s scanner is separate.
 
-## 3.00.05 Instant Sync (this release)
+## 3.00.06 Instant Sync (this release)
 
 | Field | Value |
 |-------|--------|
-| `WALLET_VERSION_NAME` | `3.00.05` |
-| `WALLET_VERSION_CODE` | `30001805` |
-| Suggested git tag | `v3.00.05` |
-| Fastlane changelog | `fastlane/metadata/android/en-US/changelogs/30001805.txt` |
+| `WALLET_VERSION_NAME` | `3.00.06` |
+| `WALLET_VERSION_CODE` | `30001806` |
+| Suggested git tag | `v3.00.06` |
+| Fastlane changelog | `fastlane/metadata/android/en-US/changelogs/30001806.txt` |
 | Local F-Droid APK | `bundle exec fastlane fdroid` → `assembleDarkfitestnetRelease` (unsigned) |
 
 What's new for testers:
@@ -55,7 +55,7 @@ What's new for testers:
 - Proto lockstep: client and lightwalletd speak `proto_version` **1.x.x**.
 - Pinned HTTPS lightwalletd: ALPN `h2` and no double-TLS (Studio ngrok).
 
-After tagging, update the fdroiddata recipe only if the checkout branch / submodule SHAs changed. `UpdateCheckData` on `gradle.properties` should pick up `30001805` automatically.
+After tagging, update the fdroiddata recipe only if the checkout branch / submodule SHAs changed. `UpdateCheckData` on `gradle.properties` should pick up `30001806` automatically.
 
 ## Upstream MR
 
