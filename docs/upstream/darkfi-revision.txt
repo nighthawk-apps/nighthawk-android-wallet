@@ -1,4 +1,5 @@
-55a81e5c6227fbacd9ae92610853bf2bbcacb10f
-# nighthawk24/darkfi fdroid-arti-0.45 / tag fdroid-55a81e5c6
-# Arti 0.45 Tor transport + keccak overlay (no oversized &KeccakState).
+327fa9f134fc756b84be2ce327afaae1cd41a956
+# nighthawk24/darkfi branch nighthawk-testnet
+# darkrenaissance/darkfi master merged onto fdroid-arti-0.45
+# (Arti 0.45 + keccak overlay + kvdb-overlay).
 # Do not pin darkrenaissance/darkfi master — that tree is Arti 0.42 without the overlay.

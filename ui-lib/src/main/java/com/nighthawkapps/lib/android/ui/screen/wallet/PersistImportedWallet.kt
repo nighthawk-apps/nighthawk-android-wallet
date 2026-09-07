@@ -10,7 +10,6 @@ internal fun WalletViewModel.persistImportedWallet(
     seedWords: List<String>,
     birthdayHeight: Long?
 ) {
-    persistBackupComplete()
     val application = getApplication<Application>()
     val network = darkfiNetworkFromPackage(application)
     persistExistingWallet(

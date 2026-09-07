@@ -24,13 +24,13 @@ class StubDarkfiSynchronizer(
         DarkfidLineJsonRpcCaller(applicationContext.applicationContext, wallet.endpoint),
     )
 
-    private val _status = MutableStateFlow(DarkfiSyncStatus.SYNCED)
+    private val _status = MutableStateFlow(DarkfiSyncStatus.ERROR)
     private val _processor =
-        MutableStateFlow(DarkfiProcessorInfo(scannedBlocks = 1L, chainTip = 1L))
-    private val _progress = MutableStateFlow(DarkfiPercent.HUNDRED_PERCENT)
+        MutableStateFlow(DarkfiProcessorInfo(scannedBlocks = 0L, chainTip = 0L))
+    private val _progress = MutableStateFlow(DarkfiPercent(0f))
 
-    /** Stub balance (atomic DRK) until Rust backs sync via **`darkfid`** / **`darkfi-mobile-ffi`**. */
-    private val _balanceAtomic = MutableStateFlow(10L * 100_000_000L)
+    /** Fail-closed: never invent a balance when the native library is missing. */
+    private val _balanceAtomic = MutableStateFlow(0L)
 
     override val status: Flow<DarkfiSyncStatus> = _status.asStateFlow()
     override val processorInfo: Flow<DarkfiProcessorInfo> = _processor.asStateFlow()
@@ -83,12 +83,9 @@ class StubDarkfiSynchronizer(
 
     override suspend fun refreshNow() {
         pingDarkfidBestEffort()
-
-        _status.value = DarkfiSyncStatus.SYNCING
-        _progress.value = DarkfiPercent(0.99f)
-        _processor.value = DarkfiProcessorInfo(scannedBlocks = 1000L, chainTip = 1000L)
-        _status.value = DarkfiSyncStatus.SYNCED
-        _progress.value = DarkfiPercent.HUNDRED_PERCENT
+        _status.value = DarkfiSyncStatus.ERROR
+        _progress.value = DarkfiPercent(0f)
+        _processor.value = DarkfiProcessorInfo(scannedBlocks = 0L, chainTip = 0L)
     }
 
     private suspend fun pingDarkfidBestEffort() {

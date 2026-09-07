@@ -131,13 +131,13 @@ static LOGGING_INIT: std::sync::Once = std::sync::Once::new();
 
 fn init_logging() {
     LOGGING_INIT.call_once(|| {
-        // `log` backend (rustls/sled use it).
+        // `log` backend (rustls/kvdb use it).
         // Release: WARN+ only to prevent P2P metadata leaking to logcat.
         // Debug: INFO for development diagnostics.
         let (max_level, filter_spec) = if cfg!(debug_assertions) {
-            (log::LevelFilter::Debug, "info,rustls=off,sled=off,sled_overlay=off,mio=off,polling=off,async_io=off,want=off")
+            (log::LevelFilter::Debug, "info,rustls=off,kvdb=off,kvdb_overlay=off,mio=off,polling=off,async_io=off,want=off")
         } else {
-            (log::LevelFilter::Warn, "warn,rustls=off,sled=off,sled_overlay=off,mio=off,polling=off,async_io=off,want=off")
+            (log::LevelFilter::Warn, "warn,rustls=off,kvdb=off,kvdb_overlay=off,mio=off,polling=off,async_io=off,want=off")
         };
         android_logger::init_once(
             android_logger::Config::default()
@@ -519,22 +519,23 @@ async fn run_darkirc_daemon(
             P2p,
         },
     };
-    use sled_overlay::sled;
+    use kvdb_overlay::Database;
     use url::Url;
 
-    // Create datastore (with retry for rapid restart lock release)
+    // Create datastore (with retry for rapid restart lock release).
+    // Existing sled directories will not open; testers must wipe DarkIRC cache.
     std::fs::create_dir_all(&datastore_path).map_err(|e| format!("create datastore: {e}"))?;
-    let mut sled_db_result = sled::open(&datastore_path);
-    if sled_db_result.is_err() {
+    let mut kvdb_result = Database::open_default(&datastore_path);
+    if kvdb_result.is_err() {
         for _ in 0..5 {
             smol::Timer::after(std::time::Duration::from_millis(200)).await;
-            sled_db_result = sled::open(&datastore_path);
-            if sled_db_result.is_ok() {
+            kvdb_result = Database::open_default(&datastore_path);
+            if kvdb_result.is_ok() {
                 break;
             }
         }
     }
-    let sled_db = sled_db_result.map_err(|e| format!("open sled: {e}"))?;
+    let kvdb = kvdb_result.map_err(|e| format!("open kvdb: {e}"))?;
 
     // Seeds and the outbound transport profile are chosen by `use_tor`. Both
     // sets come straight from upstream `bin/darkirc/darkirc_config.toml` at
@@ -635,7 +636,7 @@ async fn run_darkirc_daemon(
 
     let event_graph = EventGraph::new(
         p2p.clone(),
-        sled_db.clone(),
+        kvdb.clone(),
         replay_path.clone(),
         false, // replay_mode
         eg_config,
@@ -878,7 +879,7 @@ async fn run_darkirc_daemon(
     *EVENT_GRAPH.write().await = None;
     *P2P.write().await = None;
 
-    let _ = sled_db.flush_async().await;
+    let _ = kvdb.flush_default_mode_async().await;
     Ok(())
 }
 

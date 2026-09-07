@@ -1,0 +1,6 @@
+- Pin DarkFi to nighthawk24 nighthawk-testnet (latest master + Arti 0.45 + keccak + kvdb).
+- Port wallet/DarkIRC cache from sled to kvdb-overlay (wipe local cache after upgrade).
+- Fail closed when the native library is missing (no fake 10 DRK balance).
+- Embedded darkfid off by default; Settings rescan no longer wipes the wallet.
+- Strict UnifOMR off by default so testers can receive from upstream drk.
+- Explorer links use explorer.testnet.dark.fi; send copy says UnifOMR / lightwalletd.

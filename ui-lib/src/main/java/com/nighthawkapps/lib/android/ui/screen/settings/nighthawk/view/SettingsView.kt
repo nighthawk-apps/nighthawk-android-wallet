@@ -103,7 +103,7 @@ fun SettingsView(
                 dismissText = stringResource(id = R.string.ns_cancel).uppercase(),
                 onConfirm = {
                     showReScanDialog = false
-                    onRescan(ReScanType.WIPE)
+                    onRescan(ReScanType.FULL_SCAN)
                 },
                 onDismiss = { showReScanDialog = false },
                 onDismissRequest = { showReScanDialog = false },

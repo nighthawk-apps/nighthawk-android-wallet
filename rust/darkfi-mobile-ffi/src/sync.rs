@@ -962,7 +962,7 @@ async fn apply_omr_sparse_window(
         MONEY_COINS_COL_SECRET, MONEY_COINS_COL_SPEND_HOOK, MONEY_COINS_COL_SPENT_HEIGHT,
         MONEY_COINS_COL_TOKEN_BLIND, MONEY_COINS_COL_TOKEN_ID, MONEY_COINS_COL_USER_DATA,
         MONEY_COINS_COL_VALUE, MONEY_COINS_COL_VALUE_BLIND, MONEY_COINS_TABLE,
-        SLED_MERKLE_TREES_MONEY,
+        KVDB_MERKLE_TREES_MONEY,
     };
 
     let matching_set: HashSet<u32> = matching_heights.iter().copied().collect();
@@ -1243,9 +1243,9 @@ async fn apply_omr_sparse_window(
     }
 
     drk.cache
-        .insert_merkle_trees(&[(SLED_MERKLE_TREES_MONEY, &tree)])
+        .insert_merkle_trees(&[(KVDB_MERKLE_TREES_MONEY, &tree)])
         .map_err(|e| format!("Failed to persist Money Merkle tree: {e}"))?;
-    let _ = drk.cache.sled_db.flush();
+    let _ = drk.cache.kvdb.flush_default_mode();
 
     if found > 0 {
         tracing::debug!(
@@ -1346,7 +1346,7 @@ pub(crate) fn assert_contiguous_heights(
 
 /// Persist scan cursor into the wallet cache so `get_last_scanned_block` matches
 /// the sync engine (S5).
-const PAYMENT_MEMOS_TREE: &[u8] = b"payment_memos";
+const PAYMENT_MEMOS_TREE: &str = "payment_memos";
 
 fn persist_received_memo_from_tx_hash(drk: &drk::Drk, tx_hash: &[u8], memo_bytes: &[u8]) {
     if memo_bytes.is_empty() || tx_hash.len() != 32 {
@@ -1354,14 +1354,14 @@ fn persist_received_memo_from_tx_hash(drk: &drk::Drk, tx_hash: &[u8], memo_bytes
     }
     let b58 = bs58::encode(tx_hash).into_string();
     let hex: String = tx_hash.iter().map(|b| format!("{b:02x}")).collect();
-    if let Ok(tree) = drk.cache.sled_db.open_tree(PAYMENT_MEMOS_TREE) {
+    if let Ok(tree) = drk.cache.kvdb.open_tree_default(PAYMENT_MEMOS_TREE) {
         let _ = tree.insert(b58.as_bytes(), memo_bytes);
         let _ = tree.insert(hex.as_bytes(), memo_bytes);
     }
 }
 
 pub(crate) fn load_received_memo(drk: &drk::Drk, tx_hash: &str) -> Option<String> {
-    let tree = drk.cache.sled_db.open_tree(PAYMENT_MEMOS_TREE).ok()?;
+    let tree = drk.cache.kvdb.open_tree_default(PAYMENT_MEMOS_TREE).ok()?;
     let v = tree.get(tx_hash.as_bytes()).ok()??;
     String::from_utf8(v.to_vec())
         .ok()
@@ -1491,7 +1491,7 @@ pub(crate) async fn rewind_wallet_after_reorg(
             );
             let tree = empty_money_tree();
             drk.cache
-                .insert_merkle_trees(&[(drk::money::SLED_MERKLE_TREES_MONEY, &tree)])
+                .insert_merkle_trees(&[(drk::money::KVDB_MERKLE_TREES_MONEY, &tree)])
                 .map_err(|e| format!("persist empty Money tree: {e}"))?;
             scan_height = 0;
         }
@@ -1564,9 +1564,9 @@ async fn rebuild_money_tree_to_height(
     }
 
     drk.cache
-        .insert_merkle_trees(&[(drk::money::SLED_MERKLE_TREES_MONEY, &tree)])
+        .insert_merkle_trees(&[(drk::money::KVDB_MERKLE_TREES_MONEY, &tree)])
         .map_err(|e| format!("Failed to persist rebuilt Money Merkle tree: {e}"))?;
-    let _ = drk.cache.sled_db.flush();
+    let _ = drk.cache.kvdb.flush_default_mode();
     Ok(())
 }
 
@@ -1607,9 +1607,9 @@ pub(crate) fn persist_scanned_height(drk: &drk::Drk, height: u32) -> Result<(), 
     let value = serialize(&(String::from("-"), String::from("-")));
     drk.cache
         .scanned_blocks
-        .insert(height.to_be_bytes(), value)
+        .insert(&height.to_be_bytes(), &value)
         .map_err(|e| format!("Failed to persist scanned height: {e}"))?;
-    let _ = drk.cache.sled_db.flush();
+    let _ = drk.cache.kvdb.flush_default_mode();
     Ok(())
 }
 
@@ -1656,7 +1656,7 @@ async fn process_compact_block(
         MONEY_COINS_COL_SECRET, MONEY_COINS_COL_SPEND_HOOK, MONEY_COINS_COL_SPENT_HEIGHT,
         MONEY_COINS_COL_TOKEN_BLIND, MONEY_COINS_COL_TOKEN_ID, MONEY_COINS_COL_USER_DATA,
         MONEY_COINS_COL_VALUE, MONEY_COINS_COL_VALUE_BLIND, MONEY_COINS_TABLE,
-        SLED_MERKLE_TREES_MONEY,
+        KVDB_MERKLE_TREES_MONEY,
     };
 
     let secrets = if trial_decrypt {
@@ -1832,9 +1832,9 @@ async fn process_compact_block(
     }
 
     drk.cache
-        .insert_merkle_trees(&[(SLED_MERKLE_TREES_MONEY, &tree)])
+        .insert_merkle_trees(&[(KVDB_MERKLE_TREES_MONEY, &tree)])
         .map_err(|e| format!("Failed to persist Money Merkle tree: {e}"))?;
-    let _ = drk.cache.sled_db.flush();
+    let _ = drk.cache.kvdb.flush_default_mode();
 
     if found > 0 {
         tracing::debug!(

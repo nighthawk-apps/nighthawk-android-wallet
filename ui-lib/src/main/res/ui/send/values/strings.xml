@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="send_title">Send DRK</string>
-    <string name="send_body_native">Builds and broadcasts a private transfer via on-device drk and your darkfid endpoint.</string>
+    <string name="send_body_native">Builds and broadcasts a private transfer via on-device drk and your lightwalletd endpoint.</string>
     <string name="send_body_unavailable">Native wallet library is not loaded for this device ABI. Rebuild jniLibs or use an arm64 emulator.</string>
     <string name="send_balance_atomic" formatted="true">Balance (atomic): %1$d · ~%2$s DRK</string>
     <string name="send_estimated_fee" formatted="true">Estimated fee (atomic): %1$d · ~%2$s DRK</string>
@@ -22,7 +22,7 @@
     <string name="send_success_title">Transfer submitted</string>
     <string name="send_success_message" formatted="true">Transaction id:\n%1$s</string>
     <string name="send_success_ok">Done</string>
-    <string name="send_omr_scheme_label">PerfOMR (default)</string>
-    <string name="send_omr_default_hint">This transfer embeds an OMR/OMD detection clue so the recipient can sync privately via lightwalletd (PerfOMR + LWEmongrass). No scheme toggle — OMR is always on.</string>
+    <string name="send_omr_scheme_label">UnifOMR (default)</string>
+    <string name="send_omr_default_hint">This transfer embeds a UnifOMR detection clue so the recipient can sync privately via lightwalletd. No scheme toggle — UnifOMR is always on.</string>
     <string name="send_tx_id_format">Transaction id: %1$s</string>
 </resources>

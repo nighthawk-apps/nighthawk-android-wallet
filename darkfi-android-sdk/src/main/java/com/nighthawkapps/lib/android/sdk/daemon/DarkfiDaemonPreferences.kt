@@ -12,11 +12,11 @@ class DarkfiDaemonPreferences(
         context.applicationContext.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
 
     /**
-     * When true (default), start packaged **darkfid** so wallet `drk` can reach loopback JSON-RPC
-     * (`127.0.0.1:18345` testnet) without a desktop node — mirrors embedded darkirc.
+     * When true, start packaged **darkfid**. Default is off: public testnet uses lightwalletd,
+     * and an accidental local node on :18345 is the wrong network.
      */
     var runEmbeddedDarkfid: Boolean
-        get() = sp.getBoolean(KEY_EMBEDDED_DARKFID, true)
+        get() = sp.getBoolean(KEY_EMBEDDED_DARKFID, false)
         set(value) {
             sp.edit().putBoolean(KEY_EMBEDDED_DARKFID, value).apply()
         }

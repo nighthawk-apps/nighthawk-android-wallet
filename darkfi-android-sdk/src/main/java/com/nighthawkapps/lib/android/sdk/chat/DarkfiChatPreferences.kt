@@ -28,10 +28,10 @@ class DarkfiChatPreferences(
 
     /**
      * When true, wallet sync is UnifOMR-only (no supplemental trial decrypt).
-     * Default true. Turn off in Advanced Settings to receive from `drk`.
+     * Default off so testers can receive from upstream `drk` (trial-decrypt fallback).
      */
     var strictOmrOnly: Boolean
-        get() = sp.getBoolean(KEY_STRICT_OMR_ONLY, true)
+        get() = sp.getBoolean(KEY_STRICT_OMR_ONLY, false)
         set(value) {
             sp.edit().putBoolean(KEY_STRICT_OMR_ONLY, value).apply()
         }

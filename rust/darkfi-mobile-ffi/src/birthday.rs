@@ -28,7 +28,7 @@ pub fn seed_scan_cursor(drk: &Drk, height: u32, block_hash: Option<&str>) -> Res
 
     drk.cache
         .scanned_blocks
-        .insert(height.to_be_bytes(), value)
+        .insert(&height.to_be_bytes(), &value)
         .map_err(|e| format!("insert scanned block {height}: {e}"))?;
 
     Ok(())

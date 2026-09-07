@@ -231,9 +231,9 @@ async fn backfill_money_tree_to_birthday(
         crate::sync::append_note_commitments(&mut tree, &client, start, end, &owned).await?;
 
     drk.cache
-        .insert_merkle_trees(&[(drk::money::SLED_MERKLE_TREES_MONEY, &tree)])
+        .insert_merkle_trees(&[(drk::money::KVDB_MERKLE_TREES_MONEY, &tree)])
         .map_err(|e| format!("persist backfilled Money tree: {e}"))?;
-    let _ = drk.cache.sled_db.flush();
+    let _ = drk.cache.kvdb.flush_default_mode();
 
     tracing::info!(
         target: "wallet-bootstrap",
