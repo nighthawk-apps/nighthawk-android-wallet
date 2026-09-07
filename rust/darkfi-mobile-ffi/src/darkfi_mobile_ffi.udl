@@ -101,6 +101,7 @@ dictionary DrkLightSyncState {
     SyncMethod sync_method;
     SyncFallbackReason fallback_reason;
     string fallback_user_message;
+    boolean proto_version_mismatch;
 };
 
 dictionary DrkTokenBalance {

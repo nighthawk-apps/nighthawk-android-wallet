@@ -388,15 +388,19 @@ class NativeDarkfiSynchronizer internal constructor(
                 // lightState.statusMessage which contains free-text like
                 // "Syncing block 42 of 1000" that would never match.
                 _status.value =
-                    when (lightState.status) {
-                        "Disconnected" -> DarkfiSyncStatus.DISCONNECTED
-                        "Connecting" -> DarkfiSyncStatus.CONNECTING
-                        "Syncing" -> DarkfiSyncStatus.SYNCING
-                        "Synced" -> DarkfiSyncStatus.SYNCED
-                        "Retrying" -> DarkfiSyncStatus.RETRYING
-                        "Degraded" -> DarkfiSyncStatus.DEGRADED
-                        "Error" -> DarkfiSyncStatus.ERROR
-                        else -> _status.value
+                    if (lightState.protoVersionMismatch) {
+                        DarkfiSyncStatus.PROTO_MISMATCH
+                    } else {
+                        when (lightState.status) {
+                            "Disconnected" -> DarkfiSyncStatus.DISCONNECTED
+                            "Connecting" -> DarkfiSyncStatus.CONNECTING
+                            "Syncing" -> DarkfiSyncStatus.SYNCING
+                            "Synced" -> DarkfiSyncStatus.SYNCED
+                            "Retrying" -> DarkfiSyncStatus.RETRYING
+                            "Degraded" -> DarkfiSyncStatus.DEGRADED
+                            "Error" -> DarkfiSyncStatus.ERROR
+                            else -> _status.value
+                        }
                     }
             }
     }

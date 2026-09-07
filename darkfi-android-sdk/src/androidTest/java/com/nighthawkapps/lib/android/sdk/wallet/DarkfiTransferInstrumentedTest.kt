@@ -2,6 +2,7 @@ package com.nighthawkapps.lib.android.sdk.wallet
 
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
+import com.nighthawkapps.lib.android.sdk.net.LightwalletTlsPin
 import com.nighthawkapps.lib.android.sdk.uniffi.DarkfiNativeProbe
 import com.nighthawkapps.lib.uniffi.darkfi_mobile_ffi.DarkfiWalletHandle
 import com.nighthawkapps.lib.uniffi.darkfi_mobile_ffi.DrkBootstrapConfig
@@ -38,10 +39,15 @@ class DarkfiTransferInstrumentedTest {
             args.getString("e2e_recipient")
                 ?: readOptionalFile("/data/local/tmp/e2e_recipient.txt")
                 ?: "fTh3ZcaehgSEx7Hk2EKLRThygj28Mt29RHhD9RDrN6ePx7jPuKyvp7Pf"
-        val amount = args.getString("e2e_amount") ?: "0.1"
-        val lwd = args.getString("e2e_lwd_url") ?: "tcp://127.0.0.1:9067"
+        val amount = args.getString("e2e_amount") ?: "0.05"
+        val lwd =
+            args.getString("e2e_lwd_url")
+                ?: "https://epidermis-sandbox-marshland.ngrok-free.dev"
         val darkfid = args.getString("e2e_darkfid_rpc") ?: "tcp://127.0.0.1:18345"
         val birthday = args.getString("e2e_birthday")?.toLongOrNull() ?: 53200L
+        val tlsPinHex =
+            args.getString("e2e_tls_pin")
+                ?: "9f8f3877f312cb48e4d8d050b5c7b70f6144f1c31812d7ec299c32793a274985"
 
         // AndroidJUnit4 runs on the main thread; UnifOMR + sleeps would ANR/kill
         // the instrumentation process after ~60s. ZK proof gen also overflows
@@ -60,6 +66,7 @@ class DarkfiTransferInstrumentedTest {
                         lwd = lwd,
                         darkfid = darkfid,
                         birthday = birthday,
+                        tlsPinHex = tlsPinHex,
                     )
                 } catch (t: Throwable) {
                     error.set(t)
@@ -85,6 +92,7 @@ class DarkfiTransferInstrumentedTest {
         lwd: String,
         darkfid: String,
         birthday: Long,
+        tlsPinHex: String,
     ) {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         val stamp = System.currentTimeMillis()
@@ -103,7 +111,7 @@ class DarkfiTransferInstrumentedTest {
                     walletPass = "live_e2e_wallet_pass",
                     lightwalletServerUrl = lwd,
                     birthdayHeight = birthday,
-                    lightwalletTlsPinSha256 = null,
+                    lightwalletTlsPinSha256 = LightwalletTlsPin.parseHexPin(tlsPinHex),
                     useTor = false,
                     torSocksPort = 0u,
                     darkfidRpcUrl = darkfid,
@@ -164,7 +172,11 @@ class DarkfiTransferInstrumentedTest {
             if (snap.status == "Error") {
                 fail("UnifOMR sync error: ${snap.statusMessage} fallback=${snap.fallbackUserMessage}")
             }
-            val caughtUp = snap.chainTip > 0 && snap.scannedHeight + 2 >= snap.chainTip
+            // Instant Sync / UnifOMR can report Synced at tip while scannedHeight
+            // stays at the last trial-decrypt window start (not the tip).
+            val caughtUp = snap.chainTip > 0 &&
+                (snap.scannedHeight + 2 >= snap.chainTip ||
+                    (snap.status == "Synced" && snap.omrAvailable))
             if (caughtUp && (snap.status == "Synced" || snap.status == "Degraded")) {
                 println(
                     "E2E_SYNC_DONE status=${snap.status} scanned=${snap.scannedHeight} tip=${snap.chainTip} omr=${snap.omrAvailable}",
@@ -189,7 +201,7 @@ class DarkfiTransferInstrumentedTest {
                 println("E2E_BALANCE_WAIT atomic=$balance address=$address")
                 lastLog = now
             }
-            if (balance > 15_000_000L) return balance
+            if (balance > 8_000_000L) return balance
             Thread.sleep(5_000)
         }
         val balance = handle.confirmedBalanceAtomic()

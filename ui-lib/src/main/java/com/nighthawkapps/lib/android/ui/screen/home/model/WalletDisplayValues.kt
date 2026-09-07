@@ -69,7 +69,8 @@ data class WalletDisplayValues(
                 DarkfiSyncStatus.DISCONNECTED,
                 DarkfiSyncStatus.RETRYING,
                 DarkfiSyncStatus.DEGRADED,
-                DarkfiSyncStatus.ERROR -> {
+                DarkfiSyncStatus.ERROR,
+                DarkfiSyncStatus.PROTO_MISMATCH -> {
                     statusText =
                         context.getString(
                             R.string.home_status_error,

@@ -38,3 +38,14 @@ To manually deploy a build of the app
     1. `WALLET_VERSION_NAME` - Set to a human-readable version number, such as 1.0.1.
 1. Run the Gradle task `./gradlew :app:bundleRelease`
 1. Collect the build artifacts under `app/build` and manually deploy them through the Google Play web interface
+
+## F-Droid (testnet, unsigned)
+
+See **[docs/fdroid.md](fdroid.md)** for the `darkfitestnet` / `com.nighthawkwallet.android.testnet` path.
+
+For **3.00.05** (`WALLET_VERSION_CODE=30001805`):
+
+1. Confirm `gradle.properties` versions and Fastlane changelog `fastlane/metadata/android/en-US/changelogs/30001805.txt`.
+2. `git submodule update --init --recursive && ./scripts/vendor-darkfi.sh && ./scripts/build-darkfi-mobile-ffi-android.sh`
+3. `bundle exec fastlane fdroid` (unsigned `assembleDarkfitestnetRelease`).
+4. Tag `v3.00.05` on the commit F-Droid should build. Do not invent fdroid.org listing URLs until the fdroiddata MR merges.

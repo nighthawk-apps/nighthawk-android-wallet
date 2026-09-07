@@ -1,0 +1,4 @@
+- Instant Sync: authenticated CheckpointSnapshot restore, birthday clamping, UnifOMR window pipelining, ZKAS disk cache, proto_version 1.x lockstep.
+- Lightwalletd proto 1.0.0 — GetCheckpointSnapshot + TreeState {block_hash, state_root, is_checkpoint}.
+- F-Droid: bump WALLET_VERSION_CODE 30001804 / WALLET_VERSION_NAME 3.00.04; tag v3.00.04 after merge.
+- Explorer: https://explorer.testnet.dark.fi

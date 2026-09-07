@@ -118,6 +118,12 @@ pub struct LightSyncState {
     pub reorg_detected: bool,
     /// Last hard error message (e.g. strict OMR downgrade refusal).
     pub last_error: Option<String>,
+    /// Whether server proto version is incompatible with client.
+    pub proto_version_mismatch: bool,
+    /// Height that pipeline has prefetched ahead to.
+    pub pipeline_ahead: u32,
+    /// Height that pipeline is currently applying.
+    pub pipeline_applying: u32,
 }
 
 impl Default for LightSyncState {
@@ -139,6 +145,9 @@ impl Default for LightSyncState {
             omr_downgrade_count: 0,
             reorg_detected: false,
             last_error: None,
+            proto_version_mismatch: false,
+            pipeline_ahead: 0,
+            pipeline_applying: 0,
         }
     }
 }
@@ -200,6 +209,8 @@ pub struct SyncEngine {
     last_tip_update: std::sync::atomic::AtomicU64,
     /// Optional callback for chain reorg events — fires to notify mobile UI.
     pub reorg_callback: std::sync::Mutex<Option<Box<dyn crate::ReorgEventCallback>>>,
+    /// Wallet birthday height (never trial-decrypt below this).
+    birthday_height: std::sync::atomic::AtomicU32,
 }
 
 /// Threshold: a tip advance of >100 blocks between two GetLightInfo calls
@@ -236,6 +247,7 @@ impl SyncEngine {
             prev_chain_tip: std::sync::atomic::AtomicU32::new(0),
             last_tip_update: std::sync::atomic::AtomicU64::new(0),
             reorg_callback: std::sync::Mutex::new(None),
+            birthday_height: std::sync::atomic::AtomicU32::new(0),
         }
     }
 
@@ -255,6 +267,27 @@ impl SyncEngine {
             prev_chain_tip: std::sync::atomic::AtomicU32::new(0),
             last_tip_update: std::sync::atomic::AtomicU64::new(0),
             reorg_callback: std::sync::Mutex::new(None),
+            birthday_height: std::sync::atomic::AtomicU32::new(0),
+        }
+    }
+
+    /// Get the wallet birthday height.
+    pub fn birthday_height(&self) -> u32 {
+        self.birthday_height
+            .load(std::sync::atomic::Ordering::Relaxed)
+    }
+
+    /// Set the wallet birthday height.
+    pub fn set_birthday_height(&self, height: u32) {
+        self.birthday_height
+            .store(height, std::sync::atomic::Ordering::Relaxed);
+    }
+
+    /// Record pipeline prefetch / apply heights for UI / tracing.
+    pub fn set_pipeline_progress(&self, applying: u32, ahead: u32) {
+        if let Ok(mut state) = self.state.lock() {
+            state.pipeline_applying = applying;
+            state.pipeline_ahead = ahead;
         }
     }
 
@@ -318,6 +351,13 @@ impl SyncEngine {
         let mut state = self.state.lock().unwrap();
         state.chain_tip = tip;
         state.refresh_messages();
+    }
+
+    /// Update whether there is a protocol version mismatch with the server.
+    pub fn set_proto_version_mismatch(&self, mismatch: bool) {
+        if let Ok(mut state) = self.state.lock() {
+            state.proto_version_mismatch = mismatch;
+        }
     }
 
     /// Get current chain tip height.
@@ -1189,5 +1229,22 @@ mod tests {
             !engine.needs_reorg_recovery(),
             "clear_reorg_flag should reset"
         );
+    }
+
+    #[test]
+    fn birthday_height_defaults_to_zero() {
+        let engine = SyncEngine::new("x".to_string());
+        assert_eq!(engine.birthday_height(), 0);
+        engine.set_birthday_height(46990);
+        assert_eq!(engine.birthday_height(), 46990);
+    }
+
+    #[test]
+    fn pipeline_progress_updates_snapshot() {
+        let engine = SyncEngine::new("x".to_string());
+        engine.set_pipeline_progress(100, 200);
+        let snap = engine.snapshot();
+        assert_eq!(snap.pipeline_applying, 100);
+        assert_eq!(snap.pipeline_ahead, 200);
     }
 }

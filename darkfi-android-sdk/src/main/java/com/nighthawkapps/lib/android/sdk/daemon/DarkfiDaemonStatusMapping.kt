@@ -34,7 +34,8 @@ object DarkfiDaemonStatusMapping {
 
             DarkfiSyncStatus.STOPPED -> return DarkfiDaemonStatus.Stopped
 
-            DarkfiSyncStatus.ERROR -> return DarkfiDaemonStatus.Error
+            DarkfiSyncStatus.ERROR,
+            DarkfiSyncStatus.PROTO_MISMATCH -> return DarkfiDaemonStatus.Error
 
             DarkfiSyncStatus.REORG_DETECTED -> return DarkfiDaemonStatus.ReorgRecovery
 

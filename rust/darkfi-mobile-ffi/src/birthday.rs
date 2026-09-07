@@ -47,6 +47,11 @@ pub async fn seed_birthday_scan_cursor(drk: &Drk, birthday_height: u32) -> Resul
     seed_scan_cursor(drk, cursor, None)
 }
 
+/// First height the wallet may scan / trial-decrypt (`scanned+1`, never below birthday).
+pub fn clamp_scan_start(scanned: u32, birthday: u32) -> u32 {
+    scanned.saturating_add(1).max(birthday)
+}
+
 /// Inclusive LWD height range that must be appended after the ZERO sentinel
 /// so a birthday restore's Money tree matches the on-chain coin tree.
 ///
@@ -78,5 +83,14 @@ mod tests {
     #[test]
     fn mid_chain_birthday_starts_at_genesis() {
         assert_eq!(pre_birthday_commitment_range(46990), Some((0, 46989)));
+    }
+
+    #[test]
+    fn clamp_scan_start_respects_birthday() {
+        assert_eq!(clamp_scan_start(0, 0), 1);
+        assert_eq!(clamp_scan_start(100, 0), 101);
+        assert_eq!(clamp_scan_start(100, 500), 500);
+        assert_eq!(clamp_scan_start(500, 500), 501);
+        assert_eq!(clamp_scan_start(u32::MAX, 0), u32::MAX);
     }
 }

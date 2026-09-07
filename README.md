@@ -1,5 +1,9 @@
 # Nighthawk Wallet (DarkFi Edition) — Android
 
+<p align="center">
+  <img src="docs/images/android-testnet.png" alt="Nighthawk Android — DarkFi chat connected on testnet" width="320">
+</p>
+
 Privacy-preserving wallet (work-in-progress) by [Nighthawk Apps](https://nighthawkapps.com). This tree ships as a **new Android application id** on the DarkFi network (DRK). The app integrates a native DarkFi wallet API via **UniFFI** (`rust/darkfi-mobile-ffi` → generated Kotlin + `DarkfiMobileFfiApi`) for chain sync, broadcast, and chat.
 
 ## Contents
@@ -22,7 +26,7 @@ Privacy-preserving wallet (work-in-progress) by [Nighthawk Apps](https://nightha
 
 Store listings are **not finalized** for `com.nighthawkwallet.android`. Placeholder targets until publishing completes:
 
-- **F-Droid:** DarkFi **testnet** package `com.nighthawkwallet.android.testnet` / flavor `darkfitestnet` (see [docs/fdroid.md](docs/fdroid.md); listing pending fdroiddata merge). Legacy Zcash: [com.nighthawkapps.wallet.android](https://f-droid.org/packages/com.nighthawkapps.wallet.android/)
+- **F-Droid:** DarkFi **testnet** package `com.nighthawkwallet.android.testnet` / flavor `darkfitestnet` (see [docs/fdroid.md](docs/fdroid.md); listing pending fdroiddata merge). **3.00.05** (`WALLET_VERSION_CODE=30001805`) Instant Sync — Fastlane changelog `fastlane/metadata/android/en-US/changelogs/30001805.txt`, tag `v3.00.05`. Local unsigned APK: `bundle exec fastlane fdroid`. Legacy Zcash: [com.nighthawkapps.wallet.android](https://f-droid.org/packages/com.nighthawkapps.wallet.android/)
 - **Google Play:** `https://PLACEHOLDER_PLAY_STORE_LISTING_URL`
 
 Replace these URLs when production listings exist—do not invent live links prematurely.
@@ -258,6 +262,13 @@ Enable Tor in settings. The SDK rewrites the lightwallet URL to `socks5://proxy/
 | 8 | **Reorg recovery (R1)** | ✅ | `rewind_to_height()` |
 | 9 | **Tip regression (R4)** | ✅ | `new_tip < prev_tip` triggers reorg |
 | 10 | **Server switch reset** | ✅ | Clears tip / OMR counters |
+| 11 | **Instant Sync & Checkpoints** | ✅ | Instant restore from authenticated `TreeState` / `CheckpointSnapshot` |
+| 12 | **Real Birthday Clamping** | ✅ | Strict scan bounds; never trial-decrypt below birthday |
+| 13 | **UnifOMR Pipelining** | ✅ | Window N+1 prefetch concurrent with window N application; in-order buffer |
+| 14 | **ZKAS & Key Cache** | ✅ | In-memory LRU + disk cache for contract bincodes and proving keys |
+| 15 | **Proto Version Lockstep** | ✅ | Major-version semver check on `LightInfo.proto_version` |
+
+See [docs/instant-sync-strategy.md](docs/instant-sync-strategy.md) for full instant sync architecture and implementation details.
 
 ### Data-at-rest & logging
 

@@ -64,7 +64,14 @@ service DarkFiLightWallet {
   rpc GetNullifiers(BlockRange) returns (stream NullifierUpdate);
 
   // Get the Merkle tree state snapshot at a given height.
+  // Historical heights are supported when the server has persisted checkpoints.
+  // Returns FAILED_PRECONDITION if the requested height is not available.
   rpc GetTreeState(BlockHeight) returns (TreeState);
+
+  // Get a checkpoint snapshot for instant wallet restore.
+  // The server streams the snapshot (tree + nullifiers + cursor) so a new
+  // device does not need to replay [0, tip].
+  rpc GetCheckpointSnapshot(CheckpointRequest) returns (stream CheckpointSnapshot);
 
   // === Contract State ===
 
@@ -184,6 +191,33 @@ message TreeState {
   uint32 height = 1;
   // Serialized MerkleTree (DarkFi bridgetree format)
   bytes tree_data = 2;
+  // 32-byte blake3 hash of the block header at this height
+  bytes block_hash = 3;
+  // state_root from the block header — clients verify tree_data hashes to this
+  bytes state_root = 4;
+  // Whether this is a persisted checkpoint (vs computed on-the-fly)
+  bool is_checkpoint = 5;
+}
+
+message CheckpointRequest {
+  // Desired checkpoint height, or 0 for "latest available checkpoint"
+  uint32 preferred_height = 1;
+}
+
+message CheckpointSnapshot {
+  uint32 height = 1;
+  // 32-byte blake3 block header hash at this height
+  bytes block_hash = 2;
+  // state_root from the block header
+  bytes state_root = 3;
+  // Serialized Money Merkle tree at this height
+  bytes tree_data = 4;
+  // Serialized nullifier set (compact bloom or full set)
+  bytes nullifier_index = 5;
+  // Scan cursor value to seed after applying this snapshot
+  uint32 scan_cursor = 6;
+  // blake3 hash over (height LE || tree_data || nullifier_index) for integrity
+  bytes snapshot_hash = 7;
 }
 
 message RawTransaction {
@@ -247,13 +281,16 @@ message LightInfo {
   string difficulty = 5;
   // Whether the server supports OMR detection
   bool omr_supported = 6;
-  // Current best block hash
+  /// Current best block hash
   bytes best_block_hash = 7;
-  // Backing node version string
+  /// Backend node version string
   string backend_version = 8;
   // 32-byte Schnorr public key for GetCluePublicKey directory attestations.
   // Clients verify ownership_proof against this key (not the payment key).
   bytes directory_attest_pubkey = 9;
+  // Protocol version for forward-compatible version negotiation.
+  // Clients compare against their compiled proto version.
+  string proto_version = 10;
 }
 
 // === OMR Messages ===

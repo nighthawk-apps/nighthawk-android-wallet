@@ -19,7 +19,66 @@
 //! - **Debug logging at gRPC entrypoints** (logging commit): every RPC
 //!   call is logged at DEBUG level with method name and timing.
 
+use std::collections::VecDeque;
+use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
+
+/// Client proto version used for major-version lockstep with lightwalletd.
+pub const CLIENT_PROTO_VERSION: &str = "1.0.0";
+
+/// True when both sides parse as semver and the major versions differ.
+/// Unparseable / empty server versions do not flag a mismatch (older servers).
+pub fn proto_major_mismatch(server: &str, client: &str) -> bool {
+    let Ok(server_semver) = semver::Version::parse(server) else {
+        return false;
+    };
+    let Ok(client_semver) = semver::Version::parse(client) else {
+        return false;
+    };
+    server_semver.major != client_semver.major
+}
+
+/// Sliding-window client-side RPC throttle.
+#[derive(Debug)]
+pub struct SlidingWindowLimiter {
+    stamps: Mutex<VecDeque<Instant>>,
+    max_per_window: u32,
+    window: Duration,
+}
+
+impl SlidingWindowLimiter {
+    pub fn new(max_per_window: u32, window: Duration) -> Self {
+        Self {
+            stamps: Mutex::new(VecDeque::new()),
+            max_per_window,
+            window,
+        }
+    }
+
+    pub fn try_acquire(&self) -> Result<(), String> {
+        let now = Instant::now();
+        let mut guard = self
+            .stamps
+            .lock()
+            .map_err(|_| "rate limiter lock poisoned".to_string())?;
+        while let Some(front) = guard.front() {
+            if now.duration_since(*front) > self.window {
+                guard.pop_front();
+            } else {
+                break;
+            }
+        }
+        if guard.len() >= self.max_per_window as usize {
+            return Err(format!(
+                "rate limited: {} requests per {:?}",
+                self.max_per_window, self.window
+            ));
+        }
+        guard.push_back(now);
+        Ok(())
+    }
+}
 
 /// UnifOMR GenDetKey wire size (~19MB for n=512); raise tonic's 4MB default.
 // Param2 UnifOMR detection keys are ~120 MiB on the wire.
@@ -204,6 +263,41 @@ pub struct LightServerInfo {
     pub backend_version: String,
     /// 32-byte directory attest public key for GetCluePublicKey proofs.
     pub directory_attest_pubkey: Vec<u8>,
+    /// Monotonic proto version string (e.g. "1.0.0").
+    pub proto_version: String,
+    /// Whether server proto version is incompatible with client.
+    pub proto_version_mismatch: bool,
+}
+
+/// Authenticated Merkle tree state returned by GetTreeState.
+#[derive(Debug, Clone)]
+pub struct AuthenticatedTreeState {
+    pub height: u32,
+    pub tree_data: Vec<u8>,
+    pub block_hash: Vec<u8>,
+    pub state_root: Vec<u8>,
+    pub is_checkpoint: bool,
+}
+
+/// Checkpoint snapshot downloaded for instant restore.
+#[derive(Debug, Clone)]
+pub struct CheckpointSnapshotDto {
+    pub height: u32,
+    pub block_hash: Vec<u8>,
+    pub state_root: Vec<u8>,
+    pub tree_data: Vec<u8>,
+    pub nullifier_index: Vec<u8>,
+    pub scan_cursor: u32,
+    pub snapshot_hash: Vec<u8>,
+}
+
+/// RPC request metrics for metering and monitoring.
+#[derive(Debug, Default)]
+pub struct RpcMetrics {
+    pub chain_tip_requests: AtomicU64,
+    pub omr_requests: AtomicU64,
+    pub pir_requests: AtomicU64,
+    pub block_requests: AtomicU64,
 }
 
 /// OMR capabilities returned by GetOmrCapabilities.
@@ -413,11 +507,21 @@ pub struct LightwalletClient {
     /// S13: when true (default), refuse cleartext `http://` to remote hosts
     /// even when dialling via SOCKS5/Tor. Prefer `https://` + TLS pin.
     require_https_over_socks: bool,
-    /// Persistent gRPC channel (P4) — reused across RPCs in a sync session.
-    channel: tokio::sync::Mutex<Option<tonic::transport::Channel>>,
+    /// Persistent cloneable gRPC channel — `OnceCell` so concurrent RPCs
+    /// clone the ready channel without holding a session-wide mutex.
+    channel: tokio::sync::OnceCell<tonic::transport::Channel>,
+    /// RPC request metrics (chain tip, OMR, PIR, block requests).
+    metrics: Arc<RpcMetrics>,
+    omr_limiter: SlidingWindowLimiter,
+    chain_tip_limiter: SlidingWindowLimiter,
 }
 
 impl LightwalletClient {
+    /// OMR requests allowed per minute before client-side throttling.
+    pub const OMR_RATE_LIMIT_PER_MIN: u32 = 6;
+    /// Chain tip requests allowed per minute before client-side throttling.
+    pub const CHAIN_TIP_RATE_LIMIT_PER_MIN: u32 = 12;
+
     /// Create a new client targeting the given gRPC endpoint.
     ///
     /// The endpoint should be a URL like `http://127.0.0.1:9067`,
@@ -438,7 +542,13 @@ impl LightwalletClient {
             tls_pin_sha256: None,
             socks5_proxy,
             require_https_over_socks: true,
-            channel: tokio::sync::Mutex::new(None),
+            channel: tokio::sync::OnceCell::new(),
+            metrics: Arc::new(RpcMetrics::default()),
+            omr_limiter: SlidingWindowLimiter::new(Self::OMR_RATE_LIMIT_PER_MIN, Duration::from_secs(60)),
+            chain_tip_limiter: SlidingWindowLimiter::new(
+                Self::CHAIN_TIP_RATE_LIMIT_PER_MIN,
+                Duration::from_secs(60),
+            ),
         }
     }
 
@@ -465,8 +575,19 @@ impl LightwalletClient {
             tls_pin_sha256: Some(pin_sha256),
             socks5_proxy,
             require_https_over_socks: true,
-            channel: tokio::sync::Mutex::new(None),
+            channel: tokio::sync::OnceCell::new(),
+            metrics: Arc::new(RpcMetrics::default()),
+            omr_limiter: SlidingWindowLimiter::new(Self::OMR_RATE_LIMIT_PER_MIN, Duration::from_secs(60)),
+            chain_tip_limiter: SlidingWindowLimiter::new(
+                Self::CHAIN_TIP_RATE_LIMIT_PER_MIN,
+                Duration::from_secs(60),
+            ),
         }
+    }
+
+    /// Access metrics recorded by this client.
+    pub fn metrics(&self) -> Arc<RpcMetrics> {
+        self.metrics.clone()
     }
 
     /// Allow cleartext remote endpoints over SOCKS5 (dev-only).
@@ -595,13 +716,13 @@ impl LightwalletClient {
     }
 
     async fn connect_channel(&self) -> Result<tonic::transport::Channel, String> {
-        {
-            let guard = self.channel.lock().await;
-            if let Some(ch) = guard.as_ref() {
-                return Ok(ch.clone());
-            }
-        }
+        self.channel
+            .get_or_try_init(|| self.dial_fresh_channel())
+            .await
+            .cloned()
+    }
 
+    async fn dial_fresh_channel(&self) -> Result<tonic::transport::Channel, String> {
         let endpoint = self.grpc_endpoint();
         let via_socks = self.socks5_proxy.is_some();
         Self::enforce_transport_policy(
@@ -635,7 +756,7 @@ impl LightwalletClient {
                     let verifier = std::sync::Arc::new(PinnedVerifier {
                         pinned_sha256: pin_hash,
                     });
-                    let rustls_config = rustls::ClientConfig::builder_with_provider(
+                    let mut rustls_config = rustls::ClientConfig::builder_with_provider(
                         std::sync::Arc::new(rustls::crypto::ring::default_provider()),
                     )
                     .with_safe_default_protocol_versions()
@@ -643,6 +764,7 @@ impl LightwalletClient {
                     .dangerous()
                     .with_custom_certificate_verifier(verifier)
                     .with_no_client_auth();
+                    rustls_config.alpn_protocols = vec![b"h2".to_vec()];
                     let tls_connector =
                         tokio_rustls::TlsConnector::from(std::sync::Arc::new(rustls_config));
                     let server_name = host.to_string().try_into().map_err(|e| {
@@ -664,7 +786,14 @@ impl LightwalletClient {
                 }
             });
 
-            tonic::transport::Endpoint::from_shared(endpoint.clone())
+            // Connector already wraps TLS + ALPN h2. Tonic must see `http://`
+            // or it applies TLS again and fails against HTTPS reverse proxies.
+            let origin = if let Some(rest) = endpoint.strip_prefix("https://") {
+                format!("http://{rest}")
+            } else {
+                endpoint.clone()
+            };
+            tonic::transport::Endpoint::from_shared(origin)
                 .map_err(|e| format!("Invalid endpoint: {e}"))?
                 .timeout(self.request_timeout)
                 .connect_with_connector(connector)
@@ -705,8 +834,6 @@ impl LightwalletClient {
                 .map_err(|e| format!("gRPC connect: {e}"))?
         };
 
-        let mut guard = self.channel.lock().await;
-        *guard = Some(fresh.clone());
         Ok(fresh)
     }
 
@@ -778,6 +905,7 @@ impl LightwalletClient {
     /// This is the first call the sync engine makes to determine which
     /// sync path to use.
     pub async fn get_light_info(&self) -> Result<LightServerInfo, String> {
+        self.chain_tip_limiter.try_acquire()?;
         let start = Instant::now();
         let result = async_compat::Compat::new(async {
             let channel = self.connect_channel().await?;
@@ -790,6 +918,14 @@ impl LightwalletClient {
                 .map_err(|e| format!("GetLightInfo RPC: {e}"))?;
 
             let info = resp.into_inner();
+            let proto_version = info.proto_version.clone();
+            let proto_version_mismatch =
+                proto_major_mismatch(&proto_version, CLIENT_PROTO_VERSION);
+
+            self.metrics
+                .chain_tip_requests
+                .fetch_add(1, Ordering::Relaxed);
+
             Ok(LightServerInfo {
                 server_version: info.version,
                 chain_name: info.chain_name,
@@ -798,6 +934,8 @@ impl LightwalletClient {
                 best_block_hash: info.best_block_hash,
                 backend_version: info.backend_version,
                 directory_attest_pubkey: info.directory_attest_pubkey,
+                proto_version,
+                proto_version_mismatch,
             })
         })
         .await;
@@ -885,6 +1023,9 @@ impl LightwalletClient {
             start.elapsed(),
         );
 
+        self.metrics
+            .block_requests
+            .fetch_add(1, Ordering::Relaxed);
         Ok(filtered)
     }
 
@@ -1196,6 +1337,7 @@ impl LightwalletClient {
         if detection_keys.iter().any(|k| k.is_empty()) {
             return Err("empty detection key not allowed".into());
         }
+        self.omr_limiter.try_acquire()?;
         let result = async_compat::Compat::new(async {
             let channel = self.connect_channel().await?;
             let mut client = lwd_client(channel);
@@ -1233,6 +1375,7 @@ impl LightwalletClient {
             Ok((inner.encrypted_digest, inner.slot_heights, inner.complete))
         })
         .await;
+        self.metrics.omr_requests.fetch_add(1, Ordering::Relaxed);
         result
     }
 
@@ -1307,6 +1450,124 @@ impl LightwalletClient {
             Ok(resp.into_inner().payload_ciphertexts)
         })
         .await;
+        self.metrics.pir_requests.fetch_add(1, Ordering::Relaxed);
+        result
+    }
+
+    /// Retrieve and authenticate Merkle tree state at historical or tip height.
+    pub async fn get_authenticated_tree_state(
+        &self,
+        height: u32,
+    ) -> Result<AuthenticatedTreeState, String> {
+        let start = Instant::now();
+        let result = async_compat::Compat::new(async {
+            let channel = self.connect_channel().await?;
+            let mut client = lwd_client(channel);
+            let resp = client
+                .get_tree_state(lightwallet_proto::BlockHeight { height })
+                .await
+                .map_err(|e| format!("GetTreeState({height}) RPC: {e}"))?;
+            let ts = resp.into_inner();
+
+            if !ts.state_root.is_empty() && !ts.tree_data.is_empty() {
+                let computed_hash = blake3::hash(&ts.tree_data);
+                if ts.state_root.len() == 32 && computed_hash.as_bytes() != ts.state_root.as_slice() {
+                    return Err(format!(
+                        "TreeState state_root mismatch at height {height}"
+                    ));
+                }
+            }
+
+            Ok(AuthenticatedTreeState {
+                height: ts.height,
+                tree_data: ts.tree_data,
+                block_hash: ts.block_hash,
+                state_root: ts.state_root,
+                is_checkpoint: ts.is_checkpoint,
+            })
+        })
+        .await;
+        tracing::debug!(
+            target: "lightwallet-client",
+            "gRPC GetTreeState({height}): ok={}, elapsed={:?}",
+            result.is_ok(),
+            start.elapsed(),
+        );
+        result
+    }
+
+    /// Get a checkpoint snapshot for instant wallet restore.
+    pub async fn get_checkpoint_snapshot(
+        &self,
+        preferred_height: u32,
+    ) -> Result<CheckpointSnapshotDto, String> {
+        let start = Instant::now();
+        let result = async_compat::Compat::new(async {
+            let channel = self.connect_channel().await?;
+            let mut client = lwd_client(channel);
+            let resp = client
+                .get_checkpoint_snapshot(lightwallet_proto::CheckpointRequest { preferred_height })
+                .await
+                .map_err(|e| format!("GetCheckpointSnapshot({preferred_height}) RPC: {e}"))?;
+            let mut stream = resp.into_inner();
+            let mut chunks = Vec::new();
+            while let Some(chunk) = stream
+                .message()
+                .await
+                .map_err(|e| format!("Snapshot stream error: {e}"))?
+            {
+                chunks.push(CheckpointSnapshotDto {
+                    height: chunk.height,
+                    block_hash: chunk.block_hash,
+                    state_root: chunk.state_root,
+                    tree_data: chunk.tree_data,
+                    nullifier_index: chunk.nullifier_index,
+                    scan_cursor: chunk.scan_cursor,
+                    snapshot_hash: chunk.snapshot_hash,
+                });
+            }
+            crate::checkpoint::assemble_checkpoint_chunks(chunks)
+        })
+        .await;
+        tracing::debug!(
+            target: "lightwallet-client",
+            "gRPC GetCheckpointSnapshot({preferred_height}): ok={}, elapsed={:?}",
+            result.is_ok(),
+            start.elapsed(),
+        );
+        result
+    }
+
+    /// Look up compiled zkas bincodes for a contract ID.
+    pub async fn lookup_zkas(
+        &self,
+        contract_id: &str,
+    ) -> Result<Vec<(String, Vec<u8>)>, String> {
+        let start = Instant::now();
+        let result = async_compat::Compat::new(async {
+            let channel = self.connect_channel().await?;
+            let mut client = lwd_client(channel);
+            let resp = client
+                .lookup_zkas(lightwallet_proto::ContractId {
+                    id: contract_id.to_string(),
+                })
+                .await
+                .map_err(|e| format!("LookupZkas({contract_id}) RPC: {e}"))?;
+            let zkas = resp.into_inner();
+            let bincodes = zkas
+                .bincodes
+                .into_iter()
+                .map(|b| (b.namespace, b.bincode))
+                .collect();
+            Ok(bincodes)
+        })
+        .await;
+        tracing::debug!(
+            target: "lightwallet-client",
+            "gRPC LookupZkas({contract_id}): ok={}, elapsed={:?}",
+            result.is_ok(),
+            start.elapsed(),
+        );
         result
     }
 }
@@ -2105,9 +2366,13 @@ mod tests {
             best_block_hash: vec![0xAA; 32],
             backend_version: "darkfid 0.5.0".into(),
             directory_attest_pubkey: vec![0xBB; 32],
+            proto_version: CLIENT_PROTO_VERSION.into(),
+            proto_version_mismatch: false,
         };
         assert_eq!(info.best_block_hash.len(), 32);
         assert_eq!(info.backend_version, "darkfid 0.5.0");
+        assert_eq!(info.proto_version, CLIENT_PROTO_VERSION);
+        assert!(!info.proto_version_mismatch);
     }
 
     #[test]
@@ -2120,9 +2385,12 @@ mod tests {
             best_block_hash: vec![],
             backend_version: String::new(),
             directory_attest_pubkey: vec![],
+            proto_version: String::new(),
+            proto_version_mismatch: false,
         };
         assert!(info.best_block_hash.is_empty());
         assert!(info.backend_version.is_empty());
+        assert!(info.proto_version.is_empty());
     }
 
     // =========================================================================
@@ -2133,5 +2401,22 @@ mod tests {
     fn min_encrypted_note_len_covers_ephem_key_and_tag() {
         // 32 bytes ephemeral public key + 16 bytes Poly1305 tag = 48 minimum
         assert_eq!(MIN_ENCRYPTED_NOTE_LEN, 48);
+    }
+
+    #[test]
+    fn proto_major_mismatch_lockstep_1x() {
+        assert!(!proto_major_mismatch("1.0.0", CLIENT_PROTO_VERSION));
+        assert!(!proto_major_mismatch("1.2.3", CLIENT_PROTO_VERSION));
+        assert!(proto_major_mismatch("2.0.0", CLIENT_PROTO_VERSION));
+        assert!(!proto_major_mismatch("", CLIENT_PROTO_VERSION));
+        assert!(!proto_major_mismatch("not-semver", CLIENT_PROTO_VERSION));
+    }
+
+    #[test]
+    fn rate_limiter_rejects_burst() {
+        let lim = SlidingWindowLimiter::new(2, Duration::from_secs(60));
+        assert!(lim.try_acquire().is_ok());
+        assert!(lim.try_acquire().is_ok());
+        assert!(lim.try_acquire().is_err());
     }
 }

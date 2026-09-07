@@ -216,6 +216,17 @@ async fn backfill_money_tree_to_birthday(
 
     let client = LightwalletClient::from_endpoint_and_pin(lwd_url, tls_pin);
 
+    // Instant restore: try checkpoint snapshot first (avoids replaying [0, birthday-1]).
+    if let Ok(cp_height) =
+        crate::checkpoint::download_and_apply_checkpoint(drk, &client, birthday).await
+    {
+        tracing::info!(
+            target: "wallet-bootstrap",
+            "Instant restore applied checkpoint at height {cp_height} (skipped commitment backfill)"
+        );
+        return Ok(());
+    }
+
     // Collect owned coin bytes so we can mark them in the tree (edge case:
     // a restored wallet may have coins discovered by a previous partial sync).
     let owned: HashSet<Vec<u8>> = match drk.get_coins(false).await {

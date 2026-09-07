@@ -18,10 +18,13 @@ pub mod transactions;
 mod tx_inspect;
 
 pub mod batch_pir;
+pub mod checkpoint;
 pub mod lightwallet_client;
 pub mod lightwallet_sync;
 pub mod omr;
+pub mod sync_pipeline;
 pub mod unifomr;
+pub mod zkas_cache;
 
 fn install_panic_hook_once() {
     use std::sync::Once;
@@ -379,6 +382,8 @@ pub struct DrkLightSyncState {
     pub fallback_reason: SyncFallbackReason,
     /// User-facing message explaining the fallback. Empty when no fallback.
     pub fallback_user_message: String,
+    /// Whether server proto version is incompatible with client.
+    pub proto_version_mismatch: bool,
 }
 
 impl From<crate::lightwallet_sync::LightSyncState> for DrkLightSyncState {
@@ -411,6 +416,7 @@ impl From<crate::lightwallet_sync::LightSyncState> for DrkLightSyncState {
             sync_method,
             fallback_reason,
             fallback_user_message,
+            proto_version_mismatch: s.proto_version_mismatch,
         }
     }
 }
@@ -692,6 +698,12 @@ impl DarkfiWalletHandle {
                 .flatten(),
         ));
         sync_engine.set_strict_omr_only(config.strict_omr_only);
+        if config.birthday_height > 0 {
+            if let Ok(height) = u32::try_from(config.birthday_height) {
+                sync_engine.set_birthday_height(height);
+            }
+        }
+        crate::zkas_cache::set_disk_cache_dir(std::path::PathBuf::from(&config.cache_path));
         sync::start_background_sync(drk.clone(), ex, sync_engine.clone());
         let mut config = config;
         config.zeroize_secrets();

@@ -65,4 +65,19 @@ class DarkfiDaemonStatusMappingTest {
             ),
         )
     }
+
+    @Test
+    fun error_when_wallet_reports_proto_mismatch() {
+        assertEquals(
+            DarkfiDaemonStatus.Error,
+            DarkfiDaemonStatusMapping.map(
+                walletPresent = true,
+                walletStatus = DarkfiSyncStatus.PROTO_MISMATCH,
+                walletHasError = false,
+                chatState = DarkfiChatConnectionState.ConnectedDirect,
+                embeddedDarkircEnabled = false,
+                bootstrapComplete = true,
+            ),
+        )
+    }
 }

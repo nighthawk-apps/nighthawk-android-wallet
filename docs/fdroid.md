@@ -30,10 +30,32 @@ srclib SHA edit.
 ## AutoUpdate after merge
 
 1. Bump `WALLET_VERSION_NAME` / `WALLET_VERSION_CODE` in `gradle.properties`.
-2. Push a git tag (e.g. `v3.00.00`) on the commit F-Droid should build (`nighthawk-dark` or `main` once DarkFi is default).
-3. F-Droid `UpdateCheckMode: Tags` + `UpdateCheckData` on `WALLET_VERSION_*` picks up the tag.
+2. Add Fastlane changelog `fastlane/metadata/android/en-US/changelogs/<WALLET_VERSION_CODE>.txt` (F-Droid What's New).
+3. Push a git tag (e.g. `v3.00.04`) on the commit F-Droid should build (`nighthawk-dark` or `main` once DarkFi is default).
+4. F-Droid `UpdateCheckMode: Tags` + `UpdateCheckData` on `WALLET_VERSION_*` picks up the tag.
 
 Tagging alone does **not** run this repo’s GitHub `Deploy` workflow (that is branch/`workflow_dispatch` + Play secrets). F-Droid’s scanner is separate.
+
+## 3.00.05 Instant Sync (this release)
+
+| Field | Value |
+|-------|--------|
+| `WALLET_VERSION_NAME` | `3.00.05` |
+| `WALLET_VERSION_CODE` | `30001805` |
+| Suggested git tag | `v3.00.05` |
+| Fastlane changelog | `fastlane/metadata/android/en-US/changelogs/30001805.txt` |
+| Local F-Droid APK | `bundle exec fastlane fdroid` → `assembleDarkfitestnetRelease` (unsigned) |
+
+What's new for testers:
+
+- Instant restore from lightwalletd `GetCheckpointSnapshot` (blake3 integrity; birthday-safe).
+- Scan ranges never trial-decrypt below wallet birthday.
+- Concurrent commitment/nullifier fetch + UnifOMR window pipeline.
+- ZKAS bincode cache (memory + `cache_path/zkas_cache`).
+- Proto lockstep: client and lightwalletd speak `proto_version` **1.x.x**.
+- Pinned HTTPS lightwalletd: ALPN `h2` and no double-TLS (Studio ngrok).
+
+After tagging, update the fdroiddata recipe only if the checkout branch / submodule SHAs changed. `UpdateCheckData` on `gradle.properties` should pick up `30001805` automatically.
 
 ## Upstream MR
 

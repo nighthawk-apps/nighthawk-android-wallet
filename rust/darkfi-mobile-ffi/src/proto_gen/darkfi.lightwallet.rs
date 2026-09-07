@@ -123,6 +123,44 @@ pub struct TreeState {
     /// Serialized MerkleTree (DarkFi bridgetree format)
     #[prost(bytes = "vec", tag = "2")]
     pub tree_data: ::prost::alloc::vec::Vec<u8>,
+    /// 32-byte blake3 hash of the block header at this height
+    #[prost(bytes = "vec", tag = "3")]
+    pub block_hash: ::prost::alloc::vec::Vec<u8>,
+    /// state_root from the block header — clients verify tree_data hashes to this
+    #[prost(bytes = "vec", tag = "4")]
+    pub state_root: ::prost::alloc::vec::Vec<u8>,
+    /// Whether this is a persisted checkpoint (vs computed on-the-fly)
+    #[prost(bool, tag = "5")]
+    pub is_checkpoint: bool,
+}
+#[derive(Clone, Copy, PartialEq, ::prost::Message)]
+pub struct CheckpointRequest {
+    /// Desired checkpoint height, or 0 for "latest available checkpoint"
+    #[prost(uint32, tag = "1")]
+    pub preferred_height: u32,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct CheckpointSnapshot {
+    #[prost(uint32, tag = "1")]
+    pub height: u32,
+    /// 32-byte blake3 block header hash at this height
+    #[prost(bytes = "vec", tag = "2")]
+    pub block_hash: ::prost::alloc::vec::Vec<u8>,
+    /// state_root from the block header
+    #[prost(bytes = "vec", tag = "3")]
+    pub state_root: ::prost::alloc::vec::Vec<u8>,
+    /// Serialized Money Merkle tree at this height
+    #[prost(bytes = "vec", tag = "4")]
+    pub tree_data: ::prost::alloc::vec::Vec<u8>,
+    /// Serialized nullifier set (compact bloom or full set)
+    #[prost(bytes = "vec", tag = "5")]
+    pub nullifier_index: ::prost::alloc::vec::Vec<u8>,
+    /// Scan cursor value to seed after applying this snapshot
+    #[prost(uint32, tag = "6")]
+    pub scan_cursor: u32,
+    /// blake3 hash over (height LE || tree_data || nullifier_index) for integrity
+    #[prost(bytes = "vec", tag = "7")]
+    pub snapshot_hash: ::prost::alloc::vec::Vec<u8>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct RawTransaction {
@@ -207,16 +245,20 @@ pub struct LightInfo {
     /// Whether the server supports OMR detection
     #[prost(bool, tag = "6")]
     pub omr_supported: bool,
-    /// Current best block hash
+    /// / Current best block hash
     #[prost(bytes = "vec", tag = "7")]
     pub best_block_hash: ::prost::alloc::vec::Vec<u8>,
-    /// Backing node version string
+    /// / Backend node version string
     #[prost(string, tag = "8")]
     pub backend_version: ::prost::alloc::string::String,
     /// 32-byte Schnorr public key for GetCluePublicKey directory attestations.
     /// Clients verify ownership_proof against this key (not the payment key).
     #[prost(bytes = "vec", tag = "9")]
     pub directory_attest_pubkey: ::prost::alloc::vec::Vec<u8>,
+    /// Protocol version for forward-compatible version negotiation.
+    /// Clients compare against their compiled proto version.
+    #[prost(string, tag = "10")]
+    pub proto_version: ::prost::alloc::string::String,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct OmrDigestResponse {
@@ -787,6 +829,8 @@ pub mod dark_fi_light_wallet_client {
             self.inner.server_streaming(req, path, codec).await
         }
         /// Get the Merkle tree state snapshot at a given height.
+        /// Historical heights are supported when the server has persisted checkpoints.
+        /// Returns FAILED_PRECONDITION if the requested height is not available.
         pub async fn get_tree_state(
             &mut self,
             request: impl tonic::IntoRequest<super::BlockHeight>,
@@ -812,6 +856,38 @@ pub mod dark_fi_light_wallet_client {
                     ),
                 );
             self.inner.unary(req, path, codec).await
+        }
+        /// Get a checkpoint snapshot for instant wallet restore.
+        /// The server streams the snapshot (tree + nullifiers + cursor) so a new
+        /// device does not need to replay [0, tip].
+        pub async fn get_checkpoint_snapshot(
+            &mut self,
+            request: impl tonic::IntoRequest<super::CheckpointRequest>,
+        ) -> std::result::Result<
+            tonic::Response<tonic::codec::Streaming<super::CheckpointSnapshot>>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic::codec::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/darkfi.lightwallet.DarkFiLightWallet/GetCheckpointSnapshot",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "darkfi.lightwallet.DarkFiLightWallet",
+                        "GetCheckpointSnapshot",
+                    ),
+                );
+            self.inner.server_streaming(req, path, codec).await
         }
         /// Lookup zkas bincodes for a given contract ID.
         pub async fn lookup_zkas(

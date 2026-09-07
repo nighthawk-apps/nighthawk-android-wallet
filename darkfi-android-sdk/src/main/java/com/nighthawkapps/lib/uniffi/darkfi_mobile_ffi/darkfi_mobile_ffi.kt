@@ -2648,6 +2648,8 @@ data class DrkLightSyncState (
     var `fallbackReason`: SyncFallbackReason
     , 
     var `fallbackUserMessage`: kotlin.String
+    , 
+    var `protoVersionMismatch`: kotlin.Boolean
     
 ){
     
@@ -2674,6 +2676,7 @@ public object FfiConverterTypeDrkLightSyncState: FfiConverterRustBuffer<DrkLight
             FfiConverterTypeSyncMethod.read(buf),
             FfiConverterTypeSyncFallbackReason.read(buf),
             FfiConverterString.read(buf),
+            FfiConverterBoolean.read(buf),
         )
     }
 
@@ -2687,7 +2690,8 @@ public object FfiConverterTypeDrkLightSyncState: FfiConverterRustBuffer<DrkLight
             FfiConverterBoolean.allocationSize(value.`omrAvailable`) +
             FfiConverterTypeSyncMethod.allocationSize(value.`syncMethod`) +
             FfiConverterTypeSyncFallbackReason.allocationSize(value.`fallbackReason`) +
-            FfiConverterString.allocationSize(value.`fallbackUserMessage`)
+            FfiConverterString.allocationSize(value.`fallbackUserMessage`) +
+            FfiConverterBoolean.allocationSize(value.`protoVersionMismatch`)
     )
 
     override fun write(value: DrkLightSyncState, buf: ByteBuffer) {
@@ -2701,6 +2705,7 @@ public object FfiConverterTypeDrkLightSyncState: FfiConverterRustBuffer<DrkLight
             FfiConverterTypeSyncMethod.write(value.`syncMethod`, buf)
             FfiConverterTypeSyncFallbackReason.write(value.`fallbackReason`, buf)
             FfiConverterString.write(value.`fallbackUserMessage`, buf)
+            FfiConverterBoolean.write(value.`protoVersionMismatch`, buf)
     }
 }
 

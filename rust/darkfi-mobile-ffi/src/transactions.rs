@@ -156,6 +156,15 @@ pub async fn build_transfer(
     .await
     .map_err(|e| format!("merkle rebuild for spend: {e}"))?;
 
+    // Check ZkAS cache for compiled proving keys before spend proof generation
+    let money_id = darkfi_sdk::crypto::contract_id::MONEY_CONTRACT_ID.to_string();
+    if let Some(_cached) = crate::zkas_cache::global_zkas_cache().get(&money_id, "Money::Transfer", None) {
+        tracing::debug!(
+            target: "transactions",
+            "ZkAS proving key cache hit for Money::Transfer"
+        );
+    }
+
     let tx = drk
         .transfer(amount, token, *recipient.public_key(), None, None, false)
         .await

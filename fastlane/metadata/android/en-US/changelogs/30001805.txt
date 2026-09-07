@@ -1,0 +1,5 @@
+- Instant Sync: authenticated CheckpointSnapshot restore, birthday clamping, UnifOMR window pipelining, ZKAS disk cache, proto_version 1.x lockstep.
+- Lightwalletd proto 1.0.0 — GetCheckpointSnapshot + TreeState {block_hash, state_root, is_checkpoint}.
+- TLS: ALPN h2 + no double-TLS on pinned ngrok/HTTPS lightwalletd (fixes generic transport error).
+- F-Droid: bump WALLET_VERSION_CODE 30001805 / WALLET_VERSION_NAME 3.00.05; tag v3.00.05 after merge.
+- Explorer: https://explorer.testnet.dark.fi

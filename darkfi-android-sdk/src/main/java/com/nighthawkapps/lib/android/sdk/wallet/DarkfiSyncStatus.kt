@@ -12,4 +12,7 @@ enum class DarkfiSyncStatus {
 
     /** Chain reorganization detected — transactions are being re-validated. */
     REORG_DETECTED,
+
+    /** Lightwalletd proto major version does not match this client. */
+    PROTO_MISMATCH,
 }
