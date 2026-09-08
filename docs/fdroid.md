@@ -36,26 +36,26 @@ srclib SHA edit.
 
 Tagging alone does **not** run this repo’s GitHub `Deploy` workflow (that is branch/`workflow_dispatch` + Play secrets). F-Droid’s scanner is separate.
 
-## 3.00.06 Instant Sync (this release)
+## 3.00.007 (this release)
 
 | Field | Value |
 |-------|--------|
-| `WALLET_VERSION_NAME` | `3.00.06` |
-| `WALLET_VERSION_CODE` | `30001806` |
-| Suggested git tag | `v3.00.06` |
-| Fastlane changelog | `fastlane/metadata/android/en-US/changelogs/30001806.txt` |
+| `WALLET_VERSION_NAME` | `3.00.007` |
+| `WALLET_VERSION_CODE` | `30001807` |
+| Suggested git tag | `v3.00.007` |
+| Fastlane changelog | `fastlane/metadata/android/en-US/changelogs/30001807.txt` |
 | Local F-Droid APK | `bundle exec fastlane fdroid` → `assembleDarkfitestnetRelease` (unsigned) |
 
 What's new for testers:
 
+- UnifOMR send/receive plus trial-decrypt fallback on Nighthawk (Moonshine stay UnifOMR-strict unless `--force-trial` / `--allow-trial`).
+- Android NDK pin **26.1.10909125**; `cargo-ndk` searched in repo `.cargo-home` and `~/.cargo`.
+- Payment memo parsing in release FFI; coordinator stub test waits on real `Dispatchers.IO`.
 - Instant restore from lightwalletd `GetCheckpointSnapshot` (blake3 integrity; birthday-safe).
 - Scan ranges never trial-decrypt below wallet birthday.
-- Concurrent commitment/nullifier fetch + UnifOMR window pipeline.
-- ZKAS bincode cache (memory + `cache_path/zkas_cache`).
 - Proto lockstep: client and lightwalletd speak `proto_version` **1.x.x**.
-- Pinned HTTPS lightwalletd: ALPN `h2` and no double-TLS (Studio ngrok).
 
-After tagging, update the fdroiddata recipe only if the checkout branch / submodule SHAs changed. `UpdateCheckData` on `gradle.properties` should pick up `30001806` automatically.
+After tagging, update the fdroiddata recipe only if the checkout branch / submodule SHAs changed. `UpdateCheckData` on `gradle.properties` should pick up `30001807` automatically.
 
 ## Upstream MR
 

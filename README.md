@@ -26,7 +26,7 @@ Privacy-preserving wallet (work-in-progress) by [Nighthawk Apps](https://nightha
 
 Store listings are **not finalized** for `com.nighthawkwallet.android`. Placeholder targets until publishing completes:
 
-- **F-Droid:** DarkFi **testnet** package `com.nighthawkwallet.android.testnet` / flavor `darkfitestnet` (see [docs/fdroid.md](docs/fdroid.md); listing pending fdroiddata merge). **3.00.06** (`WALLET_VERSION_CODE=30001806`) Instant Sync — Fastlane changelog `fastlane/metadata/android/en-US/changelogs/30001806.txt`, tag `v3.00.06`. Local unsigned APK: `bundle exec fastlane fdroid`. Legacy Zcash: [com.nighthawkapps.wallet.android](https://f-droid.org/packages/com.nighthawkapps.wallet.android/)
+- **F-Droid:** DarkFi **testnet** package `com.nighthawkwallet.android.testnet` / flavor `darkfitestnet` (see [docs/fdroid.md](docs/fdroid.md); listing pending fdroiddata merge). **3.00.007** (`WALLET_VERSION_CODE=30001807`) — Fastlane changelog `fastlane/metadata/android/en-US/changelogs/30001807.txt`, tag `v3.00.007`. Local unsigned APK: `bundle exec fastlane fdroid`. Legacy Zcash: [com.nighthawkapps.wallet.android](https://f-droid.org/packages/com.nighthawkapps.wallet.android/)
 - **Google Play:** `https://PLACEHOLDER_PLAY_STORE_LISTING_URL`
 
 Replace these URLs when production listings exist—do not invent live links prematurely.

@@ -43,9 +43,9 @@ To manually deploy a build of the app
 
 See **[docs/fdroid.md](fdroid.md)** for the `darkfitestnet` / `com.nighthawkwallet.android.testnet` path.
 
-For **3.00.06** (`WALLET_VERSION_CODE=30001806`):
+For **3.00.007** (`WALLET_VERSION_CODE=30001807`):
 
-1. Confirm `gradle.properties` versions and Fastlane changelog `fastlane/metadata/android/en-US/changelogs/30001806.txt`.
+1. Confirm `gradle.properties` versions and Fastlane changelog `fastlane/metadata/android/en-US/changelogs/30001807.txt`.
 2. `git submodule update --init --recursive && ./scripts/vendor-darkfi.sh && ./scripts/build-darkfi-mobile-ffi-android.sh`
 3. `bundle exec fastlane fdroid` (unsigned `assembleDarkfitestnetRelease`).
-4. Tag `v3.00.06` on the commit F-Droid should build. Do not invent fdroid.org listing URLs until the fdroiddata MR merges.
+4. Tag `v3.00.007` on the commit F-Droid should build. Do not invent fdroid.org listing URLs until the fdroiddata MR merges.
