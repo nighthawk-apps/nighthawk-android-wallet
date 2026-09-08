@@ -13,6 +13,19 @@ use smol::Executor;
 
 use crate::{DarkfiWalletNativeError, DarkircEventCallback};
 
+fn dispatch_darkirc_message(
+    cb: &dyn DarkircEventCallback,
+    event_id: String,
+    channel: String,
+    nick: String,
+    message: String,
+    timestamp: u64,
+) {
+    let _ = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+        cb.on_message(event_id, channel, nick, message, timestamp);
+    }));
+}
+
 /// Daemon lifecycle states exposed to Swift/Kotlin via UniFFI.
 const STATUS_NOT_RUNNING: u8 = 0;
 const STATUS_STARTING: u8 = 1;
@@ -139,16 +152,21 @@ fn init_logging() {
         } else {
             (log::LevelFilter::Warn, "warn,rustls=off,kvdb=off,kvdb_overlay=off,mio=off,polling=off,async_io=off,want=off")
         };
-        android_logger::init_once(
-            android_logger::Config::default()
-                .with_max_level(max_level)
-                .with_tag("darkfi-mobile-ffi")
-                .with_filter(
-                    android_logger::FilterBuilder::new()
-                        .parse(filter_spec)
-                        .build(),
-                ),
-        );
+        #[cfg(target_os = "android")]
+        {
+            android_logger::init_once(
+                android_logger::Config::default()
+                    .with_max_level(max_level)
+                    .with_tag("darkfi-mobile-ffi")
+                    .with_filter(
+                        android_logger::FilterBuilder::new()
+                            .parse(filter_spec)
+                            .build(),
+                    ),
+            );
+        }
+        #[cfg(not(target_os = "android"))]
+        let _ = (max_level, filter_spec);
 
         // `tracing` backend (darkfi net/event_graph).
         // Release: WARN+ only. Debug: INFO for P2P/DAG diagnostics.
@@ -456,7 +474,8 @@ pub fn send_chat_message(
             // across the send `block_on` executor and the daemon executor —
             // leaving Connected UI with no visible message. Dedup is by event id.
             if let Some(cb) = CALLBACK.read().await.as_ref() {
-                cb.on_message(
+                dispatch_darkirc_message(
+                    cb.as_ref(),
                     event_id.clone(),
                     channel.clone(),
                     nick.clone(),
@@ -689,7 +708,8 @@ async fn run_darkirc_daemon(
                 if let Ok((privmsg, _)) = deserialize_async_partial::<Privmsg>(ev.content()).await {
                     let eid = ev.id().to_hex().to_string();
                     relayed_ids_clone.lock().await.insert(eid.clone());
-                    cb.on_message(
+                    dispatch_darkirc_message(
+                        cb.as_ref(),
                         eid,
                         privmsg.channel,
                         privmsg.nick,
@@ -789,7 +809,8 @@ async fn run_darkirc_daemon(
                     continue;
                 }
                 if let Ok((privmsg, _)) = deserialize_async_partial::<Privmsg>(ev.content()).await {
-                    cb.on_message(
+                    dispatch_darkirc_message(
+                        cb.as_ref(),
                         eid,
                         privmsg.channel,
                         privmsg.nick,

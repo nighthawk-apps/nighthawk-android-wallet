@@ -192,8 +192,8 @@ pub struct SyncEngine {
     state: Arc<Mutex<LightSyncState>>,
     /// Lightwallet server endpoint (e.g. "https://lightwalletd.dark.fi:9067")
     server_endpoint: String,
-    /// Optional SHA-256 of lightwalletd leaf cert DER (S8).
-    tls_pin_sha256: Option<[u8; 32]>,
+    /// Accepted lightwalletd leaf-cert SHA-256 pins (current + rotation).
+    tls_pins: Vec<[u8; 32]>,
     /// Maximum consecutive OMR failures before halting (strict mode) or
     /// continuing with backoff-based retry (default mode).
     max_omr_failures: u32,
@@ -236,10 +236,14 @@ impl SyncEngine {
 
     /// Create a sync engine with an optional TLS certificate pin (S8).
     pub fn with_tls_pin(server_endpoint: String, tls_pin_sha256: Option<[u8; 32]>) -> Self {
+        Self::with_tls_pins(server_endpoint, tls_pin_sha256.into_iter().collect())
+    }
+
+    pub fn with_tls_pins(server_endpoint: String, tls_pins: Vec<[u8; 32]>) -> Self {
         Self {
             state: Arc::new(Mutex::new(LightSyncState::default())),
             server_endpoint,
-            tls_pin_sha256,
+            tls_pins,
             max_omr_failures: DEFAULT_MAX_OMR_FAILURES,
             // Default: UnifOMR-only. Supplemental trial-decrypt is an explicit
             // Advanced Settings opt-in (privacy leak of the scan window to LWD).
@@ -261,7 +265,7 @@ impl SyncEngine {
         Self {
             state: Arc::new(Mutex::new(LightSyncState::default())),
             server_endpoint,
-            tls_pin_sha256: None,
+            tls_pins: Vec::new(),
             max_omr_failures: DEFAULT_MAX_OMR_FAILURES,
             strict_omr_only: std::sync::atomic::AtomicBool::new(true),
             prev_chain_tip: std::sync::atomic::AtomicU32::new(0),
@@ -622,14 +626,18 @@ impl SyncEngine {
 
     /// Optional TLS pin for lightwalletd connections (S8).
     pub fn tls_pin(&self) -> Option<[u8; 32]> {
-        self.tls_pin_sha256
+        self.tls_pins.first().copied()
+    }
+
+    pub fn tls_pins(&self) -> Vec<[u8; 32]> {
+        self.tls_pins.clone()
     }
 
     /// Build a lightwallet client using this engine's endpoint + pin policy.
     pub fn lightwallet_client(&self) -> crate::lightwallet_client::LightwalletClient {
-        crate::lightwallet_client::LightwalletClient::from_endpoint_and_pin(
+        crate::lightwallet_client::LightwalletClient::from_endpoint_and_pins(
             &self.server_url(),
-            self.tls_pin(),
+            &self.tls_pins,
         )
     }
 

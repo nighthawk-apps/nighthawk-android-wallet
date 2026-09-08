@@ -1384,6 +1384,7 @@ pub(crate) fn assert_contiguous_heights(
 /// Persist scan cursor into the wallet cache so `get_last_scanned_block` matches
 /// the sync engine (S5).
 const PAYMENT_MEMOS_TREE: &str = "payment_memos";
+const PAYMENT_RECIPIENTS_TREE: &str = "payment_recipients";
 
 fn persist_received_memo_from_tx_hash(drk: &drk::Drk, tx_hash: &[u8], memo_bytes: &[u8]) {
     if memo_bytes.is_empty() || tx_hash.len() != 32 {
@@ -1399,6 +1400,40 @@ fn persist_received_memo_from_tx_hash(drk: &drk::Drk, tx_hash: &[u8], memo_bytes
 
 pub(crate) fn load_received_memo(drk: &drk::Drk, tx_hash: &str) -> Option<String> {
     let tree = drk.cache.kvdb.open_tree_default(PAYMENT_MEMOS_TREE).ok()?;
+    let v = tree.get(tx_hash.as_bytes()).ok()??;
+    String::from_utf8(v.to_vec())
+        .ok()
+        .map(|s| s.trim().to_string())
+        .filter(|s| !s.is_empty())
+}
+
+pub(crate) fn persist_sent_payment_meta(
+    drk: &drk::Drk,
+    tx_hash: &str,
+    memo: Option<&str>,
+    recipient: Option<&str>,
+) {
+    if tx_hash.is_empty() {
+        return;
+    }
+    if let Some(memo) = memo.map(str::trim).filter(|s| !s.is_empty()) {
+        if let Ok(tree) = drk.cache.kvdb.open_tree_default(PAYMENT_MEMOS_TREE) {
+            let _ = tree.insert(tx_hash.as_bytes(), memo.as_bytes());
+        }
+    }
+    if let Some(recipient) = recipient.map(str::trim).filter(|s| !s.is_empty()) {
+        if let Ok(tree) = drk.cache.kvdb.open_tree_default(PAYMENT_RECIPIENTS_TREE) {
+            let _ = tree.insert(tx_hash.as_bytes(), recipient.as_bytes());
+        }
+    }
+}
+
+pub(crate) fn load_sent_recipient(drk: &drk::Drk, tx_hash: &str) -> Option<String> {
+    let tree = drk
+        .cache
+        .kvdb
+        .open_tree_default(PAYMENT_RECIPIENTS_TREE)
+        .ok()?;
     let v = tree.get(tx_hash.as_bytes()).ok()??;
     String::from_utf8(v.to_vec())
         .ok()
@@ -2013,7 +2048,7 @@ fn decrypt_unif_omr_heights(
     Ok(heights.into_iter().collect())
 }
 
-fn redact_sync_error(error: &str) -> String {
+pub fn redact_sync_error(error: &str) -> String {
     // Remove IP addresses (IPv4)
     let redacted = regex_lite::Regex::new(r"\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}(:\d+)?")
         .map(|re| re.replace_all(error, "[redacted-addr]").to_string())

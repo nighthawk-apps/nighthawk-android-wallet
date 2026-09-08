@@ -31,6 +31,10 @@ static SENT_PAYMENT_META: LazyLock<RwLock<HashMap<String, (Option<String>, Optio
 
 const MAX_SENT_CACHE_ENTRIES: usize = 10_000;
 
+/// Conservative TransferV1+FeeV1 schedule used by estimate (no Halo2 / darkfid).
+/// Matches Moonshine's default `--fee` overpay on testnet.
+pub const SCHEDULE_TRANSFER_FEE_ATOMIC: i64 = 5_000_000;
+
 /// Clear session caches (call on wallet close / re-bootstrap).
 pub fn clear_sent_session_cache() {
     if let Ok(mut m) = SENT_SYNC_SCHEMES.write() {
@@ -60,6 +64,27 @@ pub fn sent_recipient_address(tx_hash: &str) -> Option<String> {
         .read()
         .ok()
         .and_then(|m| m.get(tx_hash).and_then(|(_, r)| r.clone()))
+}
+
+fn cache_and_persist_payment_meta(
+    drk: &Drk,
+    tx_hash: &str,
+    memo: Option<String>,
+    recipient: Option<String>,
+) {
+    if let Ok(mut map) = SENT_PAYMENT_META.write() {
+        insert_bounded_meta(
+            &mut map,
+            tx_hash.to_string(),
+            (memo.clone(), recipient.clone()),
+        );
+    }
+    crate::sync::persist_sent_payment_meta(
+        drk,
+        tx_hash,
+        memo.as_deref(),
+        recipient.as_deref(),
+    );
 }
 
 fn derive_omr_memo_key(secret_bytes: &[u8; 32], recipient_pk: &[u8; 32], nonce: &[u8]) -> [u8; 32] {
@@ -297,9 +322,7 @@ pub async fn broadcast_transfer(
             .map(str::trim)
             .filter(|s| !s.is_empty())
             .map(str::to_string);
-        if let Ok(mut map) = SENT_PAYMENT_META.write() {
-            insert_bounded_meta(&mut map, tx_hash.clone(), (memo, recipient));
-        }
+        cache_and_persist_payment_meta(drk, &tx_hash, memo, recipient);
     }
 
     let send_result = client
@@ -345,7 +368,7 @@ pub async fn broadcast_transfer(
 }
 
 pub async fn estimate_transfer_fee(
-    drk: &Drk,
+    _drk: &Drk,
     recipient_address: &str,
     amount: &str,
     token_id: Option<&str>,
@@ -353,25 +376,13 @@ pub async fn estimate_transfer_fee(
     lightwallet_server_url: Option<&str>,
     lightwallet_tls_pin: Option<[u8; 32]>,
 ) -> Result<i64, String> {
-    let envelope = build_transfer(
-        drk,
-        recipient_address,
-        amount,
-        token_id,
-        payment_memo,
-        lightwallet_server_url,
-        lightwallet_tls_pin,
-    )
-    .await?;
-    let raw_tx = strip_omr_envelope(&envelope)?;
-    let tx: Transaction = deserialize_async(raw_tx)
-        .await
-        .map_err(|e| format!("decode tx: {e}"))?;
-    let fee = drk
-        .get_tx_fee(&tx, true)
-        .await
-        .map_err(|e| format!("get_tx_fee: {e}"))?;
-    i64::try_from(fee).map_err(|_| format!("fee out of range: {fee}"))
+    let _ = Address::from_str(recipient_address.trim())
+        .map_err(|e| format!("invalid recipient address: {e}"))?;
+    darkfi::util::parse::decode_base10(amount.trim(), 8, false)
+        .map_err(|e| format!("invalid amount: {e}"))?;
+    crate::memo::parse_payment_memo(payment_memo)?;
+    let _ = (token_id, lightwallet_server_url, lightwallet_tls_pin);
+    Ok(SCHEDULE_TRANSFER_FEE_ATOMIC)
 }
 
 pub async fn get_transaction_memo(drk: &Drk, tx_hash: &str) -> Result<Option<String>, String> {
@@ -398,6 +409,9 @@ pub async fn get_transaction_memo(drk: &Drk, tx_hash: &str) -> Result<Option<Str
 
 pub async fn get_transaction_recipient(drk: &Drk, tx_hash: &str) -> Result<Option<String>, String> {
     if let Some(addr) = sent_recipient_address(tx_hash) {
+        return Ok(Some(addr));
+    }
+    if let Some(addr) = crate::sync::load_sent_recipient(drk, tx_hash) {
         return Ok(Some(addr));
     }
     Ok(outgoing_recipient(drk, tx_hash))

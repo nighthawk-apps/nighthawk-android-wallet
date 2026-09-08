@@ -128,7 +128,6 @@ pub fn build_omr_memo(
 }
 
 /// Parse a user-facing payment memo string into wire bytes.
-#[cfg(test)]
 pub fn parse_payment_memo(memo: Option<&str>) -> Result<Option<Vec<u8>>, String> {
     let Some(text) = memo.map(str::trim).filter(|s| !s.is_empty()) else {
         return Ok(None);

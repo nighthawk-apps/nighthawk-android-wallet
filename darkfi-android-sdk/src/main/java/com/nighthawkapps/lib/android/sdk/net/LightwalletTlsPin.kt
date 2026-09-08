@@ -19,6 +19,7 @@ object LightwalletTlsPin {
     const val PREFS_NAME = "darkfi_lightwallet_security"
     const val PREFS_KEY = "lightwallet_tls_pin_sha256"
     const val META_DATA_KEY = "com.nighthawkapps.lightwallet_tls_pin_sha256"
+    const val PREVIOUS_META_DATA_KEY = "com.nighthawkapps.lightwallet_tls_pin_sha256_previous"
 
     fun pinBytesOrNull(context: Context): List<UByte>? {
         val app = context.applicationContext
@@ -29,7 +30,13 @@ object LightwalletTlsPin {
         parseHexPin(fromPrefs)?.let {
             return it
         }
-        return parseHexPin(readManifestMeta(app))
+        val current = parseHexPin(readManifestMeta(app, META_DATA_KEY))
+        val previous = parseHexPin(readManifestMeta(app, PREVIOUS_META_DATA_KEY))
+        return when {
+            current != null && previous != null && current != previous -> current + previous
+            current != null -> current
+            else -> previous
+        }
     }
 
     fun parseHexPin(hex: String?): List<UByte>? {
@@ -48,7 +55,7 @@ object LightwalletTlsPin {
         return cleaned.chunked(2).map { it.toInt(16).toUByte() }
     }
 
-    private fun readManifestMeta(context: Context): String? {
+    private fun readManifestMeta(context: Context, key: String = META_DATA_KEY): String? {
         return try {
             val ai: ApplicationInfo =
                 context.packageManager.getApplicationInfo(
@@ -56,7 +63,7 @@ object LightwalletTlsPin {
                     PackageManager.GET_META_DATA,
                 )
             val bundle: Bundle = ai.metaData ?: return null
-            bundle.getString(META_DATA_KEY)
+            bundle.getString(key)
         } catch (_: Exception) {
             null
         }

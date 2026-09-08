@@ -330,7 +330,8 @@ pub struct OmrServerCapabilities {
 ///   to prevent MITM attacks.
 #[derive(Debug)]
 struct PinnedVerifier {
-    pinned_sha256: [u8; 32],
+    /// Current pin first, then previous pins accepted during cert rotation.
+    pinned_sha256: Vec<[u8; 32]>,
 }
 
 /// RFC 6125 §6.4.3 single-label wildcard: `*.ngrok-free.dev` matches
@@ -383,7 +384,11 @@ impl rustls::client::danger::ServerCertVerifier for PinnedVerifier {
         let mut hasher = Sha256::new();
         hasher.update(end_entity.as_ref());
         let hash = hasher.finalize();
-        if hash.as_slice() != self.pinned_sha256 {
+        if !self
+            .pinned_sha256
+            .iter()
+            .any(|pin| hash.as_slice() == pin)
+        {
             return Err(rustls::Error::InvalidCertificate(
                 rustls::CertificateError::UnknownIssuer,
             ));
@@ -497,10 +502,9 @@ pub struct LightwalletClient {
     connect_timeout: Duration,
     /// Per-request timeout.
     request_timeout: Duration,
-    /// Optional SHA-256 hash of the server's TLS certificate for pinning.
-    /// When set, connections to servers with non-matching certificates
-    /// are rejected.
-    tls_pin_sha256: Option<[u8; 32]>,
+    /// SHA-256 hashes of accepted lightwalletd leaf certs (current + rotation).
+    /// Empty = no pin (loopback / tests only).
+    tls_pins: Vec<[u8; 32]>,
     /// Optional SOCKS5 proxy `(host, port)` for Tor / privacy path.
     /// Set when the endpoint was a `socks5://proxy:port/dest:port` URL.
     socks5_proxy: Option<(String, u16)>,
@@ -539,7 +543,7 @@ impl LightwalletClient {
             // GetUnifOmrDigest streams ~120 MiB detection keys and a per-message
             // SIMD encode (D=4096) can exceed 5 minutes.
             request_timeout: Duration::from_secs(1800),
-            tls_pin_sha256: None,
+            tls_pins: Vec::new(),
             socks5_proxy,
             require_https_over_socks: true,
             channel: tokio::sync::OnceCell::new(),
@@ -561,6 +565,12 @@ impl LightwalletClient {
     /// The `pin_sha256` is the SHA-256 of the server's **leaf certificate DER**
     /// (not SPKI). Production hosts must use `new_with_tls_pin`.
     pub fn new_with_tls_pin(endpoint: &str, pin_sha256: [u8; 32]) -> Self {
+        Self::new_with_tls_pins(endpoint, vec![pin_sha256])
+    }
+
+    /// Pin current and previous leaf-cert hashes so a lightwalletd cert
+    /// rotation does not brick clients during the overlap window.
+    pub fn new_with_tls_pins(endpoint: &str, pins: Vec<[u8; 32]>) -> Self {
         let parsed = parse_lightwallet_endpoint(endpoint);
         let socks5_proxy = parsed
             .socks5_proxy
@@ -572,7 +582,7 @@ impl LightwalletClient {
             // GetUnifOmrDigest streams ~120 MiB detection keys and a per-message
             // SIMD encode (D=4096) can exceed 5 minutes.
             request_timeout: Duration::from_secs(1800),
-            tls_pin_sha256: Some(pin_sha256),
+            tls_pins: pins,
             socks5_proxy,
             require_https_over_socks: true,
             channel: tokio::sync::OnceCell::new(),
@@ -602,19 +612,27 @@ impl LightwalletClient {
     /// at connect time via `enforce_transport_policy`.
     pub fn from_endpoint_and_pin(endpoint: &str, pin: Option<[u8; 32]>) -> Self {
         match pin {
-            Some(p) => Self::new_with_tls_pin(endpoint, p),
-            None => Self::new(endpoint),
+            Some(p) => Self::from_endpoint_and_pins(endpoint, &[p]),
+            None => Self::from_endpoint_and_pins(endpoint, &[]),
+        }
+    }
+
+    pub fn from_endpoint_and_pins(endpoint: &str, pins: &[[u8; 32]]) -> Self {
+        if pins.is_empty() {
+            Self::new(endpoint)
+        } else {
+            Self::new_with_tls_pins(endpoint, pins.to_vec())
         }
     }
 
     /// Check if TLS certificate pinning is configured.
     pub fn has_tls_pin(&self) -> bool {
-        self.tls_pin_sha256.is_some()
+        !self.tls_pins.is_empty()
     }
 
-    /// Get the pinned certificate hash, if configured.
+    /// Get the primary pinned certificate hash, if configured.
     pub fn tls_pin(&self) -> Option<&[u8; 32]> {
-        self.tls_pin_sha256.as_ref()
+        self.tls_pins.first()
     }
 
     /// Whether this client dials through a SOCKS5 proxy (Tor privacy path).
@@ -727,7 +745,7 @@ impl LightwalletClient {
         let via_socks = self.socks5_proxy.is_some();
         Self::enforce_transport_policy(
             &endpoint,
-            self.tls_pin_sha256.is_some(),
+            !self.tls_pins.is_empty(),
             via_socks,
             self.require_https_over_socks,
         )?;
@@ -737,11 +755,13 @@ impl LightwalletClient {
         let use_tls = endpoint.starts_with("https://");
 
         let fresh = if use_tls {
-            let pin_hash = self
-                .tls_pin_sha256
-                .ok_or_else(|| "HTTPS lightwallet requires TLS certificate pinning".to_string())?;
+            let pins = self.tls_pins.clone();
+            if pins.is_empty() {
+                return Err("HTTPS lightwallet requires TLS certificate pinning".into());
+            }
             let connector = tower::service_fn(move |uri: tonic::codegen::http::Uri| {
                 let socks5_proxy = socks5_proxy.clone();
+                let pins = pins.clone();
                 async move {
                     let host = uri
                         .host()
@@ -754,7 +774,7 @@ impl LightwalletClient {
                         Self::dial_tcp(&socks5_proxy, &host, port, connect_timeout).await?;
 
                     let verifier = std::sync::Arc::new(PinnedVerifier {
-                        pinned_sha256: pin_hash,
+                        pinned_sha256: pins,
                     });
                     let mut rustls_config = rustls::ClientConfig::builder_with_provider(
                         std::sync::Arc::new(rustls::crypto::ring::default_provider()),
@@ -2024,6 +2044,18 @@ mod tests {
         let client = LightwalletClient::new_with_tls_pin("https://lw.darkfi.xyz:9067", pin);
         assert!(client.has_tls_pin());
         assert_eq!(client.tls_pin(), Some(&pin));
+    }
+
+    #[test]
+    fn client_accepts_rotation_pins() {
+        let current = [0xAA; 32];
+        let previous = [0xBB; 32];
+        let client = LightwalletClient::new_with_tls_pins(
+            "https://lw.darkfi.xyz:9067",
+            vec![current, previous],
+        );
+        assert_eq!(client.tls_pin(), Some(&current));
+        assert!(client.has_tls_pin());
     }
 
     // =========================================================================

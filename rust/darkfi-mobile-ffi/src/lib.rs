@@ -12,6 +12,7 @@ mod memo;
 pub mod mnemonic;
 mod omr_envelope;
 pub mod sync;
+pub use sync::redact_sync_error;
 mod tokens;
 mod tor;
 pub mod transactions;
@@ -177,6 +178,12 @@ pub enum DarkfiWalletNativeError {
 
 type ResultWallet<T> = Result<T, DarkfiWalletNativeError>;
 
+impl DarkfiWalletNativeError {
+    pub fn native(e: impl ToString) -> Self {
+        Self::NativeDrkUnavailable(crate::sync::redact_sync_error(&e.to_string()))
+    }
+}
+
 /// Bootstrap fields mirroring upstream **`DrkPlugin::new`** / `Drk::new` inputs on Android.
 #[derive(Clone)]
 pub struct DrkBootstrapConfig {
@@ -215,7 +222,7 @@ impl std::fmt::Debug for DrkBootstrapConfig {
             .field("wallet_db_path", &self.wallet_db_path)
             .field("cache_path", &self.cache_path)
             .field("wallet_pass", &"[REDACTED]")
-            .field("lightwallet_server_url", &self.lightwallet_server_url)
+            .field("lightwallet_server_url", &"[redacted-url]")
             .field("birthday_height", &self.birthday_height)
             .field(
                 "lightwallet_tls_pin_sha256",
@@ -578,7 +585,7 @@ fn validate_bootstrap(config: &DrkBootstrapConfig) -> ResultWallet<()> {
     }
 
     if let Some(pin) = &config.lightwallet_tls_pin_sha256 {
-        if pin.len() != 32 {
+        if pin.is_empty() || pin.len() % 32 != 0 || pin.len() > 128 {
             return Err(DarkfiWalletNativeError::InvalidBootstrapConfig);
         }
     }
@@ -596,7 +603,7 @@ fn validate_bootstrap(config: &DrkBootstrapConfig) -> ResultWallet<()> {
             let has_pin = config
                 .lightwallet_tls_pin_sha256
                 .as_ref()
-                .map(|p| p.len() == 32)
+                .map(|p| !p.is_empty() && p.len() % 32 == 0)
                 .unwrap_or(false);
             if !crate::lightwallet_client::is_loopback_host(host) && !has_pin {
                 return Err(DarkfiWalletNativeError::InvalidBootstrapConfig);
@@ -606,20 +613,29 @@ fn validate_bootstrap(config: &DrkBootstrapConfig) -> ResultWallet<()> {
     Ok(())
 }
 
-/// Parse optional 32-byte TLS pin from bootstrap / sync engine config.
-pub(crate) fn parse_tls_pin(bytes: Option<&[u8]>) -> Result<Option<[u8; 32]>, String> {
+/// Parse optional leaf-cert SHA-256 pin(s) from bootstrap / sync engine config.
+/// Accepts 32-byte multiples (current pin + previous pins for rotation).
+pub(crate) fn parse_tls_pins(bytes: Option<&[u8]>) -> Result<Vec<[u8; 32]>, String> {
     match bytes {
-        None | Some([]) => Ok(None),
-        Some(b) if b.len() == 32 => {
-            let mut pin = [0u8; 32];
-            pin.copy_from_slice(b);
-            Ok(Some(pin))
-        }
+        None | Some([]) => Ok(Vec::new()),
+        Some(b) if !b.is_empty() && b.len() % 32 == 0 && b.len() <= 128 => Ok(b
+            .chunks_exact(32)
+            .map(|c| {
+                let mut pin = [0u8; 32];
+                pin.copy_from_slice(c);
+                pin
+            })
+            .collect()),
         Some(b) => Err(format!(
-            "lightwallet_tls_pin_sha256 must be 32 bytes, got {}",
+            "lightwallet_tls_pin_sha256 must be 32–128 bytes in 32-byte pins, got {}",
             b.len()
         )),
     }
+}
+
+/// Primary pin only (first 32 bytes). Prefer [`parse_tls_pins`] for rotation.
+pub(crate) fn parse_tls_pin(bytes: Option<&[u8]>) -> Result<Option<[u8; 32]>, String> {
+    Ok(parse_tls_pins(bytes)?.into_iter().next())
 }
 
 /// Prefer SyncEngine heights (lightwalletd) over darkfid RPC tip.
@@ -690,12 +706,10 @@ impl DarkfiWalletHandle {
 
         let ex = shared_executor();
         let drk = block_on(async { bootstrap::bootstrap_drk(&config, &ex).await })
-            .map_err(DarkfiWalletNativeError::NativeDrkUnavailable)?;
-        let sync_engine = Arc::new(crate::lightwallet_sync::SyncEngine::with_tls_pin(
+            .map_err(DarkfiWalletNativeError::native)?;
+        let sync_engine = Arc::new(crate::lightwallet_sync::SyncEngine::with_tls_pins(
             config.lightwallet_server_url.clone(),
-            crate::parse_tls_pin(config.lightwallet_tls_pin_sha256.as_deref())
-                .ok()
-                .flatten(),
+            crate::parse_tls_pins(config.lightwallet_tls_pin_sha256.as_deref()).unwrap_or_default(),
         ));
         sync_engine.set_strict_omr_only(config.strict_omr_only);
         if config.birthday_height > 0 {
@@ -735,7 +749,7 @@ impl DarkfiWalletHandle {
             let drk = drk.read().await;
             drk.money_balance().await.map_err(|e| e.to_string())
         })
-        .map_err(DarkfiWalletNativeError::NativeDrkUnavailable)?;
+        .map_err(DarkfiWalletNativeError::native)?;
 
         // Prefer native DRK; fall back to sole token if wallet only holds one.
         let dark_id = darkfi_money_contract::model::DARK_TOKEN_ID.to_string();
@@ -762,7 +776,7 @@ impl DarkfiWalletHandle {
             let address: Address = StandardAddress::from_public(network, pubkey).into();
             Ok::<String, String>(address.to_string())
         })
-        .map_err(DarkfiWalletNativeError::NativeDrkUnavailable)?;
+        .map_err(DarkfiWalletNativeError::native)?;
 
         Ok(address)
     }
@@ -776,9 +790,9 @@ impl DarkfiWalletHandle {
         block_on(async move {
             let drk = drk.read().await;
             let (scanned, _) = drk.get_last_scanned_block().map_err(|e| e.to_string())?;
-            Ok(sync_snapshot_from_engine(scanned, &engine))
+            Ok::<_, String>(sync_snapshot_from_engine(scanned, &engine))
         })
-        .map_err(DarkfiWalletNativeError::NativeDrkUnavailable)
+        .map_err(DarkfiWalletNativeError::native)
     }
 
     pub fn sync_snapshot(&self) -> ResultWallet<DrkSyncSnapshot> {
@@ -787,9 +801,9 @@ impl DarkfiWalletHandle {
         block_on(async move {
             let drk = drk.read().await;
             let (scanned, _) = drk.get_last_scanned_block().map_err(|e| e.to_string())?;
-            Ok(sync_snapshot_from_engine(scanned, &engine))
+            Ok::<_, String>(sync_snapshot_from_engine(scanned, &engine))
         })
-        .map_err(DarkfiWalletNativeError::NativeDrkUnavailable)
+        .map_err(DarkfiWalletNativeError::native)
     }
 
     pub fn build_transfer(
@@ -816,7 +830,7 @@ impl DarkfiWalletHandle {
             )
             .await
         })
-        .map_err(DarkfiWalletNativeError::NativeDrkUnavailable)
+        .map_err(DarkfiWalletNativeError::native)
     }
 
     pub fn estimate_transfer_fee(
@@ -842,7 +856,7 @@ impl DarkfiWalletHandle {
             )
             .await
         })
-        .map_err(DarkfiWalletNativeError::NativeDrkUnavailable)
+        .map_err(DarkfiWalletNativeError::native)
     }
 
     pub fn broadcast_transfer(
@@ -867,7 +881,7 @@ impl DarkfiWalletHandle {
             )
             .await
         })
-        .map_err(DarkfiWalletNativeError::NativeDrkUnavailable)
+        .map_err(DarkfiWalletNativeError::native)
     }
 
     pub fn transaction_payment_memo(&self, tx_hash: String) -> ResultWallet<Option<String>> {
@@ -876,7 +890,7 @@ impl DarkfiWalletHandle {
             let drk = drk.read().await;
             transactions::get_transaction_memo(&drk, &tx_hash).await
         })
-        .map_err(DarkfiWalletNativeError::NativeDrkUnavailable)
+        .map_err(DarkfiWalletNativeError::native)
     }
 
     pub fn list_transactions(&self) -> ResultWallet<Vec<DrkTransactionRecord>> {
@@ -885,7 +899,7 @@ impl DarkfiWalletHandle {
             let drk = drk.read().await;
             transactions::list_transaction_history(&drk).await
         })
-        .map_err(DarkfiWalletNativeError::NativeDrkUnavailable)
+        .map_err(DarkfiWalletNativeError::native)
     }
 
     pub fn list_token_balances(&self) -> ResultWallet<Vec<DrkTokenBalance>> {
@@ -894,7 +908,7 @@ impl DarkfiWalletHandle {
             let drk = drk.read().await;
             tokens::list_token_balances(&drk).await
         })
-        .map_err(DarkfiWalletNativeError::NativeDrkUnavailable)
+        .map_err(DarkfiWalletNativeError::native)
     }
 
     pub fn transaction_recipient(&self, tx_hash: String) -> ResultWallet<Option<String>> {
@@ -903,7 +917,7 @@ impl DarkfiWalletHandle {
             let drk = drk.read().await;
             transactions::get_transaction_recipient(&drk, &tx_hash).await
         })
-        .map_err(DarkfiWalletNativeError::NativeDrkUnavailable)
+        .map_err(DarkfiWalletNativeError::native)
     }
 
     pub fn generate_new_address(&self) -> ResultWallet<String> {
@@ -919,7 +933,7 @@ impl DarkfiWalletHandle {
                 .cloned()
                 .ok_or_else(|| "No address generated".to_string())
         })
-        .map_err(DarkfiWalletNativeError::NativeDrkUnavailable)
+        .map_err(DarkfiWalletNativeError::native)
     }
 
     pub fn list_addresses(&self) -> ResultWallet<Vec<String>> {
@@ -935,7 +949,7 @@ impl DarkfiWalletHandle {
             }
             Ok::<Vec<String>, String>(res)
         })
-        .map_err(DarkfiWalletNativeError::NativeDrkUnavailable)
+        .map_err(DarkfiWalletNativeError::native)
     }
 
     pub fn list_daos(&self) -> ResultWallet<Vec<DrkDaoSummary>> {
@@ -944,7 +958,7 @@ impl DarkfiWalletHandle {
             let drk = drk.read().await;
             dao::list_daos(&drk).await
         })
-        .map_err(DarkfiWalletNativeError::NativeDrkUnavailable)
+        .map_err(DarkfiWalletNativeError::native)
     }
 
     pub fn list_proposals(
@@ -956,7 +970,7 @@ impl DarkfiWalletHandle {
             let drk = drk.read().await;
             dao::list_proposals(&drk, dao_name).await
         })
-        .map_err(DarkfiWalletNativeError::NativeDrkUnavailable)
+        .map_err(DarkfiWalletNativeError::native)
     }
 
     pub fn get_proposal(&self, proposal_bulla_b58: String) -> ResultWallet<DrkDaoProposalDetail> {
@@ -965,7 +979,7 @@ impl DarkfiWalletHandle {
             let drk = drk.read().await;
             dao::get_proposal(&drk, &proposal_bulla_b58).await
         })
-        .map_err(DarkfiWalletNativeError::NativeDrkUnavailable)
+        .map_err(DarkfiWalletNativeError::native)
     }
 
     pub fn dao_propose_transfer(
@@ -989,7 +1003,7 @@ impl DarkfiWalletHandle {
             )
             .await
         })
-        .map_err(DarkfiWalletNativeError::NativeDrkUnavailable)
+        .map_err(DarkfiWalletNativeError::native)
     }
 
     pub fn dao_vote(&self, proposal_bulla_b58: String, vote_yes: bool) -> ResultWallet<String> {
@@ -998,7 +1012,7 @@ impl DarkfiWalletHandle {
             let drk = drk.write().await;
             dao::vote_on_proposal(&drk, &proposal_bulla_b58, vote_yes).await
         })
-        .map_err(DarkfiWalletNativeError::NativeDrkUnavailable)
+        .map_err(DarkfiWalletNativeError::native)
     }
 
     /// Register a callback for chain reorganization events.
@@ -1318,6 +1332,27 @@ mod tests {
         let mut cfg = sample_config();
         cfg.lightwallet_server_url = "tcp+tls://lw.darkfi.xyz:9067".into();
         cfg.lightwallet_tls_pin_sha256 = Some(vec![0xABu8; 32]);
+        assert!(validate_bootstrap(&cfg).is_ok());
+    }
+
+    #[test]
+    fn parse_tls_pins_accepts_rotation_window() {
+        let mut bytes = vec![0xAAu8; 32];
+        bytes.extend_from_slice(&[0xBBu8; 32]);
+        let pins = parse_tls_pins(Some(&bytes)).expect("two pins");
+        assert_eq!(pins.len(), 2);
+        assert_eq!(pins[0], [0xAA; 32]);
+        assert_eq!(pins[1], [0xBB; 32]);
+        assert_eq!(parse_tls_pin(Some(&bytes)).unwrap(), Some([0xAA; 32]));
+    }
+
+    #[test]
+    fn validate_bootstrap_accepts_current_and_previous_pin() {
+        let mut cfg = sample_config();
+        cfg.lightwallet_server_url = "tcp+tls://lw.darkfi.xyz:9067".into();
+        let mut pins = vec![0xABu8; 32];
+        pins.extend_from_slice(&[0xCDu8; 32]);
+        cfg.lightwallet_tls_pin_sha256 = Some(pins);
         assert!(validate_bootstrap(&cfg).is_ok());
     }
 

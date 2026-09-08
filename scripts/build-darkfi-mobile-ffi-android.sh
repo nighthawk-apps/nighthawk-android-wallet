@@ -10,31 +10,57 @@ JNILIBS="$ROOT/darkfi-android-sdk/src/main/jniLibs"
 RUST="$ROOT/rust"
 ANDROID_API="${ANDROID_API:-27}"
 
-resolve_ndk_home() {
-  # Portable resolution for local machines and F-Droid ($$NDK$$ / ANDROID_NDK_ROOT).
-  # Never hardcode a developer home directory.
-  local candidates=()
-  [[ -n "${ANDROID_NDK_HOME:-}" ]] && candidates+=("$ANDROID_NDK_HOME")
-  [[ -n "${ANDROID_NDK_ROOT:-}" ]] && candidates+=("$ANDROID_NDK_ROOT")
-  [[ -n "${ANDROID_HOME:-}" ]] && candidates+=("$ANDROID_HOME/ndk-bundle" "$ANDROID_HOME/ndk")
-  [[ -n "${ANDROID_SDK_ROOT:-}" ]] && candidates+=("$ANDROID_SDK_ROOT/ndk-bundle" "$ANDROID_SDK_ROOT/ndk")
+pinned_ndk_version() {
+  # gradle.properties ANDROID_NDK_VERSION=26.1.10909125 — do not pick NDK 27/30.
+  if [[ -n "${ANDROID_NDK_VERSION:-}" ]]; then
+    printf '%s' "$ANDROID_NDK_VERSION"
+    return
+  fi
+  local gp="$ROOT/gradle.properties" v
+  if [[ -f "$gp" ]]; then
+    v="$(awk -F= '/^[[:space:]]*ANDROID_NDK_VERSION=/{gsub(/\r/,"",$2); gsub(/ /,"",$2); print $2; exit}' "$gp")"
+    if [[ -n "$v" ]]; then
+      printf '%s' "$v"
+      return
+    fi
+  fi
+  printf '%s' "26.1.10909125"
+}
 
-  local c newest
-  for c in "${candidates[@]}"; do
+resolve_ndk_home() {
+  # Prefer the Gradle-pinned NDK. Never silently use the newest install
+  # (sdkmanager often leaves 27/30 beside 26.1).
+  local pinned
+  pinned="$(pinned_ndk_version)"
+
+  local explicit=()
+  [[ -n "${ANDROID_NDK_HOME:-}" ]] && explicit+=("$ANDROID_NDK_HOME")
+  [[ -n "${ANDROID_NDK_ROOT:-}" ]] && explicit+=("$ANDROID_NDK_ROOT")
+  local c
+  for c in "${explicit[@]}"; do
     if [[ -f "$c/source.properties" ]]; then
       printf '%s' "$c"
       return
     fi
-    if [[ -d "$c" ]]; then
-      newest="$(find "$c" -maxdepth 1 -mindepth 1 -type d 2>/dev/null | sort -V | tail -1 || true)"
-      if [[ -n "$newest" && -f "$newest/source.properties" ]]; then
-        printf '%s' "$newest"
-        return
-      fi
+    if [[ -f "$c/$pinned/source.properties" ]]; then
+      printf '%s' "$c/$pinned"
+      return
     fi
   done
 
-  echo "error: Android NDK not found. Set ANDROID_NDK_HOME or ANDROID_NDK_ROOT to an NDK install." >&2
+  local sdk_roots=() sdk
+  [[ -n "${ANDROID_HOME:-}" ]] && sdk_roots+=("$ANDROID_HOME")
+  [[ -n "${ANDROID_SDK_ROOT:-}" ]] && sdk_roots+=("$ANDROID_SDK_ROOT")
+  for sdk in "${sdk_roots[@]}"; do
+    if [[ -f "$sdk/ndk/$pinned/source.properties" ]]; then
+      printf '%s' "$sdk/ndk/$pinned"
+      return
+    fi
+  done
+
+  echo "error: Android NDK ${pinned} not found (gradle.properties ANDROID_NDK_VERSION)." >&2
+  echo "  sdkmanager --install \"ndk;${pinned}\"" >&2
+  echo "  export ANDROID_NDK_HOME=\"\${ANDROID_HOME}/ndk/${pinned}\"" >&2
   exit 1
 }
 
@@ -113,6 +139,16 @@ export ANDROID_NDK_HOME="$(resolve_ndk_home)"
 export ANDROID_NDK_ROOT="$ANDROID_NDK_HOME"
 export NDK="$ANDROID_NDK_HOME"
 export CARGO_HOME="${CARGO_HOME:-$ROOT/.cargo-home}"
+mkdir -p "$CARGO_HOME"
+# `cargo ndk` is a PATH subcommand. `cargo install cargo-ndk@4.1.2` into the
+# default ~/.cargo is invisible if we only search repo-local $CARGO_HOME/bin.
+export PATH="${CARGO_HOME}/bin:${HOME}/.cargo/bin:${PATH}"
+if ! command -v cargo-ndk >/dev/null 2>&1; then
+  echo "error: cargo-ndk not found on PATH." >&2
+  echo "  CARGO_HOME=$CARGO_HOME cargo install cargo-ndk@4.1.2" >&2
+  echo "  # or: cargo install cargo-ndk@4.1.2   # ~/.cargo/bin is also searched" >&2
+  exit 1
+fi
 
 # F-Droid / release default: all four ABIs. Override locally with MOBILE_FFI_ABIS.
 abis="${MOBILE_FFI_ABIS:-arm64-v8a armeabi-v7a x86_64 x86}"

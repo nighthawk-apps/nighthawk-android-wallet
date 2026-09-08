@@ -67,7 +67,7 @@ tasks {
             "WALLET_RELEASE_PACKAGE_NAME" to "com.nighthawkwallet.android",
             "WALLET_SUPPORT_EMAIL_ADDRESS" to "nighthawkwallet@protonmail.com",
             "IS_SECURE_SCREEN_PROTECTION_ACTIVE" to "true",
-            "IS_DARK_MODE_ENABLED" to "false",
+            "IS_DARK_MODE_ENABLED" to "true",
 
             "WALLET_DEBUG_KEYSTORE_PATH" to "",
             "WALLET_RELEASE_KEYSTORE_PATH" to "${rootProject.projectDir}/nighthawkpublic.keystore",

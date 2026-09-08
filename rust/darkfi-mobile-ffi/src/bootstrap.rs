@@ -120,13 +120,9 @@ pub async fn bootstrap_drk(
 }
 
 fn pin_from_config(config: &DrkBootstrapConfig) -> Option<[u8; 32]> {
-    let bytes = config.lightwallet_tls_pin_sha256.as_ref()?;
-    if bytes.len() != 32 {
-        return None;
-    }
-    let mut pin = [0u8; 32];
-    pin.copy_from_slice(bytes);
-    Some(pin)
+    crate::parse_tls_pin(config.lightwallet_tls_pin_sha256.as_deref())
+        .ok()
+        .flatten()
 }
 
 /// Seed an empty wallet at the current lightwalletd tip (create-at-tip).

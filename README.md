@@ -99,9 +99,9 @@ symlink or copy it to a sibling directory named `darkfi-mobile-ffi`.
 |-------------|--------|
 | **JDK 17+** | Temurin common; Gradle may use toolchains — see [Setup](docs/Setup.md) |
 | **Android SDK** | SDK Manager → set `ANDROID_HOME`; add `platform-tools` to `PATH` for `adb` |
-| **Android NDK** | `$ANDROID_HOME/ndk/<version>`; set `ANDROID_NDK_HOME` for `cargo-ndk` |
+| **Android NDK** | **Exactly `26.1.10909125`** (`gradle.properties` `ANDROID_NDK_VERSION`). NDK 27/30 will not satisfy Gradle. `sdkmanager --install "ndk;26.1.10909125"` then `export ANDROID_NDK_HOME="$ANDROID_HOME/ndk/26.1.10909125"` |
 | **Rust + Cargo** | [rustup](https://rustup.rs/) stable |
-| **`cargo-ndk`** | `cargo install cargo-ndk@4.1.2` (pin matches F-Droid) |
+| **`cargo-ndk`** | Pin `4.1.2` (F-Droid). The FFI script defaults `CARGO_HOME` to the repo `.cargo-home`, so `cargo install cargo-ndk@4.1.2` into `~/.cargo` is easy to miss. Either `CARGO_HOME=$PWD/.cargo-home cargo install cargo-ndk@4.1.2` or keep `~/.cargo/bin` on `PATH` (the script now searches both). |
 | **Android Rust targets** | See command below |
 | **Vendored DarkFi** | git submodule at `docs/upstream/darkfi-revision.txt`; `./scripts/vendor-darkfi.sh` |
 

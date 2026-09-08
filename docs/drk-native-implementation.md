@@ -31,7 +31,7 @@ Phase 1 — Link upstream `drk` in `darkfi-mobile-ffi` — **done**
 2. Path dependencies in `rust/darkfi-mobile-ffi/Cargo.toml` (`drk`, `darkfi-sdk`).
 3. Workspace `[patch.crates-io]` in `rust/Cargo.toml` (halo2 + url forks required by upstream).
 4. **`DarkfiWalletHandle::new`** calls `Drk::new`, `initialize_wallet`, `initialize_money`, mnemonic key import.
-5. Android: `./scripts/build-darkfi-mobile-ffi-android.sh` (uses repo-local `CARGO_HOME=.cargo-home`).
+5. Android: `./scripts/build-darkfi-mobile-ffi-android.sh` (defaults `CARGO_HOME` to repo `.cargo-home`; install `cargo-ndk@4.1.2` there **or** leave `~/.cargo/bin` on `PATH`. NDK must be **26.1.10909125**).
 
 **Wallet crypto:** tip `drk` encrypts with turso experimental `aegis256`. Wipe any
 pre-tip local `wallet.db` files after the pin bump (format is not SQLCipher-compatible).

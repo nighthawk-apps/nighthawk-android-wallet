@@ -6,12 +6,13 @@ import com.nighthawkapps.lib.android.sdk.wallet.DarkfiPaymentMemo
 import com.nighthawkapps.lib.android.spackle.Twig
 import com.nighthawkapps.lib.android.ui.common.AMOUNT_QUERY
 import com.nighthawkapps.lib.android.ui.common.MEMO_QUERY
-import com.nighthawkapps.lib.android.ui.common.toAtomicDrk
+import java.math.BigDecimal
+import java.math.RoundingMode
 
 object DeepLinkUtil {
     private const val SCHEME = "drk"
     private const val MAX_ADDRESS_LENGTH = 256
-    private const val MAX_AMOUNT_HUMAN = 21_000_000.0
+    private const val MAX_AMOUNT_ATOMIC = 21_000_000L * 100_000_000L
 
     fun getSendDeepLinkData(uri: Uri): SendDeepLinkData? {
         // sample deep link: drk:<address>?amount=0.001&memo=c2RrZmp3cw
@@ -52,9 +53,9 @@ object DeepLinkUtil {
                 if (amountParam.isNullOrBlank()) {
                     null
                 } else {
-                    val amountHuman = amountParam.toDoubleOrNull() ?: return null
-                    if (amountHuman <= 0.0 || amountHuman > MAX_AMOUNT_HUMAN) return null
-                    amountHuman.toAtomicDrk().takeIf { it > 0L } ?: return null
+                    val atomic = parseAtomicDrk(amountParam) ?: return null
+                    if (atomic <= 0L || atomic > MAX_AMOUNT_ATOMIC) return null
+                    atomic
                 }
 
             val memoParam = queryUri?.getQueryParameter(MEMO_QUERY)
@@ -83,4 +84,12 @@ object DeepLinkUtil {
         val amount: Long?,
         val memo: String?,
     )
+
+    private fun parseAtomicDrk(display: String): Long? {
+        return runCatching {
+            val bd = BigDecimal(display.trim())
+            if (bd <= BigDecimal.ZERO) return null
+            bd.movePointRight(8).setScale(0, RoundingMode.DOWN).longValueExact()
+        }.getOrNull()
+    }
 }

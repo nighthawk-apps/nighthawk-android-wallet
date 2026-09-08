@@ -40,13 +40,9 @@ class DarkfiWalletCoordinatorTest {
             val flow = MutableStateFlow<PersistableDarkfiWallet?>(null)
             val coordinator = DarkfiWalletCoordinator(context, flow, useNativeSynchronizer = false)
             flow.value = wallet
-            testScheduler.advanceUntilIdle()
-            var retry = 0
-            while (coordinator.synchronizer.value == null && retry < 100) {
-                kotlinx.coroutines.delay(10)
-                retry++
-            }
-            assertTrue(coordinator.synchronizer.value is StubDarkfiSynchronizer)
+            // Coordinator opens the stub on Dispatchers.IO; virtual delay() does
+            // not wait for that work. Same real-time poll as the other tests.
+            awaitStub(coordinator)
         }
 
     @Test
