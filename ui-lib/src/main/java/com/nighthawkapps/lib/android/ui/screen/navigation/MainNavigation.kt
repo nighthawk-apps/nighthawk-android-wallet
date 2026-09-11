@@ -107,7 +107,14 @@ internal fun MainActivity.MainNavigation(
                 onSendFromDeepLink = { navHostController.navigateJustOnce(SEND_MONEY) },
                 onScanToSend = {
                     navHostController.navigateJustOnce(SCAN)
-                }
+                },
+                onSendToken = { tokenId ->
+                    navHostController.navigateJustOnce(SEND_MONEY)
+                    runCatching {
+                        navHostController.getBackStackEntry(SEND_MONEY).savedStateHandle[NavigationArguments.SEND_TOKEN_ID] =
+                            tokenId
+                    }
+                },
             )
             removeScanSavedData(backStackEntry = backStackEntry)
         }
@@ -337,13 +344,15 @@ private fun getScanSavedData(backStackEntry: NavBackStackEntry) =
     SendArgumentsWrapper(
         recipientAddress = backStackEntry.savedStateHandle[NavigationArguments.SEND_RECIPIENT_ADDRESS],
         amount = backStackEntry.savedStateHandle[NavigationArguments.SEND_AMOUNT],
-        memo = backStackEntry.savedStateHandle[NavigationArguments.SEND_MEMO]
+        memo = backStackEntry.savedStateHandle[NavigationArguments.SEND_MEMO],
+        tokenId = backStackEntry.savedStateHandle[NavigationArguments.SEND_TOKEN_ID],
     )
 
 private fun removeScanSavedData(backStackEntry: NavBackStackEntry) {
     backStackEntry.savedStateHandle.remove<String>(NavigationArguments.SEND_RECIPIENT_ADDRESS)
     backStackEntry.savedStateHandle.remove<String>(NavigationArguments.SEND_AMOUNT)
     backStackEntry.savedStateHandle.remove<String>(NavigationArguments.SEND_MEMO)
+    backStackEntry.savedStateHandle.remove<String>(NavigationArguments.SEND_TOKEN_ID)
 }
 
 @Composable

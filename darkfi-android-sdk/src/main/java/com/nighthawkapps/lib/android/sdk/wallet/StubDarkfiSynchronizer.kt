@@ -14,14 +14,17 @@ import kotlinx.coroutines.flow.flowOf
 class StubDarkfiSynchronizer(
     private val wallet: PersistableDarkfiWallet,
     private val darkfidRpc: DarkfidJsonRpcCaller,
+    nativeInitError: String? = null,
 ) : DarkfiSynchronizer {
     /** Production path: SOCKS-aware JSON-RPC to [PersistableDarkfiWallet.endpoint]. */
     constructor(
         wallet: PersistableDarkfiWallet,
         applicationContext: Context,
+        nativeInitError: String? = null,
     ) : this(
         wallet,
         DarkfidLineJsonRpcCaller(applicationContext.applicationContext, wallet.endpoint),
+        nativeInitError,
     )
 
     private val _status = MutableStateFlow(DarkfiSyncStatus.ERROR)
@@ -31,13 +34,17 @@ class StubDarkfiSynchronizer(
 
     /** Fail-closed: never invent a balance when the native library is missing. */
     private val _balanceAtomic = MutableStateFlow(0L)
+    private val _walletErrors =
+        MutableStateFlow(
+            nativeInitError?.let { DarkfiWalletError.Processor(IllegalStateException(it)) },
+        )
 
     override val status: Flow<DarkfiSyncStatus> = _status.asStateFlow()
     override val processorInfo: Flow<DarkfiProcessorInfo> = _processor.asStateFlow()
     override val progress: Flow<DarkfiPercent> = _progress.asStateFlow()
     override val confirmedBalanceAtomic: Flow<Long> = _balanceAtomic.asStateFlow()
     override val transactions: Flow<List<DarkfiTransactionOverview>> = flowOf(emptyList())
-    override val walletErrors: Flow<DarkfiWalletError?> = flowOf(null)
+    override val walletErrors: Flow<DarkfiWalletError?> = _walletErrors.asStateFlow()
 
     override val supportsNativeTransfer: Boolean = false
 

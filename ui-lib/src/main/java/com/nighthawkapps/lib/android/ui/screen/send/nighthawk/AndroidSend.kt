@@ -92,7 +92,7 @@ private fun NighthawkSendFlow(
             DarkfiPaymentMemo.truncateToMaxBytes(sendArgumentsWrapper?.memo.orEmpty()),
         )
     }
-    var selectedTokenId by remember { mutableStateOf<String?>(null) }
+    var selectedTokenId by remember { mutableStateOf(sendArgumentsWrapper?.tokenId) }
 
     LaunchedEffect(tokenBalances) {
         if (selectedTokenId == null && tokenBalances.isNotEmpty()) {

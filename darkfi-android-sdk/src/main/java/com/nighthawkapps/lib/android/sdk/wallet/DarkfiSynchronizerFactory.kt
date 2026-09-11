@@ -12,7 +12,13 @@ object DarkfiSynchronizerFactory {
         if (useNativeSynchronizer) {
             runCatching { NativeDarkfiSynchronizer(wallet, applicationContext) }
                 .onFailure { android.util.Log.e("TEST_WALLET", "NativeDarkfiSynchronizer failed to init", it) }
-                .getOrElse { StubDarkfiSynchronizer(wallet, applicationContext) }
+                .getOrElse { e ->
+                    StubDarkfiSynchronizer(
+                        wallet,
+                        applicationContext,
+                        nativeInitError = e.message ?: e.toString(),
+                    )
+                }
         } else {
             StubDarkfiSynchronizer(wallet, applicationContext)
         }

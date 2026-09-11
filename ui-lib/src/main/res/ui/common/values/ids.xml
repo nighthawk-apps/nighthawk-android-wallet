@@ -2,4 +2,5 @@
 <resources>
     <item name="splash_tagline_attached" type="id" />
     <item name="splash_tor_status" type="id" />
+    <item name="splash_app_version" type="id" />
 </resources>

@@ -55,6 +55,19 @@ data class BalanceDisplayValues(
                             .toBalanceValueModel(fiatCurrencyUiState, isFiatCurrencyPreferred, selectedDenomination)
                             .toBalanceUiModel(context)
                 }
+
+                is BalanceViewType.Token -> {
+                    val token = balanceViewType.balance
+                    iconDrawableRes = R.drawable.ic_icon_total
+                    balanceType = token.displayName
+                    balanceUIModel =
+                        BalanceUIModel(
+                            DarkfiAmountFormatter.formatAtomic(token.balanceAtomic).removeTrailingZero(),
+                            token.displayName,
+                            "",
+                            "",
+                        )
+                }
             }
             return BalanceDisplayValues(
                 iconDrawableRes,

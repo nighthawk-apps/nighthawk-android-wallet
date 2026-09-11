@@ -19,7 +19,9 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeoutOrNull
 
 /**
  * [DarkfiSynchronizer] backed by UniFFI **`DarkfiWalletHandle`** (on-device **`drk`**).
@@ -360,6 +362,12 @@ class NativeDarkfiSynchronizer internal constructor(
     override fun close() {
         syncJob?.cancel()
         syncScope.cancel()
+        // Join polling before destroying the UniFFI handle — an in-flight
+        // `syncSnapshot` keeps Fjall locked and the next `Drk::new` fails with
+        // `FjallError: Locked`.
+        runBlocking {
+            withTimeoutOrNull(1_000) { syncJob?.join() }
+        }
         handle.close()
     }
 

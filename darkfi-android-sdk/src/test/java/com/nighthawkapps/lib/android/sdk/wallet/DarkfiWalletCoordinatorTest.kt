@@ -71,6 +71,7 @@ class DarkfiWalletCoordinatorTest {
             val coordinator = DarkfiWalletCoordinator(context, flow, useNativeSynchronizer = false)
             val sync = awaitStub(coordinator)
             coordinator.resetSdk()
+            awaitNull(coordinator)
             assertNull(coordinator.synchronizer.value)
             assertTrue(sync.closeCount >= 1)
         }

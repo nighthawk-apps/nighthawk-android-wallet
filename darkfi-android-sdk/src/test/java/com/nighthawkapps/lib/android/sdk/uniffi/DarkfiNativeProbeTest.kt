@@ -118,3 +118,42 @@ class DarkfiMobileFfiBootstrapConfigTest {
         assertTrue(DrkWalletPaths.cacheDir(context).isDirectory)
     }
 }
+
+@RunWith(RobolectricTestRunner::class)
+@Config(manifest = Config.NONE)
+class RecoverableWalletOpenFailureTest {
+    @Test
+    fun initializationFailed_isRecoverable() {
+        assertTrue(
+            DarkfiMobileFfiApi.isRecoverableWalletOpenFailure(
+                "native drk unavailable: Drk::new: Database error: WalletDbError::InitializationFailed",
+            ),
+        )
+    }
+
+    @Test
+    fun sledLock_isRecoverable() {
+        assertTrue(
+            DarkfiMobileFfiApi.isRecoverableWalletOpenFailure(
+                "could not acquire lock … Resource temporarily unavailable",
+            ),
+        )
+    }
+
+    @Test
+    fun fjallLocked_isRecoverable() {
+        assertTrue(
+            DarkfiMobileFfiApi.isRecoverableWalletOpenFailure(
+                "native drk unavailable: Drk::new: Fjall error: FjallError: Locked",
+            ),
+        )
+    }
+
+    @Test
+    fun unrelatedMessage_isNotRecoverable() {
+        org.junit.Assert.assertFalse(
+            DarkfiMobileFfiApi.isRecoverableWalletOpenFailure("Invalid mnemonic"),
+        )
+        org.junit.Assert.assertFalse(DarkfiMobileFfiApi.isRecoverableWalletOpenFailure(null))
+    }
+}

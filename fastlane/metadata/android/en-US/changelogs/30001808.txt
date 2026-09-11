@@ -1,0 +1,6 @@
+- Testnet 3.00.008: recover native Fjall wallet lock; chat HUD + readability; swipe-only token pages.
+- Native wallet open waits for the live DarkfiWalletHandle (and in-flight FFI) before wipe/retry so files/drk/cache is not Locked.
+- Chat: outbound peer slots, nick/link coloring, encrypted wash; no fake Disconnected HUD after turso wipe.
+- Wallet home: swipe-to-reveal DRK (and extra tokens as later pager pages); do not pin a zero DRK Tokens row.
+- F-Droid: WALLET_VERSION_CODE 30001808 / WALLET_VERSION_NAME 3.00.008; tag v3.00.008.
+- Explorer: https://explorer.testnet.dark.fi

@@ -46,14 +46,14 @@ class DarkircDaemonService : Service() {
     }
 
     /**
-     * Android 15+ caps `dataSync` foreground services (~6h / 24h). Stop promptly
-     * on timeout so the system does not ANR; chat resume / coordinator will restart.
+     * Android 15+ still times out some FGS types. Stop promptly so the system
+     * does not ANR; chat resume / coordinator will restart.
      */
     override fun onTimeout(
         startId: Int,
         fgsType: Int,
     ) {
-        Twig.warn { "darkirc: dataSync FGS timed out — stopping daemon keep-alive" }
+        Twig.warn { "darkirc: FGS timed out — stopping daemon keep-alive" }
         try {
             stopDarkirc()
         } catch (e: Exception) {
@@ -77,11 +77,17 @@ class DarkircDaemonService : Service() {
         val notification = buildNotification()
         return try {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                val type =
+                    if (Build.VERSION.SDK_INT >= 34) {
+                        ServiceInfo.FOREGROUND_SERVICE_TYPE_REMOTE_MESSAGING
+                    } else {
+                        ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC
+                    }
                 ServiceCompat.startForeground(
                     this,
                     NOTIFICATION_ID,
                     notification,
-                    ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC,
+                    type,
                 )
             } else {
                 @Suppress("DEPRECATION")

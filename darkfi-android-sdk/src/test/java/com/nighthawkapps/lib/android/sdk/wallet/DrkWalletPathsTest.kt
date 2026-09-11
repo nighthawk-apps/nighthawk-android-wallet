@@ -30,4 +30,18 @@ class DrkWalletPathsTest {
         assertTrue(DrkWalletPaths.root(context).isDirectory)
         assertTrue(DrkWalletPaths.cacheDir(context).isDirectory)
     }
+
+    @Test
+    fun wipeLocalState_removesDbSidecarsAndRecreatesCache() {
+        DrkWalletPaths.ensureDirectories(context)
+        val db = DrkWalletPaths.walletDb(context)
+        db.writeText("stale")
+        java.io.File(db.path + "-wal").writeText("wal")
+        java.io.File(DrkWalletPaths.cacheDir(context), "lock").writeText("x")
+        DrkWalletPaths.wipeLocalState(context)
+        org.junit.Assert.assertFalse(db.exists())
+        org.junit.Assert.assertFalse(java.io.File(db.path + "-wal").exists())
+        assertTrue(DrkWalletPaths.cacheDir(context).isDirectory)
+        org.junit.Assert.assertEquals(0, DrkWalletPaths.cacheDir(context).list()?.size ?: 0)
+    }
 }

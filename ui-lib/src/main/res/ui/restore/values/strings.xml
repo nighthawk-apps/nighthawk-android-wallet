@@ -169,6 +169,18 @@
     <!-- Chat (DarkIRC-aligned preview; wallet stays independent) -->
     <string name="ns_chat">Chat</string>
     <string name="ns_chat_title">DarkFi chat</string>
+    <string name="ns_chat_hud_title">Network</string>
+    <string name="ns_chat_hud_subtitle">Outbound peers · tap status to hide</string>
+    <string name="ns_chat_transport_tcp">tcp</string>
+    <string name="ns_chat_transport_tor_short">tor</string>
+    <string name="ns_chat_encrypt_channel">Encrypt channel</string>
+    <string name="ns_chat_encrypt_channel_body">Generate a 32-byte secret for %1$s. It is shown once — copy it, then store it for this channel.</string>
+    <string name="ns_chat_secret_copied">Channel secret copied</string>
+    <string name="ns_chat_fud_unavailable">File transfer (fud) is not available in this build</string>
+    <string name="ns_chat_emoji">Emoji</string>
+    <string name="splash_app_version">v%1$s</string>
+    <string name="ns_wallet_tokens_title">Tokens</string>
+    <string name="ns_wallet_tokens_empty">DRK  0</string>
     <string name="ns_chat_tor_toggle">Route through Tor (SOCKS)</string>
     <string name="ns_chat_tor_toggle_desc">Off = clearnet (normal mobile data/Wi‑Fi). On = wallet HTTP and embedded DarkIRC P2P use SOCKS. Full SOCKS settings: Settings → Tor network.</string>
     <string name="ns_chat_retry">Retry connection</string>

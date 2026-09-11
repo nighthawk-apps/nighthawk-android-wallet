@@ -21,6 +21,10 @@ namespace darkfi_mobile_ffi {
     // syncing_dag | loading_history | connected | stopping | failed
     string darkirc_connection_phase();
 
+    // Three outbound HUD slots as JSON:
+    // [{"slot":0,"url":"tcp+tls://…"|null,"state":"connected"|"connecting"|"sleeping"}]
+    string darkirc_outbound_slots();
+
     // `use_tor` routes all P2P traffic through the Guardian tor-android SOCKS5
     // proxy on 127.0.0.1:`tor_socks_port` (via the `socks5://…/<onion>` darkirc
     // seeds); when false, clearnet tcp+tls seeds are used. `tor_socks_port` is

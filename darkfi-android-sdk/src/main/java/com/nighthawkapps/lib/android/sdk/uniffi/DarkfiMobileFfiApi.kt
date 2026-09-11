@@ -48,6 +48,9 @@ sealed interface DarkfiNativeProbe {
  * Rust crate links `bin/drk` (network, mnemonic, `darkfid` endpoint URL).
  */
 object DarkfiMobileFfiApi {
+    /** Serializes `Drk::new` so two callers cannot hold the same Fjall cache lock. */
+    private val openLock = Any()
+
     /** Semver of the Rust `darkfi-mobile-ffi` crate, or null if the native library is unavailable. */
     fun nativeCrateSemver(): String? = runCatching { ffiBridgeVersion() }.getOrNull()
 
@@ -89,12 +92,65 @@ object DarkfiMobileFfiApi {
     /**
      * Opens a native wallet session from persisted bootstrap fields (mirrors upstream **`Drk::new`**).
      *
+     * Stale turso/kvdb files (passphrase rotation, schema upgrade, leftover flock) are wiped
+     * once and retried — same recovery as iOS `WalletHandleManager.prepare`.
+     *
      * @throws DarkfiWalletNativeException when bootstrap validation fails or the library is broken.
      */
     fun openWallet(
         context: android.content.Context,
         wallet: PersistableDarkfiWallet,
-    ): DarkfiWalletHandle = DarkfiWalletHandle(buildBootstrapConfig(context, wallet))
+    ): DarkfiWalletHandle {
+        val app = context.applicationContext
+        synchronized(openLock) {
+            var last: DarkfiWalletNativeException.NativeDrkUnavailable? = null
+            repeat(3) { attempt ->
+                try {
+                    return DarkfiWalletHandle(buildBootstrapConfig(app, wallet))
+                } catch (e: DarkfiWalletNativeException.NativeDrkUnavailable) {
+                    if (!isRecoverableWalletOpenFailure(e.message)) {
+                        throw e
+                    }
+                    last = e
+                    android.util.Log.w(
+                        "DarkfiMobileFfiApi",
+                        "native wallet open failed (attempt ${attempt + 1}/3); wiping local DB: ${e.message}",
+                    )
+                    DrkWalletPaths.wipeLocalState(app)
+                    // Fjall Drop / exclusive lock can lag behind UniFFI destroy().
+                    try {
+                        Thread.sleep(200L * (attempt + 1))
+                    } catch (_: InterruptedException) {
+                        Thread.currentThread().interrupt()
+                    }
+                }
+            }
+            throw last
+                ?: DarkfiWalletNativeException.NativeDrkUnavailable("native wallet open failed")
+        }
+    }
+
+    /**
+     * True when [message] from `Drk::new` / `WalletDb` is safe to recover by deleting local
+     * cache + `wallet.db` and re-opening (keys are re-imported from the mnemonic).
+     */
+    internal fun isRecoverableWalletOpenFailure(message: String?): Boolean {
+        val lower = message?.lowercase() ?: return false
+        return lower.contains("could not acquire lock") ||
+            lower.contains("resource temporarily unavailable") ||
+            lower.contains("walletdb") ||
+            lower.contains("pragma") ||
+            lower.contains("file is not a database") ||
+            lower.contains("sqlite") ||
+            lower.contains("sqlcipher") ||
+            lower.contains("turso") ||
+            lower.contains("fjall") ||
+            lower.contains("initializationfailed") ||
+            lower.contains("connectionfailed") ||
+            lower.contains("initialize_wallet") ||
+            lower.contains("databaseerror") ||
+            lower.contains("queryexecution")
+    }
 
     /**
      * Maps persisted wallet JSON to the bootstrap shape expected by upstream **`Drk::new`**

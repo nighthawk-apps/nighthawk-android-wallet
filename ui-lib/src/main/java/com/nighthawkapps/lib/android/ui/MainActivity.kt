@@ -28,6 +28,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -97,6 +98,7 @@ class MainActivity : FragmentActivity() {
 
         configureSplashScreenKeepCondition(splashScreen)
         attachSplashBuiltOnDarkFiTagline()
+        attachSplashAppVersion()
         attachSplashTorStatus()
 
         setupUiContent()
@@ -152,7 +154,7 @@ class MainActivity : FragmentActivity() {
                     letterSpacing = 0.03f
                     includeFontPadding = false
                 }
-            val bottomPx = (resources.displayMetrics.density * 36).toInt()
+            val bottomPx = (resources.displayMetrics.density * 48).toInt()
             val lp =
                 FrameLayout
                     .LayoutParams(
@@ -163,6 +165,47 @@ class MainActivity : FragmentActivity() {
                         bottomMargin = bottomPx
                     }
             splashHost.addView(tagline, lp)
+        }
+    }
+
+    /**
+     * App version at bottom-center of the Android 12+ splash host (N-U1).
+     */
+    private fun attachSplashAppVersion() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) {
+            return
+        }
+        window.decorView.post {
+            val splashHost = findSplashScreenView(window.decorView) ?: return@post
+            if (splashHost.findViewById<TextView>(R.id.splash_app_version) != null) {
+                return@post
+            }
+            val versionName =
+                runCatching {
+                    packageManager.getPackageInfo(packageName, 0).versionName
+                }.getOrNull()
+                    .orEmpty()
+                    .ifBlank { return@post }
+            val versionView =
+                TextView(this).apply {
+                    id = R.id.splash_app_version
+                    text = getString(R.string.splash_app_version, versionName)
+                    setTextColor(ContextCompat.getColor(this@MainActivity, R.color.splash_tagline_text))
+                    textSize = 12f
+                    letterSpacing = 0.02f
+                    includeFontPadding = false
+                }
+            val bottomPx = (resources.displayMetrics.density * 24).toInt()
+            val lp =
+                FrameLayout
+                    .LayoutParams(
+                        FrameLayout.LayoutParams.WRAP_CONTENT,
+                        FrameLayout.LayoutParams.WRAP_CONTENT,
+                        Gravity.BOTTOM or Gravity.CENTER_HORIZONTAL,
+                    ).apply {
+                        bottomMargin = bottomPx
+                    }
+            splashHost.addView(versionView, lp)
         }
     }
 
@@ -185,7 +228,7 @@ class MainActivity : FragmentActivity() {
                     letterSpacing = 0.02f
                     includeFontPadding = false
                     visibility = View.GONE
-                    val bottomPx = (resources.displayMetrics.density * 58).toInt()
+                    val bottomPx = (resources.displayMetrics.density * 72).toInt()
                     val lp =
                         FrameLayout
                             .LayoutParams(
@@ -218,6 +261,32 @@ class MainActivity : FragmentActivity() {
             lifecycleScope.launch {
                 AppTorCoordinator.bootstrapState.collectLatest { applyState(it) }
             }
+        }
+    }
+
+    @Composable
+    private fun SplashVersionFooter() {
+        val context = LocalContext.current
+        val versionName =
+            remember {
+                runCatching {
+                    context.packageManager.getPackageInfo(context.packageName, 0).versionName
+                }.getOrNull().orEmpty()
+            }
+        if (versionName.isBlank()) {
+            return
+        }
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.BottomCenter,
+        ) {
+            Text(
+                text = stringResource(R.string.splash_app_version, versionName),
+                color = colorResource(R.color.splash_tagline_text),
+                fontSize = 12.sp,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.padding(bottom = 24.dp),
+            )
         }
     }
 
@@ -332,9 +401,12 @@ class MainActivity : FragmentActivity() {
                         torState == TorBootstrapUiState.Failed
                 )
         if (waitingOnWallet) {
-            // Splash keep-on-screen until configuration / secret state resolve.
+            SplashVersionFooter()
         } else if (blockReadyWalletOnTor) {
-            SplashTorStatusOverlay(torState)
+            Box(modifier = Modifier.fillMaxSize()) {
+                SplashTorStatusOverlay(torState)
+                SplashVersionFooter()
+            }
         } else {
             // Note that the deeply nested child views will probably receive arguments derived from
             // the configuration.  The CompositionLocalProvider is helpful for passing the configuration

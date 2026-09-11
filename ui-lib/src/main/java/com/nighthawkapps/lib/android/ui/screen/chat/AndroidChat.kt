@@ -2,7 +2,10 @@ package com.nighthawkapps.lib.android.ui.screen.chat
 
 import android.widget.Toast
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -41,10 +44,17 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.LinkAnnotation
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.TextLinkStyles
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -53,8 +63,15 @@ import com.nighthawkapps.lib.android.sdk.chat.DarkfiChatConnectionState
 import com.nighthawkapps.lib.android.sdk.chat.DarkfiChatController
 import com.nighthawkapps.lib.android.sdk.chat.DarkfiChatPreferences
 import com.nighthawkapps.lib.android.sdk.chat.EmbeddedDarkircNodeStatus
+import com.nighthawkapps.lib.android.sdk.chat.darkirc.DarkircChannelCryptoConfig
 import com.nighthawkapps.lib.android.sdk.chat.darkirc.DarkircCryptoManager
 import com.nighthawkapps.lib.android.sdk.chat.darkirc.DarkircDmPubkeyParser
+import com.nighthawkapps.lib.android.sdk.chat.hud.ChatChrome
+import com.nighthawkapps.lib.android.sdk.chat.hud.ChatInlineSpan
+import com.nighthawkapps.lib.android.sdk.chat.hud.ChatMessageLexer
+import com.nighthawkapps.lib.android.sdk.chat.hud.ChatTimeline
+import com.nighthawkapps.lib.android.sdk.chat.hud.ChatTimelineItem
+import com.nighthawkapps.lib.android.ui.screen.chat.view.ChatNetworkHud
 import com.nighthawkapps.lib.android.ui.MainActivity
 import com.nighthawkapps.lib.android.ui.R
 import com.nighthawkapps.lib.android.ui.common.SecureScreen
@@ -63,8 +80,12 @@ import com.nighthawkapps.lib.android.ui.screen.chat.view.ChatNewDmSheet
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.util.Locale
 
 private const val CONNECTION_STATUS_MAX_LINES = 5
+
+private val CHAT_EMOJI_STRIP =
+    listOf("😀", "😂", "❤️", "🔥", "👍", "🚀", "✅", "👀")
 
 private enum class ChatInboxMode {
     Channels,
@@ -106,6 +127,14 @@ private fun ChatScreen(
     var messageMenuTarget by remember { mutableStateOf<ChatChannelMessage?>(null) }
     var deleteDmLabel by remember { mutableStateOf<String?>(null) }
     var sharePubkeyChannel by remember { mutableStateOf<String?>(null) }
+    var showNetworkHud by remember { mutableStateOf(false) }
+    var showEmojiStrip by remember { mutableStateOf(false) }
+    var encryptChannel by remember { mutableStateOf<String?>(null) }
+    var generatedChannelSecret by remember { mutableStateOf<String?>(null) }
+    var cryptoRevision by remember { mutableStateOf(0) }
+
+    val outboundSlots by controller.outboundSlots.collectAsStateWithLifecycle()
+    val useTor by controller.useTorForChat.collectAsStateWithLifecycle()
 
     val context = LocalContext.current
     val clipboard = LocalClipboard.current
@@ -164,6 +193,24 @@ private fun ChatScreen(
             ChatInboxMode.Direct -> selectedDmLabel ?: dmLabels.firstOrNull().orEmpty()
         }
 
+    val encryptedChannelNames =
+        remember(cryptoRevision) {
+            DarkircCryptoManager
+                .loadChannels(context.applicationContext)
+                .mapNotNull { cfg ->
+                    cfg.secretBase58
+                        ?.takeIf { it.isNotBlank() }
+                        ?.let { cfg.channel.lowercase(Locale.ROOT) }
+                }.toSet()
+        }
+    val isEncryptedThread =
+        ChatChrome.threadIsEncrypted(
+            isDirectInbox = inboxMode == ChatInboxMode.Direct,
+            threadKey = activeThreadKey,
+            encryptedChannelNames = encryptedChannelNames,
+        )
+    val myNick = controller.ircNickname
+
     SecureScreen()
 
     Column(
@@ -202,7 +249,16 @@ private fun ChatScreen(
             showRetry = connectionState == DarkfiChatConnectionState.Disconnected ||
                 connectionState == DarkfiChatConnectionState.Error,
             onRetry = { controller.connectOrRetry() },
+            onToggleHud = { showNetworkHud = !showNetworkHud },
         )
+        if (showNetworkHud) {
+            Spacer(modifier = Modifier.height(8.dp))
+            ChatNetworkHud(
+                slots = outboundSlots,
+                torSelected = useTor,
+                onSelectTor = { controller.applyChatTransport(it) },
+            )
+        }
 
         Spacer(modifier = Modifier.height(8.dp))
         Row(
@@ -219,6 +275,17 @@ private fun ChatScreen(
                 ) {
                     Text(
                         text = stringResource(R.string.ns_chat_share_pubkey_short),
+                        style = MaterialTheme.typography.labelMedium,
+                    )
+                }
+                TextButton(
+                    onClick = { encryptChannel = selectedChannel },
+                    modifier = Modifier.heightIn(max = 32.dp),
+                    contentPadding = ButtonDefaults.TextButtonContentPadding,
+                    enabled = hasEmbedded,
+                ) {
+                    Text(
+                        text = stringResource(R.string.ns_chat_encrypt_channel),
                         style = MaterialTheme.typography.labelMedium,
                     )
                 }
@@ -315,6 +382,7 @@ private fun ChatScreen(
         Spacer(modifier = Modifier.height(8.dp))
         val listState = rememberLazyListState()
         val threadMessages = messages[activeThreadKey].orEmpty()
+        val timeline = remember(threadMessages) { ChatTimeline.group(threadMessages) }
 
         // Scroll to bottom on initial load and when switching channels/DM threads.
         LaunchedEffect(activeThreadKey) {
@@ -335,11 +403,46 @@ private fun ChatScreen(
             modifier = Modifier.weight(1f),
             verticalArrangement = Arrangement.spacedBy(6.dp),
         ) {
-            items(items = threadMessages, key = { it.eventId }) { line ->
-                ChatMessageLine(
-                    line = line,
-                    onLongPress = { messageMenuTarget = line },
-                )
+            items(
+                items = timeline,
+                key = { item ->
+                    when (item) {
+                        is ChatTimelineItem.DateSeparator -> "day-${item.epochDay}"
+                        is ChatTimelineItem.Message -> item.message.eventId
+                    }
+                },
+            ) { item ->
+                when (item) {
+                    is ChatTimelineItem.DateSeparator -> {
+                        Text(
+                            text = item.label,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                    }
+                    is ChatTimelineItem.Message -> {
+                        ChatMessageLine(
+                            line = item.message,
+                            myNick = myNick,
+                            isEncryptedThread = isEncryptedThread,
+                            onLongPress = { messageMenuTarget = item.message },
+                        )
+                    }
+                }
+            }
+        }
+
+        if (showEmojiStrip) {
+            LazyRow(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
+                items(items = CHAT_EMOJI_STRIP, key = { it }) { emoji ->
+                    TextButton(onClick = { draft += emoji }) {
+                        Text(text = emoji)
+                    }
+                }
             }
         }
 
@@ -347,6 +450,12 @@ private fun ChatScreen(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.Bottom,
         ) {
+            TextButton(
+                onClick = { showEmojiStrip = !showEmojiStrip },
+                modifier = Modifier.heightIn(min = 48.dp),
+            ) {
+                Text(text = stringResource(R.string.ns_chat_emoji))
+            }
             OutlinedTextField(
                 value = draft,
                 onValueChange = { draft = it },
@@ -529,25 +638,175 @@ private fun ChatScreen(
             },
         )
     }
+
+    encryptChannel?.let { channel ->
+        AlertDialog(
+            onDismissRequest = {
+                encryptChannel = null
+                generatedChannelSecret = null
+            },
+            title = { Text(stringResource(R.string.ns_chat_encrypt_channel)) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(stringResource(R.string.ns_chat_encrypt_channel_body, channel))
+                    generatedChannelSecret?.let { secret ->
+                        Text(
+                            text = secret,
+                            style = MaterialTheme.typography.bodySmall,
+                        )
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        scope.launch {
+                            val secret =
+                                generatedChannelSecret
+                                    ?: withContext(Dispatchers.IO) {
+                                        DarkircCryptoManager.generateChannelSecret(context.applicationContext)
+                                    }
+                            if (secret != null) {
+                                generatedChannelSecret = secret
+                                withContext(Dispatchers.IO) {
+                                    DarkircCryptoManager.saveChannel(
+                                        context.applicationContext,
+                                        DarkircChannelCryptoConfig(
+                                            channel = channel,
+                                            secretBase58 = secret,
+                                            topic = null,
+                                        ),
+                                    )
+                                    DarkircCryptoManager.applyAndRestartEmbeddedDaemon(context.applicationContext)
+                                }
+                                cryptoRevision += 1
+                                clipboard.setSensitivePlainText(context, secret)
+                                Toast
+                                    .makeText(context, R.string.ns_chat_secret_copied, Toast.LENGTH_SHORT)
+                                    .show()
+                            }
+                            encryptChannel = null
+                            generatedChannelSecret = null
+                        }
+                    },
+                ) {
+                    Text(stringResource(R.string.ns_chat_e2e_generate_secret))
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        encryptChannel = null
+                        generatedChannelSecret = null
+                    },
+                ) {
+                    Text(stringResource(R.string.ns_cancel))
+                }
+            },
+        )
+    }
 }
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun ChatMessageLine(
     line: ChatChannelMessage,
+    myNick: String,
+    isEncryptedThread: Boolean,
     onLongPress: () -> Unit,
 ) {
-    Text(
-        text = "${line.nick}: ${line.text}",
-        style = MaterialTheme.typography.bodyMedium,
-        modifier =
+    val isOwn = ChatChrome.isOwnNick(line.nick, myNick)
+    val nickColor = Color(ChatChrome.nickArgb(line.nick, myNick))
+    val bodyColor = Color(ChatChrome.bodyArgb(isOwn))
+    val time = ChatTimeline.gutterTime(line.timestampMs)
+    val spans = remember(line.text) { ChatMessageLexer.lex(line.text) }
+    val annotated =
+        remember(line.nick, line.text, spans, nickColor, bodyColor) {
+            buildAnnotatedString {
+                val nickStart = length
+                append("${line.nick}: ")
+                addStyle(SpanStyle(color = nickColor), nickStart, length)
+                for (span in spans) {
+                    when (span) {
+                        is ChatInlineSpan.Text -> {
+                            val start = length
+                            append(span.value)
+                            addStyle(SpanStyle(color = bodyColor), start, length)
+                        }
+                        is ChatInlineSpan.Url -> {
+                            val start = length
+                            append(span.url)
+                            addLink(
+                                LinkAnnotation.Url(
+                                    span.url,
+                                    TextLinkStyles(
+                                        SpanStyle(
+                                            color = Color(ChatChrome.LINK),
+                                            textDecoration = TextDecoration.Underline,
+                                        ),
+                                    ),
+                                ),
+                                start,
+                                length,
+                            )
+                        }
+                        is ChatInlineSpan.Fud -> {
+                            val start = length
+                            append(span.uri)
+                            addStyle(
+                                SpanStyle(color = Color(ChatChrome.FUD)),
+                                start,
+                                length,
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    val rowModifier =
+        if (isEncryptedThread) {
+            Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(8.dp))
+                .background(Color(ChatChrome.bubbleArgb(isOwn)))
+                .padding(horizontal = 8.dp, vertical = 6.dp)
+                .combinedClickable(
+                    onClick = {},
+                    onLongClick = onLongPress,
+                )
+        } else {
             Modifier
                 .fillMaxWidth()
                 .combinedClickable(
                     onClick = {},
                     onLongClick = onLongPress,
-                ),
-    )
+                )
+        }
+    Row(
+        modifier = rowModifier,
+        verticalAlignment = Alignment.Top,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = annotated,
+                style = MaterialTheme.typography.bodyMedium,
+                color = bodyColor,
+            )
+            if (ChatMessageLexer.hasFud(line.text)) {
+                Text(
+                    text = stringResource(R.string.ns_chat_fud_unavailable),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = Color(ChatChrome.FUD),
+                )
+            }
+        }
+        Text(
+            text = time,
+            style = MaterialTheme.typography.labelSmall,
+            color = Color(ChatChrome.TIMESTAMP),
+        )
+    }
 }
 
 @Composable
@@ -558,6 +817,7 @@ private fun CompactConnectionStatusBlock(
     nickname: String,
     showRetry: Boolean,
     onRetry: () -> Unit,
+    onToggleHud: () -> Unit,
 ) {
     val diagLines =
         remember(diagnostic) {
@@ -571,7 +831,10 @@ private fun CompactConnectionStatusBlock(
         }
 
     Column(
-        modifier = Modifier.fillMaxWidth(),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .clickable(onClick = onToggleHud),
         verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
         // Match iOS ChatView: colored status dots are always visible (not swapped

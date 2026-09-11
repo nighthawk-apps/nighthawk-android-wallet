@@ -727,6 +727,8 @@ internal object IntegrityCheckingUniffiLib {
     ): Int
     external fun uniffi_darkfi_mobile_ffi_checksum_func_darkirc_connection_phase(
     ): Int
+    external fun uniffi_darkfi_mobile_ffi_checksum_func_darkirc_outbound_slots(
+    ): Int
     external fun uniffi_darkfi_mobile_ffi_checksum_func_darkirc_status(
     ): Int
     external fun uniffi_darkfi_mobile_ffi_checksum_func_decode_chat_entropy(
@@ -889,6 +891,8 @@ internal object UniffiLib {
     ): RustBuffer.ByValue
     external fun uniffi_darkfi_mobile_ffi_fn_func_darkirc_connection_phase(uniffi_out_err: UniffiRustCallStatus, 
     ): RustBuffer.ByValue
+    external fun uniffi_darkfi_mobile_ffi_fn_func_darkirc_outbound_slots(uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
     external fun uniffi_darkfi_mobile_ffi_fn_func_darkirc_status(uniffi_out_err: UniffiRustCallStatus, 
     ): RustBuffer.ByValue
     external fun uniffi_darkfi_mobile_ffi_fn_func_decode_chat_entropy(`phrase`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
@@ -1045,6 +1049,9 @@ private fun uniffiCheckApiChecksums(lib: IntegrityCheckingUniffiLib) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if (lib.uniffi_darkfi_mobile_ffi_checksum_func_darkirc_connection_phase() != 60093) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_darkfi_mobile_ffi_checksum_func_darkirc_outbound_slots() != 49871) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if (lib.uniffi_darkfi_mobile_ffi_checksum_func_darkirc_status() != 29954) {
@@ -3611,6 +3618,16 @@ fun `bridgePing`(): kotlin.String {
             return FfiConverterString.lift(
     uniffiRustCall() { _status ->
     UniffiLib.uniffi_darkfi_mobile_ffi_fn_func_darkirc_connection_phase(
+    
+        _status)
+}
+    )
+    }
+    
+ fun `darkircOutboundSlots`(): kotlin.String {
+            return FfiConverterString.lift(
+    uniffiRustCall() { _status ->
+    UniffiLib.uniffi_darkfi_mobile_ffi_fn_func_darkirc_outbound_slots(
     
         _status)
 }

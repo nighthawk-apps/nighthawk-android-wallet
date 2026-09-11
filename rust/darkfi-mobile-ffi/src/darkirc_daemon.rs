@@ -76,6 +76,94 @@ static EVENT_GRAPH: std::sync::LazyLock<
 static P2P: std::sync::LazyLock<smol::lock::RwLock<Option<darkfi::net::P2pPtr>>> =
     std::sync::LazyLock::new(|| smol::lock::RwLock::new(None));
 
+/// DarkFi-app HUD uses three outbound slots. Same density here (not the video overlay).
+const OUTBOUND_HUD_SLOTS: usize = 3;
+const OUTBOUND_SLOTS_FILE: &str = "outbound_slots.json";
+
+static DATASTORE_PATH: std::sync::OnceLock<PathBuf> = std::sync::OnceLock::new();
+
+fn json_escape(s: &str) -> String {
+    let mut out = String::with_capacity(s.len());
+    for c in s.chars() {
+        match c {
+            '"' => out.push_str("\\\""),
+            '\\' => out.push_str("\\\\"),
+            '\n' => out.push_str("\\n"),
+            '\r' => out.push_str("\\r"),
+            '\t' => out.push_str("\\t"),
+            c if c.is_control() => out.push_str(&format!("\\u{:04x}", c as u32)),
+            c => out.push(c),
+        }
+    }
+    out
+}
+
+fn format_outbound_slots_json(connected_urls: &[String], connecting: bool) -> String {
+    let mut parts = Vec::with_capacity(OUTBOUND_HUD_SLOTS);
+    for i in 0..OUTBOUND_HUD_SLOTS {
+        let (state, url) = if let Some(u) = connected_urls.get(i) {
+            ("connected", Some(u.as_str()))
+        } else if connecting {
+            ("connecting", None)
+        } else {
+            ("sleeping", None)
+        };
+        let url_json = match url {
+            Some(u) => format!("\"{}\"", json_escape(u)),
+            None => "null".to_string(),
+        };
+        parts.push(format!(
+            "{{\"slot\":{i},\"url\":{url_json},\"state\":\"{state}\"}}"
+        ));
+    }
+    format!("[{}]", parts.join(","))
+}
+
+fn snapshot_connected_peer_urls() -> Vec<String> {
+    let Some(guard) = P2P.try_read() else {
+        return Vec::new();
+    };
+    let Some(p2p) = guard.as_ref() else {
+        return Vec::new();
+    };
+    p2p.hosts()
+        .peers()
+        .into_iter()
+        .take(OUTBOUND_HUD_SLOTS)
+        .map(|ch| ch.address().to_string())
+        .collect()
+}
+
+fn connecting_for_hud() -> bool {
+    matches!(
+        CONNECTION_PHASE.load(Ordering::Relaxed),
+        PHASE_STARTING
+            | PHASE_WAITING_FOR_PEERS
+            | PHASE_STATIC_SYNC
+            | PHASE_SYNCING_DAG
+            | PHASE_LOADING_HISTORY
+    )
+}
+
+/// Live outbound HUD slots as JSON (three slots: connected / connecting / sleeping).
+pub fn darkirc_outbound_slots() -> String {
+    let urls = snapshot_connected_peer_urls();
+    let connecting = urls.is_empty() && connecting_for_hud();
+    format_outbound_slots_json(&urls, connecting)
+}
+
+fn publish_outbound_slots() {
+    let json = darkirc_outbound_slots();
+    let Some(dir) = DATASTORE_PATH.get() else {
+        return;
+    };
+    let dest = dir.join(OUTBOUND_SLOTS_FILE);
+    let tmp = dir.join("outbound_slots.json.tmp");
+    if std::fs::write(&tmp, json.as_bytes()).is_ok() {
+        let _ = std::fs::rename(&tmp, dest);
+    }
+}
+
 /// On-wire IRC PRIVMSG — imported directly from the upstream `darkirc` crate
 /// (lib name `irc2`) so the struct is always byte-for-byte compatible with the
 /// live network. The fields are: `version`, `msg_type`, `channel`, `nick`, `msg`.
@@ -262,6 +350,7 @@ pub fn start_darkirc(
     init_logging();
 
     let db_path = PathBuf::from(&datastore_path);
+    let _ = DATASTORE_PATH.set(db_path.clone());
     let cb: Option<Arc<dyn DarkircEventCallback>> = callback.map(Arc::from);
     DAG_SYNCED.store(0, Ordering::Relaxed);
     set_phase(PHASE_STARTING);
@@ -822,6 +911,7 @@ async fn run_darkirc_daemon(
         }
         DAG_SYNCED.store(1, Ordering::Relaxed);
         set_phase(PHASE_CONNECTED);
+        publish_outbound_slots();
         log::info!("darkirc daemon DAG synced and history replayed");
 
         // Monitor until stop or loss of all peers, then outer loop resyncs.
@@ -866,6 +956,10 @@ async fn run_darkirc_daemon(
                 DAG_SYNCED.store(0, Ordering::Relaxed);
                 set_phase(PHASE_WAITING_FOR_PEERS);
                 break;
+            }
+
+            if stop_or_disc == "timer" {
+                publish_outbound_slots();
             }
 
             if stop_or_disc == "timer"
@@ -979,5 +1073,33 @@ mod tests {
     fn tor_socks5_seeds_honor_custom_proxy_port() {
         let seeds = tor_socks5_seeds(9150);
         assert!(seeds.iter().all(|s| s.port() == Some(9150)));
+    }
+
+    #[test]
+    fn outbound_hud_json_pads_three_sleeping_slots() {
+        let json = format_outbound_slots_json(&[], false);
+        assert_eq!(
+            json,
+            r#"[{"slot":0,"url":null,"state":"sleeping"},{"slot":1,"url":null,"state":"sleeping"},{"slot":2,"url":null,"state":"sleeping"}]"#
+        );
+    }
+
+    #[test]
+    fn outbound_hud_json_escapes_peer_urls_and_marks_remainder_connecting() {
+        let json = format_outbound_slots_json(
+            &[r#"tcp+tls://seed.example/"quote""#.to_string()],
+            true,
+        );
+        assert!(json.contains(r#""slot":0"#));
+        assert!(json.contains(r#"\"quote\""#));
+        assert!(json.contains(r#""state":"connected""#));
+        assert!(json.contains(r#""slot":1,"url":null,"state":"connecting""#));
+    }
+
+    #[test]
+    fn outbound_slots_api_when_daemon_stopped_is_sleeping_hud() {
+        let json = darkirc_outbound_slots();
+        assert!(json.contains("sleeping"));
+        assert!(json.contains("\"slot\":2"));
     }
 }

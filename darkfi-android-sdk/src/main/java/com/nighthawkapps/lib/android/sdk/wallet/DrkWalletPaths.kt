@@ -17,4 +17,19 @@ object DrkWalletPaths {
         cacheDir(context).mkdirs()
         root(context).mkdirs()
     }
+
+    /**
+     * Deletes the turso wallet DB (plus WAL/SHM sidecars) and the kvdb cache.
+     * Used after a passphrase/schema mismatch so the next `Drk::new` can re-import keys
+     * from the mnemonic. Does not touch the seed store.
+     */
+    fun wipeLocalState(context: Context) {
+        val db = walletDb(context)
+        db.parentFile
+            ?.listFiles()
+            ?.filter { it.isFile && it.name.startsWith("wallet.db") }
+            ?.forEach { it.delete() }
+        cacheDir(context).deleteRecursively()
+        ensureDirectories(context)
+    }
 }

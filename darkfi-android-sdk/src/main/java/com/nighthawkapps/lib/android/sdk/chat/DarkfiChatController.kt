@@ -13,6 +13,8 @@ import com.nighthawkapps.lib.android.sdk.chat.dm.DmConversationStore
 import com.nighthawkapps.lib.android.sdk.daemon.DarkfiChatStatusRegistry
 import com.nighthawkapps.lib.android.spackle.Twig
 import com.nighthawkapps.lib.uniffi.darkfi_mobile_ffi.DarkircEventCallback
+import com.nighthawkapps.lib.android.sdk.chat.hud.OutboundPeerSlot
+import com.nighthawkapps.lib.android.sdk.chat.hud.OutboundPeerSlots
 import com.nighthawkapps.lib.uniffi.darkfi_mobile_ffi.darkircConnectionPhase
 import com.nighthawkapps.lib.uniffi.darkfi_mobile_ffi.darkircStatus
 import com.nighthawkapps.lib.uniffi.darkfi_mobile_ffi.sendChatMessage
@@ -86,6 +88,13 @@ class DarkfiChatController(
 
     private val _embeddedNodeStatus = MutableStateFlow(EmbeddedDarkircNodeStatus.NotUsed)
     val embeddedNodeStatus: StateFlow<EmbeddedDarkircNodeStatus> = _embeddedNodeStatus.asStateFlow()
+
+    private val _useTorForChat = MutableStateFlow(preferences.useTorForChat)
+    val useTorForChat: StateFlow<Boolean> = _useTorForChat.asStateFlow()
+
+    private val _outboundSlots =
+        MutableStateFlow(OutboundPeerSlots.synthesize(phase = "stopped", daemonRunning = false))
+    val outboundSlots: StateFlow<List<OutboundPeerSlot>> = _outboundSlots.asStateFlow()
 
     private var connectJob: Job? = null
     private var readJob: Job? = null
@@ -326,6 +335,36 @@ class DarkfiChatController(
                 setConnectionState(DarkfiChatConnectionState.Connecting)
                 _embeddedNodeStatus.value = EmbeddedDarkircNodeStatus.Starting
             }
+        }
+        refreshOutboundSlots(phase)
+    }
+
+    private fun darkircDatastoreDir(): File = File(File(app.filesDir, "darkirc"), "darkirc_db")
+
+    fun refreshOutboundSlots(phase: String? = null) {
+        val resolvedPhase =
+            phase ?: runCatching { darkircConnectionPhase() }.getOrDefault("stopped")
+        val running =
+            runCatching { darkircStatus() }.getOrDefault("not_running") in
+                setOf("running", "starting")
+        val json = OutboundPeerSlots.readFile(darkircDatastoreDir())
+        _outboundSlots.value = OutboundPeerSlots.resolve(json, resolvedPhase, running)
+    }
+
+    /**
+     * Persist tcp/tor for chat and restart the EventGraph so the HUD switch is real.
+     * SOCKS still comes from Settings → Tor.
+     */
+    fun applyChatTransport(useTor: Boolean) {
+        if (preferences.useTorForChat == useTor && darkircStatus() in setOf("running", "starting")) {
+            _useTorForChat.value = useTor
+            return
+        }
+        preferences.useTorForChat = useTor
+        _useTorForChat.value = useTor
+        scope.launch(Dispatchers.IO) {
+            stopAndAwait()
+            connectOrRetry()
         }
     }
 

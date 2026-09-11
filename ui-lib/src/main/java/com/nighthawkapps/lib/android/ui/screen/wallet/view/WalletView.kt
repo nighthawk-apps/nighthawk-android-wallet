@@ -52,6 +52,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.nighthawkapps.lib.android.sdk.daemon.DarkfiDaemonStatus
 import com.nighthawkapps.lib.android.sdk.wallet.DarkfiSyncStatus
+import com.nighthawkapps.lib.android.sdk.wallet.DarkfiTokenBalance
 import com.nighthawkapps.lib.android.sdk.wallet.DarkfiTransactionOverview
 import com.nighthawkapps.lib.android.ui.R
 import com.nighthawkapps.lib.android.ui.common.DisableScreenTimeout
@@ -140,6 +141,8 @@ fun WalletView(
     onScanToSend: () -> Unit,
     daemonStatus: DarkfiDaemonStatus = DarkfiDaemonStatus.Unknown,
     onDaemonStatusClick: () -> Unit = {},
+    tokenBalances: List<DarkfiTokenBalance> = emptyList(),
+    onTokenClick: (String) -> Unit = {},
 ) {
     Column(
         modifier =
@@ -255,27 +258,32 @@ fun WalletView(
             contentAlignment = Alignment.Center,
         ) {
             if (walletSnapshot.status == DarkfiSyncStatus.SYNCED) {
-                val pageCount = BalanceViewType.TOTAL_VIEWS
-                val state = rememberPagerState(initialPage = 0) { pageCount }
+                val pages = remember(tokenBalances) { BalanceViewType.pages(tokenBalances) }
+                val state = rememberPagerState(initialPage = 0) { pages.size }
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     HorizontalPager(state = state) { pageNo ->
+                        val page = pages[pageNo]
                         val balanceDisplayValues =
                             BalanceDisplayValues.getNextValue(
                                 LocalContext.current,
-                                BalanceViewType.getBalanceViewType(pageNo),
+                                page,
                                 walletSnapshot,
                                 isFiatCurrencyPreferred,
                                 fiatCurrencyUiState
                             )
+                        val tokenId = (page as? BalanceViewType.Token)?.balance?.tokenId
                         BalanceView(
                             balanceDisplayValues = balanceDisplayValues,
-                            showFlipCurrencyIcon = fiatCurrencyUiState.fiatCurrency != FiatCurrency.OFF,
-                            onFlipCurrency = { onFlipCurrency(isFiatCurrencyPreferred.not()) }
+                            showFlipCurrencyIcon =
+                                page is BalanceViewType.TOTAL &&
+                                    fiatCurrencyUiState.fiatCurrency != FiatCurrency.OFF,
+                            onFlipCurrency = { onFlipCurrency(isFiatCurrencyPreferred.not()) },
+                            onClick = tokenId?.let { id -> { onTokenClick(id) } },
                         )
                     }
-                    val balanceViewType = BalanceViewType.getBalanceViewType(state.currentPage)
+                    val balanceViewType = pages.getOrElse(state.currentPage) { BalanceViewType.SWIPE }
                     if (balanceViewType != BalanceViewType.SWIPE) {
-                        PageIndicator(pageCount = pageCount, pagerState = state)
+                        PageIndicator(pageCount = pages.size, pagerState = state)
                     }
                     isBalancePrivateMode.value = balanceViewType == BalanceViewType.SWIPE
                 }
@@ -373,9 +381,16 @@ fun PageIndicator(
 fun BalanceView(
     balanceDisplayValues: BalanceDisplayValues,
     showFlipCurrencyIcon: Boolean,
-    onFlipCurrency: () -> Unit
+    onFlipCurrency: () -> Unit,
+    onClick: (() -> Unit)? = null,
 ) {
-    Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+    Box(
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier),
+        contentAlignment = Alignment.Center,
+    ) {
         Column(
             modifier =
                 Modifier

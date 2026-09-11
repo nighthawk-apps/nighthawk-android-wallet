@@ -1,17 +1,29 @@
 package com.nighthawkapps.lib.android.ui.screen.wallet.model
 
-sealed interface BalanceViewType {
-    object SWIPE : BalanceViewType
+import com.nighthawkapps.lib.android.sdk.wallet.DarkfiTokenBalance
 
-    object TOTAL : BalanceViewType
+sealed interface BalanceViewType {
+    data object SWIPE : BalanceViewType
+
+    data object TOTAL : BalanceViewType
+
+    data class Token(
+        val balance: DarkfiTokenBalance,
+    ) : BalanceViewType
 
     companion object {
-        const val TOTAL_VIEWS = 2
-
-        fun getBalanceViewType(pos: Int): BalanceViewType =
-            when (pos) {
-                1 -> TOTAL
-                else -> SWIPE
+        /** Native DRK lives on [TOTAL]; extra tokens are later pager pages. */
+        fun pages(tokenBalances: List<DarkfiTokenBalance>): List<BalanceViewType> {
+            val extra = tokenBalances.filterNot { it.isNativeDrk() }
+            return buildList {
+                add(SWIPE)
+                add(TOTAL)
+                extra.forEach { add(Token(it)) }
             }
+        }
     }
 }
+
+internal fun DarkfiTokenBalance.isNativeDrk(): Boolean =
+    displayName.equals("DRK", ignoreCase = true) ||
+        tokenId.equals("DRK", ignoreCase = true)

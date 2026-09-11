@@ -37,22 +37,39 @@ class DarkfiWalletCoordinator internal constructor(
     private val synchronizerAllowedState: StateFlow<Boolean> =
         synchronizerAllowed.stateIn(scope, SharingStarted.Eagerly, true)
 
+    /** One live Fjall cache at a time — Tor reload vs collectLatest used to overlap `Drk::new`. */
+    private val replaceLock = Any()
+
     init {
         scope.launch(Dispatchers.IO) {
             combine(walletFlow, synchronizerAllowed) { wallet, allowed ->
                 wallet to allowed
             }.collectLatest { (wallet, allowed) ->
-                _synchronizer.value?.close()
-                // Do not construct DarkfiWalletHandle (Arti wait ≤120s + LWD tip
-                // probe) until the user finishes seed backup. Create Wallet used
-                // to look dead because persist immediately opened the handle.
-                _synchronizer.value =
-                    if (wallet != null && allowed) {
-                        DarkfiSynchronizerFactory.create(wallet, appContext, useNativeSynchronizer)
-                    } else {
-                        null
-                    }
+                replaceSynchronizer(wallet, allowed)
             }
+        }
+    }
+
+    private fun replaceSynchronizer(
+        wallet: PersistableDarkfiWallet?,
+        allowed: Boolean,
+    ) {
+        synchronized(replaceLock) {
+            _synchronizer.value?.close()
+            try {
+                Thread.sleep(250)
+            } catch (_: InterruptedException) {
+                Thread.currentThread().interrupt()
+            }
+            // Do not construct DarkfiWalletHandle (Arti wait ≤120s + LWD tip
+            // probe) until the user finishes seed backup. Create Wallet used
+            // to look dead because persist immediately opened the handle.
+            _synchronizer.value =
+                if (wallet != null && allowed) {
+                    DarkfiSynchronizerFactory.create(wallet, appContext, useNativeSynchronizer)
+                } else {
+                    null
+                }
         }
     }
 
@@ -65,14 +82,7 @@ class DarkfiWalletCoordinator internal constructor(
     /** Recreates the synchronizer (e.g. after Tor toggle rewrites the darkfid connect URL). */
     fun reloadSynchronizer() {
         scope.launch(Dispatchers.IO) {
-            val wallet = persistableWallet.value ?: return@launch
-            _synchronizer.value?.close()
-            _synchronizer.value =
-                if (synchronizerAllowedState.value) {
-                    DarkfiSynchronizerFactory.create(wallet, appContext, useNativeSynchronizer)
-                } else {
-                    null
-                }
+            replaceSynchronizer(persistableWallet.value, synchronizerAllowedState.value)
         }
     }
 
@@ -86,8 +96,9 @@ class DarkfiWalletCoordinator internal constructor(
     }
 
     fun resetSdk() {
-        _synchronizer.value?.close()
-        _synchronizer.value = null
+        scope.launch(Dispatchers.IO) {
+            replaceSynchronizer(wallet = null, allowed = false)
+        }
     }
 
     companion object {

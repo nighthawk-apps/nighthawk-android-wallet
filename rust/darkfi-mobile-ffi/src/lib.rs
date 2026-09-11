@@ -71,7 +71,8 @@ pub trait DarkircEventCallback: Send + Sync {
 
 #[cfg(feature = "darkirc")]
 pub use darkirc_daemon::{
-    darkirc_connection_phase, darkirc_status, send_chat_message, start_darkirc, stop_darkirc,
+    darkirc_connection_phase, darkirc_outbound_slots, darkirc_status, send_chat_message,
+    start_darkirc, stop_darkirc,
 };
 
 // Stubs when darkirc feature is disabled (e.g. iOS builds with --no-default-features).
@@ -84,6 +85,11 @@ pub fn darkirc_status() -> String {
 #[cfg(not(feature = "darkirc"))]
 pub fn darkirc_connection_phase() -> String {
     "stopped".to_string()
+}
+
+#[cfg(not(feature = "darkirc"))]
+pub fn darkirc_outbound_slots() -> String {
+    "[]".to_string()
 }
 
 #[cfg(not(feature = "darkirc"))]

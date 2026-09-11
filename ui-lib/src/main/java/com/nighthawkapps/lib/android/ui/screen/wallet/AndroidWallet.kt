@@ -38,6 +38,7 @@ internal fun MainActivity.AndroidWallet(
     onViewTransactionHistory: () -> Unit,
     onSendFromDeepLink: () -> Unit,
     onScanToSend: () -> Unit,
+    onSendToken: (String) -> Unit = {},
 ) {
     WrapWallet(
         activity = this,
@@ -47,6 +48,7 @@ internal fun MainActivity.AndroidWallet(
         onViewTransactionHistory = onViewTransactionHistory,
         onSendFromDeepLink = onSendFromDeepLink,
         onScanToSend = onScanToSend,
+        onSendToken = onSendToken,
     )
 }
 
@@ -59,6 +61,7 @@ internal fun WrapWallet(
     onViewTransactionHistory: () -> Unit,
     onSendFromDeepLink: () -> Unit,
     onScanToSend: () -> Unit,
+    onSendToken: (String) -> Unit = {},
 ) {
     val homeViewModel by activity.viewModels<HomeViewModel>()
     val walletViewModel by activity.viewModels<WalletViewModel>()
@@ -136,6 +139,11 @@ internal fun WrapWallet(
         settingsViewModel.setBanditStatus(isBandit)
 
         val daemonStatus by AppDaemonCoordinator.get().status.collectAsStateWithLifecycle()
+        val synchronizer by walletViewModel.synchronizer.collectAsStateWithLifecycle()
+        val tokenBalances by (
+            synchronizer?.tokenBalances
+                ?: kotlinx.coroutines.flow.flowOf(emptyList())
+            ).collectAsStateWithLifecycle(emptyList())
         var showRestartDialog by remember { mutableStateOf(false) }
 
         if (showRestartDialog) {
@@ -160,6 +168,8 @@ internal fun WrapWallet(
             onScanToSend = onScanToSend,
             daemonStatus = daemonStatus,
             onDaemonStatusClick = { showRestartDialog = true },
+            tokenBalances = tokenBalances,
+            onTokenClick = onSendToken,
         )
     }
     activity.reportFullyDrawn()
