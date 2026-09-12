@@ -13,7 +13,10 @@ object DarkfiPaymentMemo {
 
     fun utf8Size(input: String): Int = input.toByteArray(Charsets.UTF_8).size
 
-    fun truncateToMaxBytes(input: String, maxBytes: Int = MAX_BYTES): String {
+    fun truncateToMaxBytes(
+        input: String,
+        maxBytes: Int = MAX_BYTES
+    ): String {
         val bytes = input.toByteArray(Charsets.UTF_8)
         if (bytes.size <= maxBytes) return input
         var end = maxBytes.coerceIn(0, bytes.size)

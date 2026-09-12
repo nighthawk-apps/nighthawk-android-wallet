@@ -58,7 +58,8 @@ class DarkfiDaemonLifecycleCoordinator private constructor(
                 awaitEmbeddedDarkfidIfNeeded()
             }
             if (chatPrefs.runEmbeddedDarkirc) {
-                com.nighthawkapps.lib.android.sdk.chat.darkirc.DarkircDaemonService.start(appContext)
+                com.nighthawkapps.lib.android.sdk.chat.darkirc.DarkircDaemonService
+                    .start(appContext)
             }
             bootstrapComplete = true
             observeSubsystems()
@@ -87,9 +88,11 @@ class DarkfiDaemonLifecycleCoordinator private constructor(
                 DarkfidDaemonBootstrap.stop(appContext)
             }
             if (chatPrefs.runEmbeddedDarkirc) {
-                com.nighthawkapps.lib.android.sdk.chat.darkirc.DarkircDaemonService.start(appContext)
+                com.nighthawkapps.lib.android.sdk.chat.darkirc.DarkircDaemonService
+                    .start(appContext)
             } else {
-                com.nighthawkapps.lib.android.sdk.chat.darkirc.DarkircDaemonService.stop(appContext)
+                com.nighthawkapps.lib.android.sdk.chat.darkirc.DarkircDaemonService
+                    .stop(appContext)
             }
             walletCoordinatorProvider().reloadSynchronizer()
             walletCoordinatorProvider().rescanBlockchain()
@@ -167,7 +170,8 @@ class DarkfiDaemonLifecycleCoordinator private constructor(
                     // Keep-alive FGS: start() is a no-op when already active, and
                     // swallows background-start denials until the next foreground resume.
                     if (chatPrefs.runEmbeddedDarkirc) {
-                        com.nighthawkapps.lib.android.sdk.chat.darkirc.DarkircDaemonService.start(appContext)
+                        com.nighthawkapps.lib.android.sdk.chat.darkirc.DarkircDaemonService
+                            .start(appContext)
                     }
                     nudgeIrcReconnectIfNeeded()
                 }

@@ -45,7 +45,10 @@ class DarkfidDaemonService : Service() {
      * Stop promptly on timeout so the system does not ANR the app; WorkManager /
      * foreground resume paths can restart the daemon later.
      */
-    override fun onTimeout(startId: Int, fgsType: Int) {
+    override fun onTimeout(
+        startId: Int,
+        fgsType: Int
+    ) {
         DarkfidEmbeddedRunner.stop()
         stopSelf(startId)
     }

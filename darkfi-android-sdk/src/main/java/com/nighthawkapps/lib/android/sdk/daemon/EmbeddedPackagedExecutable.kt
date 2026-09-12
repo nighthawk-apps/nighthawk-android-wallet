@@ -53,8 +53,9 @@ internal object EmbeddedPackagedExecutable {
     }
 
     private fun verifyOrNull(file: File): File? {
-        val expected = expectedSha256ByAbi[Build.SUPPORTED_ABIS.firstOrNull().orEmpty()]
-            ?: expectedSha256ByAbi[abiFolder()]
+        val expected =
+            expectedSha256ByAbi[Build.SUPPORTED_ABIS.firstOrNull().orEmpty()]
+                ?: expectedSha256ByAbi[abiFolder()]
         if (expected.isNullOrBlank()) {
             return file
         }
@@ -68,8 +69,7 @@ internal object EmbeddedPackagedExecutable {
         return file
     }
 
-    private fun abiFolder(): String =
-        mapAbiToAssetFolder(Build.SUPPORTED_ABIS.firstOrNull().orEmpty()).orEmpty()
+    private fun abiFolder(): String = mapAbiToAssetFolder(Build.SUPPORTED_ABIS.firstOrNull().orEmpty()).orEmpty()
 
     private fun sha256Hex(file: File): String? =
         try {

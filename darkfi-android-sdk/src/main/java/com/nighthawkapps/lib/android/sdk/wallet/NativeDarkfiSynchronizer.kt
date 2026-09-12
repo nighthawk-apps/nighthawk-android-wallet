@@ -351,12 +351,13 @@ class NativeDarkfiSynchronizer internal constructor(
     }
 
     private fun startSyncProgressPolling() {
-        syncJob = syncScope.launch {
-            while (isActive) {
-                applySyncSnapshotBestEffort()
-                delay(SYNC_PROGRESS_POLL_MS)
+        syncJob =
+            syncScope.launch {
+                while (isActive) {
+                    applySyncSnapshotBestEffort()
+                    delay(SYNC_PROGRESS_POLL_MS)
+                }
             }
-        }
     }
 
     override fun close() {

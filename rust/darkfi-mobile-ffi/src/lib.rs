@@ -45,19 +45,6 @@ fn install_panic_hook_once() {
     });
 }
 
-#[cfg(feature = "darkirc")]
-pub trait DarkircEventCallback: Send + Sync {
-    fn on_message(
-        &self,
-        event_id: String,
-        channel: String,
-        nick: String,
-        message: String,
-        timestamp: u64,
-    );
-}
-
-#[cfg(not(feature = "darkirc"))]
 pub trait DarkircEventCallback: Send + Sync {
     fn on_message(
         &self,
@@ -997,6 +984,8 @@ impl DarkfiWalletHandle {
         recipient_address: String,
     ) -> ResultWallet<String> {
         let drk = self.drk.clone();
+        let lw_url = self.sync_engine.server_url();
+        let tls_pin = self.sync_engine.tls_pin();
         block_on(async move {
             let drk = drk.write().await;
             dao::propose_transfer(
@@ -1006,6 +995,8 @@ impl DarkfiWalletHandle {
                 &amount,
                 token_id.as_deref(),
                 &recipient_address,
+                Some(&lw_url),
+                tls_pin,
             )
             .await
         })
@@ -1014,9 +1005,12 @@ impl DarkfiWalletHandle {
 
     pub fn dao_vote(&self, proposal_bulla_b58: String, vote_yes: bool) -> ResultWallet<String> {
         let drk = self.drk.clone();
+        let lw_url = self.sync_engine.server_url();
+        let tls_pin = self.sync_engine.tls_pin();
         block_on(async move {
             let drk = drk.write().await;
-            dao::vote_on_proposal(&drk, &proposal_bulla_b58, vote_yes).await
+            dao::vote_on_proposal(&drk, &proposal_bulla_b58, vote_yes, Some(&lw_url), tls_pin)
+                .await
         })
         .map_err(DarkfiWalletNativeError::native)
     }

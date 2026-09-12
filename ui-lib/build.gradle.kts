@@ -77,7 +77,7 @@ dependencies {
     implementation(libs.androidx.constraintlayout)
     implementation(libs.androidx.core)
     implementation(libs.androidx.lifecycle.livedata)
-    implementation("androidx.lifecycle:lifecycle-process:2.10.0")
+    implementation("androidx.lifecycle:lifecycle-process:${project.property("ANDROIDX_LIFECYCLE_VERSION")}")
     implementation("androidx.datastore:datastore-preferences:1.1.1")
     implementation("com.google.crypto.tink:tink-android:1.8.0")
     implementation(libs.androidx.splash)

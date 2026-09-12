@@ -55,7 +55,10 @@ object LightwalletTlsPin {
         return cleaned.chunked(2).map { it.toInt(16).toUByte() }
     }
 
-    private fun readManifestMeta(context: Context, key: String = META_DATA_KEY): String? {
+    private fun readManifestMeta(
+        context: Context,
+        key: String = META_DATA_KEY
+    ): String? {
         return try {
             val ai: ApplicationInfo =
                 context.packageManager.getApplicationInfo(

@@ -1,6 +1,6 @@
 //! Transfer build/broadcast and wallet transaction history for UniFFI.
 
-use std::collections::HashMap;
+use std::collections::{HashMap, VecDeque};
 use std::str::FromStr;
 use std::sync::LazyLock;
 use std::sync::RwLock;
@@ -19,15 +19,72 @@ use crate::{
     DrkTransactionRecord, SyncMethod,
 };
 
+/// Session-scoped bounded cache with FIFO eviction.
+///
+/// Oldest *inserted* key is dropped when [`BoundedCache::insert`] would
+/// exceed `cap`. Updating an existing key does not refresh its position.
+struct BoundedCache<V> {
+    map: HashMap<String, V>,
+    insertion_order: VecDeque<String>,
+    cap: usize,
+}
+
+impl<V> BoundedCache<V> {
+    fn with_capacity(cap: usize) -> Self {
+        Self {
+            map: HashMap::new(),
+            insertion_order: VecDeque::new(),
+            cap: cap.max(1),
+        }
+    }
+
+    fn new() -> Self {
+        Self::with_capacity(MAX_SENT_CACHE_ENTRIES)
+    }
+
+    fn len(&self) -> usize {
+        self.map.len()
+    }
+
+    fn get(&self, key: &str) -> Option<&V> {
+        self.map.get(key)
+    }
+
+    fn contains_key(&self, key: &str) -> bool {
+        self.map.contains_key(key)
+    }
+
+    fn insert(&mut self, key: String, val: V) {
+        if self.map.len() >= self.cap && !self.map.contains_key(&key) {
+            if let Some(oldest) = self.insertion_order.pop_front() {
+                self.map.remove(&oldest);
+            }
+        }
+        if !self.map.contains_key(&key) {
+            self.insertion_order.push_back(key.clone());
+        }
+        self.map.insert(key, val);
+    }
+
+    fn remove(&mut self, key: &str) -> Option<V> {
+        self.insertion_order.retain(|k| k != key);
+        self.map.remove(key)
+    }
+
+    fn clear(&mut self) {
+        self.map.clear();
+        self.insertion_order.clear();
+    }
+}
+
 /// Per-session record of the OMR scheme byte embedded in each outgoing
 /// transaction's clue, keyed by tx hash.
-static SENT_SYNC_SCHEMES: LazyLock<RwLock<HashMap<String, u8>>> =
-    LazyLock::new(|| RwLock::new(HashMap::new()));
+static SENT_SYNC_SCHEMES: LazyLock<RwLock<BoundedCache<u8>>> =
+    LazyLock::new(|| RwLock::new(BoundedCache::new()));
 
 /// Per-session payment memo + recipient for txs we broadcast this process.
-#[allow(clippy::type_complexity)]
-static SENT_PAYMENT_META: LazyLock<RwLock<HashMap<String, (Option<String>, Option<String>)>>> =
-    LazyLock::new(|| RwLock::new(HashMap::new()));
+static SENT_PAYMENT_META: LazyLock<RwLock<BoundedCache<(Option<String>, Option<String>)>>> =
+    LazyLock::new(|| RwLock::new(BoundedCache::new()));
 
 const MAX_SENT_CACHE_ENTRIES: usize = 10_000;
 
@@ -45,17 +102,16 @@ pub fn clear_sent_session_cache() {
     }
 }
 
-fn insert_bounded_meta(
-    map: &mut HashMap<String, (Option<String>, Option<String>)>,
-    key: String,
-    val: (Option<String>, Option<String>),
-) {
-    if map.len() >= MAX_SENT_CACHE_ENTRIES && !map.contains_key(&key) {
-        if let Some(oldest) = map.keys().next().cloned() {
-            map.remove(&oldest);
-        }
-    }
-    map.insert(key, val);
+/// Rows `revert_transactions_after` will match: `block_height > rewind_height`.
+/// Null heights (mempool / already reverted) are excluded — same as the SQL WHERE.
+fn count_history_rows_above_height(
+    history: &[(String, String, Option<u32>)],
+    rewind_height: u32,
+) -> u32 {
+    history
+        .iter()
+        .filter(|(_, _, h)| h.is_some_and(|hh| hh > rewind_height))
+        .count() as u32
 }
 
 /// Look up a recipient address persisted at broadcast time (session cache).
@@ -72,9 +128,8 @@ fn cache_and_persist_payment_meta(
     memo: Option<String>,
     recipient: Option<String>,
 ) {
-    if let Ok(mut map) = SENT_PAYMENT_META.write() {
-        insert_bounded_meta(
-            &mut map,
+    if let Ok(mut cache) = SENT_PAYMENT_META.write() {
+        cache.insert(
             tx_hash.to_string(),
             (memo.clone(), recipient.clone()),
         );
@@ -173,7 +228,7 @@ pub async fn build_transfer(
         .filter(|s| !s.is_empty())
         .map(|s| s.as_bytes().to_vec());
 
-    crate::sync::rebuild_spendable_money_tree(
+    crate::sync::ensure_spendable_money_tree(
         drk,
         lightwallet_server_url,
         lightwallet_tls_pin,
@@ -354,13 +409,8 @@ pub async fn broadcast_transfer(
         .map_err(|e| format!("mark_tx_spend after broadcast: {e}"))?;
 
     if let Some(scheme) = sent_scheme {
-        if let Ok(mut map) = SENT_SYNC_SCHEMES.write() {
-            if map.len() >= MAX_SENT_CACHE_ENTRIES && !map.contains_key(&tx_hash) {
-                if let Some(oldest) = map.keys().next().cloned() {
-                    map.remove(&oldest);
-                }
-            }
-            map.insert(tx_hash.clone(), scheme);
+        if let Ok(mut cache) = SENT_SYNC_SCHEMES.write() {
+            cache.insert(tx_hash.clone(), scheme);
         }
     }
 
@@ -549,21 +599,67 @@ fn extract_envelope_omr_memo(data: &[u8]) -> Option<Vec<u8>> {
 /// Uses upstream `drk.revert_transactions_after`, which matches the
 /// `"Confirmed"` / `"Broadcasted"` status strings stored by `drk`.
 pub async fn invalidate_transactions_above(drk: &Drk, rewind_height: u32) -> Result<u32, String> {
+    // Count matching history rows *before* revert. `revert_transactions_after`
+    // only writes two CLI log lines into `output` — never a per-tx list.
+    let history = drk
+        .get_txs_history()
+        .await
+        .map_err(|e| format!("get_txs_history: {e}"))?;
+    let to_revert = count_history_rows_above_height(&history, rewind_height);
+
     let mut output = Vec::new();
     drk.revert_transactions_after(&rewind_height, &mut output)
         .await
         .map_err(|e| format!("revert_transactions_after: {e}"))?;
     tracing::debug!(
         target: "reorg",
-        "Reverted transactions above height {rewind_height}: {}",
+        "Reverted {to_revert} transaction(s) above height {rewind_height}: {}",
         output.join("; ")
     );
-    Ok(1)
+    Ok(to_revert)
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn bounded_cache_fifo_evicts_oldest_insert_not_hash_order() {
+        let mut cache = BoundedCache::with_capacity(2);
+        cache.insert("a".into(), 1u8);
+        cache.insert("b".into(), 2u8);
+        cache.insert("c".into(), 3u8);
+        assert_eq!(cache.len(), 2);
+        assert!(!cache.contains_key("a"));
+        assert_eq!(cache.get("b"), Some(&2));
+        assert_eq!(cache.get("c"), Some(&3));
+    }
+
+    #[test]
+    fn bounded_cache_update_does_not_refresh_fifo_position() {
+        let mut cache = BoundedCache::with_capacity(2);
+        cache.insert("a".into(), 1u8);
+        cache.insert("b".into(), 2u8);
+        cache.insert("a".into(), 9u8);
+        cache.insert("c".into(), 3u8);
+        assert!(!cache.contains_key("a"), "oldest insert was a, even after update");
+        assert_eq!(cache.get("b"), Some(&2));
+        assert_eq!(cache.get("c"), Some(&3));
+    }
+
+    #[test]
+    fn count_history_rows_above_height_matches_sql_where() {
+        let rows = vec![
+            ("t1".into(), "Confirmed".into(), Some(10u32)),
+            ("t2".into(), "Confirmed".into(), Some(20)),
+            ("t3".into(), "Broadcasted".into(), None),
+            ("t4".into(), "Reverted".into(), None),
+            ("t5".into(), "Confirmed".into(), Some(15)),
+        ];
+        assert_eq!(count_history_rows_above_height(&rows, 15), 1);
+        assert_eq!(count_history_rows_above_height(&rows, 9), 3);
+        assert_eq!(count_history_rows_above_height(&rows, 20), 0);
+    }
 
     #[test]
     fn test_strip_omr_envelope_with_tag() {

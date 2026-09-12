@@ -169,8 +169,7 @@ private fun TransportChip(
                 .semantics {
                     role = Role.Tab
                     this.selected = selected
-                }
-                .heightIn(min = 44.dp)
+                }.heightIn(min = 44.dp)
                 .padding(horizontal = 12.dp, vertical = 10.dp),
         contentAlignment = Alignment.Center,
     ) {

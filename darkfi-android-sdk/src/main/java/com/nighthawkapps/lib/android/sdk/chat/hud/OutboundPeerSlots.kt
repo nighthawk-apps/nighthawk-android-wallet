@@ -73,17 +73,34 @@ object OutboundPeerSlots {
     }
 
     private fun parseObject(obj: String): OutboundPeerSlot? {
-        val slot = SLOT_FIELD.find(obj)?.groupValues?.get(1)?.toIntOrNull() ?: return null
+        val slot =
+            SLOT_FIELD
+                .find(obj)
+                ?.groupValues
+                ?.get(1)
+                ?.toIntOrNull() ?: return null
         val url =
             when {
-                URL_NULL.containsMatchIn(obj) -> null
-                else ->
-                    URL_STRING.find(obj)?.groupValues?.get(1)?.let(::unescapeJson)
+                URL_NULL.containsMatchIn(obj) -> {
+                    null
+                }
+
+                else -> {
+                    URL_STRING
+                        .find(obj)
+                        ?.groupValues
+                        ?.get(1)
+                        ?.let(::unescapeJson)
                         ?.takeIf { it.isNotBlank() }
+                }
             }
         val state =
             OutboundPeerState.fromWire(
-                STATE_FIELD.find(obj)?.groupValues?.get(1).orEmpty(),
+                STATE_FIELD
+                    .find(obj)
+                    ?.groupValues
+                    ?.get(1)
+                    .orEmpty(),
             )
         return OutboundPeerSlot(slot = slot, url = url, state = state)
     }

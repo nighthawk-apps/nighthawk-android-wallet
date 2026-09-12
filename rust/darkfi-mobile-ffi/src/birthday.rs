@@ -47,9 +47,18 @@ pub async fn seed_birthday_scan_cursor(drk: &Drk, birthday_height: u32) -> Resul
     seed_scan_cursor(drk, cursor, None)
 }
 
-/// First height the wallet may scan / trial-decrypt (`scanned+1`, never below birthday).
+/// First height the wallet may scan / trial-decrypt.
+///
+/// `scanned == 0` means never synced (or rescan-to-genesis), not "already
+/// applied height 0". Include genesis mint coins — they live at height 0,
+/// after the dummy ZERO sentinel. Using `scanned+1` here skipped height 0
+/// and produced spend roots the Money contract never stored (`Custom(5)`).
 pub fn clamp_scan_start(scanned: u32, birthday: u32) -> u32 {
-    scanned.saturating_add(1).max(birthday)
+    if scanned == 0 {
+        birthday
+    } else {
+        scanned.saturating_add(1).max(birthday)
+    }
 }
 
 /// Inclusive LWD height range that must be appended after the ZERO sentinel
@@ -87,7 +96,8 @@ mod tests {
 
     #[test]
     fn clamp_scan_start_respects_birthday() {
-        assert_eq!(clamp_scan_start(0, 0), 1);
+        assert_eq!(clamp_scan_start(0, 0), 0);
+        assert_eq!(clamp_scan_start(0, 500), 500);
         assert_eq!(clamp_scan_start(100, 0), 101);
         assert_eq!(clamp_scan_start(100, 500), 500);
         assert_eq!(clamp_scan_start(500, 500), 501);

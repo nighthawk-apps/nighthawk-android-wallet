@@ -97,10 +97,11 @@ fun TransactionOverviewHistoryRow(
                 Spacer(modifier = Modifier.height(4.dp))
                 val timeText =
                     transactionOverview.timestampEpochMillis?.let { ms ->
-                        LocalDateTime.ofInstant(
-                            java.time.Instant.ofEpochMilli(ms),
-                            ZoneOffset.UTC
-                        ).format(DateTimeFormatter.ofLocalizedDate(FormatStyle.SHORT))
+                        LocalDateTime
+                            .ofInstant(
+                                java.time.Instant.ofEpochMilli(ms),
+                                ZoneOffset.UTC
+                            ).format(DateTimeFormatter.ofLocalizedDate(FormatStyle.SHORT))
                     } ?: stringResource(id = R.string.ns_transaction_date_error)
                 BodySmall(text = timeText)
             }

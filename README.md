@@ -6,6 +6,8 @@
 
 Privacy-preserving wallet (work-in-progress) by [Nighthawk Apps](https://nighthawkapps.com). This tree ships as a **new Android application id** on the DarkFi network (DRK). The app integrates a native DarkFi wallet API via **UniFFI** (`rust/darkfi-mobile-ffi` → generated Kotlin + `DarkfiMobileFfiApi`) for chain sync, broadcast, and chat.
 
+**3.00.008** toolchain: Gradle **9.7.1**, Kotlin **2.2.10**, Compose UI **1.12.1**, Material icons **1.7.8**, AndroidX Lifecycle **2.11.0**. Native sent-tx session cache is FIFO-capped (10,000). Reorg “transactions affected” is counted from `drk.get_txs_history()` (`block_height > rewind`), not from CLI log lines.
+
 ## Contents
 
 - [Download](#download)
@@ -259,7 +261,7 @@ Enable Tor in settings. The SDK rewrites the lightwallet URL to `socks5://proxy/
 | 5 | **Cleartext loopback only** | ✅ | Non-loopback `http://` refused |
 | 6 | **OMR-first + backoff (S15)** | ✅ | Exponential backoff; trial at max failures |
 | 7 | **Tor SOCKS5 dial** | ✅ | `socks5://` for lightwallet gRPC |
-| 8 | **Reorg recovery (R1)** | ✅ | `rewind_to_height()` |
+| 8 | **Reorg recovery (R1)** | ✅ | `rewind_to_height()`; UI count is history rows with `block_height > rewind` |
 | 9 | **Tip regression (R4)** | ✅ | `new_tip < prev_tip` triggers reorg |
 | 10 | **Server switch reset** | ✅ | Clears tip / OMR counters |
 | 11 | **Instant Sync & Checkpoints** | ✅ | Instant restore from authenticated `TreeState` / `CheckpointSnapshot` |
@@ -338,6 +340,8 @@ Mirrors [.github/workflows/pull-request.yml](.github/workflows/pull-request.yml)
 |------|---------|
 | JVM libraries | `./gradlew :configuration-api-lib:check :preference-api-lib:check :spackle-lib:check` |
 | Wallet SDK unit tests | `./gradlew :darkfi-android-sdk:testDebugUnitTest` |
+| UI library unit tests | `./gradlew :ui-lib:testDebugUnitTest` |
+| UniFFI crate tests | `cd rust && cargo test -p darkfi-mobile-ffi --lib` |
 | Repo JVM tests | `./gradlew test` |
 | Mainnet debug APK | `./gradlew :app:assembleDarkfimainnetDebug` |
 | Android Lint | `ORG_GRADLE_PROJECT_IS_MINIFY_ENABLED=false ./gradlew :app:lintDarkfimainnetRelease` |

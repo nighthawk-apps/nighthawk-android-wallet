@@ -27,8 +27,8 @@ object DarkfiEndpointNetworkGuard {
     fun validate(
         walletNetwork: DarkfiNetwork,
         endpoint: DarkfiEndpoint,
-    ): Result {
-        return if (endpoint.port in allowedPorts) {
+    ): Result =
+        if (endpoint.port in allowedPorts) {
             Result.Ok
         } else {
             Result.Mismatch(
@@ -37,7 +37,6 @@ object DarkfiEndpointNetworkGuard {
                 DarkfiEndpoint.LIGHTWALLET_GRPC_PORT,
             )
         }
-    }
 
     fun mismatchMessage(result: Result.Mismatch): String =
         buildString {

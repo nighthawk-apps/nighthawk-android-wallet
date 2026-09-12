@@ -5,22 +5,22 @@ import android.content.ComponentName
 import android.content.pm.PackageManager
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.nighthawkapps.lib.android.global.AppWalletCoordinator
 import com.nighthawkapps.lib.android.preference.model.entry.BooleanPreferenceDefault
+import com.nighthawkapps.lib.android.sdk.chat.DarkfiChatPreferences
 import com.nighthawkapps.lib.android.spackle.Twig
 import com.nighthawkapps.lib.android.ui.common.ANDROID_STATE_FLOW_TIMEOUT
 import com.nighthawkapps.lib.android.ui.design.theme.AppThemeVariant
 import com.nighthawkapps.lib.android.ui.preference.StandardPreferenceKeys
 import com.nighthawkapps.lib.android.ui.preference.StandardPreferenceSingleton
-import com.nighthawkapps.lib.android.sdk.chat.DarkfiChatPreferences
-import com.nighthawkapps.lib.android.global.AppWalletCoordinator
 import com.nighthawkapps.lib.android.ui.screen.advancesetting.model.AvailableLogo
 import com.nighthawkapps.lib.android.ui.screen.advancesetting.model.OneLauncherAlias
 import com.nighthawkapps.lib.android.ui.screen.advancesetting.model.TwoLauncherAlias
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.WhileSubscribed
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.flow
@@ -114,7 +114,10 @@ class SettingsViewModel(
         _isStrictOmrOnly.value = enabled
         // Apply immediately to the live wallet handle when open.
         viewModelScope.launch {
-            AppWalletCoordinator.get(getApplication()).synchronizer.value?.setStrictOmrOnly(enabled)
+            AppWalletCoordinator
+                .get(getApplication())
+                .synchronizer.value
+                ?.setStrictOmrOnly(enabled)
         }
     }
 

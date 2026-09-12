@@ -174,9 +174,12 @@ class DarkfiTransferInstrumentedTest {
             }
             // Instant Sync / UnifOMR can report Synced at tip while scannedHeight
             // stays at the last trial-decrypt window start (not the tip).
-            val caughtUp = snap.chainTip > 0 &&
-                (snap.scannedHeight + 2 >= snap.chainTip ||
-                    (snap.status == "Synced" && snap.omrAvailable))
+            val caughtUp =
+                snap.chainTip > 0 &&
+                    (
+                        snap.scannedHeight + 2 >= snap.chainTip ||
+                            (snap.status == "Synced" && snap.omrAvailable)
+                    )
             if (caughtUp && (snap.status == "Synced" || snap.status == "Degraded")) {
                 println(
                     "E2E_SYNC_DONE status=${snap.status} scanned=${snap.scannedHeight} tip=${snap.chainTip} omr=${snap.omrAvailable}",
@@ -191,7 +194,10 @@ class DarkfiTransferInstrumentedTest {
         )
     }
 
-    private fun waitForSpendableBalance(handle: DarkfiWalletHandle, address: String): Long {
+    private fun waitForSpendableBalance(
+        handle: DarkfiWalletHandle,
+        address: String
+    ): Long {
         val deadline = System.currentTimeMillis() + 1_200_000
         var lastLog = 0L
         while (System.currentTimeMillis() < deadline) {
@@ -230,7 +236,10 @@ class DarkfiTransferInstrumentedTest {
         fail("Transaction $txHash did not appear on the public DarkFi explorer")
     }
 
-    private fun isRealExplorerTxPage(url: URL, txHash: String): Boolean =
+    private fun isRealExplorerTxPage(
+        url: URL,
+        txHash: String
+    ): Boolean =
         runCatching {
             val connection = url.openConnection() as HttpURLConnection
             connection.requestMethod = "GET"
@@ -245,7 +254,10 @@ class DarkfiTransferInstrumentedTest {
             isRealExplorerBody(body, txHash)
         }.getOrDefault(false)
 
-    private fun sidecarConfirmed(url: URL, txHash: String): Boolean =
+    private fun sidecarConfirmed(
+        url: URL,
+        txHash: String
+    ): Boolean =
         runCatching {
             val connection = url.openConnection() as HttpURLConnection
             connection.requestMethod = "GET"
@@ -260,7 +272,10 @@ class DarkfiTransferInstrumentedTest {
             code == 200 && body.contains("CONFIRMED") && body.contains(txHash, ignoreCase = true)
         }.getOrDefault(false)
 
-    private fun isRealExplorerBody(body: String, txHash: String): Boolean {
+    private fun isRealExplorerBody(
+        body: String,
+        txHash: String
+    ): Boolean {
         if (body.isEmpty()) return false
         val anubis =
             body.contains("anubis_challenge", ignoreCase = true) ||
@@ -288,7 +303,12 @@ class DarkfiTransferInstrumentedTest {
             socket.connect(java.net.InetSocketAddress("127.0.0.1", 18345), 5_000)
             socket.soTimeout = 8_000
             socket.getOutputStream().write((req + "\n").toByteArray())
-            val resp = socket.getInputStream().bufferedReader().readLine().orEmpty()
+            val resp =
+                socket
+                    .getInputStream()
+                    .bufferedReader()
+                    .readLine()
+                    .orEmpty()
             socket.close()
             resp
         }.getOrDefault("")

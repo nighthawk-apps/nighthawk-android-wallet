@@ -56,7 +56,8 @@ Exposed to Kotlin/Swift via UniFFI:
 
 ### Chain Integrity (Security Audit July 2026)
 
-- **Reorg recovery** — `SyncEngine::rewind_to_height()` rolls back scan cursor; `sync.rs` deletes post-reorg coins, un-spends rolled-back spends, purges block cache via `MobileBlockCache::prune_above()`
+- **Reorg recovery** — `SyncEngine::rewind_to_height()` rolls back scan cursor; `sync.rs` deletes post-reorg coins, un-spends rolled-back spends, purges block cache via `MobileBlockCache::prune_above()`. `invalidate_transactions_above` counts matching `get_txs_history()` rows (`block_height > rewind`) before calling `revert_transactions_after` (that helper only writes two CLI log lines).
+- **Sent-tx session cache** — `BoundedCache` FIFO at 10,000 entries; updating a key does not refresh eviction order.
 - **Tip regression** — `update_chain_tip_hash()` detects `new_tip < prev_tip` as a reorg signal
 - **Server switch reset** — `reset_for_server_switch()` clears tip hash, OMR counters, and catch-up detection atomics
 - **Inter-match gap scanning** — Trial-decrypt gaps >100 blocks between consecutive OMR matches (leading, inter-match, trailing)

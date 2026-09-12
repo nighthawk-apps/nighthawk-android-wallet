@@ -264,10 +264,11 @@ fun TransactionDetails(
                 )
                 val timeText =
                     overview.blockTimeEpochSeconds?.let {
-                        LocalDateTime.ofInstant(
-                            java.time.Instant.ofEpochSecond(it),
-                            ZoneOffset.UTC
-                        ).toString()
+                        LocalDateTime
+                            .ofInstant(
+                                java.time.Instant.ofEpochSecond(it),
+                                ZoneOffset.UTC
+                            ).toString()
                             .replace("T", " ")
                     } ?: stringResource(id = R.string.ns_transaction_date_error)
                 BodyMedium(

@@ -94,6 +94,13 @@ pub async fn download_and_apply_checkpoint(
     client: &LightwalletClient,
     birthday: u32,
 ) -> Result<u32, String> {
+    let (last, _) = drk.get_last_scanned_block().map_err(|e| e.to_string())?;
+    if last > 0 {
+        return Err(format!(
+            "refusing checkpoint; wallet already scanned to {last}"
+        ));
+    }
+
     let snapshot = client.get_checkpoint_snapshot(birthday).await?;
 
     let checkpoint = CheckpointData {
@@ -165,6 +172,7 @@ pub async fn download_and_apply_checkpoint(
         checkpoint.scan_cursor
     };
     crate::sync::persist_scanned_height(drk, cursor)?;
+    crate::sync::set_merkle_from_genesis(drk, true)?;
 
     tracing::info!(
         target: "wallet-checkpoint",

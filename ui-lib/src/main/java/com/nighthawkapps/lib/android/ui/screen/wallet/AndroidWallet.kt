@@ -143,7 +143,7 @@ internal fun WrapWallet(
         val tokenBalances by (
             synchronizer?.tokenBalances
                 ?: kotlinx.coroutines.flow.flowOf(emptyList())
-            ).collectAsStateWithLifecycle(emptyList())
+        ).collectAsStateWithLifecycle(emptyList())
         var showRestartDialog by remember { mutableStateOf(false) }
 
         if (showRestartDialog) {

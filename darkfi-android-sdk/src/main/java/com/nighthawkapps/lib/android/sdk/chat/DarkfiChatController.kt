@@ -10,11 +10,11 @@ import com.nighthawkapps.lib.android.sdk.chat.darkirc.DarkircDaemonService
 import com.nighthawkapps.lib.android.sdk.chat.dm.DmConversationLimits
 import com.nighthawkapps.lib.android.sdk.chat.dm.DmConversationMeta
 import com.nighthawkapps.lib.android.sdk.chat.dm.DmConversationStore
+import com.nighthawkapps.lib.android.sdk.chat.hud.OutboundPeerSlot
+import com.nighthawkapps.lib.android.sdk.chat.hud.OutboundPeerSlots
 import com.nighthawkapps.lib.android.sdk.daemon.DarkfiChatStatusRegistry
 import com.nighthawkapps.lib.android.spackle.Twig
 import com.nighthawkapps.lib.uniffi.darkfi_mobile_ffi.DarkircEventCallback
-import com.nighthawkapps.lib.android.sdk.chat.hud.OutboundPeerSlot
-import com.nighthawkapps.lib.android.sdk.chat.hud.OutboundPeerSlots
 import com.nighthawkapps.lib.uniffi.darkfi_mobile_ffi.darkircConnectionPhase
 import com.nighthawkapps.lib.uniffi.darkfi_mobile_ffi.darkircStatus
 import com.nighthawkapps.lib.uniffi.darkfi_mobile_ffi.sendChatMessage
@@ -163,7 +163,10 @@ class DarkfiChatController(
         // If daemon is in a failed or stuck state, fully stop and drain before
         // restarting so the next start_darkirc is clean.
         if (status == "failed" || status == "stopping") {
-            try { stopDarkirc() } catch (_: Exception) {}
+            try {
+                stopDarkirc()
+            } catch (_: Exception) {
+            }
         }
 
         connectJob =
@@ -288,7 +291,8 @@ class DarkfiChatController(
      */
     private suspend fun resolveTorSocksPortOrNull(): Int? {
         _diagnosticDetail.value = "Waiting for Tor SOCKS proxy..."
-        return com.nighthawkapps.lib.android.sdk.tor.AppTorCoordinator.ensureSocksReady(app)
+        return com.nighthawkapps.lib.android.sdk.tor.AppTorCoordinator
+            .ensureSocksReady(app)
     }
 
     /**
@@ -303,34 +307,62 @@ class DarkfiChatController(
             runCatching { darkircConnectionPhase() }.getOrDefault("starting")
         _diagnosticDetail.value =
             when (phase) {
-                "connected" ->
+                "connected" -> {
                     if (useTor) {
                         "Native FFI EventGraph Connected (Tor)"
                     } else {
                         "Native FFI EventGraph Connected"
                     }
-                "waiting_for_peers" -> "Waiting for darkirc peers..."
-                "static_sync" -> "Syncing darkirc static DAG..."
-                "syncing_dag" -> "Syncing darkirc message history..."
-                "loading_history" -> "Loading darkirc history..."
-                "failed" -> "DarkIRC failed"
-                "stopping" -> "Stopping DarkIRC..."
-                "stopped" -> "DarkIRC stopped"
-                else -> "Starting DarkIRC ($phase)..."
+                }
+
+                "waiting_for_peers" -> {
+                    "Waiting for darkirc peers..."
+                }
+
+                "static_sync" -> {
+                    "Syncing darkirc static DAG..."
+                }
+
+                "syncing_dag" -> {
+                    "Syncing darkirc message history..."
+                }
+
+                "loading_history" -> {
+                    "Loading darkirc history..."
+                }
+
+                "failed" -> {
+                    "DarkIRC failed"
+                }
+
+                "stopping" -> {
+                    "Stopping DarkIRC..."
+                }
+
+                "stopped" -> {
+                    "DarkIRC stopped"
+                }
+
+                else -> {
+                    "Starting DarkIRC ($phase)..."
+                }
             }
         when (phase) {
             "connected" -> {
                 setConnectionState(connectedState)
                 _embeddedNodeStatus.value = EmbeddedDarkircNodeStatus.Running
             }
+
             "failed" -> {
                 setConnectionState(DarkfiChatConnectionState.Error)
                 _embeddedNodeStatus.value = EmbeddedDarkircNodeStatus.Failed
             }
+
             "stopped", "stopping" -> {
                 setConnectionState(DarkfiChatConnectionState.Disconnected)
                 _embeddedNodeStatus.value = EmbeddedDarkircNodeStatus.NotUsed
             }
+
             else -> {
                 setConnectionState(DarkfiChatConnectionState.Connecting)
                 _embeddedNodeStatus.value = EmbeddedDarkircNodeStatus.Starting
@@ -373,6 +405,7 @@ class DarkfiChatController(
         while (System.currentTimeMillis() < deadline) {
             when (darkircStatus()) {
                 "not_running", "failed" -> return
+
                 // If the daemon is stuck in 'starting' for the full timeout,
                 // break out so the caller can decide to force-proceed.
                 else -> delay(200)
@@ -552,6 +585,7 @@ class DarkfiChatController(
                     recordSystemMessage(normalized, "Invalid nickname. Usage: /nick <name> (1–24 alphanumeric/underscore characters)")
                     return
                 }
+
                 "/join" -> {
                     if (arg.isNotEmpty()) {
                         val targetChan = if (arg.startsWith("#")) arg else "#$arg"
@@ -565,6 +599,7 @@ class DarkfiChatController(
                     recordSystemMessage(normalized, "Usage: /join <#channel>")
                     return
                 }
+
                 "/part", "/leave" -> {
                     _joinedChannels.update { cur ->
                         cur.toMutableList().also { it.remove(normalized) }
@@ -584,6 +619,7 @@ class DarkfiChatController(
                     )
                     return
                 }
+
                 "/clear" -> {
                     _messagesByChannel.update { cur ->
                         val next = cur.toMutableMap()
@@ -592,6 +628,7 @@ class DarkfiChatController(
                     }
                     return
                 }
+
                 "/me" -> {
                     if (arg.isNotEmpty()) {
                         val nick = preferences.ensureIrcNickname()
@@ -609,6 +646,7 @@ class DarkfiChatController(
                     recordSystemMessage(normalized, "Usage: /me <action>")
                     return
                 }
+
                 "/msg" -> {
                     val msgParts = arg.split("\\s+".toRegex(), limit = 2)
                     if (msgParts.size == 2) {
@@ -627,8 +665,10 @@ class DarkfiChatController(
                     recordSystemMessage(normalized, "Usage: /msg <target> <message>")
                     return
                 }
+
                 "/help" -> {
-                    val helpText = """
+                    val helpText =
+                        """
                         Available DarkIRC commands:
                           /nick <name> — Change nickname (1–24 characters)
                           /join <#channel> — Join or switch to channel
@@ -637,10 +677,11 @@ class DarkfiChatController(
                           /me <action> — Send action message (* nick action)
                           /msg <target> <text> — Send message to target
                           /help — Show this help message
-                    """.trimIndent()
+                        """.trimIndent()
                     recordSystemMessage(normalized, helpText)
                     return
                 }
+
                 else -> {
                     recordSystemMessage(normalized, "Unknown command '$cmd'. Type /help for DarkIRC commands.")
                     return

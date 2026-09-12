@@ -38,18 +38,21 @@ data class DarkfiEndpoint(
         @Suppress("UNUSED_PARAMETER")
         fun defaultForNetwork(network: DarkfiNetwork): DarkfiEndpoint =
             when (network) {
-                DarkfiNetwork.Testnet ->
+                DarkfiNetwork.Testnet -> {
                     DarkfiEndpoint(
                         host = "epidermis-sandbox-marshland.ngrok-free.dev",
                         port = 443,
                         isTls = true,
                     )
-                DarkfiNetwork.Mainnet ->
+                }
+
+                DarkfiNetwork.Mainnet -> {
                     DarkfiEndpoint(
                         host = "127.0.0.1",
                         port = LIGHTWALLET_GRPC_PORT,
                         isTls = false,
                     )
+                }
             }
 
         fun fromJson(obj: JSONObject): DarkfiEndpoint =

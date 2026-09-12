@@ -5,7 +5,6 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -21,6 +20,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
@@ -48,11 +48,11 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.LinkAnnotation
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextLinkStyles
 import androidx.compose.ui.text.buildAnnotatedString
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
@@ -71,11 +71,11 @@ import com.nighthawkapps.lib.android.sdk.chat.hud.ChatInlineSpan
 import com.nighthawkapps.lib.android.sdk.chat.hud.ChatMessageLexer
 import com.nighthawkapps.lib.android.sdk.chat.hud.ChatTimeline
 import com.nighthawkapps.lib.android.sdk.chat.hud.ChatTimelineItem
-import com.nighthawkapps.lib.android.ui.screen.chat.view.ChatNetworkHud
 import com.nighthawkapps.lib.android.ui.MainActivity
 import com.nighthawkapps.lib.android.ui.R
 import com.nighthawkapps.lib.android.ui.common.SecureScreen
 import com.nighthawkapps.lib.android.ui.common.setSensitivePlainText
+import com.nighthawkapps.lib.android.ui.screen.chat.view.ChatNetworkHud
 import com.nighthawkapps.lib.android.ui.screen.chat.view.ChatNewDmSheet
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -246,8 +246,9 @@ private fun ChatScreen(
             connectionState = connectionState,
             diagnostic = diagnostic,
             nickname = controller.ircNickname,
-            showRetry = connectionState == DarkfiChatConnectionState.Disconnected ||
-                connectionState == DarkfiChatConnectionState.Error,
+            showRetry =
+                connectionState == DarkfiChatConnectionState.Disconnected ||
+                    connectionState == DarkfiChatConnectionState.Error,
             onRetry = { controller.connectOrRetry() },
             onToggleHud = { showNetworkHud = !showNetworkHud },
         )
@@ -421,6 +422,7 @@ private fun ChatScreen(
                             modifier = Modifier.fillMaxWidth(),
                         )
                     }
+
                     is ChatTimelineItem.Message -> {
                         ChatMessageLine(
                             line = item.message,
@@ -733,6 +735,7 @@ private fun ChatMessageLine(
                             append(span.value)
                             addStyle(SpanStyle(color = bodyColor), start, length)
                         }
+
                         is ChatInlineSpan.Url -> {
                             val start = length
                             append(span.url)
@@ -750,6 +753,7 @@ private fun ChatMessageLine(
                                 length,
                             )
                         }
+
                         is ChatInlineSpan.Fud -> {
                             val start = length
                             append(span.uri)

@@ -151,6 +151,8 @@ pub async fn propose_transfer(
     amount: &str,
     token_id_str: Option<&str>,
     recipient_address: &str,
+    lightwallet_server_url: Option<&str>,
+    lightwallet_tls_pin: Option<[u8; 32]>,
 ) -> Result<String, String> {
     use darkfi_sdk::crypto::keypair::Address;
     use std::str::FromStr;
@@ -172,6 +174,10 @@ pub async fn propose_transfer(
     let recipient = *recipient_addr.public_key();
 
     // Step 1: Create the proposal record (stored locally)
+    crate::sync::ensure_spendable_money_tree(drk, lightwallet_server_url, lightwallet_tls_pin)
+        .await
+        .map_err(|e| format!("merkle rebuild for DAO propose: {e}"))?;
+
     let proposal_record = drk
         .dao_propose_transfer(
             dao_name,
@@ -208,7 +214,13 @@ pub async fn vote_on_proposal(
     drk: &Drk,
     proposal_bulla_b58: &str,
     vote_yes: bool,
+    lightwallet_server_url: Option<&str>,
+    lightwallet_tls_pin: Option<[u8; 32]>,
 ) -> Result<String, String> {
+    crate::sync::ensure_spendable_money_tree(drk, lightwallet_server_url, lightwallet_tls_pin)
+        .await
+        .map_err(|e| format!("merkle rebuild for DAO vote: {e}"))?;
+
     let bytes = bs58::decode(proposal_bulla_b58)
         .into_vec()
         .map_err(|e| format!("invalid proposal bulla: {e}"))?;

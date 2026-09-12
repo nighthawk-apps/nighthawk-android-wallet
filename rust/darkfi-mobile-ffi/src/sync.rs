@@ -574,6 +574,9 @@ async fn try_omr_sync(
     let tip = sync_engine.chain_tip();
 
     if scanned >= tip {
+        // Cursor at tip still needs a genesis-complete tree (birthday restore
+        // and create-at-tip used to skip 0..=birthday-1 / 0..=tip-1).
+        ensure_merkle_caught_up(drk, client, scanned, tip.saturating_add(1), tip).await?;
         return Ok(()); // Already synced
     }
 
@@ -641,6 +644,7 @@ async fn try_omr_sync(
     };
     let birthday = sync_engine.birthday_height();
     let scan_start = crate::birthday::clamp_scan_start(scanned, birthday);
+    ensure_merkle_caught_up(drk, client, scanned, scan_start, tip).await?;
     if scan_start > tip {
         tracing::debug!(
             target: "wallet-sync",
@@ -1279,6 +1283,9 @@ async fn apply_omr_sparse_window(
         .insert_merkle_trees(&[(KVDB_MERKLE_TREES_MONEY, &tree)])
         .map_err(|e| format!("Failed to persist Money Merkle tree: {e}"))?;
     let _ = drk.cache.kvdb.flush_default_mode();
+    if scan_start == 0 {
+        set_merkle_from_genesis(drk, true)?;
+    }
 
     if found > 0 {
         tracing::debug!(
@@ -1323,6 +1330,7 @@ async fn try_trial_decryption_sync(
     let tip = sync_engine.chain_tip();
 
     if scanned >= tip {
+        ensure_merkle_caught_up(drk, client, scanned, tip.saturating_add(1), tip).await?;
         sync_engine.set_status(LightSyncStatus::Synced);
         return Ok(());
     }
@@ -1330,18 +1338,22 @@ async fn try_trial_decryption_sync(
     // Chunk the range — requesting the entire tip in one RPC often breaks the
     // gRPC stream ("connection lost") on long testnets.
     const MAX_TRIAL_WINDOW: u32 = 500;
+    let birthday = sync_engine.birthday_height();
+    let td_start = crate::birthday::clamp_scan_start(scanned, birthday);
+    ensure_merkle_caught_up(drk, client, scanned, td_start, tip).await?;
     let window_end = tip.min(scanned.saturating_add(MAX_TRIAL_WINDOW));
     sync_engine.set_status_message(&format!(
         "Trial decrypt {}–{} / tip {}",
-        scanned + 1,
+        td_start,
         window_end,
         tip
     ));
 
-    let birthday = sync_engine.birthday_height();
-    let td_start = crate::birthday::clamp_scan_start(scanned, birthday);
     if td_start <= window_end {
         trial_decrypt_range(drk, client, td_start, window_end).await?;
+        if td_start == 0 {
+            set_merkle_from_genesis(drk, true)?;
+        }
     }
 
     persist_scanned_height(drk, window_end)?;
@@ -1385,6 +1397,65 @@ pub(crate) fn assert_contiguous_heights(
 /// the sync engine (S5).
 const PAYMENT_MEMOS_TREE: &str = "payment_memos";
 const PAYMENT_RECIPIENTS_TREE: &str = "payment_recipients";
+/// Cache flag: Money Merkle tree includes height-0 coins after the dummy ZERO leaf.
+const WALLET_MERKLE_META_TREE: &str = "wallet_merkle_meta";
+const KEY_MERKLE_FROM_GENESIS: &[u8] = b"merkle_from_genesis";
+
+/// True when this wallet's Money tree was built from genesis (not dummy+post-birthday).
+pub(crate) fn merkle_from_genesis(drk: &drk::Drk) -> bool {
+    let Ok(tree) = drk.cache.kvdb.open_tree_default(WALLET_MERKLE_META_TREE) else {
+        return false;
+    };
+    matches!(tree.get(KEY_MERKLE_FROM_GENESIS), Ok(Some(v)) if v.as_slice() == b"1")
+}
+
+pub(crate) fn set_merkle_from_genesis(drk: &drk::Drk, complete: bool) -> Result<(), String> {
+    let tree = drk
+        .cache
+        .kvdb
+        .open_tree_default(WALLET_MERKLE_META_TREE)
+        .map_err(|e| format!("open merkle meta: {e}"))?;
+    if complete {
+        tree.insert(KEY_MERKLE_FROM_GENESIS, b"1")
+            .map_err(|e| format!("set merkle_from_genesis: {e}"))?;
+    } else {
+        let _ = tree.remove(KEY_MERKLE_FROM_GENESIS);
+    }
+    let _ = drk.cache.kvdb.flush_default_mode();
+    Ok(())
+}
+
+/// If the Money tree is not known to include height 0, either rebuild through
+/// `tip` (already caught up) or replay `0..=scan_start-1` before the scan window.
+async fn ensure_merkle_caught_up(
+    drk: &drk::Drk,
+    client: &crate::lightwallet_client::LightwalletClient,
+    scanned: u32,
+    scan_start: u32,
+    tip: u32,
+) -> Result<(), String> {
+    if merkle_from_genesis(drk) {
+        return Ok(());
+    }
+    if scanned >= tip || scan_start > tip {
+        if tip == 0 {
+            return Ok(());
+        }
+        tracing::warn!(
+            target: "wallet-sync",
+            "Money Merkle tree is missing genesis leaves at tip {tip}; rebuilding 0..={tip}"
+        );
+        return rebuild_money_tree_to_height(drk, client, tip).await;
+    }
+    let Some((_, end)) = crate::birthday::pre_birthday_commitment_range(scan_start) else {
+        return Ok(());
+    };
+    tracing::info!(
+        target: "wallet-sync",
+        "Backfilling Money Merkle tree 0..={end} before scan_start {scan_start}"
+    );
+    rebuild_money_tree_to_height(drk, client, end).await
+}
 
 fn persist_received_memo_from_tx_hash(drk: &drk::Drk, tx_hash: &[u8], memo_bytes: &[u8]) {
     if memo_bytes.is_empty() || tx_hash.len() != 32 {
@@ -1466,6 +1537,9 @@ pub(crate) fn merkle_node_from_coin_bytes(
 ///
 /// Height 0 is genesis (real coins). Callers must start from an
 /// `empty_money_tree()` so the ZERO sentinel is already present.
+/// Spend-safe rebuilds go through [`rebuild_money_tree_to_height`] so SQL
+/// leaf positions stay aligned; this helper remains for prefix-only backfill.
+#[allow(dead_code)]
 pub(crate) async fn append_note_commitments(
     tree: &mut darkfi_sdk::crypto::MerkleTree,
     client: &crate::lightwallet_client::LightwalletClient,
@@ -1565,6 +1639,7 @@ pub(crate) async fn rewind_wallet_after_reorg(
             drk.cache
                 .insert_merkle_trees(&[(drk::money::KVDB_MERKLE_TREES_MONEY, &tree)])
                 .map_err(|e| format!("persist empty Money tree: {e}"))?;
+            let _ = set_merkle_from_genesis(drk, false);
             scan_height = 0;
         }
     }
@@ -1573,7 +1648,7 @@ pub(crate) async fn rewind_wallet_after_reorg(
     crate::transactions::invalidate_transactions_above(drk, rollback_height).await
 }
 
-async fn rebuild_money_tree_to_height(
+pub(crate) async fn rebuild_money_tree_to_height(
     drk: &drk::Drk,
     client: &crate::lightwallet_client::LightwalletClient,
     rollback_height: u32,
@@ -1639,12 +1714,24 @@ async fn rebuild_money_tree_to_height(
         .insert_merkle_trees(&[(drk::money::KVDB_MERKLE_TREES_MONEY, &tree)])
         .map_err(|e| format!("Failed to persist rebuilt Money Merkle tree: {e}"))?;
     let _ = drk.cache.kvdb.flush_default_mode();
+    set_merkle_from_genesis(drk, true)?;
     Ok(())
 }
 
 /// Birthday/OMR sync only appends the scan window. Spend proofs then use a
 /// Merkle root that is not on chain (`tx.calculate_fee` → -32111). Walk every
 /// commitment from genesis and rewrite this wallet's leaf positions.
+pub(crate) async fn ensure_spendable_money_tree(
+    drk: &drk::Drk,
+    lightwallet_server_url: Option<&str>,
+    lightwallet_tls_pin: Option<[u8; 32]>,
+) -> Result<(), String> {
+    if merkle_from_genesis(drk) {
+        return Ok(());
+    }
+    rebuild_spendable_money_tree(drk, lightwallet_server_url, lightwallet_tls_pin).await
+}
+
 pub(crate) async fn rebuild_spendable_money_tree(
     drk: &drk::Drk,
     lightwallet_server_url: Option<&str>,

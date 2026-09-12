@@ -240,14 +240,18 @@ class MainActivity : FragmentActivity() {
                             }
                     splashHost.addView(this, lp)
                 }
+
             fun applyState(state: TorBootstrapUiState) {
                 val label =
                     when (state) {
                         TorBootstrapUiState.Bootstrapping,
                         TorBootstrapUiState.Idle,
                         -> getString(R.string.splash_tor_bootstrapping)
+
                         TorBootstrapUiState.Ready -> getString(R.string.splash_tor_ready)
+
                         TorBootstrapUiState.Failed -> getString(R.string.splash_tor_failed)
+
                         TorBootstrapUiState.Disabled -> null
                     }
                 if (label == null) {
@@ -298,8 +302,11 @@ class MainActivity : FragmentActivity() {
                 TorBootstrapUiState.Bootstrapping,
                 TorBootstrapUiState.Idle,
                 -> stringResource(R.string.splash_tor_bootstrapping)
+
                 TorBootstrapUiState.Ready -> stringResource(R.string.splash_tor_ready)
+
                 TorBootstrapUiState.Failed -> stringResource(R.string.splash_tor_failed)
+
                 TorBootstrapUiState.Disabled -> null
             } ?: return
         val showDisable =
