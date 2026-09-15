@@ -36,7 +36,45 @@ srclib SHA edit.
 
 Tagging alone does **not** run this repo’s GitHub `Deploy` workflow (that is branch/`workflow_dispatch` + Play secrets). F-Droid’s scanner is separate.
 
-## 3.00.008 (this release)
+## 3.00.010 (this release)
+
+| Field | Value |
+|-------|--------|
+| `WALLET_VERSION_NAME` | `3.00.010` |
+| `WALLET_VERSION_CODE` | `30001810` |
+| Suggested git tag | `v3.00.010` |
+| Fastlane changelog | `fastlane/metadata/android/en-US/changelogs/30001810.txt` |
+| Local F-Droid APK | `bundle exec fastlane fdroid` → `assembleDarkfitestnetRelease` (unsigned) |
+
+What's new for testers:
+
+- Encrypted nearby DarkIRC EventGraph hop over BLE (Noise per neighbor; share-internet off).
+- Chat remains in-process UniFFI; DMs must be saltbox.
+- Native `arm64-v8a` FFI includes mesh neighbor C ABI.
+
+After tagging, update the fdroiddata recipe only if the checkout branch / submodule SHAs changed. `UpdateCheckData` on `gradle.properties` should pick up `30001810` automatically.
+
+## 3.00.009
+
+| Field | Value |
+|-------|--------|
+| `WALLET_VERSION_NAME` | `3.00.009` |
+| `WALLET_VERSION_CODE` | `30001809` |
+| Suggested git tag | `v3.00.009` |
+| Fastlane changelog | `fastlane/metadata/android/en-US/changelogs/30001809.txt` |
+| Local F-Droid APK | `bundle exec fastlane fdroid` → `assembleDarkfitestnetRelease` (unsigned) |
+
+What's new for testers:
+
+- Native wallet open waits for `DarkfiWalletHandle` before wipe/retry (Fjall lock).
+- Chat HUD/readability; swipe-to-reveal DRK on home.
+- In-process UniFFI DarkIRC; optional encrypted BLE EventGraph hop (share-internet off).
+- Package ABIs: arm64-v8a, armeabi-v7a, x86, x86_64 (drop JNA armeabi/mips).
+- Explorer: https://explorer.testnet.dark.fi
+
+After tagging, update the fdroiddata recipe only if the checkout branch / submodule SHAs changed. `UpdateCheckData` on `gradle.properties` should pick up `30001809` automatically.
+
+## 3.00.008
 
 | Field | Value |
 |-------|--------|
@@ -44,7 +82,6 @@ Tagging alone does **not** run this repo’s GitHub `Deploy` workflow (that is b
 | `WALLET_VERSION_CODE` | `30001808` |
 | Suggested git tag | `v3.00.008` |
 | Fastlane changelog | `fastlane/metadata/android/en-US/changelogs/30001808.txt` |
-| Local F-Droid APK | `bundle exec fastlane fdroid` → `assembleDarkfitestnetRelease` (unsigned) |
 
 What's new for testers:
 

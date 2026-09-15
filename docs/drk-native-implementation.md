@@ -97,4 +97,5 @@ Keep signing **inside Rust**; Kotlin never sees spend keys.
 - [`alpha-testnet-connection.md`](alpha-testnet-connection.md) — 0.3 alpha testnet: run `darkfid`, wallet RPC presets, P2P seeds
 - [`wallet-roadmap.md`](wallet-roadmap.md) — product direction (embedded drk vs thin client)
 - [`darkfi-integration.md`](darkfi-integration.md) — build + UniFFI regeneration
-- [`darkirc-embedded-android.md`](darkirc-embedded-android.md) — Event Graph via bundled `darkirc_exec`
+- [`darkirc-embedded-android.md`](darkirc-embedded-android.md) — Optional legacy `darkirc_exec` (Chat tab is UniFFI)
+- [`nighthawk-mesh.md`](nighthawk-mesh.md) — Encrypted EventGraph hop over BLE

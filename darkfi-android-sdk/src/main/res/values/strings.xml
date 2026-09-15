@@ -6,4 +6,9 @@
     <string name="darkfid_fg_channel_name">DarkFi node background</string>
     <string name="darkfid_fg_notif_title">darkfid</string>
     <string name="darkfid_fg_notif_body">Fullnode syncing for wallet (127.0.0.1:18345 testnet)</string>
+    <string name="mesh_fg_channel_name">Nighthawk Mesh</string>
+    <string name="mesh_fg_notif_title">Nighthawk Mesh on</string>
+    <string name="mesh_fg_notif_body">Nearby Nighthawk chat over Bluetooth. This app does not use Bluetooth to infer location.</string>
+    <string name="mesh_fg_notif_peers">Nighthawk Mesh on · %d nearby. Bluetooth is not used to infer location.</string>
+    <string name="mesh_fg_stop">Stop</string>
 </resources>

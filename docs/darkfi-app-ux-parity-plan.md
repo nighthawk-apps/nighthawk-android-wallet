@@ -45,7 +45,7 @@ Themes: Stealth (default), Light, Midnight still apply; HUD uses surface + outli
 
 | ID | Item | Android | iOS | Desktop |
 |----|------|---------|-----|---------|
-| **N-U1** | **App version on splash, bottom-center** | Android 12+ splash host: keep “Built on DarkFi”; add `versionName` (`3.00.008`) **below** tagline, `#A8B2BD` / parmaviolet, 12–13 sp, `Gravity.BOTTOM \| CENTER_HORIZONTAL`, ~24 dp above home indicator (shift Tor status up). Pre-12: same on Compose splash if used. | `SplashView` `ZStack(alignment: .bottom)`: `Text` of `CFBundleShortVersionString` + short build, centered, ~48 pt from safe bottom. Keep logo/subtitle in the vertical center. | Optional: first-launch window footer `app.getVersion()` — nice-to-have, not blocking |
+| **N-U1** | **App version on splash, bottom-center** | Android 12+ splash host: keep “Built on DarkFi”; add `versionName` (`3.00.009`) **below** tagline, `#A8B2BD` / parmaviolet, 12–13 sp, `Gravity.BOTTOM \| CENTER_HORIZONTAL`, ~24 dp above home indicator (shift Tor status up). Pre-12: same on Compose splash if used. | `SplashView` `ZStack(alignment: .bottom)`: `Text` of `CFBundleShortVersionString` + short build, centered, ~48 pt from safe bottom. Keep logo/subtitle in the vertical center. | Optional: first-launch window footer `app.getVersion()` — nice-to-have, not blocking |
 | **N-U2** | HUD component kit | Compose: `NighthawkHudPanel`, `PeerSlotRow`, `TransportSegment` | SwiftUI: same in `UIComponents` | Lit: shared CSS variables from Stealth tokens |
 
 ### N-P0 — Chat network HUD (implement now)

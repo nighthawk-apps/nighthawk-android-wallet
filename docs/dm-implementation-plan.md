@@ -1,6 +1,8 @@
 # Direct messaging (DarkIRC E2E) — implementation plan
 
-Plan for **1:1 encrypted DMs** on Nighthawk Android, aligned with the [DarkFi book — private messages](https://codeberg.org/darkrenaissance/darkfi/src/branch/master/doc/src/misc/darkirc/private_message.md) and upstream **`bin/darkirc`** (not desktop **`bin/app`**).
+**Status (current):** 1:1 DMs ship in the Chat tab via UniFFI (`chacha_encrypt_dm` / `generate_dm_keypair`). The daemon refuses plaintext DMs. Channel/nick labels are still visible on the EventGraph (desktop hides some with dummy saltbox). Historical plan below; do not implement DMs on the IRC subprocess path.
+
+---
 
 **Related docs:** [`darkfi-chat-upstream.md`](darkfi-chat-upstream.md), [`implementation-plan.md`](implementation-plan.md) (add task **P2-2** when work starts).
 
@@ -13,7 +15,7 @@ Plan for **1:1 encrypted DMs** on Nighthawk Android, aligned with the [DarkFi bo
 | **`bin/darkfid` + wallet (`drk`)** | Balances, scan, send, DAO | None — unrelated to chat keys |
 | **`bin/darkirc`** | P2P EventGraph + IRC server | **Full DM:** `[contact."label"]` with `dm_chacha_public` + `my_dm_chacha_secret`; encrypt on send; refuse plaintext DM; **`REHASH`** reloads contacts |
 | **`bin/app` `plugin/darkirc.rs`** | In-process EventGraph for desktop UI | **No DM:** `recv` drops any `privmsg.channel` that does not start with `#` (encrypted channels/DMs skipped) |
-| **Nighthawk Android** | Embedded `darkirc_exec` + Kotlin IRC to loopback | **Partial:** TOML contacts via `DarkircCryptoStore`; settings UI in `ChatE2eCryptoSettings`; main **Chat** tab is **public `#` channels only** |
+| **Nighthawk Android** | In-process UniFFI EventGraph | **Shipped:** ChaCha DMs + contact store; Chat tab is public `#` plus Direct |
 
 **Takeaway:** Implement DMs on the **daemon + IRC** path already used on Android. Do **not** copy `bin/app` chat send/recv — it intentionally ignores non-`#` traffic.
 

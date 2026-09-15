@@ -2,6 +2,7 @@ package com.nighthawkapps.lib.android.ui.screen.settings.nighthawk.model
 
 data class NighthawkSettingsNavigationCallbacks(
     val onChatSettings: () -> Unit,
+    val onMeshSettings: () -> Unit,
     val onTorNetworkSettings: () -> Unit,
     val onSyncNotifications: () -> Unit,
     val onFiatCurrency: () -> Unit,

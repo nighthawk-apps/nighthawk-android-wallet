@@ -15,7 +15,8 @@ Nighthawk Android holds wallet seed material, chat crypto keys, and optional PIN
 
 - **User device:** OS, other apps without root cannot read app-private storage; rooted devices are out of scope for strong guarantees.
 - **Network:** Wallet RPC to user-selected endpoints; CoinGecko price API pinned in release builds; optional Tor for HTTP/P2P.
-- **Public chat:** DM **public** keys may be posted to `#channels`; users are warned before posting or pasting keys.
+- **BLE mesh:** Advertisements + GATT carry ciphertext only this pass. Do not log Bluetooth addresses. Share-internet / LWD-over-BLE are off.
+- **Public chat:** DM **public** keys may be posted to `#channels`; users are warned before posting or pasting keys. Public `#` bodies are plaintext inside `Event.content`.
 
 ## Controls (2025-06)
 

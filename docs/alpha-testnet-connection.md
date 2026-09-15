@@ -54,7 +54,7 @@ See also [`docs/upstream/alpha-testnet-endpoints.md`](upstream/alpha-testnet-end
 - `tor+tls://lilith0.dark.fi:18340`
 - `tor+tls://lilith1.dark.fi:18340`
 
-Chat (`darkirc`) uses different seeds on port **25551** — bundled `darkirc_exec` in the APK reads its own config.
+Chat (`darkirc`) uses different seeds on port **25551**. The in-process UniFFI daemon uses those seeds; optional bundled `darkirc_exec` reads its own TOML. Nearby BLE mesh is not a substitute for lilith P2P.
 
 ## Nighthawk wallet endpoint (Settings → Change server)
 

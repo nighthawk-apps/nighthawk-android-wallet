@@ -49,5 +49,7 @@ Use against **standalone** `darkfi-lightwalletd` with `fhe-omr`. Tick when prove
 ## Build
 
 - [x] UniFFI Kotlin/Swift regenerated after UDL (`darkfid_rpc_url`, `DmKeypair`)
-- [x] Rebuild Android `.so` / iOS xcframework after FFI changes before release
+- [x] Rebuild Android `.so` / iOS xcframework after **UDL** changes before release
+- [x] Rebuild `.so` / xcframework after **mesh C ABI** (`SKIP_UNIFFI_BINDGEN=1`; Android arm64-v8a + iOS device/sim)
+- [x] Mesh unit tests: plaintext DAG not ingested; star relay / GCS heal on host `cargo test -p darkfi-mobile-ffi --lib mesh`
 - [x] Live registration matrix on testnet LWD (localnet darkfid optional; funded send/receive still open)

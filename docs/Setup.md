@@ -51,7 +51,7 @@ Start by making sure the command line with Gradle works first, because **all the
     1. Clone repo in a terminal on your computer `git clone git@github.com:nighthawk-apps/nighthawk-android-wallet.git`
 1. Compile from the command line
     1. Navigate to the repo checkout in a terminal
-    1. **Full project (Kotlin + UniFFI `.so`):** Follow **[Build the project](../README.md#build-the-project)** in the repository `README.md` (Rust **`cargo-ndk`**, then `./gradlew :app:assemble…`). **`libdarkfi_mobile_ffi.so`** is Git-ignored—you must produce it locally or from CI before first native run (see **`darkfi-android-sdk/src/main/jniLibs/README.md`**). If those files already exist on disk, Gradle alone is enough.
+    1. **Full project (Kotlin + UniFFI `.so`):** Follow **[Build the project](../README.md#build-the-project)** in the repository `README.md` (Rust **`cargo-ndk`**, NDK **26.1.10909125**, then `./gradlew :app:assemble…`). **`libdarkfi_mobile_ffi.so`** is Git-ignored. Mesh C ABI only: `SKIP_UNIFFI_BINDGEN=1`. If those files already exist on disk, Gradle alone is enough.
     1. **Gradle-only (after native libs are present):** `./gradlew assemble` or a specific variant (e.g. `./gradlew :app:assembleDarkfimainnetDebug`).
 1. Compile from Android Studio
     1. Open Android Studio

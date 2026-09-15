@@ -22,6 +22,7 @@ pub mod batch_pir;
 pub mod checkpoint;
 pub mod lightwallet_client;
 pub mod lightwallet_sync;
+pub mod mesh;
 pub mod omr;
 pub mod sync_pipeline;
 pub mod unifomr;
@@ -712,6 +713,13 @@ impl DarkfiWalletHandle {
         }
         crate::zkas_cache::set_disk_cache_dir(std::path::PathBuf::from(&config.cache_path));
         sync::start_background_sync(drk.clone(), ex, sync_engine.clone());
+        crate::mesh::set_lwd_splice(Some(std::sync::Arc::new({
+            let sync_engine = sync_engine.clone();
+            move |method: &str, body: &[u8]| {
+                let client = sync_engine.lightwallet_client();
+                smol::block_on(client.relay_mesh_ctrl(method, body))
+            }
+        })));
         let mut config = config;
         config.zeroize_secrets();
         Ok(Self {
@@ -1112,6 +1120,7 @@ impl DarkfiWalletHandle {
         // The `_sync_started` flag is a plain bool set at construction time.
         // The actual cleanup happens when `DarkfiWalletHandle` is dropped (via Arc).
         tracing::info!("DarkfiWalletHandle::close() called — resources will be released on drop");
+        crate::mesh::set_lwd_splice(None);
         Ok(())
     }
 }

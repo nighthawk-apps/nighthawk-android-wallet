@@ -653,9 +653,11 @@ class DarkfiChatController(
                         val target = msgParts[0].trim()
                         val msgContent = msgParts[1].trim()
                         val nick = preferences.ensureIrcNickname()
+                        val wireBody =
+                            DarkfiChatCrypto.encryptMessageIfPossible(app, target, msgContent)
                         scope.launch(Dispatchers.IO) {
                             try {
-                                sendChatMessage(target, nick, msgContent)
+                                sendChatMessage(target, nick, wireBody)
                             } catch (e: Exception) {
                                 Twig.error(e) { "FFI send /msg failed" }
                             }

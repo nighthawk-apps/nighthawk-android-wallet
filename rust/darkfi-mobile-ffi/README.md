@@ -70,7 +70,7 @@ Exposed to Kotlin/Swift via UniFFI:
 - **Rust** stable via [rustup](https://rustup.rs/)
 - **Vendored DarkFi** at `third_party/darkfi` (run `./scripts/vendor-darkfi.sh` from the Android repo root before building)
 - **Android cross-build**: [cargo-ndk](https://github.com/bbqsrc/cargo-ndk) + `ANDROID_NDK_HOME` — see the root [README](../../README.md#build-the-project)
-- **UniFFI 0.31.x** — provided by the crate; bindgen runs via `cargo run --bin uniffi-bindgen` from the `rust/` workspace
+- **UniFFI 0.32.x** — provided by the crate; bindgen runs via `cargo run --bin uniffi-bindgen` from the `rust/` workspace unless `SKIP_UNIFFI_BINDGEN=1` (mesh C ABI rebuilds).
 
 ## Build the native library (host)
 
@@ -87,7 +87,7 @@ export ANDROID_NDK_HOME=/path/to/ndk
 ../scripts/build-darkfi-mobile-ffi-android.sh
 ```
 
-The script cross-compiles `libdarkfi_mobile_ffi.so` into `darkfi-android-sdk/src/main/jniLibs/<abi>/` and regenerates Kotlin bindings. Those `.so` files are **git-ignored** — each clone must build locally.
+The script cross-compiles `libdarkfi_mobile_ffi.so` into `darkfi-android-sdk/src/main/jniLibs/<abi>/` and regenerates Kotlin bindings unless `SKIP_UNIFFI_BINDGEN=1` or `FDROID_BUILD=1`. Those `.so` files are **git-ignored** — each clone must build locally.
 
 ## Regenerate Kotlin bindings
 
@@ -109,7 +109,9 @@ Generating from the **UDL** (not an old `.dylib`) ensures new types like `SyncMe
 
 `--no-format` avoids invoking `ktlint` when it is not on `PATH`.
 
-After regeneration, sanity-check hand-edits: UniFFI 0.31.1 can occasionally fuse a brace with the following top-level declarations; the last block of `darkfi_mobile_ffi.kt` should end the `FfiConverterTypeDarkfiWalletNativeError` object with `}` **before** the generated `bridgePing` / `bridgeVersion` functions.
+After regeneration, sanity-check hand-edits: UniFFI 0.32 can occasionally fuse a brace with the following top-level declarations; the last block of `darkfi_mobile_ffi.kt` should end the `FfiConverterTypeDarkfiWalletNativeError` object with `}` **before** the generated `bridgePing` / `bridgeVersion` functions.
+
+- **Mesh C ABI (not UniFFI):** neighbor Noise / EventPut / DagSync in `src/mesh/`. Keep lockstep with the iOS crate. Rebuild with `SKIP_UNIFFI_BINDGEN=1`. Android JNA loads new symbols via `NhMeshNeighborLib`. See [`docs/nighthawk-mesh.md`](../../docs/nighthawk-mesh.md).
 
 ## Kotlin facade
 

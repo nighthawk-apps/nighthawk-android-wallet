@@ -6,17 +6,20 @@ This summarizes what **darkfi `bin/darkirc`** and **`bin/app`** do today and how
 
 | Layer | Upstream desktop **`bin/app`** | Nighthawk Android |
 |-------|-------------------------------|-------------------|
-| Chat transport | **In-process** `plugin/darkirc.rs`: `P2p` + `EventGraph`, no IRC wire | **Embedded `darkirc_exec`** subprocess + Kotlin IRC to `127.0.0.1:6667` |
-| Scene graph API | `/plugin/darkirc` methods `send`, signals `recv`, `connect` | `DarkfiChatController` → `DarkircIrcClient` |
-| Tor toggle | `use_tor.txt` in app data → Arti **`tor`** profile + onion seeds `:25552` | Settings → **Tor network** → `AppTorCoordinator` + Guardian **tor-android** SOCKS; embedded darkirc uses **`socks5`** profile via loopback proxy |
-| Wallet | In-process `DrkPlugin` → loopback `darkfid` | UniFFI `drk` + optional remote `darkfid`; Tor rewrites endpoint to `socks5://…/host:port` |
+| Chat transport | **In-process** `plugin/darkirc.rs`: `P2p` + `EventGraph`, no IRC wire | **In-process UniFFI** `start_darkirc` (same EventGraph). Optional **`darkirc_exec`** + Kotlin IRC is **legacy**. |
+| Scene graph API | `/plugin/darkirc` methods `send`, signals `recv`, `connect` | `DarkfiChatController` → UniFFI callback |
+| Nearby hop | Desktop p2p only | BLE Nighthawk Mesh (encrypted EventGraph; share-internet off) |
+| Tor toggle | `use_tor.txt` → Arti **`tor`** profile + onion seeds `:25552` | Settings → Tor + Guardian **tor-android** SOCKS for native daemon |
+| Wallet | In-process `DrkPlugin` → loopback `darkfid` | UniFFI `drk` + optional remote `darkfid` / lightwalletd |
 
-Upstream does **not** spawn external `darkirc`; Android uses the standalone daemon binary because embedding Event Graph in the APK UI process is not shipped yet. Functionally: **same network identity** (`magic_bytes`, lilith/onion seeds), different IPC (scene graph vs IRC loopback).
+Upstream does **not** spawn external `darkirc`. Nighthawk Chat matches that: **in-process EventGraph**. The optional `darkirc_exec` path exists for AGPL packaging / IRC reverse-port only.
 
 ## Transport & discovery
 
-- **P2P / Event Graph / DAG**: Implemented inside upstream **`darkirc`** (Rust). Nighthawk can run the same stack **in-process** via bundled **`darkirc_exec`** — a packaged copy of `bin/darkirc` with generated TOML under `filesDir/darkirc/`. That daemon owns **`P2p`**, **`EventGraph`**, and DAG sync; Kotlin only speaks IRC to `irc_listen`.
-- **Kotlin IRC client**: Connects to **`tcp://127.0.0.1:<port>`** (embedded daemon or external node). Does **not** reimplement the Event Graph in Kotlin.
+- **P2P / Event Graph / DAG**: In-process `darkirc_daemon.rs` inside `libdarkfi_mobile_ffi.so`. Kotlin does **not** reimplement the Event Graph.
+- **Nighthawk Mesh**: BLE hop for encrypted `Event` bodies. See [nighthawk-mesh.md](nighthawk-mesh.md).
+- **Legacy Kotlin IRC**: Connects to **`tcp://127.0.0.1:<port>`** when the optional subprocess (or desktop reverse) is used.
+- **App-wide Tor** (`AppTorCoordinator`): When Tor routing is enabled, embedded Tor starts at **Application** launch. Wallet HTTP and native `drk` honor SOCKS.
 - **App-wide Tor** (`AppTorCoordinator`): When Tor routing is enabled, embedded Tor starts at **Application** launch (not only on chat connect). Wallet HTTP (Retrofit), Kotlin `darkfid` JSON-RPC, native `drk` connect URL, and embedded darkirc P2P all honor the same SOCKS prefs.
 - **Reconnect / offline queue**: Outgoing lines typed while disconnected are stored as JSON (`kotlinx.serialization`) and **drained** after the next successful `connectAndJoin`. **WorkManager** (`OutgoingChatReconnectWorker`) triggers `connectOrRetry` when the network is available, if the UI has registered `DarkfiChatConnectionBridge`.
 

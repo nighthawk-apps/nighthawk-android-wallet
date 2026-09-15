@@ -6,7 +6,7 @@
 
 Privacy-preserving wallet (work-in-progress) by [Nighthawk Apps](https://nighthawkapps.com). This tree ships as a **new Android application id** on the DarkFi network (DRK). The app integrates a native DarkFi wallet API via **UniFFI** (`rust/darkfi-mobile-ffi` → generated Kotlin + `DarkfiMobileFfiApi`) for chain sync, broadcast, and chat.
 
-**3.00.008** toolchain: Gradle **9.7.1**, Kotlin **2.2.10**, Compose UI **1.12.1**, Material icons **1.7.8**, AndroidX Lifecycle **2.11.0**. Native sent-tx session cache is FIFO-capped (10,000). Reorg “transactions affected” is counted from `drk.get_txs_history()` (`block_height > rewind`), not from CLI log lines.
+**3.00.010** (`WALLET_VERSION_CODE=30001810`) toolchain: Gradle **9.7.1**, AGP **9.3.1**, Kotlin **2.2.10**, Compose UI **1.12.1**, Material3 **1.4.0**, Material icons **1.7.8**, AndroidX Lifecycle **2.11.0**, Navigation Compose **2.9.8**, JNA **5.19.1**, UniFFI **0.32**, NDK **26.1.10909125**, minSdk **27**, compile/target SDK **37**. Native sent-tx session cache is FIFO-capped (10,000). Reorg “transactions affected” is counted from `drk.get_txs_history()` (`block_height > rewind`), not from CLI log lines.
 
 ## Contents
 
@@ -15,6 +15,7 @@ Privacy-preserving wallet (work-in-progress) by [Nighthawk Apps](https://nightha
 - [Prerequisites](#prerequisites)
 - [Build](#build)
 - [Chat (DarkIRC)](#chat-darkirc--eventgraph)
+- [Nighthawk Mesh](#nighthawk-mesh-encrypted-eventgraph-hop)
 - [Architecture](#architecture)
 - [Privacy & security](#privacy--security)
 - [Verification](#verification)
@@ -28,7 +29,7 @@ Privacy-preserving wallet (work-in-progress) by [Nighthawk Apps](https://nightha
 
 Store listings are **not finalized** for `com.nighthawkwallet.android`. Placeholder targets until publishing completes:
 
-- **F-Droid:** DarkFi **testnet** package `com.nighthawkwallet.android.testnet` / flavor `darkfitestnet` (see [docs/fdroid.md](docs/fdroid.md); listing pending fdroiddata merge). **3.00.008** (`WALLET_VERSION_CODE=30001808`) — Fastlane changelog `fastlane/metadata/android/en-US/changelogs/30001808.txt`, tag `v3.00.008`. Local unsigned APK: `bundle exec fastlane fdroid`. Legacy Zcash: [com.nighthawkapps.wallet.android](https://f-droid.org/packages/com.nighthawkapps.wallet.android/)
+- **F-Droid:** DarkFi **testnet** package `com.nighthawkwallet.android.testnet` / flavor `darkfitestnet` (see [docs/fdroid.md](docs/fdroid.md); listing pending fdroiddata merge). **3.00.010** (`WALLET_VERSION_CODE=30001810`) — Fastlane changelog `fastlane/metadata/android/en-US/changelogs/30001810.txt`, tag `v3.00.010`. Local unsigned APK: `bundle exec fastlane fdroid`. Legacy Zcash: [com.nighthawkapps.wallet.android](https://f-droid.org/packages/com.nighthawkapps.wallet.android/)
 - **Google Play:** `https://PLACEHOLDER_PLAY_STORE_LISTING_URL`
 
 Replace these URLs when production listings exist—do not invent live links prematurely.
@@ -50,6 +51,8 @@ export PATH="$PATH:$ANDROID_HOME/platform-tools"
 
 # 3) UniFFI wallet native lib + Kotlin bindings
 ./scripts/build-darkfi-mobile-ffi-android.sh
+# Mesh C ABI only (keep committed UniFFI Kotlin):
+# SKIP_UNIFFI_BINDGEN=1 MOBILE_FFI_ABIS=arm64-v8a ./scripts/build-darkfi-mobile-ffi-android.sh
 # Emulator-only ABIs (faster):
 # MOBILE_FFI_ABIS="arm64-v8a x86_64" ./scripts/build-darkfi-mobile-ffi-android.sh
 
@@ -66,9 +69,9 @@ export PATH="$PATH:$ANDROID_HOME/platform-tools"
 
 **Chat:** open the **Chat** tab — DarkIRC runs **in-process** via UniFFI (`start_darkirc`), not a desktop IRC server. First P2P/DAG sync can take several minutes. Watch `adb logcat -s darkfi-mobile-ffi darkfi-net`. Enable **Tor** in chat settings for SOCKS-routed P2P.
 
-**After editing `darkfi_mobile_ffi.udl`:** re-run `./scripts/build-darkfi-mobile-ffi-android.sh`. A UDL mismatch often shows as `Unresolved reference 'SyncMethod'`.
+**After editing `darkfi_mobile_ffi.udl`:** re-run `./scripts/build-darkfi-mobile-ffi-android.sh` (do **not** set `SKIP_UNIFFI_BINDGEN`). A UDL mismatch often shows as `Unresolved reference 'SyncMethod'`. After mesh-engine C ABI changes only, use `SKIP_UNIFFI_BINDGEN=1`.
 
-**Disk:** `third_party/darkfi/target/` and `rust/target/` grow large; `cargo clean` frees space between rebuilds.
+**Disk:** `third_party/darkfi/target/` and `rust/target/` grow large. Delete a finished NDK triple (`rust/target/aarch64-linux-android`) after copying `.so` files. Do not `make clean` / `distclean` the vendored DarkFi proofs tree to “fix” a build.
 
 **Optional binaries:** `./scripts/build-darkirc-android.sh` (legacy `darkirc_exec`), `./scripts/build-darkfid-android.sh`.
 
@@ -182,18 +185,18 @@ APKs under `app/build/outputs/apk/`. Install:
 
 ## Chat (DarkIRC / EventGraph)
 
-In-app **Chat** uses a **native in-process DarkIRC daemon** over UniFFI (`start_darkirc`). See [DarkIRC embedded Android](docs/darkirc-embedded-android.md) and [DarkFi integration](docs/darkfi-integration.md).
+In-app **Chat** uses a **native in-process DarkIRC daemon** over UniFFI (`start_darkirc` + `DarkircEventCallback`). Same model as iOS. See [DarkFi integration](docs/darkfi-integration.md) and [Nighthawk Mesh](docs/nighthawk-mesh.md). Optional packaged `darkirc_exec` remains a **legacy IRC subprocess** ([packaging notes](docs/darkirc-embedded-android.md)); desktop reverse-port IRC is [android-darkirc-chat.md](docs/android-darkirc-chat.md).
 
 | Capability | Behavior |
 |------------|----------|
 | Transport | EventGraph P2P via `libdarkfi_mobile_ffi.so` (clearnet `tcp+tls` seeds by default) |
+| Nearby hop | Optional BLE **Nighthawk Mesh** — encrypted EventGraph only (no share-internet this pass) |
 | Tor | Chat settings → P2P via embedded Guardian **`tor-android`** SOCKS5; UI **Connected (Tor)** only after a real handshake |
 | Public channels | `#dev`, `#random`, `#lunardao`, `#hackers` |
-| E2E DMs | ChaCha via `chacha_encrypt_dm` / `chacha_decrypt_dm` |
+| E2E DMs | ChaCha via `chacha_encrypt_dm` / `chacha_decrypt_dm`; daemon refuses plaintext DMs |
 | Status | `darkirc_status()` → `ConnectedDirect` or `ConnectedViaTor` |
 | DAG history | First P2P connect can take several minutes |
 | Settings | **Settings → Chat** — identity, Tor/SOCKS, DAG hours |
-| Legacy path | Optional packaged `darkirc_exec` (not default) |
 
 ```bash
 ./scripts/build-darkfi-mobile-ffi-android.sh
@@ -201,7 +204,11 @@ In-app **Chat** uses a **native in-process DarkIRC daemon** over UniFFI (`start_
 ./gradlew :app:installDarkfimainnetDebug
 ```
 
-Manual smoke tests: [DarkIRC chat on Android](docs/android-darkirc-chat.md).
+---
+
+## Nighthawk Mesh (encrypted EventGraph hop)
+
+Optional nearby BLE hop for **encrypted DarkIRC DAG** frames (Noise per GATT neighbor). Chat still goes through EventGraph → `event_pub` → UI. Share-internet / SoftAP / BLE LWD are **off**. Rebuild with `SKIP_UNIFFI_BINDGEN=1` after mesh C ABI changes. Full write-up: [docs/nighthawk-mesh.md](docs/nighthawk-mesh.md).
 
 ---
 
@@ -213,17 +220,17 @@ Manual smoke tests: [DarkIRC chat on Android](docs/android-darkirc-chat.md).
 - **Wallet SDK:** `darkfi-android-sdk` — `PersistableDarkfiWallet`, `DarkfiMnemonic` (22-word), `DarkfiWalletCoordinator`, `DarkfiSynchronizer`.
 - **Balance:** single confirmed/spendable DRK tally (no transparent/shielded split).
 - **RPC presets:** `DarkfiEndpoint` defaults to lightwalletd **`tcp://127.0.0.1:9067`** (both networks). Network identity is enforced via `GetLightInfo.chain_name`.
-- **Native:** UniFFI + JNA → `libdarkfi_mobile_ffi.so` in `jniLibs/<abi>/`. Rebuild after `rust/darkfi-mobile-ffi` changes — [DarkFi integration](docs/darkfi-integration.md).
+- **Native:** UniFFI + JNA → `libdarkfi_mobile_ffi.so` in `jniLibs/<abi>/`. Mesh C ABI: `SKIP_UNIFFI_BINDGEN=1`. **arm64-v8a** includes neighbor mesh symbols; **x86_64** emulator `.so` is older until rebuilt.
 
 ### UniFFI & native bridge
 
 | Piece | Role |
 |-------|------|
-| **`rust/darkfi-mobile-ffi`** | UniFFI `cdylib` (`darkfi_mobile_ffi.udl`) — [crate README](rust/darkfi-mobile-ffi/README.md) |
+| **`rust/darkfi-mobile-ffi`** | UniFFI **0.32** `cdylib` (`darkfi_mobile_ffi.udl`) + mesh C ABI — [crate README](rust/darkfi-mobile-ffi/README.md) |
 | **Generated Kotlin** | `com.nighthawkapps.lib.uniffi.darkfi_mobile_ffi` (via build script) |
 | **`DarkfiMobileFfiApi`** | Stable façade so UI avoids importing generated symbols |
 | **`rust/darkfi-android-bridge`** | Legacy minimal bridge — prefer `darkfi-mobile-ffi` |
-| **JNA** | UniFFI 0.31 Kotlin bindings (`net.java.dev.jna:jna`) |
+| **JNA** | UniFFI **0.32** Kotlin bindings (`net.java.dev.jna:jna` **5.19.1**) |
 | **`jniLibs/`** | Per-ABI `.so` — Gradle does **not** invoke Cargo automatically |
 
 ---

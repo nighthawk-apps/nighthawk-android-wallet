@@ -31,6 +31,21 @@ object StandardPreferenceKeys {
 
     val IS_BANDIT_AVAILABLE = BooleanPreferenceDefault(PreferenceKey("is_bandit_available"), false)
 
+    /** Nighthawk Mesh (Beta). Off by default; radios start only when the user enables this. */
+    val IS_NIGHTHAWK_MESH_ENABLED = BooleanPreferenceDefault(PreferenceKey("is_nighthawk_mesh_enabled"), false)
+
+    /**
+     * Keep BLE / connectedDevice running in the background while mesh is on.
+     * Default on; turning it off stops scanning when the app is backgrounded.
+     */
+    val IS_NIGHTHAWK_MESH_ALWAYS_ON = BooleanPreferenceDefault(PreferenceKey("is_nighthawk_mesh_always_on"), true)
+
+    /**
+     * Share this phone's internet with nearby Nighthawk peers (gateway + Wi-Fi bulk).
+     * Default on. The engine still arms only while charging on unmetered Wi-Fi.
+     */
+    val IS_NIGHTHAWK_MESH_GATEWAY = BooleanPreferenceDefault(PreferenceKey("is_nighthawk_mesh_gateway"), true)
+
     val PREFERRED_LOGO = StringPreferenceDefault(PreferenceKey("preferred_logo"), "0")
 
     val IS_DARK_THEME_ENABLED = BooleanPreferenceDefault(PreferenceKey("is_dark_theme_enabled"), true)

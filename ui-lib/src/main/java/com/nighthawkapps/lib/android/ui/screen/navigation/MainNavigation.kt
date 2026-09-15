@@ -48,6 +48,7 @@ import com.nighthawkapps.lib.android.ui.screen.navigation.NavigationTargets.ABOU
 import com.nighthawkapps.lib.android.ui.screen.navigation.NavigationTargets.ADVANCED_SETTING
 import com.nighthawkapps.lib.android.ui.screen.navigation.NavigationTargets.CHANGE_SERVER
 import com.nighthawkapps.lib.android.ui.screen.navigation.NavigationTargets.CHAT_SETTINGS
+import com.nighthawkapps.lib.android.ui.screen.navigation.NavigationTargets.MESH_SETTINGS
 import com.nighthawkapps.lib.android.ui.screen.navigation.NavigationTargets.DAO_DETAIL
 import com.nighthawkapps.lib.android.ui.screen.navigation.NavigationTargets.DAO_HUB
 import com.nighthawkapps.lib.android.ui.screen.navigation.NavigationTargets.DAO_PROPOSAL
@@ -73,6 +74,7 @@ import com.nighthawkapps.lib.android.ui.screen.send.model.SendArgumentsWrapper
 import com.nighthawkapps.lib.android.ui.screen.send.nighthawk.AndroidSend
 import com.nighthawkapps.lib.android.ui.screen.settingbackupwallet.AndroidSettingBackUpWallet
 import com.nighthawkapps.lib.android.ui.screen.settings.nighthawk.AndroidSettings
+import com.nighthawkapps.lib.android.ui.screen.settings.nighthawk.AndroidMeshSettings
 import com.nighthawkapps.lib.android.ui.screen.settings.nighthawk.AndroidTorNetworkSettings
 import com.nighthawkapps.lib.android.ui.screen.settings.nighthawk.model.NighthawkSettingsNavigationCallbacks
 import com.nighthawkapps.lib.android.ui.screen.syncnotification.AndroidSyncNotification
@@ -133,6 +135,7 @@ internal fun MainActivity.MainNavigation(
                 navigation =
                     NighthawkSettingsNavigationCallbacks(
                         onChatSettings = { navHostController.navigateJustOnce(CHAT_SETTINGS) },
+                        onMeshSettings = { navHostController.navigateJustOnce(MESH_SETTINGS) },
                         onTorNetworkSettings = { navHostController.navigateJustOnce(TOR_NETWORK_SETTINGS) },
                         onSyncNotifications = { navHostController.navigateJustOnce(SYNC_NOTIFICATION) },
                         onFiatCurrency = { navHostController.navigateJustOnce(FIAT_CURRENCY) },
@@ -337,6 +340,9 @@ internal fun MainActivity.MainNavigation(
         composable(TOR_NETWORK_SETTINGS) {
             AndroidTorNetworkSettings(onBack = { navHostController.popBackStackJustOnce(TOR_NETWORK_SETTINGS) })
         }
+        composable(MESH_SETTINGS) {
+            AndroidMeshSettings(onBack = { navHostController.popBackStackJustOnce(MESH_SETTINGS) })
+        }
     }
 }
 
@@ -460,6 +466,7 @@ object NavigationTargets {
     const val ADVANCED_SETTING = "advanced_settings"
     const val CHANGE_SERVER = "change_server"
     const val CHAT_SETTINGS = "chat_settings"
+    const val MESH_SETTINGS = "mesh_settings"
     const val TOR_NETWORK_SETTINGS = "tor_network_settings"
 
     const val ABOUT = "about"

@@ -4,11 +4,12 @@
 //! It connects to the DarkFi P2P network and syncs the event graph (DAG).
 //! Messages are passed directly to the UI via UniFFI callbacks.
 
+use std::collections::HashSet;
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicU8, Ordering};
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 
-use darkfi_serial::{deserialize_async_partial, serialize_async};
+use darkfi_serial::{deserialize_async, deserialize_async_partial, serialize_async};
 use smol::Executor;
 
 use crate::{DarkfiWalletNativeError, DarkircEventCallback};
@@ -75,6 +76,11 @@ static EVENT_GRAPH: std::sync::LazyLock<
 > = std::sync::LazyLock::new(|| smol::lock::RwLock::new(None));
 static P2P: std::sync::LazyLock<smol::lock::RwLock<Option<darkfi::net::P2pPtr>>> =
     std::sync::LazyLock::new(|| smol::lock::RwLock::new(None));
+
+/// Event ids ingested from BLE so the relay task does not mesh-gossip them
+/// again (originator already sealed to neighbors).
+static MESH_SOURCED: std::sync::LazyLock<Mutex<HashSet<[u8; 16]>>> =
+    std::sync::LazyLock::new(|| Mutex::new(HashSet::new()));
 
 /// DarkFi-app HUD uses three outbound slots. Same density here (not the video overlay).
 const OUTBOUND_HUD_SLOTS: usize = 3;
@@ -197,6 +203,89 @@ fn new_privmsg(channel: String, nick: String, msg: String) -> Privmsg {
         nick,
         msg,
     }
+}
+
+/// Desktop-compatible DM/private-channel encryption. Public `#` channels stay
+/// plaintext inside `Event.content` (same as DarkIRC p2p). DMs must already
+/// carry ChaCha/saltbox ciphertext in `msg` from the wallet crypto layer.
+fn try_encrypt_privmsg(privmsg: &mut Privmsg) {
+    if privmsg.channel.starts_with('#') {
+        return;
+    }
+    if looks_like_saltbox(&privmsg.msg) {
+        return;
+    }
+    log::warn!(
+        "DM/private send without ciphertext; refusing to put plaintext nick/msg on EventGraph/mesh"
+    );
+}
+
+fn looks_like_saltbox(s: &str) -> bool {
+    let Ok(raw) = bs58::decode(s).into_vec() else {
+        return false;
+    };
+    raw.len() >= 25
+}
+
+fn mesh_event_id16(event: &darkfi::event_graph::Event) -> [u8; 16] {
+    let mut id = [0u8; 16];
+    id.copy_from_slice(&event.id().as_bytes()[..16]);
+    id
+}
+
+async fn mesh_gossip_event(event: &darkfi::event_graph::Event, blob: &[u8]) {
+    let ev_bytes = serialize_async(event).await;
+    let Ok(payload) = crate::mesh::encode_mesh_event(&ev_bytes, blob) else {
+        return;
+    };
+    let _ = crate::mesh::mesh_publish_event(mesh_event_id16(event), payload);
+}
+
+async fn drain_mesh_inbound(eg: &darkfi::event_graph::EventGraph) {
+    while let Some((_id, payload)) = crate::mesh::mesh_pop_inbound_event() {
+        let Ok((ev_bytes, blob)) = crate::mesh::decode_mesh_event(&payload) else {
+            continue;
+        };
+        let Ok(event) = deserialize_async::<darkfi::event_graph::Event>(&ev_bytes).await else {
+            continue;
+        };
+        if blob.len() > darkfi::event_graph::EventGraph::MAX_MESH_EVENT_BLOB {
+            continue;
+        }
+        if !event.validate_new() {
+            continue;
+        }
+        let id16 = mesh_event_id16(&event);
+        let dag_name = eg.current_genesis.read().await.header.timestamp.to_string();
+        let _ = eg
+            .header_dag_insert(vec![event.header.clone()], &dag_name)
+            .await;
+        match eg.ingest_mesh_event(event, blob, &dag_name).await {
+            Ok(ids) => {
+                if !ids.is_empty() {
+                    mark_mesh_sourced(id16);
+                }
+            }
+            Err(e) => log::debug!("mesh ingest skipped: {e}"),
+        }
+    }
+}
+
+fn mark_mesh_sourced(id: [u8; 16]) {
+    if let Ok(mut g) = MESH_SOURCED.lock() {
+        g.insert(id);
+        if g.len() > 4096 {
+            g.clear();
+        }
+    }
+}
+
+fn is_mesh_sourced(id: [u8; 16]) -> bool {
+    MESH_SOURCED
+        .lock()
+        .ok()
+        .map(|g| g.contains(&id))
+        .unwrap_or(false)
 }
 
 /// Forwards `tracing` events into Android logcat.
@@ -499,7 +588,13 @@ pub fn send_chat_message(
         let p2p_lock = P2P.read().await;
 
         if let (Some(eg), Some(p2p)) = (&*eg_lock, &*p2p_lock) {
-            let msg = new_privmsg(channel.clone(), nick.clone(), message.clone());
+            let mut msg = new_privmsg(channel.clone(), nick.clone(), message.clone());
+            try_encrypt_privmsg(&mut msg);
+            if !msg.channel.starts_with('#') && !looks_like_saltbox(&msg.msg) {
+                return Err(DarkfiWalletNativeError::NativeDrkUnavailable(
+                    "DM must be encrypted before send".to_string(),
+                ));
+            }
 
             let event = match darkfi::event_graph::Event::new(serialize_async(&msg).await, eg).await
             {
@@ -546,6 +641,8 @@ pub fn send_chat_message(
                     "insert_signal_with_blob skipped event (empty result)".to_string(),
                 ));
             }
+
+            mesh_gossip_event(&event, &blob).await;
 
             if let Err(e) = p2p
                 .broadcast(&darkfi::event_graph::proto::EventPut(event, blob))
@@ -793,6 +890,9 @@ async fn run_darkirc_daemon(
     let relay_task = ex.spawn(async move {
         loop {
             let ev = ev_sub.receive().await;
+            if !is_mesh_sourced(mesh_event_id16(&ev)) {
+                mesh_gossip_event(&ev, &[]).await;
+            }
             if let Some(cb) = &cb_clone {
                 if let Ok((privmsg, _)) = deserialize_async_partial::<Privmsg>(ev.content()).await {
                     let eid = ev.id().to_hex().to_string();
@@ -807,6 +907,14 @@ async fn run_darkirc_daemon(
                     );
                 }
             }
+        }
+    });
+
+    let mesh_eg = event_graph.clone();
+    let mesh_task = ex.spawn(async move {
+        loop {
+            drain_mesh_inbound(&mesh_eg).await;
+            smol::Timer::after(std::time::Duration::from_millis(250)).await;
         }
     });
 
@@ -988,6 +1096,7 @@ async fn run_darkirc_daemon(
 
     p2p.stop().await;
     prune_task.stop().await;
+    mesh_task.cancel().await;
     relay_task.cancel().await;
 
     // Clear globals
@@ -1101,5 +1210,23 @@ mod tests {
         let json = darkirc_outbound_slots();
         assert!(json.contains("sleeping"));
         assert!(json.contains("\"slot\":2"));
+    }
+
+    #[test]
+    fn public_channel_privmsg_stays_plaintext() {
+        let mut msg = new_privmsg("#dev".into(), "alice".into(), "hello".into());
+        try_encrypt_privmsg(&mut msg);
+        assert_eq!(msg.channel, "#dev");
+        assert_eq!(msg.msg, "hello");
+        assert!(!looks_like_saltbox(&msg.msg));
+    }
+
+    #[test]
+    fn saltbox_heuristic_accepts_nonce_ciphertext() {
+        let mut raw = vec![0u8; 40];
+        raw[0] = 1;
+        let b58 = bs58::encode(raw).into_string();
+        assert!(looks_like_saltbox(&b58));
+        assert!(!looks_like_saltbox("hello"));
     }
 }

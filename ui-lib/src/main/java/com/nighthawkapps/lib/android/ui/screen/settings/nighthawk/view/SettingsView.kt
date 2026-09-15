@@ -41,6 +41,7 @@ fun SettingsPreview() {
                 navigation =
                     NighthawkSettingsNavigationCallbacks(
                         onChatSettings = {},
+                        onMeshSettings = {},
                         onTorNetworkSettings = {},
                         onSyncNotifications = {},
                         onFiatCurrency = {},
@@ -74,7 +75,10 @@ fun SettingsView(
                 .padding(dimensionResource(id = R.dimen.screen_standard_margin)),
     ) {
         SettingsHubBranding()
-        SettingsHubChatSection(onChatSettings = navigation.onChatSettings)
+        SettingsHubChatSection(
+            onChatSettings = navigation.onChatSettings,
+            onMeshSettings = navigation.onMeshSettings,
+        )
         SettingsHubNotificationsSection(navigation = navigation)
         SettingsHubWalletRowsUpper(
             navigation = navigation,
@@ -118,7 +122,10 @@ private fun SettingsHubBranding() {
 }
 
 @Composable
-private fun SettingsHubChatSection(onChatSettings: () -> Unit) {
+private fun SettingsHubChatSection(
+    onChatSettings: () -> Unit,
+    onMeshSettings: () -> Unit,
+) {
     Column {
         BodyMedium(
             text = stringResource(id = R.string.ns_chat_settings_section_title),
@@ -133,6 +140,16 @@ private fun SettingsHubChatSection(onChatSettings: () -> Unit) {
                 Modifier
                     .heightIn(min = dimensionResource(id = R.dimen.setting_list_item_min_height))
                     .clickable { onChatSettings() },
+        )
+        Spacer(modifier = Modifier.height(10.dp))
+        SettingsListItem(
+            iconRes = R.drawable.ic_icon_connecting,
+            title = stringResource(id = R.string.ns_mesh_settings_row_title),
+            desc = stringResource(id = R.string.ns_mesh_settings_row_desc),
+            modifier =
+                Modifier
+                    .heightIn(min = dimensionResource(id = R.dimen.setting_list_item_min_height))
+                    .clickable { onMeshSettings() },
         )
         Spacer(modifier = Modifier.height(16.dp))
     }

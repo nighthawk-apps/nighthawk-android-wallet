@@ -1,4 +1,6 @@
-# Packaging `darkirc` in the Android app
+# Packaging `darkirc` in the Android app (legacy IRC subprocess)
+
+**Current Chat tab** uses in-process UniFFI (`start_darkirc`), not this binary. Keep this document for AGPL packaging of optional `darkirc_exec` / `libdarkirc_embedded.so` when the “Run embedded DarkIRC node” toggle is on.
 
 DarkIRC (`bin/darkirc` in the DarkFi repo) is **AGPL-3.0**. Shipping its binary in the APK obligates you to comply with the license (source/corresponding offer, etc.). Coordinate with your legal review before distributing.
 
@@ -7,7 +9,7 @@ DarkIRC (`bin/darkirc` in the DarkFi repo) is **AGPL-3.0**. Shipping its binary 
 - **Foreground service** ([`DarkircDaemonService`](../darkfi-android-sdk/src/main/java/com/nighthawkapps/lib/android/sdk/chat/darkirc/DarkircDaemonService.kt)) starts the packaged executable and shows a low-priority notification (Android foreground rules).
 - **[`DarkircEmbeddedRunner`](../darkfi-android-sdk/src/main/java/com/nighthawkapps/lib/android/sdk/chat/darkirc/DarkircEmbeddedRunner.kt)** runs `libdarkirc_embedded.so` from `jniLibs` (Android 10+ cannot `exec()` from `filesDir`). Assets remain as a fallback copy source at build time via `syncEmbeddedDaemonJniLibs`.
 - **Generated config** uses clearnet **`tcp+tls`** lilith seeds ([`DarkfiChatDefaults`](../darkfi-android-sdk/src/main/java/com/nighthawkapps/lib/android/sdk/chat/DarkfiChatDefaults.kt)), loopback IRC `tcp://127.0.0.1:6667`, and sandboxed datastore paths — aligned with upstream defaults but without relying on `~/.config` on device.
-- **Preferences**: `DarkfiChatPreferences.runEmbeddedDarkirc` (default **true**). User toggle: **Chat → settings → Run embedded DarkIRC node**.
+- **Preferences**: `DarkfiChatPreferences.runEmbeddedDarkirc` (default **true** in prefs, but Chat messages still come from UniFFI). User toggle: **Chat → settings → Run embedded DarkIRC node**.
 - **Bootstrap**: [`DarkircDaemonBootstrap.maybeStart`](../darkfi-android-sdk/src/main/java/com/nighthawkapps/lib/android/sdk/chat/darkirc/DarkircDaemonBootstrap.kt) runs from [`NighthawkWalletApplication`](../app/src/main/java/com/nighthawkwallet/android/NighthawkWalletApplication.kt) when the pref is on **and** a binary exists for the device ABI.
 
 ### Where binaries live (artifact layout)

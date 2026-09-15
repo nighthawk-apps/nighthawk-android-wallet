@@ -361,6 +361,8 @@ internal fun ChatSettingsScreen(
             )
         }
 
+        MeshSettingsSection()
+
         Spacer(modifier = Modifier.height(24.dp))
         ChatE2eCryptoSettings(
             embeddedDarkircEnabled = embeddedDarkirc,

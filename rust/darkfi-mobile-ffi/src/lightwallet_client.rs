@@ -705,6 +705,15 @@ impl LightwalletClient {
         port: u16,
         connect_timeout: Duration,
     ) -> Result<tokio::net::TcpStream, std::io::Error> {
+        if let Some((bulk_host, bulk_port)) = crate::mesh::bulk_tcp_override() {
+            let addr = format!("{bulk_host}:{bulk_port}");
+            return tokio::time::timeout(connect_timeout, tokio::net::TcpStream::connect(addr))
+                .await
+                .map_err(|_| {
+                    std::io::Error::new(std::io::ErrorKind::TimedOut, "mesh bulk connect timeout")
+                })?
+                .map_err(|e| std::io::Error::new(std::io::ErrorKind::ConnectionRefused, e));
+        }
         if let Some((proxy_host, proxy_port)) = socks5_proxy {
             let proxy = (proxy_host.as_str(), *proxy_port);
             let dest = (host, port);
@@ -1445,6 +1454,82 @@ impl LightwalletClient {
         })
         .await;
         result
+    }
+
+    /// Allowlisted BLE `NH_LWD_CTRL` relay. The gateway uses this process's
+    /// TLS-pinned client; UnifOMR / compact-block methods are refused.
+    pub async fn relay_mesh_ctrl(&self, method: &str, body: &[u8]) -> Result<Vec<u8>, String> {
+        let mut allow = method.as_bytes().to_vec();
+        allow.push(b'\n');
+        allow.extend_from_slice(body);
+        let method = crate::mesh::validate_lwd_ctrl(&allow).map_err(|e| e.to_string())?;
+        use prost::Message;
+        match method {
+            "GetLightInfo" => {
+                let info = self.get_light_info().await?;
+                Ok(lightwallet_proto::LightInfo {
+                    version: info.server_version,
+                    chain_name: info.chain_name,
+                    block_height: info.chain_tip_height,
+                    block_target: 0,
+                    difficulty: String::new(),
+                    omr_supported: info.omr_supported,
+                    best_block_hash: info.best_block_hash,
+                    backend_version: info.backend_version,
+                    directory_attest_pubkey: info.directory_attest_pubkey,
+                    proto_version: info.proto_version,
+                }
+                .encode_to_vec())
+            }
+            "GetOmrCapabilities" => {
+                let c = self.get_omr_capabilities().await?;
+                Ok(lightwallet_proto::OmrCapabilities {
+                    enabled: c.enabled,
+                    scheme: c.scheme,
+                    false_positive_rate: c.false_positive_rate,
+                    max_range_per_request: c.max_range_per_request,
+                }
+                .encode_to_vec())
+            }
+            "SendTransaction" => {
+                let tx = lightwallet_proto::RawTransaction::decode(body)
+                    .map_err(|e| format!("SendTransaction decode: {e}"))?;
+                let hash = self
+                    .send_transaction(tx.data, tx.omr_clue, tx.omr_metadata_enc)
+                    .await?;
+                Ok(lightwallet_proto::SendResponse {
+                    tx_hash: hash,
+                    error: String::new(),
+                    clue_accepted: true,
+                }
+                .encode_to_vec())
+            }
+            "RegisterCluePublicKey" => {
+                let reg = lightwallet_proto::CluePublicKeyRegistration::decode(body)
+                    .map_err(|e| format!("RegisterCluePublicKey decode: {e}"))?;
+                self.register_clue_public_key(
+                    reg.payment_pubkey,
+                    reg.clue_public_key,
+                    reg.ownership_proof,
+                    reg.key_version,
+                )
+                .await?;
+                Ok(Vec::new())
+            }
+            "GetCluePublicKey" => {
+                let pk = lightwallet_proto::PaymentPubkey::decode(body)
+                    .map_err(|e| format!("GetCluePublicKey decode: {e}"))?;
+                let (found, clue, proof, ver) = self.get_clue_public_key(pk.payment_pubkey).await?;
+                Ok(lightwallet_proto::CluePublicKey {
+                    clue_public_key: clue,
+                    found,
+                    ownership_proof: proof,
+                    key_version: ver,
+                }
+                .encode_to_vec())
+            }
+            _ => Err("not allowlisted".into()),
+        }
     }
 
     pub async fn fetch_pir_batch(

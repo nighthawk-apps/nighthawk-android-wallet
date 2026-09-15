@@ -18,8 +18,8 @@ Update status when a task lands; iOS column notes what the Swift app must mirror
 
 | ID | Task | Status | Notes |
 |----|------|--------|-------|
-| P0-1 | Rebuild `libdarkfi_mobile_ffi.so` (all ABIs) + refresh jniLibs | done (arm64+x86_64) | `./scripts/build-darkfi-mobile-ffi-android.sh`; run full 4-ABI when disk allows |
-| P0-2 | Regenerate UniFFI Kotlin after UDL changes (memo APIs) | in_progress | Hand-updated `darkfi_mobile_ffi.kt` + checksums; full `uniffi-bindgen` when bindgen completes |
+| P0-1 | Rebuild `libdarkfi_mobile_ffi.so` (all ABIs) + refresh jniLibs | done (arm64-v8a mesh ABI) | `SKIP_UNIFFI_BINDGEN=1`; NDK **26.1.10909125**; other ABIs when disk allows |
+| P0-2 | Regenerate UniFFI Kotlin after UDL changes | done | Committed bindings UniFFI **0.32**; skip bindgen unless UDL changes |
 | P0-3 | `payment_memos` table migration for existing wallets | done | `Drk::ensure_payment_memos_table()` on read/write |
 | P0-4 | Mainnet embedded darkfid `threshold = 11` | done | `DarkfidChainDefaults.confirmationThreshold` |
 | P0-5 | Network-aware Tor P2P seeds (mainnet tor+tls over SOCKS) | done | `torOnionP2pSeeds` + `torTlsP2pSeeds` in embedded TOML |
@@ -63,8 +63,9 @@ Update status when a task lands; iOS column notes what the Swift app must mirror
 | P3-1 | Chat `replay_mode` UI | todo | DarkIRC settings |
 | P3-2 | Optional remote darkfid presets + trust warning | todo | Custom fullnode URL |
 | P3-3 | Package `darkfid_exec` (like `darkirc_exec`) | done | `syncDarkfidArtifacts` in `darkfi-android-sdk/build.gradle.kts` |
-| P3-4 | Chat E2E + offline queue hardening | todo | DM reliability |
+| P3-4 | Chat E2E + offline queue hardening | todo | DM UI shipped; queue/REHASH still open |
 | P3-5 | DarkIRC 1:1 DM UI (pubkey copy → contact → thread) | done | See [`dm-implementation-plan.md`](dm-implementation-plan.md) |
+| P3-6 | Nighthawk Mesh encrypted EventGraph hop | done | BLE Noise; share-internet **off** — [`nighthawk-mesh.md`](nighthawk-mesh.md) |
 
 ---
 
@@ -73,7 +74,7 @@ Update status when a task lands; iOS column notes what the Swift app must mirror
 | ID | Task | Status | iOS parity |
 |----|------|--------|------------|
 | P4-1 | Instrumented test: send with memo on testnet | in_progress | `DarkfiPaymentMemoInstrumentedTest` (normalization); E2E send still manual |
-| P4-2 | Refresh `darkfi-integration.md` parity matrix | todo | Shared architecture doc |
+| P4-2 | Refresh `darkfi-integration.md` parity matrix | done | In-process chat + mesh |
 | P4-3 | Add `docs/darkfi-mainnet-android.md` operator guide | done | Mainnet runbook |
 | P4-4 | CI job: `build-darkfi-mobile-ffi-android.sh` | in_progress | Documented in mainnet guide; workflow optional |
 | P4-5 | Maintain [`app-features.md`](app-features.md) | done | iOS feature checklist |
@@ -96,8 +97,10 @@ Update status when a task lands; iOS column notes what the Swift app must mirror
 ## Native build commands (local)
 
 ```bash
-export ANDROID_NDK_HOME=/path/to/ndk   # e.g. ~/Library/Android/sdk/ndk/29.0.14206865
+export ANDROID_NDK_HOME="$HOME/Library/Android/sdk/ndk/26.1.10909125"
 ./scripts/build-darkfi-mobile-ffi-android.sh
+# Mesh C ABI only:
+# SKIP_UNIFFI_BINDGEN=1 MOBILE_FFI_ABIS=arm64-v8a ./scripts/build-darkfi-mobile-ffi-android.sh
 ./gradlew :app:assembleDarkfimainnetDebug
 ```
 
@@ -117,4 +120,4 @@ cargo run --bin uniffi-bindgen generate target/release/libdarkfi_mobile_ffi.dyli
 - [`app-features.md`](app-features.md) — Full feature matrix for iOS port
 - [`pending-features.md`](pending-features.md) — Short backlog
 - [`drk-native-implementation.md`](drk-native-implementation.md) — UniFFI phases
-- [`wallet-roadmap.md`](wallet-roadmap.md) — Embedded `drk` direction
+- [`nighthawk-mesh.md`](nighthawk-mesh.md) — Encrypted EventGraph hop over BLE

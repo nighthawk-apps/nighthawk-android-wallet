@@ -13,7 +13,7 @@ Canonical list of **Android** capabilities for the DarkFi wallet APK (`com.night
 
 **Build flavors:** `darkfimainnet` · `darkfitestnet`  
 **Light client path:** wallets → **`darkfi-lightwalletd` gRPC `:9067`** (UnifOMR) → `darkfid` (not direct darkfid for sync/scan).  
-**Chat:** DarkIRC available on both Android (embedded `darkirc_exec`) and iOS (in-process UniFFI).
+**Chat:** DarkIRC on **both** platforms is in-process UniFFI (`start_darkirc`). Optional Android `darkirc_exec` is a legacy IRC subprocess. Nearby **Nighthawk Mesh** is an encrypted EventGraph hop over BLE (share-internet off).
 
 ---
 
@@ -87,14 +87,16 @@ Canonical list of **Android** capabilities for the DarkFi wallet APK (`com.night
 
 | Feature | Android | Notes for iOS |
 |---------|---------|---------------|
-| Public IRC channels | ✅ | Kotlin IRC client + channel presets |
-| Embedded `darkirc_exec` | ✅ | arm64-v8a + x86_64 in APK assets |
-| Tor for chat / P2P | ✅ | Shared Tor settings; SOCKS for non-loopback IRC |
-| Connection status (node + IRC) | ✅ | Green/yellow/red indicators on chat |
-| Chat settings (embedded toggle, DAG, fast mode) | ✅ | Restart embedded node |
-| E2E encrypted DMs | 🟡 | ChaCha via UniFFI + chat crypto settings |
+| Public `#` channels | ✅ | UniFFI `start_darkirc` + `DarkircEventCallback` (same as iOS) |
+| In-process EventGraph | ✅ | `libdarkfi_mobile_ffi.so` |
+| Optional `darkirc_exec` | 🟡 | Legacy IRC subprocess; not the default message path |
+| Tor for chat / P2P | ✅ | Guardian tor-android SOCKS for native daemon |
+| Connection status | ✅ | `darkirc_status()` → ConnectedDirect / ConnectedViaTor |
+| Chat settings (DAG, fast mode) | ✅ | Settings → Chat |
+| E2E encrypted DMs | ✅ | ChaCha UniFFI; daemon refuses plaintext DMs |
+| DM key generation | ✅ | `generate_dm_keypair` UniFFI (not CLI) |
+| Nighthawk Mesh (BLE EventGraph hop) | ✅ | Encrypted DAG only; share-internet **off** — [nighthawk-mesh.md](nighthawk-mesh.md) |
 | `replay_mode` preference | 🟡 | Pref exists; no UI (P3-1) |
-| Full upstream P2P in Kotlin | ❌ | By design — Rust daemon owns Event Graph |
 
 ---
 
@@ -165,9 +167,10 @@ When implementing each iOS screen, tick against this list:
 2. Same **endpoint ports** and mismatch guard.
 3. **Memo** send + tx detail parity.
 4. **Tor** toggle behavior (wallet HTTP + IRC).
-5. **Chat** optional embedded daemon vs external IRC.
-6. **Native library** load failure messaging (no silent wrong balances).
-7. Document any intentional **omission** (e.g. no transparent pool).
+5. **Chat** in-process UniFFI on both platforms; optional Android `darkirc_exec` is legacy.
+6. **Nighthawk Mesh** is EventGraph-only (no share-internet).
+7. **Native library** load failure messaging (no silent wrong balances).
+8. Document any intentional **omission** (e.g. no transparent pool).
 
 ---
 

@@ -43,7 +43,7 @@ The logical components of the app are implemented as Gradle modules.
      * `preference-api-lib` — Multiplatform interfaces for key-value storage of preferences.
      * `preference-impl-android-lib` — Android-specific implementation for preference storage.
  * wallet façade
-     * `darkfi-android-sdk` — Kotlin wallet/session/sync façade (`PersistableDarkfiWallet`, coordinators, stub synchronizer); **UniFFI** bindings + JNA ship in this module—**`jniLibs` must contain `libdarkfi_mobile_ffi.so` per ABI** for native calls (built with **`cargo-ndk`**; **`.so` files are not committed**). Real **`darkfid`/chain** integration remains follow-up work.
+     * `darkfi-android-sdk` — Kotlin wallet/session/sync façade (`PersistableDarkfiWallet`, coordinators, native synchronizer when `.so` present); **UniFFI 0.32** + JNA — **`jniLibs` must contain `libdarkfi_mobile_ffi.so` per ABI**. Chat is in-process `start_darkirc`; mesh C ABI is separate from UniFFI.
      * `rust/darkfi-mobile-ffi` — UniFFI `cdylib` for the supported native API surface.
      * `rust/darkfi-android-bridge` — Legacy minimal crate (optional experiments; not used by the UniFFI path).
  * spackle — Random utilities, to fill in the cracks in the frameworks.

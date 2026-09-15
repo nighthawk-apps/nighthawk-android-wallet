@@ -1,0 +1,4 @@
+- Testnet 3.00.010: encrypted nearby DarkIRC DAG over BLE (Noise; no share-internet).
+- Chat is in-process UniFFI EventGraph; DMs stay saltbox.
+- Mesh neighbor C ABI; arm64 FFI rebuilt (emulator x86_64 still older).
+- Explorer: https://explorer.testnet.dark.fi

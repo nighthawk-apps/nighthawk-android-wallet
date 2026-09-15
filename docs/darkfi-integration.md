@@ -14,7 +14,8 @@ This describes how the Android app connects to DarkFi while keeping UI patterns 
 │  - DarkfiWalletCoordinator, DarkfiSynchronizer          │
 │  - PersistableDarkfiWallet, DarkfiEndpoint               │
 │  - DRK formatting, BIP39 wordlist                       │
-│  - Chat: Kotlin IRC; optional packaged **darkirc** (foreground svc); SOCKS tor-android; wallet HTTP shares prefs │
+│  - Chat: UniFFI `start_darkirc` + callback; optional legacy **darkirc_exec**; SOCKS tor-android; wallet HTTP shares prefs │
+│  - Mesh: JNA C ABI (`nh_mesh_*`) — encrypted EventGraph hop only
 └───────────────────────────┬─────────────────────────────┘
                             │ UniFFI generated Kotlin (+ JNA) when `jniLibs` has `libdarkfi_mobile_ffi.so`
 ┌───────────────────────────▼─────────────────────────────┐
@@ -39,15 +40,18 @@ This describes how the Android app connects to DarkFi while keeping UI patterns 
 
 ### Chat / DarkIRC / Tor status
 
-`DarkfiChatController` drives a **Kotlin IRC client** (`DarkircIrcClient`) that speaks the same CAP/NICK/USER flow implemented in `darkfi/bin/darkirc/src/irc/command.rs` (handshake against DarkIRC’s local listener, default `tcp://127.0.0.1:6667` on desktops).
+`DarkfiChatController` starts the **in-process** daemon via UniFFI (`start_darkirc`) and receives messages on `DarkircEventCallback.onMessage`. That is the Chat tab path (same as iOS).
+
+Optional `DarkfiChatPreferences.runEmbeddedDarkirc` can still start packaged **`darkirc_exec`** in a foreground service for a **legacy IRC** listener. Do not treat Kotlin `DarkircIrcClient` as the default EventGraph transport. Nearby BLE is [Nighthawk Mesh](nighthawk-mesh.md).
 
 | Topic | DarkFi source | This repo (today) |
 |-------|----------------|-------------------|
-| Clearnet vs Tor seeds | `darkirc` + `darkfi` net settings (`bin/darkirc`) | `DarkfiChatDefaults` literals + DNS diagnostics |
-| Channel presets | **`darkirc_config.toml`** **`autojoin`** ([upstream](https://github.com/darkrenaissance/darkfi/blob/master/bin/darkirc/darkirc_config.toml)) | `DEFAULT_PUBLIC_CHANNELS` |
-| Tor toggle | `use_tor.txt` semantics | `DarkfiChatPreferences.routeOutboundThroughTor` (wallet HTTP + IRC) |
-| IRC wire | `IrcServer` / `Client` (`bin/darkirc/src/irc/`) | Kotlin TCP client (+ SOCKS5 when Tor flag **and** IRC host is **not** loopback) |
-| P2P + DAG + Arti | `darkfi` workspace (`arti-client`, `p2p-tor`, …) | Still inside the Rust daemon — ship `darkirc` via JNI/`cargo-ndk`; until then run `darkirc` off-device and reverse-port IRC (see [DarkIRC chat on Android](android-darkirc-chat.md)). |
+| Clearnet vs Tor seeds | `darkirc` + `darkfi` net settings (`bin/darkirc`) | Native daemon + `DarkfiChatDefaults` / Tor SOCKS |
+| Channel presets | **`darkirc_config.toml`** **`autojoin`** | `DEFAULT_PUBLIC_CHANNELS` |
+| Tor toggle | `use_tor.txt` semantics | `DarkfiChatPreferences.useTorForChat` / `routeOutboundThroughTor` |
+| EventGraph | `EventGraph` in `bin/darkirc` | In-process `darkirc_daemon.rs` |
+| Nearby hop | (desktop p2p only) | BLE mesh C ABI — EventGraph only |
+| Legacy IRC wire | `IrcServer` / `Client` | Optional `darkirc_exec` + `DarkircIrcClient` |
 
 Kotlin states (`DarkfiChatConnectionState`): `Disconnected`, `Connecting`, `ConnectedDirect`, `ConnectedViaTor`, `Degraded`, `Error`.
 
@@ -71,9 +75,9 @@ Color semantics (UI suggestion):
 
 ### Current state
 
-- UniFFI **0.31** `cdylib` named **`darkfi_mobile_ffi`** (`uniffi.toml` sets the Kotlin package to `com.nighthawkapps.lib.uniffi.darkfi_mobile_ffi`).
+- UniFFI **0.32** `cdylib` named **`darkfi_mobile_ffi`** (`uniffi.toml` sets the Kotlin package to `com.nighthawkapps.lib.uniffi.darkfi_mobile_ffi`).
 - Generated bindings live beside other SDK sources (`darkfi-android-sdk/src/main/java/.../darkfi_mobile_ffi/darkfi_mobile_ffi.kt`); **prefer** calling through **`DarkfiMobileFfiApi`** so the FFI surface stays swappable.
-- **Not** yet linked against the full `darkfi` workspace—the UDL exposes `bridge_version`, `bridge_ping`, and `DarkfiWalletHandle` (`confirmed_balance_atomic`, **`primary_deposit_address`**) so Kotlin can stabilize while Rust grows incrementally behind the same ABI. **`DarkfiMobileFfiApi.drkBootstrapSummary`** maps `PersistableDarkfiWallet` to the **`Drk::new`** field shape (network, endpoint URL, word count — never logs seed words).
+- Linked against vendored `third_party/darkfi` (`Drk`, in-process darkirc, UnifOMR). Mesh neighbor APIs are **C ABI** (`nh_mesh_*`), not UniFFI — rebuild with `SKIP_UNIFFI_BINDGEN=1` after mesh-only changes.
 
 See **[`rust/darkfi-mobile-ffi/README.md`](../rust/darkfi-mobile-ffi/README.md)** for **`cargo`** / **`cargo-ndk`** builds and **`uniffi-bindgen`** regeneration (use `--no-format` if `ktlint` is not installed).
 
@@ -112,10 +116,11 @@ This table closes the audit loop against **`docs/upstream/darkfi-revision.txt`**
 | **`darkfid` mining RPC (`stratum` / `xmr`)** | **Out of scope** | Wallet APK does not expose merge‑mining / stratum callers; bump audit still fetches those **`rpc/*.rs`** files for drift spotting only. |
 | **Wallet → lightwalletd** | **Aligned** | [`DarkfiEndpoint`](../darkfi-android-sdk/src/main/java/com/nighthawkapps/lib/android/sdk/wallet/DarkfiEndpoint.kt) defaults to **9067**. `darkfid` JSON-RPC ports are separate constants for embedded/management use. |
 | **`darkirc_config.toml` `autojoin`** | **Aligned** | [`DEFAULT_PUBLIC_CHANNELS`](../darkfi-android-sdk/src/main/java/com/nighthawkapps/lib/android/sdk/chat/DarkfiChatDefaults.kt) matches **`autojoin`** order including **`#lunardao`** — re‑diff **`darkirc_config.toml`** whenever the pin bumps ([`scripts/fetch-darkfi-upstream-reference.sh`](../scripts/fetch-darkfi-upstream-reference.sh)). |
-| **`drk`‑level wallet operations** | **Explicitly unfinished** | Balance, scan, keys, signing live in **`drk`** + **`wallet.db`** upstream — mobile remains **`StubDarkfiSynchronizer`** + UniFFI placeholder until **`wallet-roadmap.md`** lands Rust behind **`DarkfiWalletHandle`**. |
-| Embedded upstream **`darkirc`** (P2P / DAG / crypto) | **Explicitly unfinished** | Kotlin IRC client only — gaps and JNI path in **[DarkIRC / chat upstream](darkfi-chat-upstream.md)** and **[DarkIRC chat on Android](android-darkirc-chat.md)**. |
+| **`drk`‑level wallet operations** | **Aligned** | `DarkfiWalletHandle` + `NativeDarkfiSynchronizer` (stub only if `.so` missing) |
+| Embedded upstream **`darkirc`** (P2P / DAG) | **Aligned** | In-process UniFFI; optional `darkirc_exec` is legacy IRC |
+| **Nighthawk Mesh** | **EventGraph hop** | Encrypted BLE; LWD/SoftAP **off** — [nighthawk-mesh.md](nighthawk-mesh.md) |
 
-**Summary:** Chain‑facing **constants and presets track the pinned upstream tree** for **`darkfid`** main RPC, **`drk`** endpoint ports, separate **management** listener naming, and **`darkirc` `autojoin`** (**`#lunardao`** included). **`drk`** wallet semantics and **embedded upstream darkirc parity** remain **deliberately unfinished** until FFI / JNI work replaces stubs — not accidental drift.
+**Summary:** Chain‑facing **constants and presets track the pinned upstream tree**. **`drk`** wallet ops and in-process **darkirc** run behind UniFFI. Optional `darkirc_exec` is not the Chat tab path.
 
 ### Upstream revision pin
 
@@ -141,8 +146,9 @@ Wallet-level errors use `DarkfiWalletError` sealed types (critical, processor, s
 
 See **[Upstream parity status](#upstream-parity-status)** for the structured ✅ / ❌ matrix versus pinned upstream.
 
-- No **`drk`‑parity** chain sync, **`wallet.db`** semantics, or real transaction broadcast yet — **`StubDarkfiSynchronizer`** and UniFFI **`WalletNotInitialized`** hold the place until **`wallet-roadmap.md`** Rust lands.
-- **`darkirc`** inside this APK is **IRC wire only** — not Event Graph / P2P / ChaCha DM parity with **`bin/darkirc`** (upstream sample **`darkirc`** **`[rpc]`** listen **26660** is unrelated to **`DarkfiEndpoint`** **`darkfid`** ports **8345 / 18345**).
+- Native **`drk`** sync and broadcast require a rebuilt `libdarkfi_mobile_ffi.so` per ABI. Without it, `StubDarkfiSynchronizer` disables transfer.
+- Chat default is in-process UniFFI EventGraph. Legacy IRC (`darkirc_exec` / desktop reverse-port) is documented in **[DarkIRC chat on Android](android-darkirc-chat.md)**.
+- Mesh does not share internet and does not invent chat when DarkIRC is stopped.
 - DRK fiat conversion may show “unavailable” until pricing endpoints support DRK.
 - Product copy in default `values/strings.xml` has been pointed at DarkFi (single balance, confidential/public receive wording); translated locales may still carry older phrases until refreshed on Crowdin.
 

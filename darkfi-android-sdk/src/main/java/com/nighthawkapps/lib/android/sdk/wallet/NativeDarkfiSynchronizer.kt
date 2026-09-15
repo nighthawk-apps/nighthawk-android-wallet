@@ -2,6 +2,7 @@ package com.nighthawkapps.lib.android.sdk.wallet
 
 import android.content.Context
 import com.nighthawkapps.lib.android.sdk.dao.toSdk
+import com.nighthawkapps.lib.android.sdk.mesh.MeshOfflineRelay
 import com.nighthawkapps.lib.android.sdk.uniffi.DarkfiMobileFfiApi
 import com.nighthawkapps.lib.uniffi.darkfi_mobile_ffi.DarkfiWalletHandle
 import com.nighthawkapps.lib.uniffi.darkfi_mobile_ffi.DarkfiWalletNativeException
@@ -108,6 +109,7 @@ class NativeDarkfiSynchronizer internal constructor(
                         "lightwalletd unreachable at ${wallet.endpoint.toDisplayString()}",
                     ),
                 )
+            tryMeshOfflineWallet()
         }
     }
 
@@ -316,6 +318,7 @@ class NativeDarkfiSynchronizer internal constructor(
                 _walletErrors.value =
                     DarkfiWalletError.Processor(e)
                 _status.value = DarkfiSyncStatus.DISCONNECTED
+                tryMeshOfflineWallet()
             }
         refreshBalanceBestEffort()
         refreshTokenBalancesBestEffort()
@@ -482,5 +485,13 @@ class NativeDarkfiSynchronizer internal constructor(
     /** Address-only fallback when FFI deposit address is not ready yet. */
     private object NoOpDarkfidRpc : com.nighthawkapps.lib.android.sdk.wallet.rpc.DarkfidJsonRpcCaller {
         override suspend fun invoke(requestPayload: org.json.JSONObject): org.json.JSONObject = error("not used")
+    }
+
+    /** BLE ctrl for allowlisted RPCs; UnifOMR only via bulk join. Never from a worker. */
+    private fun tryMeshOfflineWallet() {
+        runCatching {
+            MeshOfflineRelay.onInternetUnreachable()
+            MeshOfflineRelay.requestBulkIfNeeded()
+        }
     }
 }
