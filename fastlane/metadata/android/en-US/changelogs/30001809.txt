@@ -1,0 +1,4 @@
+- Testnet 3.00.009: package only arm64-v8a, armeabi-v7a, x86, x86_64 (drop JNA armeabi/mips).
+- Native wallet open waits for DarkfiWalletHandle before wipe/retry (Fjall lock).
+- Chat HUD/readability; swipe-to-reveal DRK on home.
+- Explorer: https://explorer.testnet.dark.fi
