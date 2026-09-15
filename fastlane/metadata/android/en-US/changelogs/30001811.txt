@@ -1,0 +1,3 @@
+- Testnet 3.00.011: pin DarkFi mesh ingest APIs so F-Droid can compile BLE EventGraph.
+- Encrypted nearby DarkIRC DAG over BLE; chat stays in-process UniFFI.
+- Explorer: https://explorer.testnet.dark.fi
