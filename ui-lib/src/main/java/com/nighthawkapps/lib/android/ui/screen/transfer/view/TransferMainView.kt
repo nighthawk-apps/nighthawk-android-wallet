@@ -27,7 +27,7 @@ import com.nighthawkapps.lib.android.ui.design.theme.WalletTheme
 fun WalletPreview() {
     WalletTheme(darkTheme = false) {
         Surface {
-            TransferMainView(onSendMoney = {}, onReceiveMoney = {}, onTopUp = {}, onDaoHub = {})
+            TransferMainView(onSendMoney = {}, onReceiveMoney = {}, onRequestMoney = {}, onTopUp = {}, onDaoHub = {})
         }
     }
 }
@@ -36,6 +36,7 @@ fun WalletPreview() {
 fun TransferMainView(
     onSendMoney: () -> Unit,
     onReceiveMoney: () -> Unit,
+    onRequestMoney: () -> Unit,
     onTopUp: () -> Unit,
     onDaoHub: () -> Unit,
 ) {
@@ -71,6 +72,18 @@ fun TransferMainView(
                     .heightIn(min = dimensionResource(id = R.dimen.setting_list_item_min_height))
                     .clickable {
                         onReceiveMoney.invoke()
+                    }
+        )
+        Spacer(modifier = Modifier.height(10.dp))
+        SettingsListItem(
+            iconRes = R.drawable.ic_icon_scan_qr,
+            title = stringResource(id = R.string.ns_request_money),
+            desc = stringResource(id = R.string.ns_request_money_text),
+            modifier =
+                Modifier
+                    .heightIn(min = dimensionResource(id = R.dimen.setting_list_item_min_height))
+                    .clickable {
+                        onRequestMoney.invoke()
                     }
         )
         Spacer(modifier = Modifier.height(10.dp))

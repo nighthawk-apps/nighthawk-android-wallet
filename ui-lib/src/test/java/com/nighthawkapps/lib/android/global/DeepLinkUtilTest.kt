@@ -49,7 +49,17 @@ class DeepLinkUtilTest {
     }
 
     @Test
-    fun dropsOverlongMemoButKeepsAddress() {
+    fun roundTripsPaymentRequestUri() {
+        val uri = DeepLinkUtil.buildPaymentRequestUri("drk_u1abc", "0.001", "aaa")
+        assertNotNull(uri)
+        val data = DeepLinkUtil.getSendDeepLinkData(Uri.parse(uri))
+        assertEquals("drk_u1abc", data!!.address)
+        assertNotNull(data.amount)
+        assertEquals("aaa", data.memo)
+    }
+
+    @Test
+    fun rejectsOversizedMemo() {
         val memo = "x".repeat(DarkfiPaymentMemo.MAX_BYTES + 1)
         val b64 = Base64.encodeToString(memo.toByteArray(Charsets.UTF_8), Base64.NO_WRAP)
         val data = DeepLinkUtil.getSendDeepLinkData(Uri.parse("drk:drk_u1abc?memo=$b64"))

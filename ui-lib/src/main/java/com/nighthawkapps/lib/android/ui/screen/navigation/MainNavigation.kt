@@ -1,6 +1,7 @@
 package com.nighthawkapps.lib.android.ui.screen.navigation
 
 import android.net.Uri
+import androidx.activity.viewModels
 import androidx.annotation.DrawableRes
 import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.PaddingValues
@@ -24,6 +25,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.navArgument
+import com.nighthawkapps.lib.android.global.DeepLinkUtil
 import com.nighthawkapps.lib.android.spackle.Twig
 import com.nighthawkapps.lib.android.ui.MainActivity
 import com.nighthawkapps.lib.android.ui.NavigationArguments
@@ -35,6 +37,7 @@ import com.nighthawkapps.lib.android.ui.screen.advancesetting.AndroidAdvancedSet
 import com.nighthawkapps.lib.android.ui.screen.changeserver.AndroidChangeServer
 import com.nighthawkapps.lib.android.ui.screen.chat.AndroidChat
 import com.nighthawkapps.lib.android.ui.screen.chat.AndroidChatSettings
+import com.nighthawkapps.lib.android.ui.screen.home.viewmodel.HomeViewModel
 import com.nighthawkapps.lib.android.ui.screen.dao.AndroidDaoDetail
 import com.nighthawkapps.lib.android.ui.screen.dao.AndroidDaoHub
 import com.nighthawkapps.lib.android.ui.screen.dao.AndroidDaoProposalDetail
@@ -55,6 +58,7 @@ import com.nighthawkapps.lib.android.ui.screen.navigation.NavigationTargets.DAO_
 import com.nighthawkapps.lib.android.ui.screen.navigation.NavigationTargets.FIAT_CURRENCY
 import com.nighthawkapps.lib.android.ui.screen.navigation.NavigationTargets.PIN
 import com.nighthawkapps.lib.android.ui.screen.navigation.NavigationTargets.RECEIVE_MONEY
+import com.nighthawkapps.lib.android.ui.screen.navigation.NavigationTargets.REQUEST_MONEY
 import com.nighthawkapps.lib.android.ui.screen.navigation.NavigationTargets.RECEIVE_QR_CODES
 import com.nighthawkapps.lib.android.ui.screen.navigation.NavigationTargets.SCAN
 import com.nighthawkapps.lib.android.ui.screen.navigation.NavigationTargets.SECURITY
@@ -68,6 +72,7 @@ import com.nighthawkapps.lib.android.ui.screen.navigation.NavigationTargets.TRAN
 import com.nighthawkapps.lib.android.ui.screen.pin.AndroidPin
 import com.nighthawkapps.lib.android.ui.screen.receive.nighthawk.AndroidReceive
 import com.nighthawkapps.lib.android.ui.screen.receiveqrcodes.AndroidReceiveQrCodes
+import com.nighthawkapps.lib.android.ui.screen.request.WrapRequest
 import com.nighthawkapps.lib.android.ui.screen.scan.WrapScanValidator
 import com.nighthawkapps.lib.android.ui.screen.security.AndroidSecurity
 import com.nighthawkapps.lib.android.ui.screen.send.model.SendArgumentsWrapper
@@ -90,10 +95,18 @@ internal fun MainActivity.MainNavigation(
     navHostController: NavHostController,
     paddingValues: PaddingValues
 ) {
+    val homeViewModel by viewModels<HomeViewModel>()
     NavHost(navController = navHostController, startDestination = BottomNavItem.Chat.route, modifier = Modifier.padding(paddingValues)) {
         composable(BottomNavItem.Chat.route) {
             AndroidChat(
                 onChatSettings = { navHostController.navigateJustOnce(CHAT_SETTINGS) },
+                onPayInvoice = { uri ->
+                    homeViewModel.sendDeepLinkData =
+                        DeepLinkUtil.getSendDeepLinkData(Uri.parse(uri))
+                    if (homeViewModel.sendDeepLinkData != null) {
+                        navHostController.navigateJustOnce(SEND_MONEY)
+                    }
+                },
             )
         }
         composable(BottomNavItem.Wallet.route) { backStackEntry ->
@@ -124,6 +137,7 @@ internal fun MainActivity.MainNavigation(
             AndroidTransfer(
                 onSendMoney = { navHostController.navigateJustOnce(SEND_MONEY) },
                 onReceiveMoney = { navHostController.navigateJustOnce(RECEIVE_MONEY) },
+                onRequestMoney = { navHostController.navigateJustOnce(REQUEST_MONEY) },
                 onTopUp = {
                     navHostController.navigateJustOnce(TOP_UP)
                 },
@@ -172,6 +186,9 @@ internal fun MainActivity.MainNavigation(
                     navHostController.navigateJustOnce(TOP_UP)
                 }
             )
+        }
+        composable(REQUEST_MONEY) {
+            WrapRequest(goBack = { navHostController.popBackStackJustOnce(REQUEST_MONEY) })
         }
         composable(TOP_UP) {
             AndroidTopUp(
@@ -430,7 +447,7 @@ fun isBottomNavItemSelected(
         }
 
         BottomNavItem.Transfer.route -> {
-            currentRoute == bottomNavItemRoute || RECEIVE_MONEY == currentRoute || TOP_UP == currentRoute
+            currentRoute == bottomNavItemRoute || RECEIVE_MONEY == currentRoute || REQUEST_MONEY == currentRoute || TOP_UP == currentRoute
         }
 
         else -> {
@@ -448,6 +465,7 @@ private val destinationsWithBottomBar =
         BottomNavItem.Transfer.route,
         BottomNavItem.Settings.route,
         RECEIVE_MONEY,
+        REQUEST_MONEY,
         TOP_UP,
         RECEIVE_QR_CODES,
     )
@@ -455,6 +473,7 @@ private val destinationsWithBottomBar =
 object NavigationTargets {
     const val SEND_MONEY = "send_money"
     const val RECEIVE_MONEY = "receive_money"
+    const val REQUEST_MONEY = "request"
     const val TOP_UP = "top_up"
     const val SCAN = "scan"
     const val RECEIVE_QR_CODES = "receive_qr_codes"

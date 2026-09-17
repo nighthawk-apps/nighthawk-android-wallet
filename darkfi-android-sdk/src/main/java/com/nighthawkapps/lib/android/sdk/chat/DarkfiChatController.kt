@@ -311,7 +311,7 @@ class DarkfiChatController(
                     if (useTor) {
                         "Native FFI EventGraph Connected (Tor)"
                     } else {
-                        "Native FFI EventGraph Connected"
+                        "Native FFI EventGraph Connected (direct)"
                     }
                 }
 

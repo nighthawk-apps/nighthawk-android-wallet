@@ -6,7 +6,7 @@
 
 Privacy-preserving wallet (work-in-progress) by [Nighthawk Apps](https://nighthawkapps.com). This tree ships as a **new Android application id** on the DarkFi network (DRK). The app integrates a native DarkFi wallet API via **UniFFI** (`rust/darkfi-mobile-ffi` → generated Kotlin + `DarkfiMobileFfiApi`) for chain sync, broadcast, and chat.
 
-**3.00.010** (`WALLET_VERSION_CODE=30001810`) toolchain: Gradle **9.7.1**, AGP **9.3.1**, Kotlin **2.2.10**, Compose UI **1.12.1**, Material3 **1.4.0**, Material icons **1.7.8**, AndroidX Lifecycle **2.11.0**, Navigation Compose **2.9.8**, JNA **5.19.1**, UniFFI **0.32**, NDK **26.1.10909125**, minSdk **27**, compile/target SDK **37**. Native sent-tx session cache is FIFO-capped (10,000). Reorg “transactions affected” is counted from `drk.get_txs_history()` (`block_height > rewind`), not from CLI log lines.
+**3.00.011** (`WALLET_VERSION_CODE=30001811`) toolchain: Gradle **9.7.1**, AGP **9.3.1**, Kotlin **2.2.10**, Compose UI **1.12.1**, Material3 **1.4.0**, Material icons **1.7.8**, AndroidX Lifecycle **2.11.0**, Navigation Compose **2.9.8**, JNA **5.19.1**, UniFFI **0.32**, NDK **26.1.10909125**, minSdk **27**, compile/target SDK **37**. Native sent-tx session cache is FIFO-capped (10,000). Reorg “transactions affected” is counted from `drk.get_txs_history()` (`block_height > rewind`), not from CLI log lines.
 
 ## Contents
 
@@ -29,7 +29,7 @@ Privacy-preserving wallet (work-in-progress) by [Nighthawk Apps](https://nightha
 
 Store listings are **not finalized** for `com.nighthawkwallet.android`. Placeholder targets until publishing completes:
 
-- **F-Droid:** DarkFi **testnet** package `com.nighthawkwallet.android.testnet` / flavor `darkfitestnet` (see [docs/fdroid.md](docs/fdroid.md); listing pending fdroiddata merge). **3.00.010** (`WALLET_VERSION_CODE=30001810`) — Fastlane changelog `fastlane/metadata/android/en-US/changelogs/30001810.txt`, tag `v3.00.010`. Local unsigned APK: `bundle exec fastlane fdroid`. Legacy Zcash: [com.nighthawkapps.wallet.android](https://f-droid.org/packages/com.nighthawkapps.wallet.android/)
+- **F-Droid:** DarkFi **testnet** package `com.nighthawkwallet.android.testnet` / flavor `darkfitestnet` (see [docs/fdroid.md](docs/fdroid.md); listing pending fdroiddata merge). **3.00.011** (`WALLET_VERSION_CODE=30001811`) — Fastlane changelog `fastlane/metadata/android/en-US/changelogs/30001811.txt`, tag `v3.00.011`. Local unsigned APK: `bundle exec fastlane fdroid`.
 - **Google Play:** `https://PLACEHOLDER_PLAY_STORE_LISTING_URL`
 
 Replace these URLs when production listings exist—do not invent live links prematurely.
@@ -67,7 +67,7 @@ export PATH="$PATH:$ANDROID_HOME/platform-tools"
 
 **Local lightwalletd:** run sibling [`darkfi-lightwalletd`](../darkfi-lightwalletd) on `127.0.0.1:9067` (cleartext loopback OK without pin). Public servers need TLS + pin — see [Privacy & security](#privacy--security) and [`../darkfi-lightwalletd/docs/TLS_PINNING.md`](../darkfi-lightwalletd/docs/TLS_PINNING.md).
 
-**Chat:** open the **Chat** tab — DarkIRC runs **in-process** via UniFFI (`start_darkirc`), not a desktop IRC server. First P2P/DAG sync can take several minutes. Watch `adb logcat -s darkfi-mobile-ffi darkfi-net`. Enable **Tor** in chat settings for SOCKS-routed P2P.
+**Chat:** open the **Chat** tab — DarkIRC runs **in-process** via UniFFI (`start_darkirc`), not a desktop IRC server. First launch: splash (version + Tor connecting) → Create/Restore → seed backup → educational carousel → Home. First P2P/DAG sync can take several minutes. Watch `adb logcat -s darkfi-mobile-ffi darkfi-net`. Enable **Tor** in chat settings for SOCKS-routed P2P.
 
 **After editing `darkfi_mobile_ffi.udl`:** re-run `./scripts/build-darkfi-mobile-ffi-android.sh` (do **not** set `SKIP_UNIFFI_BINDGEN`). A UDL mismatch often shows as `Unresolved reference 'SyncMethod'`. After mesh-engine C ABI changes only, use `SKIP_UNIFFI_BINDGEN=1`.
 

@@ -252,8 +252,9 @@ private fun NighthawkSendFlow(
                     isEstimatingFee = isEstimatingFee,
                     isSendEnabled = canSend,
                     errorMessage =
-                        when (balanceCheck) {
-                            is SendBalanceCheck.Insufficient -> {
+                        when {
+                            !nativeAvailable -> stringResource(R.string.ns_send_ffi_unavailable)
+                            balanceCheck is SendBalanceCheck.Insufficient -> {
                                 stringResource(
                                     R.string.send_insufficient_balance,
                                     DarkfiAmountFormatter.formatAtomic(balanceCheck.requiredAtomic),

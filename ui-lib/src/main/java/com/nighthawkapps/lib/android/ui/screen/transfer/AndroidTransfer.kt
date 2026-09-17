@@ -10,6 +10,7 @@ import com.nighthawkapps.lib.android.ui.screen.transfer.view.TransferMainView
 internal fun MainActivity.AndroidTransfer(
     onSendMoney: () -> Unit,
     onReceiveMoney: () -> Unit,
+    onRequestMoney: () -> Unit,
     onTopUp: () -> Unit,
     onDaoHub: () -> Unit,
 ) {
@@ -17,6 +18,7 @@ internal fun MainActivity.AndroidTransfer(
         activity = this,
         onSendMoney = onSendMoney,
         onReceiveMoney = onReceiveMoney,
+        onRequestMoney = onRequestMoney,
         onTopUp = onTopUp,
         onDaoHub = onDaoHub,
     )
@@ -27,6 +29,7 @@ internal fun WrapTransfer(
     activity: ComponentActivity,
     onSendMoney: () -> Unit,
     onReceiveMoney: () -> Unit,
+    onRequestMoney: () -> Unit,
     onTopUp: () -> Unit,
     onDaoHub: () -> Unit,
 ) {
@@ -34,6 +37,7 @@ internal fun WrapTransfer(
     TransferMainView(
         onSendMoney = onSendMoney,
         onReceiveMoney = onReceiveMoney,
+        onRequestMoney = onRequestMoney,
         onTopUp = onTopUp,
         onDaoHub = onDaoHub,
     )

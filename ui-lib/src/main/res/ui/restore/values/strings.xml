@@ -25,9 +25,11 @@
     <string name="ns_motto">Where privacy is proven, not promised.</string>
     <string name="ns_powered_by">Powered by DarkFi</string>
     <string name="splash_built_on_darkfi" translatable="false">Built on DarkFi</string>
+    <string name="splash_subtitle" translatable="false">Private money in your pocket.</string>
     <string name="splash_tor_bootstrapping" translatable="false">Tor bootstrapping…</string>
     <string name="splash_tor_ready" translatable="false">Tor ready</string>
     <string name="splash_tor_failed" translatable="false">Tor bootstrap failed</string>
+    <string name="splash_tor_retry" translatable="false">Retry</string>
     <string name="splash_tor_continue_without" translatable="false">Continue without Tor</string>
     <string name="splash_tor_continue_without_hint" translatable="false">Uses your regular network. You can re-enable Tor in Settings.</string>
     <string name="ns_get_started">Get Started</string>
@@ -119,6 +121,29 @@
     <string name="ns_send_money_text">Scan someone\'s QR code to send them money</string>
     <string name="ns_receive_money">Receive money</string>
     <string name="ns_receive_money_text">Display your QR code or copy your address.</string>
+    <string name="ns_request_money">Request money</string>
+    <string name="ns_request_money_text">Show a QR invoice for this wallet\'s address.</string>
+    <string name="ns_request_single_address">This wallet has one receive address. Amount and memo are optional.</string>
+    <string name="ns_request_amount_hint">Amount (DRK, optional)</string>
+    <string name="ns_request_memo_hint">Memo (optional)</string>
+    <string name="ns_request_copy_uri">Copy invoice</string>
+    <string name="ns_request_need_address">Wallet address is not ready yet.</string>
+    <string name="ns_wallet_mesh_chat_only">Wallet disconnected. Mesh is on for chat only.</string>
+    <string name="ns_chat_mesh_on">Nighthawk Mesh on</string>
+    <string name="ns_chat_attach_request">Request</string>
+    <string name="ns_chat_pay_invoice">Pay</string>
+    <string name="ns_chat_public_pay_warning">Public # channels are plaintext. Attach this invoice anyway?</string>
+    <string name="ns_chat_public_pay_title">Public channel is plaintext</string>
+    <string name="ns_chat_public_pay_confirm">Attach anyway</string>
+    <string name="ns_chat_three_secrets_title">Three secrets (do not mix)</string>
+    <string name="ns_chat_three_secrets_body">22-word wallet backup is not the 12-word chat identity, and neither is your ChaCha DM public key. Mixing them can lose money or deanonymize chat.</string>
+    <string name="ns_chat_local_display_name">Local display name</string>
+    <string name="ns_chat_local_display_name_hint">Only on this phone</string>
+    <string name="ns_address_book">Address book</string>
+    <string name="ns_address_book_save">Save to address book</string>
+    <string name="ns_address_book_label_hint">Label (this device only)</string>
+    <string name="ns_address_book_empty">No saved addresses on this device.</string>
+    <string name="ns_send_ffi_unavailable">Native wallet library unavailable. Send is disabled.</string>
     <string name="ns_top_up">Top up your wallet</string>
     <string name="ns_top_up_text">Acquire DRK (no partner configured)</string>
     <string name="ns_dao_hub">DAO Hub</string>
@@ -148,8 +173,6 @@
     <string name="ns_dao_field_duration_blocks">Duration (blocks)</string>
     <string name="ns_dao_field_propose_tx">Propose transaction</string>
     <string name="ns_dao_field_exec_tx">Execute transaction</string>
-    <string name="ns_swap_sideshift">Swap provider</string>
-    <string name="ns_swap_sideshift_text">Not configured.</string>
     <string name="ns_receive_money_securely">Receive money privately</string>
     <string name="ns_show_qr_code">Show QR Code</string>
     <string name="ns_show_qr_code_text">Let someone scan to send you money.</string>
@@ -249,6 +272,8 @@
     <string name="ns_chat_mesh_oem_copy">Some phones pause Bluetooth in the background. If mesh stops after you lock the screen, disable battery restriction for Nighthawk (Settings → Apps → Nighthawk → Battery → Unrestricted).</string>
     <string name="ns_chat_mesh_play_copy">Nearby devices and connected-device access are used only to talk to other Nighthawk wallets. Bluetooth and Wi-Fi are not used to determine your location.</string>
     <string name="ns_mesh_settings_row_title">Nighthawk Mesh</string>
+    <string name="ns_mesh_on_badge">MESH</string>
+    <string name="ns_mesh_on_cd">Nighthawk Mesh is on</string>
     <string name="ns_mesh_settings_row_desc">Bluetooth nearby chat, always-on power, share internet over Wi-Fi</string>
     <string name="ns_mesh_settings_screen_title">Nighthawk Mesh</string>
     <string name="ns_mesh_settings_screen_body">Optional nearby mesh for DarkIRC chat and small wallet requests. Radios stay off until you enable Bluetooth mesh. Sharing internet is on by default; the phone still only relays while charging on unmetered Wi-Fi.</string>
@@ -297,7 +322,7 @@
     <string name="ns_chat_e2e_channel_secret">Shared secret (base58)</string>
     <string name="ns_chat_e2e_channel_topic">Topic (optional)</string>
     <string name="ns_chat_e2e_generate_secret">Generate secret</string>
-    <string name="ns_chat_e2e_contact_nick">Contact IRC nick</string>
+    <string name="ns_chat_e2e_contact_nick">Contact label</string>
     <string name="ns_chat_e2e_contact_their_public">Their DM public key (base58)</string>
     <string name="ns_chat_e2e_contact_my_secret">Your DM secret key (base58)</string>
     <string name="ns_chat_e2e_generate_dm_keys">Generate my DM keys</string>
@@ -366,7 +391,7 @@
     <string name="ns_backup_wallet">Backup your wallet</string>
     <string name="ns_backup_wallet_text">Keep your wallet safe in case you lose your phone</string>
     <string name="ns_backup_wallet_heading">Write down your backup seed</string>
-    <string name="ns_backup_wallet_body">If you lose access to your phone or Nighthawk wallet, the only way you can regain access to your DRK is if you have this 24-word phrase and wallet birthday code.\n\nWrite it down on paper and store it somewhere safe.</string>
+    <string name="ns_backup_wallet_body">If you lose access to your phone or Nighthawk wallet, the only way you can regain access to your DRK is if you have this 22-word phrase and wallet birthday code.\n\nWrite it down on paper and store it somewhere safe.</string>
     <string name="ns_backup_wallet_pdf">Save as PDF</string>
     <string name="ns_rescan_wallet">Rescan wallet</string>
     <string name="ns_rescan_wallet_text">Rescan wallet balances to troubleshoot issues.</string>
@@ -375,7 +400,7 @@
     <string name="ns_rescan_wallet_wipe">Wipe &amp; restart</string>
     <string name="ns_fiat_currency">Fiat Currency</string>
     <string name="ns_fiat_currency_text">Choose your local currency</string>
-    <string name="ns_fiat_currency_body">Choose your local currency for an approximate fiat display.\n\nRates come from a public price API (currently wired for DRK where available). Amounts stay on-device.</string>
+    <string name="ns_fiat_currency_body">Fiat display is Off by default. Quotes fetch only while Tor is on. There is no clearnet CoinGecko retry.</string>
     <string name="ns_change_server">Change server</string>
     <string name="ns_change_server_text">Change backend sync server.</string>
     <string name="ns_change_server_body">Point the wallet at the sync endpoint closest to you.\n\nEndpoints are third-party infrastructure—use VPN or Tor if you need stronger transport privacy.</string>
@@ -502,10 +527,6 @@
     <string name="insufficient_msg">You don\'t have sufficient balance to send</string>
     <string name="memo_max_length_msg">You have written maximum length to send a message</string>
 
-    <string name="autoshielding_title_text"><b>Privacy by design.</b> DarkFi confirms transfers privately—there is no separate transparent balance lane to consolidate.</string>
-    <string name="autoshielding_body_text">Older forks talked about auto-shielding between transparent and shielded pools. On DarkFi this app tracks <b>one wallet balance</b> from your configured endpoint; QR codes may still expose different receive encodings for compatibility.\n\nAlways verify addresses out-of-band for high-value sends.</string>
-    <string name="autoshielding_button_positive">Great!</string>
-    <string name="autoshielding_button_neutral">Learn more</string>
     <string name="link_to_ecc_title">Learn more</string>
     <string name="link_to_ecc_description">Unified-style addresses bundle multiple receiving capabilities behind one shareable address. External vendor links have been removed—consult DarkFi / Nighthawk documentation for current address formats.</string>
     <string name="shielding">Working…</string>
@@ -521,7 +542,7 @@
     <string name="keep_screen_on">Keep Screen on</string>
     <string name="keep_screen_on_detail_msg">If you haven\'t opened your wallet in a while, the sync process can take some time. Setting screen mode to \"Keep on\" will ensure your phone doesn\'t fall asleep while syncing.</string>
     <string name="strict_omr_only">Strict UnifOMR sync</string>
-    <string name="strict_omr_only_detail_msg">When enabled, Nighthawk only discovers payments that include UnifOMR clues (faster and more private). Leave off (default) to also trial-decrypt compact blocks so you can receive from other DarkFi wallets such as the drk CLI. Turning this on can hide/miss syncing those non-UnifOMR payments.</string>
+    <string name="strict_omr_only_detail_msg">On = UnifOMR only (the lightwalletd never learns which compact blocks you trial-decrypt). Off (default) = UnifOMR plus trial-decrypt fallback so you can receive from wallets that omit UnifOMR clues (including drk CLI). Trial-decrypt tells the server which compact blocks this wallet tries.</string>
     <string name="advanced">Advanced</string>
     <string name="advanced_msg">Less common settings</string>
     <string name="nuke_wallet">Nuke Wallet</string>

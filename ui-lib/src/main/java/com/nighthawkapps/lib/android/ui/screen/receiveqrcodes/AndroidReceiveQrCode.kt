@@ -32,9 +32,6 @@ fun WrapReceiveQrCodes(
             walletAddresses = walletAddresses,
             onBack = onBack,
             onSeeMoreTopUpOption = onSeeMoreTopUpOption,
-            onCreateNewAddress = {
-                walletViewModel.generateNewAddress()
-            }
         )
     }
 }

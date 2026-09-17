@@ -10,11 +10,14 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalClipboard
+import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.nighthawkapps.lib.android.global.AppDaemonCoordinator
 import com.nighthawkapps.lib.android.global.DeepLinkUtil
 import com.nighthawkapps.lib.android.sdk.wallet.DarkfiAmountFormatter
 import com.nighthawkapps.lib.android.sdk.wallet.DarkfiTransactionOverview
+import com.nighthawkapps.lib.android.ui.preference.StandardPreferenceKeys
+import com.nighthawkapps.lib.android.ui.preference.StandardPreferenceSingleton
 import com.nighthawkapps.lib.android.ui.MainActivity
 import com.nighthawkapps.lib.android.ui.R
 import com.nighthawkapps.lib.android.ui.common.ShortcutAction
@@ -74,6 +77,13 @@ internal fun WrapWallet(
         settingsViewModel.isKeepScreenOnWhileSyncing.collectAsStateWithLifecycle().value
     val clipboardManager = LocalClipboard.current
     val clipboardScope = rememberCoroutineScope()
+    val context = LocalContext.current
+    var meshOn by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) {
+        val prefs = StandardPreferenceSingleton.getInstance(context.applicationContext)
+        meshOn = StandardPreferenceKeys.IS_NIGHTHAWK_MESH_ENABLED.getValue(prefs)
+        StandardPreferenceKeys.IS_NIGHTHAWK_MESH_ENABLED.observe(prefs).collect { meshOn = it }
+    }
 
     LaunchedEffect(key1 = Unit) {
         homeViewModel.scheduleSpotPriceRefresh()
@@ -170,6 +180,7 @@ internal fun WrapWallet(
             onDaemonStatusClick = { showRestartDialog = true },
             tokenBalances = tokenBalances,
             onTokenClick = onSendToken,
+            meshOn = meshOn,
         )
     }
     activity.reportFullyDrawn()

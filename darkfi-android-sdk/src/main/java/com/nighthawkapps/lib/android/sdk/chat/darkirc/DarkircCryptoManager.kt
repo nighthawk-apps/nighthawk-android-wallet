@@ -51,11 +51,11 @@ object DarkircCryptoManager {
     fun hasBundledDarkirc(context: Context): Boolean = true
 
     /**
-     * Persist is already done by [saveChannel]/[saveContact]; nudge chat to reconnect so the
-     * native daemon picks up any crypto-related session state.
+     * Persist contacts then reconnect the EventGraph session. Does not bounce
+     * the embedded daemon process (no stop_darkirc); the native node picks up
+     * contact state on the next session.
      */
     fun applyAndRestartEmbeddedDaemon(context: Context): Boolean {
-        DarkircDaemonService.start(context.applicationContext)
         DarkfiChatConnectionBridge.requestReconnect()
         return true
     }

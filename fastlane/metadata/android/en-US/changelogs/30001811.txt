@@ -1,3 +1,5 @@
-- Testnet 3.00.011: pin DarkFi mesh ingest APIs so F-Droid can compile BLE EventGraph.
-- Encrypted nearby DarkIRC DAG over BLE; chat stays in-process UniFFI.
-- Explorer: https://explorer.testnet.dark.fi
+- Testnet 3.00.011: Request money QR (single receive address), honest UnifOMR vs trial-decrypt HUD, Tor vs direct chat HUD.
+- Fiat quotes are Off by default and Tor-only (no clearnet CoinGecko).
+- Chat-to-pay drk: invoices; mesh is chat-only when the wallet is disconnected.
+- 22-word backup copy; SideShift/autoshielding chrome removed.
+- Translations in res-i18n (es, pt-BR, ja, zh-CN, ru, de, fr, it, id, cs).

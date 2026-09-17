@@ -125,6 +125,13 @@ internal fun ChatSettingsScreen(
         TitleMedium(text = stringResource(R.string.ns_chat_settings_screen_title))
 
         Spacer(modifier = Modifier.height(16.dp))
+        TitleMedium(text = stringResource(R.string.ns_chat_three_secrets_title))
+        Text(
+            text = stringResource(R.string.ns_chat_three_secrets_body),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Spacer(modifier = Modifier.height(16.dp))
         TitleMedium(
             text = stringResource(R.string.ns_chat_identity_section_title),
             modifier = Modifier.padding(bottom = 4.dp),

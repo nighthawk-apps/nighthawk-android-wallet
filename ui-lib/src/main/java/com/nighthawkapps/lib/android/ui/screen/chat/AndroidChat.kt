@@ -1,7 +1,10 @@
 package com.nighthawkapps.lib.android.ui.screen.chat
 
+import android.net.Uri
 import android.widget.Toast
+import androidx.activity.viewModels
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
@@ -15,6 +18,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
@@ -35,6 +39,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -48,6 +53,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.LinkAnnotation
 import androidx.compose.ui.text.SpanStyle
@@ -58,6 +64,7 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.nighthawkapps.lib.android.global.DeepLinkUtil
 import com.nighthawkapps.lib.android.sdk.chat.ChatChannelMessage
 import com.nighthawkapps.lib.android.sdk.chat.DarkfiChatConnectionState
 import com.nighthawkapps.lib.android.sdk.chat.DarkfiChatController
@@ -71,6 +78,9 @@ import com.nighthawkapps.lib.android.sdk.chat.hud.ChatInlineSpan
 import com.nighthawkapps.lib.android.sdk.chat.hud.ChatMessageLexer
 import com.nighthawkapps.lib.android.sdk.chat.hud.ChatTimeline
 import com.nighthawkapps.lib.android.sdk.chat.hud.ChatTimelineItem
+import com.nighthawkapps.lib.android.ui.preference.StandardPreferenceKeys
+import com.nighthawkapps.lib.android.ui.preference.StandardPreferenceSingleton
+import com.nighthawkapps.lib.android.ui.screen.home.viewmodel.WalletViewModel
 import com.nighthawkapps.lib.android.ui.MainActivity
 import com.nighthawkapps.lib.android.ui.R
 import com.nighthawkapps.lib.android.ui.common.SecureScreen
@@ -93,7 +103,10 @@ private enum class ChatInboxMode {
 }
 
 @Composable
-internal fun MainActivity.AndroidChat(onChatSettings: () -> Unit) {
+internal fun MainActivity.AndroidChat(
+    onChatSettings: () -> Unit,
+    onPayInvoice: (String) -> Unit,
+) {
     val controller = LocalDarkfiChatController.current
     if (controller == null) {
         Text(
@@ -102,13 +115,22 @@ internal fun MainActivity.AndroidChat(onChatSettings: () -> Unit) {
         )
         return
     }
-    ChatScreen(controller = controller, onChatSettings = onChatSettings)
+    val walletViewModel by viewModels<WalletViewModel>()
+    val addresses by walletViewModel.addresses.collectAsStateWithLifecycle()
+    ChatScreen(
+        controller = controller,
+        onChatSettings = onChatSettings,
+        onPayInvoice = onPayInvoice,
+        receiveAddress = addresses?.privateAddresses?.firstOrNull().orEmpty(),
+    )
 }
 
 @Composable
 private fun ChatScreen(
     controller: DarkfiChatController,
     onChatSettings: () -> Unit,
+    onPayInvoice: (String) -> Unit,
+    receiveAddress: String,
 ) {
     val connectionState by controller.connectionState.collectAsStateWithLifecycle()
     val nodeStatus by controller.embeddedNodeStatus.collectAsStateWithLifecycle()
@@ -140,8 +162,18 @@ private fun ChatScreen(
     val clipboard = LocalClipboard.current
     val scope = rememberCoroutineScope()
     val hasEmbedded = remember { DarkircCryptoManager.hasBundledDarkirc(context.applicationContext) }
+    var meshOn by remember { mutableStateOf(false) }
+    var threadDisplayNames by remember { mutableStateOf<Map<String, String>>(emptyMap()) }
+    var localDisplayName by remember { mutableStateOf("") }
+    var pendingPublicInvoice by remember { mutableStateOf<String?>(null) }
 
     LaunchedEffect(Unit) {
+        val prefs = StandardPreferenceSingleton.getInstance(context.applicationContext)
+        meshOn = StandardPreferenceKeys.IS_NIGHTHAWK_MESH_ENABLED.getValue(prefs)
+        threadDisplayNames = ChatThreadDisplayNames.load(context)
+        launch {
+            StandardPreferenceKeys.IS_NIGHTHAWK_MESH_ENABLED.observe(prefs).collect { meshOn = it }
+        }
         controller.refreshDmStateFromDisk()
         when (connectionState) {
             DarkfiChatConnectionState.Disconnected,
@@ -192,6 +224,9 @@ private fun ChatScreen(
             ChatInboxMode.Channels -> selectedChannel
             ChatInboxMode.Direct -> selectedDmLabel ?: dmLabels.firstOrNull().orEmpty()
         }
+    LaunchedEffect(activeThreadKey) {
+        localDisplayName = threadDisplayNames[activeThreadKey].orEmpty()
+    }
 
     val encryptedChannelNames =
         remember(cryptoRevision) {
@@ -234,6 +269,29 @@ private fun ChatScreen(
                 showNewDm = true
             }) {
                 Icon(Icons.Default.Add, contentDescription = stringResource(R.string.ns_chat_new_dm))
+            }
+            if (meshOn) {
+                Surface(
+                    shape = RoundedCornerShape(8.dp),
+                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.18f),
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Image(
+                            painter = painterResource(id = R.drawable.ic_nighthawk_mesh),
+                            contentDescription = stringResource(R.string.ns_mesh_on_cd),
+                            modifier = Modifier.size(16.dp),
+                        )
+                        Text(
+                            text = stringResource(R.string.ns_mesh_on_badge),
+                            modifier = Modifier.padding(start = 4.dp),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.primary,
+                        )
+                    }
+                }
             }
             IconButton(onClick = onChatSettings) {
                 Icon(Icons.Default.Settings, contentDescription = stringResource(R.string.ns_chat_settings_short))
@@ -350,7 +408,7 @@ private fun ChatScreen(
                                 onClick = { selectedDmLabel = label },
                                 label = {
                                     Column {
-                                        Text(text = label)
+                                        Text(text = ChatThreadDisplayNames.display(threadDisplayNames, label))
                                         meta?.lastMessagePreview?.let { preview ->
                                             Text(
                                                 text = preview,
@@ -368,6 +426,22 @@ private fun ChatScreen(
                         TextButton(onClick = { deleteDmLabel = label }) {
                             Text(stringResource(R.string.ns_chat_dm_delete))
                         }
+                    }
+                    if (activeThreadKey.isNotBlank() && inboxMode == ChatInboxMode.Direct) {
+                        OutlinedTextField(
+                            value = localDisplayName,
+                            onValueChange = {
+                                localDisplayName = it
+                                scope.launch {
+                                    ChatThreadDisplayNames.put(context, activeThreadKey, it)
+                                    threadDisplayNames = ChatThreadDisplayNames.load(context)
+                                }
+                            },
+                            modifier = Modifier.fillMaxWidth(),
+                            label = { Text(stringResource(R.string.ns_chat_local_display_name)) },
+                            placeholder = { Text(stringResource(R.string.ns_chat_local_display_name_hint)) },
+                            singleLine = true,
+                        )
                     }
                 }
                 if (!hasEmbedded) {
@@ -450,6 +524,39 @@ private fun ChatScreen(
 
         Row(
             modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            TextButton(
+                onClick = {
+                    val uri = DeepLinkUtil.buildPaymentRequestUri(receiveAddress) ?: return@TextButton
+                    if (inboxMode == ChatInboxMode.Channels && activeThreadKey.startsWith("#")) {
+                        pendingPublicInvoice = uri
+                    } else if (activeThreadKey.isNotBlank()) {
+                        controller.sendToChannel(activeThreadKey, uri)
+                    }
+                },
+                enabled = receiveAddress.isNotBlank() && activeThreadKey.isNotBlank(),
+            ) {
+                Text(stringResource(R.string.ns_chat_attach_request))
+            }
+            TextButton(
+                onClick = {
+                    val fromDraft = draft.trim().takeIf { it.startsWith("drk:") }
+                    val fromHistory =
+                        messages[activeThreadKey].orEmpty().asReversed().firstOrNull { it.text.startsWith("drk:") }?.text
+                    val uri = fromDraft ?: fromHistory
+                    if (uri != null && DeepLinkUtil.getSendDeepLinkData(Uri.parse(uri)) != null) {
+                        onPayInvoice(uri)
+                    }
+                },
+                enabled = activeThreadKey.isNotBlank(),
+            ) {
+                Text(stringResource(R.string.ns_chat_pay_invoice))
+            }
+        }
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.Bottom,
         ) {
             TextButton(
@@ -505,6 +612,32 @@ private fun ChatScreen(
                 overflow = TextOverflow.Ellipsis,
             )
         }
+    }
+
+    if (pendingPublicInvoice != null) {
+        AlertDialog(
+            onDismissRequest = { pendingPublicInvoice = null },
+            title = { Text(stringResource(R.string.ns_chat_attach_request)) },
+            text = { Text(stringResource(R.string.ns_chat_public_pay_warning)) },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        val uri = pendingPublicInvoice
+                        pendingPublicInvoice = null
+                        if (uri != null && activeThreadKey.isNotBlank()) {
+                            controller.sendToChannel(activeThreadKey, uri)
+                        }
+                    },
+                ) {
+                    Text(stringResource(R.string.ns_chat_public_pay_confirm))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { pendingPublicInvoice = null }) {
+                    Text(stringResource(R.string.ns_cancel))
+                }
+            },
+        )
     }
 
     if (showNewDm) {

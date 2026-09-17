@@ -16,6 +16,8 @@ object EncryptedPreferenceKeys {
 
     val IS_FIAT_CURRENCY_PREFERRED = BooleanPreferenceDefault(PreferenceKey("is_fiat_currency_preferred_over_drk"), false)
 
+    val ADDRESS_BOOK_JSON = StringPreferenceDefault(PreferenceKey("device_address_book_json"), "")
+
     val SELECTED_SERVER = StringPreferenceDefault(PreferenceKey("selected_server"), "default")
 
     val DARKFI_ENDPOINT_PRESET =

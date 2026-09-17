@@ -31,6 +31,7 @@ android {
                 addAll(
                     listOf(
                         "src/main/res-drawable",
+                        "src/main/res-i18n",
                         "src/main/res/ui/about",
                         "src/main/res/ui/backup",
                         "src/main/res/ui/common",

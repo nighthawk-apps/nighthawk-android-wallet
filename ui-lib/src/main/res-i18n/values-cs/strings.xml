@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:tools="http://schemas.android.com/tools" xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
+    <string name="ns_request_money">Požádat o peníze</string>
+    <string name="ns_request_money_text">Zobrazte QR fakturu pro adresu této peněženky.</string>
+    <string name="ns_request_single_address">Tato peněženka má jednu přijímací adresu. Částka a memo jsou volitelné.</string>
+    <string name="ns_request_amount_hint">Částka (DRK, volitelné)</string>
+    <string name="ns_request_memo_hint">Memo (volitelné)</string>
+    <string name="ns_request_copy_uri">Kopírovat fakturu</string>
+    <string name="ns_request_need_address">Adresa peněženky ještě není připravená.</string>
+    <string name="ns_wallet_mesh_chat_only">Peněženka odpojena. Mesh je zapnutý jen pro chat.</string>
+    <string name="ns_chat_mesh_on">Nighthawk Mesh zapnutý</string>
+    <string name="ns_chat_attach_request">Požádat</string>
+    <string name="ns_chat_pay_invoice">Zaplatit</string>
+    <string name="ns_chat_public_pay_warning">Veřejné kanály # jsou v prostém textu. Připojit tuto fakturu přesto?</string>
+    <string name="ns_chat_public_pay_title">Veřejný kanál je v prostém textu</string>
+    <string name="ns_chat_public_pay_confirm">Připojit přesto</string>
+    <string name="ns_chat_three_secrets_title">Tři tajemství (nemíchejte)</string>
+    <string name="ns_chat_three_secrets_body">22slovná záloha peněženky není 12slovná identita chatu ani váš veřejný klíč ChaCha pro DM. Jejich smíchání může znamenat ztrátu peněz nebo deanonimizaci chatu.</string>
+    <string name="ns_chat_local_display_name">Místní zobrazované jméno</string>
+    <string name="ns_chat_local_display_name_hint">Pouze na tomto telefonu</string>
+    <string name="ns_address_book">Adresář</string>
+    <string name="ns_address_book_save">Uložit do adresáře</string>
+    <string name="ns_address_book_label_hint">Štítek (pouze toto zařízení)</string>
+    <string name="ns_address_book_empty">Na tomto zařízení nejsou uložené žádné adresy.</string>
+    <string name="ns_send_ffi_unavailable">Nativní knihovna peněženky není dostupná. Odesílání je vypnuté.</string>
+    <string name="ns_mesh_on_badge">MESH</string>
+    <string name="ns_mesh_on_cd">Nighthawk Mesh je zapnutý</string>
+    <string name="ns_create_wallet_text">Pokud ztratíte přístup k telefonu nebo k Nighthawk Wallet, jediný způsob, jak znovu získat přístup k peněžence, je tato 22slovná fráze a kód narozenin peněženky.
+
+Napište ji na papír a uložte na bezpečném místě.</string>
+    <string name="ns_restore_wallet_text">Níže zadejte svou 22slovnou seed frázi. Pokud tuto frázi nemáte, budete muset vytvořit novou peněženku.</string>
+    <string name="ns_backup_wallet_body">Pokud ztratíte přístup k telefonu nebo k peněžence Nighthawk, jediný způsob, jak znovu získat přístup k DRK, je tato 22slovná fráze a kód narozenin peněženky.
+
+Napište ji na papír a uložte na bezpečném místě.</string>
+    <string name="ns_fiat_currency_body">Zobrazení ve fiat měně je ve výchozím stavu vypnuté. Kurzy se stahují jen když je Tor zapnutý. Žádný další pokus o CoinGecko přes clearnet neproběhne.</string>
+</resources>

@@ -17,10 +17,6 @@ object StandardPreferenceKeys {
 
     val IS_KEEP_SCREEN_ON_DURING_SYNC = BooleanPreferenceDefault(PreferenceKey("is_keep_screen_on_during_sync"), true)
 
-    val IS_AUTOSHIELDING_INFO_ACKNOWLEDGED = BooleanPreferenceDefault(PreferenceKey("is_autoshielding_info_acknowledged"), false)
-
-    val LAST_AUTOSHIELDING_PROMPT_EPOCH_MILLIS_STRING = StringPreferenceDefault(PreferenceKey("last_autoshielding_epoch_millis"), "0")
-
     // Removed: last_entered_pin (C1 plaintext PIN leftover). Do not reintroduce.
 
     val IS_TOUCH_ID_OR_FACE_ID_ENABLED = BooleanPreferenceDefault(PreferenceKey("is_touch_id_face_id_enabled"), false)
@@ -33,6 +29,9 @@ object StandardPreferenceKeys {
 
     /** Nighthawk Mesh (Beta). Off by default; radios start only when the user enables this. */
     val IS_NIGHTHAWK_MESH_ENABLED = BooleanPreferenceDefault(PreferenceKey("is_nighthawk_mesh_enabled"), false)
+
+    /** Local-only per-thread chat labels. Not a global public ID. */
+    val CHAT_THREAD_DISPLAY_NAMES = StringPreferenceDefault(PreferenceKey("chat_thread_display_names_json"), "")
 
     /**
      * Keep BLE / connectedDevice running in the background while mesh is on.

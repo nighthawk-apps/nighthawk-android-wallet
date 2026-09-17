@@ -17,6 +17,7 @@ import androidx.annotation.VisibleForTesting
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -28,7 +29,9 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -50,8 +53,11 @@ import com.nighthawkapps.lib.android.sdk.tor.AppTorCoordinator
 import com.nighthawkapps.lib.android.sdk.tor.TorBootstrapUiState
 import com.nighthawkapps.lib.android.spackle.Twig
 import com.nighthawkapps.lib.android.ui.common.BindCompLocalProvider
+import com.nighthawkapps.lib.android.ui.common.NighthawkBrandingHeader
 import com.nighthawkapps.lib.android.ui.common.ShortcutAction
 import com.nighthawkapps.lib.android.ui.configuration.RemoteConfig
+import com.nighthawkapps.lib.android.ui.design.component.Body
+import com.nighthawkapps.lib.android.ui.design.component.BodySmall
 import com.nighthawkapps.lib.android.ui.design.component.ConfigurationOverride
 import com.nighthawkapps.lib.android.ui.design.component.Override
 import com.nighthawkapps.lib.android.ui.design.theme.WalletTheme
@@ -59,6 +65,7 @@ import com.nighthawkapps.lib.android.ui.screen.home.viewmodel.HomeViewModel
 import com.nighthawkapps.lib.android.ui.screen.home.viewmodel.SecretState
 import com.nighthawkapps.lib.android.ui.screen.home.viewmodel.WalletViewModel
 import com.nighthawkapps.lib.android.ui.screen.onboarding.nighthawk.WrapOnBoarding
+import com.nighthawkapps.lib.android.ui.screen.onboarding.nighthawk.view.OnboardingCarousel
 import com.nighthawkapps.lib.android.ui.screen.onboarding.nighthawk.view.SeedBackup
 import com.nighthawkapps.lib.android.ui.screen.pin.AndroidPin
 import com.nighthawkapps.lib.android.ui.screen.warning.WrapNotEnoughSpace
@@ -280,22 +287,17 @@ class MainActivity : FragmentActivity() {
         if (versionName.isBlank()) {
             return
         }
-        Box(
-            modifier = Modifier.fillMaxSize(),
-            contentAlignment = Alignment.BottomCenter,
-        ) {
-            Text(
-                text = stringResource(R.string.splash_app_version, versionName),
-                color = colorResource(R.color.splash_tagline_text),
-                fontSize = 12.sp,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.padding(bottom = 24.dp),
-            )
-        }
+        Text(
+            text = stringResource(R.string.splash_app_version, versionName),
+            color = colorResource(R.color.splash_tagline_text),
+            fontSize = 12.sp,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.padding(top = 8.dp),
+        )
     }
 
     @Composable
-    private fun SplashTorStatusOverlay(torState: TorBootstrapUiState) {
+    private fun SplashConnectingScreen(torState: TorBootstrapUiState) {
         val context = LocalContext.current
         val label =
             when (torState) {
@@ -308,26 +310,50 @@ class MainActivity : FragmentActivity() {
                 TorBootstrapUiState.Failed -> stringResource(R.string.splash_tor_failed)
 
                 TorBootstrapUiState.Disabled -> null
-            } ?: return
+            }
         val showDisable =
             torState == TorBootstrapUiState.Bootstrapping ||
                 torState == TorBootstrapUiState.Idle ||
                 torState == TorBootstrapUiState.Failed
-        Box(
-            modifier = Modifier.fillMaxSize(),
-            contentAlignment = Alignment.BottomCenter,
-        ) {
+        Box(modifier = Modifier.fillMaxSize()) {
+            Column(
+                modifier =
+                    Modifier
+                        .fillMaxSize()
+                        .padding(horizontal = 24.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                Spacer(modifier = Modifier.weight(1f))
+                NighthawkBrandingHeader(bottomSpacing = 10.dp)
+                Body(
+                    text = stringResource(R.string.splash_subtitle),
+                    textAlign = TextAlign.Center,
+                )
+                if (label != null) {
+                    BodySmall(
+                        text = label,
+                        textAlign = TextAlign.Center,
+                        color = colorResource(R.color.splash_tagline_text),
+                        modifier = Modifier.padding(top = 12.dp),
+                    )
+                }
+                if (torState == TorBootstrapUiState.Failed) {
+                    TextButton(
+                        onClick = { AppTorCoordinator.warmStartIfEnabled(context) },
+                    ) {
+                        Text(stringResource(R.string.splash_tor_retry))
+                    }
+                }
+                Spacer(modifier = Modifier.weight(1f))
+            }
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(8.dp),
-                modifier = Modifier.padding(bottom = 48.dp, start = 24.dp, end = 24.dp),
+                modifier =
+                    Modifier
+                        .align(Alignment.BottomCenter)
+                        .padding(bottom = 24.dp, start = 24.dp, end = 24.dp),
             ) {
-                Text(
-                    text = label,
-                    color = colorResource(R.color.splash_tagline_text),
-                    fontSize = 12.sp,
-                    textAlign = TextAlign.Center,
-                )
                 if (showDisable) {
                     TextButton(
                         onClick = { AppTorCoordinator.disableTorFromSplash(context) },
@@ -341,6 +367,7 @@ class MainActivity : FragmentActivity() {
                         textAlign = TextAlign.Center,
                     )
                 }
+                SplashVersionFooter()
             }
         }
     }
@@ -394,26 +421,39 @@ class MainActivity : FragmentActivity() {
         val secretState = walletViewModel.secretState.collectAsStateWithLifecycle().value
 
         val torState by AppTorCoordinator.bootstrapState.collectAsStateWithLifecycle()
+        val onboardingPrefs = remember {
+            getSharedPreferences("nighthawk_onboarding", MODE_PRIVATE)
+        }
+        var onboardingDone by remember {
+            mutableStateOf(onboardingPrefs.getBoolean("has_completed_onboarding", false))
+        }
 
         // Note this condition needs to be kept in sync with the condition in setupSplashScreen()
         val waitingOnWallet = null == configuration || secretState == SecretState.Loading
-        // Tor splash only when opening a backed-up wallet. Onboarding and seed
-        // backup must stay on screen — Create Wallet used to persist the seed
-        // then vanish behind this overlay while Arti bootstrapped.
-        val blockReadyWalletOnTor =
-            secretState is SecretState.Ready &&
+        // Hold GetStarted (None) and Home (Ready after onboarding) until Tor is ready
+        // or the user continues without it. Seed backup and the post-backup carousel
+        // stay interactive — Create Wallet used to vanish behind Arti bootstrap.
+        val holdForTor =
+            (
+                secretState == SecretState.None ||
+                    (secretState is SecretState.Ready && onboardingDone)
+            ) &&
                 (
                     torState == TorBootstrapUiState.Bootstrapping ||
                         torState == TorBootstrapUiState.Idle ||
                         torState == TorBootstrapUiState.Failed
                 )
         if (waitingOnWallet) {
-            SplashVersionFooter()
-        } else if (blockReadyWalletOnTor) {
-            Box(modifier = Modifier.fillMaxSize()) {
-                SplashTorStatusOverlay(torState)
-                SplashVersionFooter()
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.BottomCenter,
+            ) {
+                Column(modifier = Modifier.padding(bottom = 24.dp)) {
+                    SplashVersionFooter()
+                }
             }
+        } else if (holdForTor) {
+            SplashConnectingScreen(torState)
         } else {
             // Note that the deeply nested child views will probably receive arguments derived from
             // the configuration.  The CompositionLocalProvider is helpful for passing the configuration
@@ -441,7 +481,16 @@ class MainActivity : FragmentActivity() {
 
                     is SecretState.Ready -> {
                         Twig.info { "EndPoint ${secretState.persistableWallet.endpoint}" }
-                        NavigationMainContent()
+                        if (!onboardingDone) {
+                            OnboardingCarousel(
+                                onComplete = {
+                                    onboardingPrefs.edit().putBoolean("has_completed_onboarding", true).apply()
+                                    onboardingDone = true
+                                }
+                            )
+                        } else {
+                            NavigationMainContent()
+                        }
                     }
                 }
             }

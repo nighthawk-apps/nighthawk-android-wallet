@@ -79,6 +79,47 @@ object DeepLinkUtil {
         }
     }
 
+    /**
+     * Encode a `drk:` invoice for the wallet's **single** receive address.
+     * Amount is display DRK (same as send); memo is UTF-8, base64 in the query.
+     */
+    fun buildPaymentRequestUri(
+        address: String,
+        amountDisplay: String? = null,
+        memo: String? = null,
+    ): String? {
+        val addr = address.trim()
+        if (addr.isEmpty() || addr.length > MAX_ADDRESS_LENGTH) return null
+        if (addr.any { it.isISOControl() || it.isWhitespace() }) return null
+        val amount =
+            amountDisplay
+                ?.trim()
+                ?.takeIf { it.isNotEmpty() }
+                ?.let { parseAtomicDrk(it) ?: return null }
+        val memoNormalized =
+            memo
+                ?.trim()
+                ?.takeIf { it.isNotEmpty() }
+                ?.takeIf {
+                    DarkfiPaymentMemo.utf8Size(it) <= DarkfiPaymentMemo.MAX_BYTES &&
+                        it.none(Char::isISOControl)
+                }
+        val builder = StringBuilder(SCHEME).append(':').append(addr)
+        val query = mutableListOf<String>()
+        if (amount != null) {
+            query += "$AMOUNT_QUERY=$amountDisplay"
+        }
+        if (memoNormalized != null) {
+            val encoded =
+                Base64.encodeToString(memoNormalized.toByteArray(Charsets.UTF_8), Base64.NO_WRAP)
+            query += "$MEMO_QUERY=$encoded"
+        }
+        if (query.isNotEmpty()) {
+            builder.append('?').append(query.joinToString("&"))
+        }
+        return builder.toString()
+    }
+
     data class SendDeepLinkData(
         val address: String,
         val amount: Long?,

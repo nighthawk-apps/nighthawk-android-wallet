@@ -493,7 +493,7 @@ private fun Status(
                 // Sync method / sync type label — show the most specific info available.
                 // When the Rust SyncMethod enum is known (PerfOMR, LWEmongrass, etc.),
                 // prefer that over the free-text syncType label to avoid redundant
-                // stacking like "🔒 OMR" + "🔒 PerfOMR".
+                // stacking like "UnifOMR" twice.
                 val syncMethod = walletSnapshot.syncMethod
                 val syncTypeMsg = walletSnapshot.syncTypeMessage
 
@@ -507,10 +507,15 @@ private fun Status(
                         }
                     Text(
                         text =
-                            if (syncMethod.isPrivateRetrieval) {
-                                "🔒 ${syncMethod.displayLabel}$phaseHint"
-                            } else {
-                                syncMethod.displayLabel
+                            when {
+                                syncMethod == DarkfiSyncMethod.UNIF_OMR &&
+                                    walletSnapshot.fallbackUserMessage.isNotBlank() ->
+                                    "UnifOMR + trial-decrypt fallback$phaseHint"
+                                syncMethod == DarkfiSyncMethod.UNIF_OMR ->
+                                    "UnifOMR$phaseHint"
+                                syncMethod == DarkfiSyncMethod.TRIAL_DECRYPT ->
+                                    "Trial decryption$phaseHint"
+                                else -> syncMethod.displayLabel
                             },
                         style = MaterialTheme.typography.labelSmall,
                         color =
@@ -539,12 +544,7 @@ private fun Status(
                             }
                         }
                     Text(
-                        text =
-                            if (syncTypeMsg.contains("fallback", ignoreCase = true)) {
-                                "⚠️ $syncTypeMsg"
-                            } else {
-                                syncTypeMsg
-                            },
+                        text = syncTypeMsg,
                         style = MaterialTheme.typography.labelSmall,
                         color = syncTypeColor,
                         modifier = Modifier.testTag("SYNC_TYPE_TEXT"),

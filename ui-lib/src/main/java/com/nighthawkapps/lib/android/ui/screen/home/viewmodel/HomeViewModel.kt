@@ -10,6 +10,7 @@ import com.nighthawkapps.lib.android.global.DeepLinkUtil
 import com.nighthawkapps.lib.android.network.repository.CoinMetricsRepositoryImpl
 import com.nighthawkapps.lib.android.network.util.Resource
 import com.nighthawkapps.lib.android.network.util.RetrofitHelper
+import com.nighthawkapps.lib.android.sdk.net.TorOutboundSocks
 import com.nighthawkapps.lib.android.spackle.Twig
 import com.nighthawkapps.lib.android.ui.common.ANDROID_STATE_FLOW_TIMEOUT
 import com.nighthawkapps.lib.android.ui.common.ShortcutAction
@@ -97,6 +98,13 @@ class HomeViewModel(
     fun refreshSpotPrice(currencyServerUrl: String) {
         viewModelScope.launch(Dispatchers.IO) {
             try {
+                if (FiatCurrency.getFiatCurrencyByServerUrl(currencyServerUrl) == FiatCurrency.OFF) {
+                    return@launch
+                }
+                if (TorOutboundSocks.proxyForClearnetHttp(getApplication()) == null) {
+                    Twig.info { "Fiat quote skipped: Tor is off (no clearnet CoinGecko)" }
+                    return@launch
+                }
                 CoinMetricsRepositoryImpl(RetrofitHelper.getCoinMetricsApiService(getApplication()))
                     .observeSpotPrice(currencyServerUrl)
                     .catch { Twig.error { "Exception in getting price from coin metrics catch $it" } }
@@ -145,6 +153,9 @@ class HomeViewModel(
             val preference = EncryptedPreferenceSingleton.getInstance(application)
             EncryptedPreferenceKeys.PREFERRED_FIAT_CURRENCY_NAME.getValue(preference).let {
                 val fiatCurrency = FiatCurrency.getFiatCurrencyByName(it)
+                if (fiatCurrency == FiatCurrency.OFF) {
+                    return@launch
+                }
                 if (fiatCurrency != _fiatCurrencyUiStateFlow.value.fiatCurrency) {
                     refreshSpotPrice(fiatCurrency.serverUrl)
                 }

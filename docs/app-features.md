@@ -1,6 +1,6 @@
 # Nighthawk DarkFi — application feature catalog
 
-Canonical list of **Android** capabilities for the DarkFi wallet APK (`com.nighthawkwallet.android` / `.testnet`). Use this document when porting the **iOS** app from Zcash to DarkFi so both clients reach parity deliberately.
+Canonical list of **Android** capabilities for the DarkFi wallet APK (`com.nighthawkwallet.android` / `.testnet`). Use this document to track iOS parity.
 
 **Legend**
 
@@ -9,7 +9,6 @@ Canonical list of **Android** capabilities for the DarkFi wallet APK (`com.night
 | ✅ | Implemented and usable (may need native `.so` or testnet node) |
 | 🟡 | Partial / stub / UI-only / requires external daemon |
 | ❌ | Not implemented |
-| 🔒 | Zcash had it; DarkFi equivalent differs (see notes) |
 
 **Build flavors:** `darkfimainnet` · `darkfitestnet`  
 **Light client path:** wallets → **`darkfi-lightwalletd` gRPC `:9067`** (UnifOMR) → `darkfid` (not direct darkfid for sync/scan).  
@@ -25,11 +24,12 @@ Canonical list of **Android** capabilities for the DarkFi wallet APK (`com.night
 | Restore from seed phrase | ✅ | Import path in onboarding |
 | Wallet encrypted at rest | ✅ | Encrypted prefs + turso/aegis256 `wallet.db` (native `drk`) |
 | PIN / app lock | ✅ | PIN setup and gate |
-| Backup reminder / seed backup flow | ✅ | Settings → backup wallet |
+| Backup reminder / seed backup flow | ✅ | Required after create/restore; then educational carousel, then Home |
+| Educational onboarding carousel | ✅ | After Tor connecting + create/restore + seed backup |
 | Birthday height (faster restore) | 🟡 | `birthdayHeight` in persist model; FFI bootstrap supports it |
 | Multiple accounts in one app | ❌ | Single `PersistableDarkfiWallet` today |
 | View / copy receive address | ✅ | `drk` deposit addresses; QR receive flow |
-| Generate new address | ✅ | `generateNewAddress()` when native lib present |
+| Single wallet address | ✅ | One receive address; Request money builds a `drk:` invoice |
 | Address formats (`drk…`) | ✅ | Confidential / public receive encodings |
 
 ---
@@ -39,7 +39,7 @@ Canonical list of **Android** capabilities for the DarkFi wallet APK (`com.night
 | Feature | Android | Notes for iOS |
 |---------|---------|---------------|
 | Confirmed balance (DRK) | ✅ | `confirmedBalanceAtomic` via native `drk` when `.so` loaded |
-| Transparent vs shielded split | 🔒 | **N/A** — DarkFi transfers are private; show single balance |
+| Transparent vs shielded split | | **N/A** — DarkFi transfers are private; show single balance |
 | Fiat conversion display | 🟡 | Fiat currency setting exists; rate source project-specific |
 | Sync progress (% / blocks) | 🟡 | UI hooks exist; stub shows placeholder until scan wired (P1-5) |
 | Pull-to-refresh / rescan | ✅ | Settings → rescan; `refreshNow()` |
@@ -63,10 +63,8 @@ Canonical list of **Android** capabilities for the DarkFi wallet APK (`com.night
 | Memo on transaction details | ✅ | Decrypt incoming / stored outgoing (P0) |
 | QR scan recipient / amount | ✅ | SCAN route; deep link `drk:…?amount=&memo=` |
 | Receive QR display | ✅ | Receive money + QR codes screens |
-| Request specific amount (payment URI) | 🟡 | Deep link support; full “request” UX varies |
+| Request specific amount (payment URI) | ✅ | Request money QR uses this wallet’s single `drk:` address |
 | Multi-token / custom assets send | ❌ | DRK default only (P1-1, P1-2) |
-| ZIP-321 / unified address | 🔒 | Use DarkFi `drk` addresses instead |
-| Shielding / deshielding | 🔒 | **N/A** on DarkFi |
 
 ---
 
@@ -152,7 +150,7 @@ Canonical list of **Android** capabilities for the DarkFi wallet APK (`com.night
 | Memo field (512 bytes) | UnifOMR user memo, max **255 UTF-8 bytes** (off-chain `omr_metadata_enc`; on-chain `MoneyNote.memo` is unbounded `Vec<u8>` and left empty by `drk.transfer`) |
 | Lightwalletd | `darkfi-lightwalletd` gRPC **:9067** (UnifOMR) → `darkfid` |
 | Tor via librustzcash | tor-android SOCKS + optional daemon Tor |
-| ZIP-321 | Payment URI `drk:address?amount=&memo=` |
+| `drk:` payment URI | Payment URI `drk:address?amount=&memo=` |
 | Orchard / Sapling | Money contract `TransferV1` |
 | — | DarkIRC chat (new) |
 | — | DAO / custom tokens (chain; app UI pending) |

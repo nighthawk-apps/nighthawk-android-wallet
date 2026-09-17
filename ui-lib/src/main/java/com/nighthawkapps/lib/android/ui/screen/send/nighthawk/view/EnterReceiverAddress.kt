@@ -24,13 +24,23 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalClipboard
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.nighthawkapps.lib.android.ui.screen.addressbook.AddressBookEntry
+import com.nighthawkapps.lib.android.ui.screen.addressbook.DeviceAddressBook
 import com.nighthawkapps.lib.android.ui.R
 import com.nighthawkapps.lib.android.ui.common.customColors
 import com.nighthawkapps.lib.android.ui.common.pastePlainText
@@ -79,6 +89,12 @@ fun EnterReceiverAddress(
     ) {
         val clipboard = LocalClipboard.current
         val scope = rememberCoroutineScope()
+        val context = LocalContext.current
+        var book by remember { mutableStateOf<List<AddressBookEntry>>(emptyList()) }
+        var saveLabel by remember { mutableStateOf("") }
+        LaunchedEffect(Unit) {
+            book = DeviceAddressBook.load(context)
+        }
 
         NighthawkTopBar(
             onLeadingClick = onBack,
@@ -157,6 +173,53 @@ fun EnterReceiverAddress(
             )
         } else {
             Spacer(modifier = Modifier.height(40.dp))
+        }
+        Spacer(modifier = Modifier.height(16.dp))
+        BodyMedium(
+            text = stringResource(id = R.string.ns_address_book),
+            color = WalletTheme.colors.secondaryTitleText,
+        )
+        if (book.isEmpty()) {
+            BodyMedium(
+                text = stringResource(id = R.string.ns_address_book_empty),
+                color = WalletTheme.colors.secondaryTitleText,
+            )
+        } else {
+            book.forEach { entry ->
+                DottedBorderTextButton(
+                    onClick = { onValueChanged(entry.address) },
+                    text = "${entry.label} · ${entry.address.take(12)}…",
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .heightIn(min = 40.dp),
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+            }
+        }
+        if (receiverAddress.isNotBlank()) {
+            OutlinedTextField(
+                value = saveLabel,
+                onValueChange = { saveLabel = it },
+                modifier = Modifier.fillMaxWidth(),
+                placeholder = {
+                    BodyMedium(text = stringResource(id = R.string.ns_address_book_label_hint))
+                },
+                singleLine = true,
+                colors = TextFieldDefaults.customColors(),
+            )
+            TextButton(
+                onClick = {
+                    scope.launch {
+                        DeviceAddressBook.upsert(context, saveLabel, receiverAddress)
+                        book = DeviceAddressBook.load(context)
+                        saveLabel = ""
+                    }
+                },
+                enabled = saveLabel.isNotBlank(),
+            ) {
+                androidx.compose.material3.Text(text = stringResource(id = R.string.ns_address_book_save))
+            }
         }
         Spacer(modifier = Modifier.height(40.dp))
         PrimaryButton(

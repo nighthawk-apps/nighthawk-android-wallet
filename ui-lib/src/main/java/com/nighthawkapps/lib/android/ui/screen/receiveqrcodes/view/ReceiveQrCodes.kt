@@ -75,7 +75,6 @@ fun ReceiveQrCodesPreview() {
                     ),
                 onBack = {},
                 onSeeMoreTopUpOption = {},
-                onCreateNewAddress = {}
             )
         }
     }
@@ -108,7 +107,6 @@ fun ReceiveQrCodes(
     walletAddresses: DarkfiWalletAddresses,
     onBack: () -> Unit,
     onSeeMoreTopUpOption: () -> Unit,
-    onCreateNewAddress: () -> Unit
 ) {
     Twig.debug { "WalletAddresses $walletAddresses" }
     val clipboard = LocalClipboard.current

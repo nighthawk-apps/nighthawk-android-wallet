@@ -122,7 +122,7 @@ fun OnboardingCarousel(onComplete: () -> Unit) {
             } else {
                 PrimaryButton(
                     onClick = onComplete,
-                    text = stringResource(id = R.string.ns_get_started),
+                    text = stringResource(id = R.string.ns_continue),
                     modifier = Modifier.width(dimensionResource(id = R.dimen.restore_button_min_width))
                 )
             }

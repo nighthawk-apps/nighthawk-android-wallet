@@ -196,12 +196,8 @@
     <ID>MaxLineLength:SendConfirmation.kt$/*TextButton( onClick = { onMoreDetails(sendConfirmationState.id) }, modifier = Modifier.align(Alignment.CenterHorizontally) ) { BodyMedium(text = stringResource(id = R.string.ns_more_details).uppercase(), color = WalletTheme.colors.onBackgroundHeader) }*/</ID>
     <ID>MaxLineLength:SendConfirmation.kt$BodyMedium(text = stringResource(id = R.string.ns_cancel).uppercase(), color = WalletTheme.colors.onBackgroundHeader)</ID>
     <ID>MaxLineLength:SettingsView.kt$BodyMedium(text = stringResource(id = R.string.ns_chat_settings_section_title), color = WalletTheme.colors.surfaceEnd)</ID>
-    <ID>MaxLineLength:ShieldViewModel.kt$ShieldViewModel$"Try again after ${maxAutoShieldFrequency.milliseconds.inWholeMinutes} minutes of your last auto shielding"</ID>
-    <ID>MaxLineLength:ShieldViewModel.kt$ShieldViewModel$private val _shieldingProcessSate: MutableStateFlow&lt;ShieldingProcessState&gt; = MutableStateFlow(ShieldingProcessState.CREATING)</ID>
-    <ID>MaxLineLength:StandardPreferenceKeys.kt$StandardPreferenceKeys$val IS_AUTOSHIELDING_INFO_ACKNOWLEDGED = BooleanPreferenceDefault(PreferenceKey("is_autoshielding_info_acknowledged"), false)</ID>
     <ID>MaxLineLength:StandardPreferenceKeys.kt$StandardPreferenceKeys$val IS_NAVIGATE_AWAY_FROM_APP_WARNING_SHOWN = BooleanPreferenceDefault(PreferenceKey("is_navigate_from_app_warning_shown"), false)</ID>
     <ID>MaxLineLength:StandardPreferenceKeys.kt$StandardPreferenceKeys$val IS_UNSTOPPABLE_SERVICE_ENABLED = BooleanPreferenceDefault(PreferenceKey("is_unstoppable_service_enabled"), false)</ID>
-    <ID>MaxLineLength:StandardPreferenceKeys.kt$StandardPreferenceKeys$val LAST_AUTOSHIELDING_PROMPT_EPOCH_MILLIS_STRING = StringPreferenceDefault(PreferenceKey("last_autoshielding_epoch_millis"), "0")</ID>
     <ID>MaxLineLength:SyncNotificationIntervalOptionPreferenceDefault.kt$SyncIntervalOptionPreferenceDefault$override suspend</ID>
     <ID>MaxLineLength:SyncNotificationIntervalOptionPreferenceDefault.kt$SyncIntervalOptionPreferenceDefault$preferenceProvider.getString(key)?.let { SyncNotificationViewModel.SyncIntervalOption.getSyncIntervalByText(it) }</ID>
     <ID>MaxLineLength:SyncNotificationWorker.kt$SyncNotificationWorker$val channelPeriodic = NotificationChannel(WorkIds.SYNC_NOTIFICATION_CHANNEL_ID, WorkIds.SYNC_NOTIFICATION_CHANNEL_NAME, importance)</ID>

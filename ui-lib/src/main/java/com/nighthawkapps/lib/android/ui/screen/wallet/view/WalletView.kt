@@ -143,6 +143,7 @@ fun WalletView(
     onDaemonStatusClick: () -> Unit = {},
     tokenBalances: List<DarkfiTokenBalance> = emptyList(),
     onTokenClick: (String) -> Unit = {},
+    meshOn: Boolean = false,
 ) {
     Column(
         modifier =
@@ -218,6 +219,17 @@ fun WalletView(
                     status = daemonStatus,
                     onClick = onDaemonStatusClick,
                 )
+                val walletDisconnected =
+                    daemonStatus != DarkfiDaemonStatus.Connected &&
+                        daemonStatus != DarkfiDaemonStatus.ReorgRecovery
+                if (meshOn && walletDisconnected) {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    BodySmall(
+                        text = stringResource(id = R.string.ns_wallet_mesh_chat_only),
+                        textAlign = TextAlign.Center,
+                        color = WalletTheme.colors.secondaryTitleText,
+                    )
+                }
                 Spacer(modifier = Modifier.height(8.dp))
                 if (walletSnapshot.status == DarkfiSyncStatus.SYNCED) {
                     BodyMedium(
