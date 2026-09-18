@@ -30,6 +30,7 @@ import com.nighthawkapps.lib.android.ui.screen.home.viewmodel.WalletViewModel
 import com.nighthawkapps.lib.android.ui.screen.send.model.SendArgumentsWrapper
 import com.nighthawkapps.lib.android.ui.screen.settings.viewmodel.SettingsViewModel
 import com.nighthawkapps.lib.android.ui.screen.wallet.view.WalletView
+import com.nighthawkapps.lib.android.ui.screen.wallet.view.isSendDisabled
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -42,6 +43,9 @@ internal fun MainActivity.AndroidWallet(
     onSendFromDeepLink: () -> Unit,
     onScanToSend: () -> Unit,
     onSendToken: (String) -> Unit = {},
+    onSendMoney: () -> Unit = {},
+    onReceiveMoney: () -> Unit = {},
+    onRequestMoney: () -> Unit = {},
 ) {
     WrapWallet(
         activity = this,
@@ -52,6 +56,9 @@ internal fun MainActivity.AndroidWallet(
         onSendFromDeepLink = onSendFromDeepLink,
         onScanToSend = onScanToSend,
         onSendToken = onSendToken,
+        onSendMoney = onSendMoney,
+        onReceiveMoney = onReceiveMoney,
+        onRequestMoney = onRequestMoney,
     )
 }
 
@@ -65,6 +72,9 @@ internal fun WrapWallet(
     onSendFromDeepLink: () -> Unit,
     onScanToSend: () -> Unit,
     onSendToken: (String) -> Unit = {},
+    onSendMoney: () -> Unit = {},
+    onReceiveMoney: () -> Unit = {},
+    onRequestMoney: () -> Unit = {},
 ) {
     val homeViewModel by activity.viewModels<HomeViewModel>()
     val walletViewModel by activity.viewModels<WalletViewModel>()
@@ -181,6 +191,10 @@ internal fun WrapWallet(
             tokenBalances = tokenBalances,
             onTokenClick = onSendToken,
             meshOn = meshOn,
+            onSendMoney = onSendMoney,
+            onReceiveMoney = onReceiveMoney,
+            onRequestMoney = onRequestMoney,
+            sendDisabled = isSendDisabled(walletSnapshot.status),
         )
     }
     activity.reportFullyDrawn()

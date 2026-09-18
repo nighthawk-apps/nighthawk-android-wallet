@@ -25,6 +25,7 @@ import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.PagerState
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -94,7 +95,10 @@ fun WalletPreview() {
                 onViewTransactionHistory = {},
                 onLongItemClick = {},
                 onFlipCurrency = {},
-                onScanToSend = {}
+                onScanToSend = {},
+                onSendMoney = {},
+                onReceiveMoney = {},
+                onRequestMoney = {},
             )
         }
     }
@@ -145,6 +149,10 @@ fun WalletView(
     tokenBalances: List<DarkfiTokenBalance> = emptyList(),
     onTokenClick: (String) -> Unit = {},
     meshOn: Boolean = false,
+    onSendMoney: () -> Unit = {},
+    onReceiveMoney: () -> Unit = {},
+    onRequestMoney: () -> Unit = {},
+    sendDisabled: Boolean = false,
 ) {
     Column(
         modifier =
@@ -330,6 +338,13 @@ fun WalletView(
             }
         }
 
+        WalletActionRow(
+            sendDisabled = sendDisabled,
+            onReceiveMoney = onReceiveMoney,
+            onSendMoney = onSendMoney,
+            onRequestMoney = onRequestMoney,
+        )
+
         // Bottom Transactions View
         if (transactionSnapshot.isNotEmpty()) {
             BodyMedium(
@@ -368,6 +383,77 @@ fun WalletView(
         if (isKeepScreenOnWhileSyncing == true && isSyncing(walletSnapshot.status)) {
             DisableScreenTimeout()
         }
+    }
+}
+
+@Composable
+private fun WalletActionRow(
+    sendDisabled: Boolean,
+    onReceiveMoney: () -> Unit,
+    onSendMoney: () -> Unit,
+    onRequestMoney: () -> Unit,
+) {
+    Column(
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .padding(bottom = 8.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            WalletActionButton(
+                text = stringResource(id = R.string.ns_receive_money),
+                onClick = onReceiveMoney,
+                modifier = Modifier.weight(1f),
+            )
+            WalletActionButton(
+                text = stringResource(id = R.string.ns_send_money),
+                enabled = !sendDisabled,
+                onClick = onSendMoney,
+                modifier = Modifier.weight(1f),
+            )
+        }
+        Spacer(modifier = Modifier.height(8.dp))
+        TitleMedium(
+            text = stringResource(id = R.string.ns_request_money),
+            color = MaterialTheme.colorScheme.primary,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.clickable(onClick = onRequestMoney),
+        )
+    }
+}
+
+@Composable
+private fun WalletActionButton(
+    text: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+) {
+    Box(
+        modifier =
+            modifier
+                .heightIn(min = 40.dp)
+                .clip(RoundedCornerShape(8.dp))
+                .background(
+                    if (enabled) {
+                        MaterialTheme.colorScheme.primary
+                    } else {
+                        MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)
+                    },
+                )
+                .clickable(enabled = enabled, onClick = onClick)
+                .padding(horizontal = 14.dp, vertical = 10.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        TitleMedium(
+            text = text.uppercase(),
+            color = MaterialTheme.colorScheme.onPrimary,
+            textAlign = TextAlign.Center,
+        )
     }
 }
 
@@ -486,3 +572,8 @@ fun BalanceAmountRow(
 }
 
 fun isSyncing(status: DarkfiSyncStatus): Boolean = status == DarkfiSyncStatus.SYNCING
+
+fun isSendDisabled(status: DarkfiSyncStatus): Boolean =
+    status == DarkfiSyncStatus.ERROR ||
+        status == DarkfiSyncStatus.STOPPED ||
+        status == DarkfiSyncStatus.PROTO_MISMATCH

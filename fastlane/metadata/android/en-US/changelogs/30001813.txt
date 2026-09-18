@@ -1,0 +1,4 @@
+- Testnet 3.00.013: Send, Receive, and Request live on the Wallet tab.
+- Transfer hub removed; fourth tab is DEX (coming soon).
+- DAO Hub stays in Settings; Top-up moved there.
+- Tab bar hides on send/receive/request. Send stays enabled unless sync failed.

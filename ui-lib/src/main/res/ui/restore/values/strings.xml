@@ -116,6 +116,9 @@
 
     <!-- Transfer Screen -->
     <string name="ns_transfer">Transfer</string>
+    <string name="ns_dex">DEX</string>
+    <string name="ns_dex_coming_soon">Coming soon</string>
+    <string name="ns_dex_coming_soon_body">The DarkFi DEX will live here. Send, receive, and request stay on Wallet.</string>
     <string name="ns_transfer_title">Send and receive DRK</string>
     <string name="ns_send_money">Send money</string>
     <string name="ns_send_money_text">Scan someone\'s QR code to send them money</string>

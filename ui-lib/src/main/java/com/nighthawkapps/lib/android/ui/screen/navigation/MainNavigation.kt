@@ -86,8 +86,8 @@ import com.nighthawkapps.lib.android.ui.screen.syncnotification.AndroidSyncNotif
 import com.nighthawkapps.lib.android.ui.screen.topup.AndroidTopUp
 import com.nighthawkapps.lib.android.ui.screen.transactiondetails.AndroidTransactionDetails
 import com.nighthawkapps.lib.android.ui.screen.transactionhistory.AndroidTransactionHistory
-import com.nighthawkapps.lib.android.ui.screen.transfer.AndroidTransfer
 import com.nighthawkapps.lib.android.ui.screen.wallet.AndroidWallet
+import com.nighthawkapps.lib.android.ui.screen.dex.DexComingSoonView
 import kotlinx.collections.immutable.persistentListOf
 
 @Composable
@@ -130,19 +130,14 @@ internal fun MainActivity.MainNavigation(
                             tokenId
                     }
                 },
-            )
-            removeScanSavedData(backStackEntry = backStackEntry)
-        }
-        composable(BottomNavItem.Transfer.route) {
-            AndroidTransfer(
                 onSendMoney = { navHostController.navigateJustOnce(SEND_MONEY) },
                 onReceiveMoney = { navHostController.navigateJustOnce(RECEIVE_MONEY) },
                 onRequestMoney = { navHostController.navigateJustOnce(REQUEST_MONEY) },
-                onTopUp = {
-                    navHostController.navigateJustOnce(TOP_UP)
-                },
-                onDaoHub = { navHostController.navigateJustOnce(DAO_HUB) },
             )
+            removeScanSavedData(backStackEntry = backStackEntry)
+        }
+        composable(BottomNavItem.Dex.route) {
+            DexComingSoonView()
         }
         composable(BottomNavItem.Settings.route) {
             AndroidSettings(
@@ -159,6 +154,7 @@ internal fun MainActivity.MainNavigation(
                         onChangeServer = { navHostController.navigateJustOnce(CHANGE_SERVER) },
                         onAbout = { navHostController.navigateJustOnce(ABOUT) },
                         onDaoHub = { navHostController.navigateJustOnce(DAO_HUB) },
+                        onTopUp = { navHostController.navigateJustOnce(TOP_UP) },
                     ),
             )
         }
@@ -170,7 +166,7 @@ internal fun MainActivity.MainNavigation(
                 },
                 navigateTo = { navHostController.popBackStack(it, false) },
                /* onMoreDetails = {
-                    navHostController.popBackStack(BottomNavItem.Transfer.route, false)
+                    navHostController.popBackStack(BottomNavItem.Wallet.route, false)
                     navHostController.navigateJustOnce(NavigationTargets.navigationRouteTransactionDetails(transactionId = it))
                 },*/
                 onScan = { navHostController.navigateJustOnce(SCAN) },
@@ -428,7 +424,7 @@ sealed class BottomNavItem(
 
     object Wallet : BottomNavItem("Wallet", R.string.ns_wallet, R.drawable.ic_icon_wallet)
 
-    object Transfer : BottomNavItem("Transfer", R.string.ns_transfer, R.drawable.ic_icon_transfer)
+    object Dex : BottomNavItem("Dex", R.string.ns_dex, R.drawable.ic_icon_transfer)
 
     object Settings : BottomNavItem("Settings", R.string.ns_settings, R.drawable.ic_icon_settings)
 }
@@ -443,11 +439,16 @@ fun isBottomNavItemSelected(
         }
 
         BottomNavItem.Wallet.route -> {
-            currentRoute == bottomNavItemRoute || RECEIVE_QR_CODES == currentRoute
+            currentRoute == bottomNavItemRoute ||
+                RECEIVE_QR_CODES == currentRoute ||
+                SEND_MONEY == currentRoute ||
+                RECEIVE_MONEY == currentRoute ||
+                REQUEST_MONEY == currentRoute ||
+                SCAN == currentRoute
         }
 
-        BottomNavItem.Transfer.route -> {
-            currentRoute == bottomNavItemRoute || RECEIVE_MONEY == currentRoute || REQUEST_MONEY == currentRoute || TOP_UP == currentRoute
+        BottomNavItem.Dex.route -> {
+            currentRoute == bottomNavItemRoute
         }
 
         else -> {
@@ -456,17 +457,14 @@ fun isBottomNavItemSelected(
     }
 
 private val navItemList =
-    persistentListOf(BottomNavItem.Chat, BottomNavItem.Wallet, BottomNavItem.Transfer, BottomNavItem.Settings)
+    persistentListOf(BottomNavItem.Chat, BottomNavItem.Wallet, BottomNavItem.Dex, BottomNavItem.Settings)
 
 private val destinationsWithBottomBar =
     persistentListOf(
         BottomNavItem.Chat.route,
         BottomNavItem.Wallet.route,
-        BottomNavItem.Transfer.route,
+        BottomNavItem.Dex.route,
         BottomNavItem.Settings.route,
-        RECEIVE_MONEY,
-        REQUEST_MONEY,
-        TOP_UP,
         RECEIVE_QR_CODES,
     )
 

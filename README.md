@@ -6,7 +6,7 @@
 
 Privacy-preserving wallet (work-in-progress) by [Nighthawk Apps](https://nighthawkapps.com). This tree ships as a **new Android application id** on the DarkFi network (DRK). The app integrates a native DarkFi wallet API via **UniFFI** (`rust/darkfi-mobile-ffi` → generated Kotlin + `DarkfiMobileFfiApi`) for chain sync, broadcast, and chat.
 
-**3.00.012** (`WALLET_VERSION_CODE=30001812`) toolchain: Gradle **9.7.1**, AGP **9.3.1**, Kotlin **2.2.10**, Compose UI **1.12.1**, Material3 **1.4.0**, Material icons **1.7.8**, AndroidX Lifecycle **2.11.0**, Navigation Compose **2.9.8**, JNA **5.19.1**, UniFFI **0.32**, NDK **26.1.10909125**, minSdk **27**, compile/target SDK **37**. Native sent-tx session cache is FIFO-capped (10,000). Reorg “transactions affected” is counted from `drk.get_txs_history()` (`block_height > rewind`), not from CLI log lines.
+**3.00.013** (`WALLET_VERSION_CODE=30001813`) toolchain: Gradle **9.7.1**, AGP **9.4.0**, Kotlin **2.2.10**, Compose UI **1.12.1**, Material3 **1.4.0**, Material icons **1.7.8**, AndroidX Lifecycle **2.11.0**, Navigation Compose **2.10.1**, JNA **5.19.1**, UniFFI **0.32**, NDK **26.1.10909125**, minSdk **27**, compile SDK **37.2**, target SDK **37** (Android 17). Native sent-tx session cache is FIFO-capped (10,000). Reorg “transactions affected” is counted from `drk.get_txs_history()` (`block_height > rewind`), not from CLI log lines.
 
 ## Contents
 
@@ -29,7 +29,7 @@ Privacy-preserving wallet (work-in-progress) by [Nighthawk Apps](https://nightha
 
 Store listings are **not finalized** for `com.nighthawkwallet.android`. Placeholder targets until publishing completes:
 
-- **F-Droid:** DarkFi **testnet** package `com.nighthawkwallet.android.testnet` / flavor `darkfitestnet` (see [docs/fdroid.md](docs/fdroid.md); listing pending fdroiddata merge). **3.00.012** (`WALLET_VERSION_CODE=30001812`) — Fastlane changelog `fastlane/metadata/android/en-US/changelogs/30001812.txt`, tag `v3.00.012`. Local unsigned APK: `bundle exec fastlane fdroid`.
+- **F-Droid:** DarkFi **testnet** package `com.nighthawkwallet.android.testnet` / flavor `darkfitestnet` (see [docs/fdroid.md](docs/fdroid.md); listing pending fdroiddata merge). **3.00.013** (`WALLET_VERSION_CODE=30001813`) — Fastlane changelog `fastlane/metadata/android/en-US/changelogs/30001813.txt`, tag `v3.00.013`. Local unsigned APK: `bundle exec fastlane fdroid`.
 - **Google Play:** `https://PLACEHOLDER_PLAY_STORE_LISTING_URL`
 
 Replace these URLs when production listings exist—do not invent live links prematurely.

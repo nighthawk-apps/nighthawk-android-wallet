@@ -11,6 +11,7 @@ import android.os.Build
 import android.os.Handler
 import android.os.Looper
 import androidx.annotation.RequiresApi
+import com.nighthawkapps.lib.android.sdk.net.LocalNetworkPermission
 import com.nighthawkapps.lib.android.spackle.Twig
 import java.net.InetAddress
 import java.net.ServerSocket
@@ -73,6 +74,10 @@ class NighthawkBulkLink(
             Twig.warn { "mesh: nearby wifi permission missing for bulk" }
             return false
         }
+        if (!LocalNetworkPermission.hasGranted(context)) {
+            Twig.warn { "mesh: ACCESS_LOCAL_NETWORK missing for bulk" }
+            return false
+        }
         if (!running.compareAndSet(false, true)) return true
         startedAtMs = System.currentTimeMillis()
         bytes.set(0)
@@ -93,6 +98,10 @@ class NighthawkBulkLink(
         port: Int,
     ) {
         if (ssid.isEmpty() || host.isEmpty() || port <= 0) return
+        if (!LocalNetworkPermission.hasGranted(context)) {
+            Twig.warn { "mesh: ACCESS_LOCAL_NETWORK missing for bulk join" }
+            return
+        }
         val cm = context.getSystemService(ConnectivityManager::class.java) ?: return
         val specifier =
             WifiNetworkSpecifier.Builder()

@@ -99,9 +99,9 @@ class MainActivity : FragmentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         val splashScreen = installSplashScreen()
         super.onCreate(savedInstanceState)
-        // Required at targetSdk 35+: Android forces edge-to-edge and API 36
-        // removes the opt-out. Without this + safeDrawingPadding, chrome (PIN
-        // pad, CTAs, nav) draws under system bars.
+        // Required at targetSdk 35+ (Android 17 still enforces it). Without
+        // this + safeDrawingPadding, chrome (PIN pad, CTAs, nav) draws under
+        // system bars. API 36 removed the edge-to-edge opt-out.
         enableEdgeToEdge()
 
         handleIntentData()

@@ -12,4 +12,5 @@ data class NighthawkSettingsNavigationCallbacks(
     val onChangeServer: () -> Unit,
     val onAbout: () -> Unit,
     val onDaoHub: () -> Unit,
+    val onTopUp: () -> Unit,
 )

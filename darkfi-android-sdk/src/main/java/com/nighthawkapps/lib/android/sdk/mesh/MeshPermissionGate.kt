@@ -6,6 +6,7 @@ import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Build
 import androidx.core.content.ContextCompat
+import com.nighthawkapps.lib.android.sdk.net.LocalNetworkPermission
 
 /**
  * Mesh is API 31+ so [Manifest.permission.BLUETOOTH_SCAN] can be
@@ -25,25 +26,27 @@ object MeshPermissionGate {
         )
 
     /** BLE plus notification grant for the `connectedDevice` FGS. */
-    fun runtimeStartPermissions(): Array<String> {
+    fun runtimeStartPermissions(sdkInt: Int = Build.VERSION.SDK_INT): Array<String> {
         val ble = blePermissions()
-        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            ble + Manifest.permission.POST_NOTIFICATIONS
-        } else {
-            ble
-        }
+        val withNotif =
+            if (sdkInt >= Build.VERSION_CODES.TIRAMISU) {
+                ble + Manifest.permission.POST_NOTIFICATIONS
+            } else {
+                ble
+            }
+        return withNotif + LocalNetworkPermission.runtimePermissions(sdkInt)
     }
 
-    fun bulkWifiPermissions(): Array<String> =
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+    fun bulkWifiPermissions(sdkInt: Int = Build.VERSION.SDK_INT): Array<String> =
+        if (sdkInt >= Build.VERSION_CODES.TIRAMISU) {
             arrayOf(Manifest.permission.NEARBY_WIFI_DEVICES)
         } else {
             emptyArray()
         }
 
-    fun runtimeMeshPermissions(shareWifi: Boolean): Array<String> {
-        val base = runtimeStartPermissions()
-        return if (shareWifi) base + bulkWifiPermissions() else base
+    fun runtimeMeshPermissions(shareWifi: Boolean, sdkInt: Int = Build.VERSION.SDK_INT): Array<String> {
+        val base = runtimeStartPermissions(sdkInt)
+        return if (shareWifi) base + bulkWifiPermissions(sdkInt) else base
     }
 
     fun hasNearbyWifiPermission(context: Context): Boolean {

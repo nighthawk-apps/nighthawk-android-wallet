@@ -51,6 +51,7 @@ fun SettingsPreview() {
                         onChangeServer = {},
                         onAbout = {},
                         onDaoHub = {},
+                        onTopUp = {},
                     ),
                 onRescan = {},
             )
@@ -246,6 +247,16 @@ private fun SettingsHubWalletRowsUpper(
                 Modifier
                     .heightIn(min = dimensionResource(id = R.dimen.setting_list_item_min_height))
                     .clickable { navigation.onDaoHub() },
+        )
+        Spacer(modifier = Modifier.height(10.dp))
+        SettingsListItem(
+            iconRes = R.drawable.ic_icon_top_up,
+            title = stringResource(id = R.string.ns_top_up),
+            desc = stringResource(id = R.string.ns_top_up_text),
+            modifier =
+                Modifier
+                    .heightIn(min = dimensionResource(id = R.dimen.setting_list_item_min_height))
+                    .clickable { navigation.onTopUp() },
         )
     }
 }
