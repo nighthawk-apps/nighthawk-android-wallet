@@ -68,6 +68,7 @@ class ChatReadabilityTest {
         assertTrue(spans[2] is ChatInlineSpan.Text)
         assertEquals(ChatInlineSpan.Fud("fud://QmHash/file.png"), spans[3])
         assertTrue(ChatMessageLexer.hasFud("fud://abc"))
+        assertEquals(listOf("fud://QmHash/file.png"), ChatMessageLexer.fudUris("see fud://QmHash/file.png"))
     }
 
     private fun msg(

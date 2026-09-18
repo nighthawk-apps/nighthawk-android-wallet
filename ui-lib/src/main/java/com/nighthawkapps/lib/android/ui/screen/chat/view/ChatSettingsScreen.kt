@@ -278,6 +278,27 @@ internal fun ChatSettingsScreen(
         )
 
         Spacer(modifier = Modifier.height(16.dp))
+        var allowFud by remember { mutableStateOf(chatPrefs.allowFudTransfers) }
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                text = stringResource(R.string.ns_chat_fud_toggle),
+                modifier = Modifier.weight(1f),
+            )
+            Switch(
+                checked = allowFud,
+                onCheckedChange = { on ->
+                    allowFud = on
+                    chatPrefs.allowFudTransfers = on
+                },
+            )
+        }
+        Text(
+            text = stringResource(R.string.ns_chat_fud_toggle_desc),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+
+        Spacer(modifier = Modifier.height(16.dp))
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
                 text = stringResource(R.string.ns_chat_embedded_darkirc),

@@ -30,19 +30,17 @@ Nighthawk Android holds wallet seed material, chat crypto keys, and optional PIN
 ## Controls (2026-07 — chain integrity & sync privacy)
 
 - **Reorg recovery (R1):** `SyncEngine::rewind_to_height()` rolls back scan cursor; `sync.rs` deletes coins with `creation_height > rollback`, un-spends with `spent_height > rollback`.
+- **Parent-hash chaining (R2):** adjacent compact blocks (`h` then `h+1`) must satisfy `child.prev_hash == parent.hash`. Sparse UnifOMR does not invent parents across skipped heights.
 - **Tip regression detection (R4):** `update_chain_tip_hash()` triggers reorg on `new_tip < prev_tip`.
-- **Block cache invalidation (R3):** `MobileBlockCache::prune_above()` purges cached blocks from orphaned forks.
+- **Block cache invalidation (R3):** `MobileBlockCache::prune_above()` purges cached blocks from orphaned forks. Cache files are `NHC1` XChaCha20-Poly1305 when a wallet pass is present.
 - **OMR inter-match gap scanning (S1):** Trial-decrypt gaps >100 blocks between consecutive OMR matches, plus leading and trailing gaps.
 - **OMR zero-match threshold (S1):** Lowered from 50 to 10 blocks for quicker cross-wallet detection.
 - **OMR downgrade tracking (S2):** `omr_downgrade_warning` and `omr_downgrade_count` in `LightSyncState`; per-session tracking; critical log at >3 toggles.
-- **Server switch reset (S3/S4):** `reset_for_server_switch()` clears tip hash, OMR counters, catch-up atomics.
+- **Server switch identity (S3/S4):** persist `lwd_chain_identity`; mismatch refuses the new server until a full reset. `reset_for_server_switch()` clears tip hash, OMR counters, catch-up atomics.
 - **Windowed OMR failure decay (S5):** `record_omr_success()` halves failure count instead of zeroing, preventing adversarial intermittent-success gaming.
 
 ## Residual risks
 
 - `darkirc_config.toml` must remain plaintext for the native `darkirc` binary; file mode restricted to app UID.
-- Certificate pinning for CoinGecko may require pin updates when the CDN rotates certs.
+- Certificate pinning for CoinGecko may require pin updates when the CDN rotates certs (`COINGECKO_PINS` overlap window).
 - Biometric unlock skips PIN re-entry for the session (by design).
-- No `prev_hash` chain validation between consecutive compact blocks (R2 — planned).
-- Block cache (`compact_blocks.db`) and sled Merkle cache are unencrypted (defense-in-depth, not yet addressed).
-- `chain_name` verification on server switch not yet implemented (S3 partial).

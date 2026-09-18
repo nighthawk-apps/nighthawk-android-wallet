@@ -167,7 +167,7 @@
     <string name="ns_preparing_scan">Preparing to scan</string>
     <string name="ns_scanning">Scanning…%1$d%%</string>
     <string name="ns_finalizing">Finalizing</string>
-    <string name="ns_swipe_left">Swipe left to show your balance</string>
+    <string name="ns_swipe_left">Swipe left to show your assets</string>
     <string name="ns_around">around %s</string>
     <string name="ns_total_balance">Total balance</string>
     <string name="ns_shielded_balance">Wallet balance</string>

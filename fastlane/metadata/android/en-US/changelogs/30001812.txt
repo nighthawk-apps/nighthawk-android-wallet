@@ -1,0 +1,4 @@
+- Testnet 3.00.012: explorer links use the real network (/tx/{id} only).
+- In-process Arti SOCKS for Android chat + wallet (Guardian tor-android removed).
+- Gated fud:// offers: opt-in, Tor or mesh only, never auto-download.
+- Rust panic fence at chat/mesh/Arti FFI so a daemon crash cannot abort the wallet.

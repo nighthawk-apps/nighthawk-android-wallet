@@ -192,7 +192,7 @@ class DarkfiChatController(
 
             // Resolve the Tor transport. When the user enabled Tor for chat we
             // route the native EventGraph P2P through the same SOCKS5 proxy the
-            // wallet uses (Guardian tor-android when embedded, else an external
+            // wallet uses (in-process Arti when embedded, else an external
             // SOCKS). We must have a reachable SOCKS port before starting the
             // daemon; otherwise we fail loudly rather than silently leaking
             // over clearnet.
@@ -477,6 +477,7 @@ class DarkfiChatController(
             next[key] = pruned + msg
             next
         }
+        ChatMessageNotifier.maybeNotify(app, msg.channel, msg.nick, msg.text)
         if (!msg.channel.startsWith("#")) {
             DmConversationStore.touchMessage(
                 app,

@@ -50,6 +50,15 @@ class DarkfiChatPreferencesEmbeddedTorTest {
     }
 
     @Test
+    fun allowFudTransfers_defaultsToFalse() {
+        val app = RuntimeEnvironment.getApplication() as Application
+        val prefs = DarkfiChatPreferences(app)
+        assertFalse(prefs.allowFudTransfers)
+        prefs.allowFudTransfers = true
+        assertTrue(prefs.allowFudTransfers)
+    }
+
+    @Test
     fun runEmbeddedDarkirc_defaultsToTrue() {
         val app = RuntimeEnvironment.getApplication() as Application
         val prefs = DarkfiChatPreferences(app)

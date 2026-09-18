@@ -49,6 +49,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.navigation.NavHostController
+import com.nighthawkapps.lib.android.sdk.mesh.MeshCoordinator
 import com.nighthawkapps.lib.android.sdk.tor.AppTorCoordinator
 import com.nighthawkapps.lib.android.sdk.tor.TorBootstrapUiState
 import com.nighthawkapps.lib.android.spackle.Twig
@@ -69,6 +70,8 @@ import com.nighthawkapps.lib.android.ui.screen.onboarding.nighthawk.view.Onboard
 import com.nighthawkapps.lib.android.ui.screen.onboarding.nighthawk.view.SeedBackup
 import com.nighthawkapps.lib.android.ui.screen.pin.AndroidPin
 import com.nighthawkapps.lib.android.ui.screen.warning.WrapNotEnoughSpace
+import com.nighthawkapps.lib.android.ui.preference.StandardPreferenceKeys
+import com.nighthawkapps.lib.android.ui.preference.StandardPreferenceSingleton
 import com.nighthawkapps.lib.android.ui.screen.warning.viewmodel.StorageCheckViewModel
 import com.nighthawkapps.lib.android.work.WorkIds
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -111,6 +114,7 @@ class MainActivity : FragmentActivity() {
         setupUiContent()
 
         monitorForBackgroundSync()
+        restoreMeshOnResume()
         // Keep periodic "open wallet to sync" reminders registered from saved preference.
         WorkIds.ensureSyncNotificationScheduled(application)
     }
@@ -492,6 +496,22 @@ class MainActivity : FragmentActivity() {
                             NavigationMainContent()
                         }
                     }
+                }
+            }
+        }
+    }
+
+    private fun restoreMeshOnResume() {
+        lifecycleScope.launch {
+            repeatOnLifecycle(Lifecycle.State.STARTED) {
+                MeshCoordinator.bind(this@MainActivity)
+                val prefs = StandardPreferenceSingleton.getInstance(this@MainActivity)
+                val meshOn = StandardPreferenceKeys.IS_NIGHTHAWK_MESH_ENABLED.getValue(prefs)
+                val alwaysOn = StandardPreferenceKeys.IS_NIGHTHAWK_MESH_ALWAYS_ON.getValue(prefs)
+                MeshCoordinator.setAlwaysOn(alwaysOn)
+                MeshCoordinator.setGatewayOptIn(false)
+                if (meshOn) {
+                    MeshCoordinator.restoreOnResume(this@MainActivity)
                 }
             }
         }

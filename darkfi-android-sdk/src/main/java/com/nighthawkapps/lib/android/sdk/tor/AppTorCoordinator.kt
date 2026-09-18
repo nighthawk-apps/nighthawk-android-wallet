@@ -44,7 +44,7 @@ enum class TorBootstrapUiState {
 }
 
 /**
- * App-wide Tor lifecycle (Guardian tor-android / Arti SOCKS), modeled after wallets that route
+ * App-wide Tor lifecycle (in-process Arti SOCKS), modeled after wallets that route
  * outbound traffic through a local SOCKS proxy when the user enables Tor.
  *
  * Chat P2P uses in-process UniFFI darkirc with `use_tor` / SOCKS; wallet darkfid uses its own

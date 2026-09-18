@@ -13,24 +13,22 @@ import com.nighthawkapps.lib.android.sdk.wallet.DarkfiAmountFormatter
 import com.nighthawkapps.lib.android.sdk.wallet.DarkfiTokenBalance
 import com.nighthawkapps.lib.android.ui.R
 import com.nighthawkapps.lib.android.ui.design.component.NighthawkHudPanel
-import com.nighthawkapps.lib.android.ui.screen.wallet.model.isNativeDrk
+import com.nighthawkapps.lib.android.ui.screen.wallet.model.portfolioRows
 
 /**
- * Extra-token list for surfaces that are not the swipe pager.
- * Native DRK is the Wallet home TOTAL page; this composable skips it and
- * does not invent a zero-balance row.
+ * Asset list for Wallet home. DRK is always the first row.
  */
 @Composable
 fun TokenPortfolio(
+    nativeAtomic: Long,
     balances: List<DarkfiTokenBalance>,
     onTokenClick: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val rows = balances.filterNot { it.isNativeDrk() }
-    if (rows.isEmpty()) return
+    val rows = portfolioRows(nativeAtomic, balances)
     NighthawkHudPanel(modifier = modifier.fillMaxWidth()) {
         Text(
-            text = stringResource(R.string.ns_wallet_tokens_title),
+            text = stringResource(R.string.ns_wallet_assets_title),
             style = MaterialTheme.typography.labelLarge,
             color = MaterialTheme.colorScheme.onSurface,
         )

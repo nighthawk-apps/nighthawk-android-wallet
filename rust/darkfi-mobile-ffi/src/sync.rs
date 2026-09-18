@@ -341,6 +341,7 @@ async fn try_lightwallet_sync(drk: &DrkPtr, sync_engine: &SyncEngine) -> Result<
 
     let network = drk.read().await.network;
     ensure_chain_matches_wallet(&server_info.chain_name, network)?;
+    sync_engine.ensure_server_chain_identity(&server_info.chain_name)?;
 
     sync_engine.set_omr_available(server_info.omr_supported);
     if server_info.chain_tip_height > 0 {
@@ -950,11 +951,13 @@ async fn trial_decrypt_range(
             .get_compact_block_range(batch_start, batch_end)
             .await
             .map_err(|e| format!("trial_decrypt_range: get_compact_block_range({batch_start}..={batch_end}): {e}"))?;
-
+        crate::lightwallet_client::validate_compact_block_batch(&blocks)?;
+        let mut prev: Option<(u32, Vec<u8>)> = None;
         for block in &blocks {
-            // Trial decrypt all encrypted notes in this compact block.
-            // This calls into the same decrypt path used by the standard trial
-            // decryption sync mode.
+            if let Some((h, hash)) = &prev {
+                crate::lightwallet_client::validate_block_follows_parent(block, *h, hash)?;
+            }
+            prev = Some((block.height, block.hash.clone()));
             if let Err(e) = trial_decrypt_compact_block(drk, block).await {
                 tracing::warn!(
                     target: "wallet-sync",
@@ -1047,6 +1050,9 @@ async fn apply_omr_sparse_window(
                         }
                         blocks_by_height.insert(block.height, block);
                     }
+                    crate::lightwallet_client::validate_compact_block_batch(
+                        &blocks_by_height.values().cloned().collect::<Vec<_>>(),
+                    )?;
                     fetched = true;
                     tracing::debug!(
                         target: "wallet-sync",
@@ -1094,6 +1100,9 @@ async fn apply_omr_sparse_window(
                 }
                 blocks_by_height.insert(block.height, block);
             }
+            crate::lightwallet_client::validate_compact_block_batch(
+                &blocks_by_height.values().cloned().collect::<Vec<_>>(),
+            )?;
         }
     }
 
@@ -1113,9 +1122,16 @@ async fn apply_omr_sparse_window(
     let mut found = 0u32;
 
     // Walk heights in order: append commitments, decrypt matches, apply nullifiers.
+    let mut prev_compact: Option<(u32, Vec<u8>)> = None;
     for height in scan_start..=tip {
         let coins = coins_by_height.get(&height).cloned().unwrap_or_default();
         let match_block = blocks_by_height.get(&height);
+        if let Some(block) = match_block {
+            if let Some((ph, phash)) = &prev_compact {
+                crate::lightwallet_client::validate_block_follows_parent(block, *ph, phash)?;
+            }
+            prev_compact = Some((block.height, block.hash.clone()));
+        }
         // Map coin bytes → compact output fields for matching heights.
         let out_by_coin: HashMap<&[u8], &crate::lightwallet_client::LightCompactOutput> =
             match match_block {

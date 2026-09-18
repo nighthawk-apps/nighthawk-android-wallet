@@ -11,7 +11,15 @@ import retrofit2.converter.gson.GsonConverterFactory
 
 object RetrofitHelper {
     private const val COINGECKO_HOST = "api.coingecko.com"
-    private const val COINGECKO_PIN = "sha256/BhM1gGE+L4fCC9ER5xj4P1/deHgoXOjL9TsSj7Q5B9o="
+    /**
+     * Leaf SPKI pins. When CoinGecko rotates CDN certs, add the new pin here
+     * **before** removing the old one (overlap window), then ship a release.
+     * Verify with: `openssl s_client -connect api.coingecko.com:443 | openssl x509 -pubkey -noout | openssl pkey -pubin -outform der | openssl dgst -sha256 -binary | openssl enc -base64`
+     */
+    private val COINGECKO_PINS =
+        arrayOf(
+            "sha256/BhM1gGE+L4fCC9ER5xj4P1/deHgoXOjL9TsSj7Q5B9o=",
+        )
 
     private fun buildOkHttpClient(context: Context): OkHttpClient {
         val app = context.applicationContext
@@ -25,7 +33,7 @@ object RetrofitHelper {
         val certificatePinner =
             CertificatePinner
                 .Builder()
-                .add(COINGECKO_HOST, COINGECKO_PIN)
+                .apply { COINGECKO_PINS.forEach { add(COINGECKO_HOST, it) } }
                 .build()
 
         val builder =

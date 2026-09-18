@@ -168,7 +168,7 @@
     <string name="ns_preparing_scan">Preparando para escanear</string>
     <string name="ns_scanning">Escaneando…%1$d%%</string>
     <string name="ns_finalizing">Finalizando</string>
-    <string name="ns_swipe_left">Deslice a la izquierda para mostrar su balance</string>
+    <string name="ns_swipe_left">Deslice a la izquierda para mostrar sus activos</string>
     <string name="ns_around">Cerca de %s</string>
     <string name="ns_total_balance">Balance total</string>
     <string name="ns_shielded_balance">Saldo de la billetera</string>

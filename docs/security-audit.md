@@ -15,7 +15,7 @@ Status of findings from the in-app security review (June 2025).
 | ID | Issue | Status |
 |----|-------|--------|
 | H1 | Deep link parsing / logging | **Fixed** — strict `drk` parsing, memo cap, no sensitive logs |
-| H2 | RPC / HTTP pinning | **Partial** — CoinGecko API cert pin in `RetrofitHelper`; darkfid RPC is loopback |
+| H2 | RPC / HTTP pinning | **Partial** — CoinGecko leaf SPKI pins live in `RetrofitHelper.COINGECKO_PINS`. Rotate by **adding** the new pin before removing the old one, then ship. Verify: `openssl s_client -connect api.coingecko.com:443 \| openssl x509 -pubkey -noout \| openssl pkey -pubin -outform der \| openssl dgst -sha256 -binary \| openssl enc -base64` |
 | H3 | SecureScreen on sensitive UI | **Fixed** — PIN, chat settings, E2E, new DM |
 | H4 | PIN strength | **Accepted** — 6-digit numeric per product; hash + lockout added |
 | H5 | Deep-link UX | **Existing** — Send flow validates address via synchronizer |
@@ -40,7 +40,7 @@ Status of findings from the in-app security review (June 2025).
 | ID | Issue | Status |
 |----|-------|--------|
 | R1 | Reorg detected but no rollback action | **Fixed** — `rewind_to_height()` in `SyncEngine`; `sync.rs` deletes post-reorg coins, un-spends rolled-back spends, resets scan cursor |
-| R2 | No `prev_hash` chain validation | **Open** — compact blocks accepted without parent-hash chaining; planned for next release |
+| R2 | No `prev_hash` chain validation | **Fixed** — adjacent compact blocks in a batch / sequential trial-decrypt must satisfy `child.prev_hash == parent.hash`. Sparse UnifOMR walks do **not** invent parents across height gaps |
 | R3 | Block cache not invalidated on reorg | **Fixed** — `MobileBlockCache::prune_above()` called during reorg recovery |
 | R4 | Tip regression not detected as reorg | **Fixed** — `update_chain_tip_hash()` now detects `new_tip < prev_tip` |
 
@@ -50,7 +50,7 @@ Status of findings from the in-app security review (June 2025).
 |----|-------|--------|
 | S1 | Cross-wallet OMR gaps not fully covered | **Fixed** — inter-match gap scanning + trailing gap; zero-match threshold lowered 50→10 |
 | S2 | OMR downgrade warning not surfaced to UI | **Fixed** — `omr_downgrade_warning` + `omr_downgrade_count` in `LightSyncState`; session-level tracking |
-| S3 | Server switch has no chain identity check | **Partial** — `reset_for_server_switch()` clears stale state; chain name verification planned |
+| S3 | Server switch has no chain identity check | **Fixed** — `ensure_server_chain_identity` persists `lwd_chain_identity` and rejects a different `chain_name` on endpoint change |
 | S4 | Server switch doesn't reset sync state | **Fixed** — `reset_for_server_switch()` clears tip hash, OMR counters, catch-up atomics |
 | S5 | OMR failure counter easily gamed | **Fixed** — windowed decay (halve on success) instead of full reset |
 

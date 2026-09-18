@@ -22,6 +22,7 @@ object DarkircCryptoManager {
         config: DarkircContactCryptoConfig,
     ) {
         DarkircCryptoStore.upsertContact(context.applicationContext, config)
+        applyAndRestartEmbeddedDaemon(context)
     }
 
     fun removeContact(

@@ -70,6 +70,10 @@ import com.nighthawkapps.lib.android.sdk.chat.DarkfiChatConnectionState
 import com.nighthawkapps.lib.android.sdk.chat.DarkfiChatController
 import com.nighthawkapps.lib.android.sdk.chat.DarkfiChatPreferences
 import com.nighthawkapps.lib.android.sdk.chat.EmbeddedDarkircNodeStatus
+import com.nighthawkapps.lib.android.sdk.chat.fud.FudOfferInbox
+import com.nighthawkapps.lib.android.sdk.chat.fud.FudTransferDecision
+import com.nighthawkapps.lib.android.sdk.chat.fud.FudTransferPolicy
+import com.nighthawkapps.lib.android.sdk.chat.fud.FudUri
 import com.nighthawkapps.lib.android.sdk.chat.darkirc.DarkircChannelCryptoConfig
 import com.nighthawkapps.lib.android.sdk.chat.darkirc.DarkircCryptoManager
 import com.nighthawkapps.lib.android.sdk.chat.darkirc.DarkircDmPubkeyParser
@@ -100,6 +104,17 @@ private val CHAT_EMOJI_STRIP =
 private enum class ChatInboxMode {
     Channels,
     Direct,
+}
+
+private sealed class FudPromptUi {
+    data class Confirm(
+        val uri: FudUri,
+    ) : FudPromptUi()
+
+    data class Info(
+        val messageRes: Int,
+        val arg: String? = null,
+    ) : FudPromptUi()
 }
 
 @Composable
@@ -166,6 +181,8 @@ private fun ChatScreen(
     var threadDisplayNames by remember { mutableStateOf<Map<String, String>>(emptyMap()) }
     var localDisplayName by remember { mutableStateOf("") }
     var pendingPublicInvoice by remember { mutableStateOf<String?>(null) }
+    var fudPrompt by remember { mutableStateOf<FudPromptUi?>(null) }
+    val chatPrefs = remember { DarkfiChatPreferences(context.applicationContext) }
 
     LaunchedEffect(Unit) {
         val prefs = StandardPreferenceSingleton.getInstance(context.applicationContext)
@@ -503,6 +520,26 @@ private fun ChatScreen(
                             myNick = myNick,
                             isEncryptedThread = isEncryptedThread,
                             onLongPress = { messageMenuTarget = item.message },
+                            onFudTap = { raw ->
+                                val uri = FudUri.parse(raw)
+                                when (
+                                    FudTransferPolicy.decide(
+                                        enabled = chatPrefs.allowFudTransfers,
+                                        torReady = connectionState == DarkfiChatConnectionState.ConnectedViaTor,
+                                        meshOn = meshOn,
+                                        uri = uri,
+                                    )
+                                ) {
+                                    FudTransferDecision.Allowed ->
+                                        uri?.let { fudPrompt = FudPromptUi.Confirm(it) }
+                                    FudTransferDecision.Disabled ->
+                                        fudPrompt = FudPromptUi.Info(R.string.ns_chat_fud_disabled)
+                                    FudTransferDecision.NeedsPrivateTransport ->
+                                        fudPrompt = FudPromptUi.Info(R.string.ns_chat_fud_needs_transport)
+                                    FudTransferDecision.Invalid ->
+                                        fudPrompt = FudPromptUi.Info(R.string.ns_chat_fud_invalid)
+                                }
+                            },
                         )
                     }
                 }
@@ -840,6 +877,64 @@ private fun ChatScreen(
             },
         )
     }
+
+    fudPrompt?.let { prompt ->
+        when (prompt) {
+            is FudPromptUi.Confirm -> {
+                AlertDialog(
+                    onDismissRequest = { fudPrompt = null },
+                    title = { Text(stringResource(R.string.ns_chat_fud_confirm_title)) },
+                    text = {
+                        Text(stringResource(R.string.ns_chat_fud_confirm_body, prompt.uri.displayName))
+                    },
+                    confirmButton = {
+                        TextButton(
+                            onClick = {
+                                runCatching {
+                                    FudOfferInbox.queue(context.applicationContext.filesDir, prompt.uri)
+                                }.onSuccess {
+                                    fudPrompt =
+                                        FudPromptUi.Info(
+                                            R.string.ns_chat_fud_queued,
+                                            prompt.uri.displayName,
+                                        )
+                                }.onFailure {
+                                    fudPrompt = FudPromptUi.Info(R.string.ns_chat_fud_queue_failed)
+                                }
+                            },
+                        ) {
+                            Text(stringResource(R.string.ns_chat_fud_queue))
+                        }
+                    },
+                    dismissButton = {
+                        TextButton(onClick = { fudPrompt = null }) {
+                            Text(stringResource(R.string.ns_cancel))
+                        }
+                    },
+                )
+            }
+            is FudPromptUi.Info -> {
+                AlertDialog(
+                    onDismissRequest = { fudPrompt = null },
+                    title = { Text(stringResource(R.string.ns_chat_fud_confirm_title)) },
+                    text = {
+                        Text(
+                            if (prompt.arg != null) {
+                                stringResource(prompt.messageRes, prompt.arg)
+                            } else {
+                                stringResource(prompt.messageRes)
+                            },
+                        )
+                    },
+                    confirmButton = {
+                        TextButton(onClick = { fudPrompt = null }) {
+                            Text(stringResource(android.R.string.ok))
+                        }
+                    },
+                )
+            }
+        }
+    }
 }
 
 @OptIn(ExperimentalFoundationApi::class)
@@ -849,6 +944,7 @@ private fun ChatMessageLine(
     myNick: String,
     isEncryptedThread: Boolean,
     onLongPress: () -> Unit,
+    onFudTap: (String) -> Unit,
 ) {
     val isOwn = ChatChrome.isOwnNick(line.nick, myNick)
     val nickColor = Color(ChatChrome.nickArgb(line.nick, myNick))
@@ -931,11 +1027,14 @@ private fun ChatMessageLine(
                 color = bodyColor,
             )
             if (ChatMessageLexer.hasFud(line.text)) {
-                Text(
-                    text = stringResource(R.string.ns_chat_fud_unavailable),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = Color(ChatChrome.FUD),
-                )
+                ChatMessageLexer.fudUris(line.text).forEach { uri ->
+                    Text(
+                        text = stringResource(R.string.ns_chat_fud_tap_to_queue),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = Color(ChatChrome.FUD),
+                        modifier = Modifier.clickable { onFudTap(uri) },
+                    )
+                }
             }
         }
         Text(

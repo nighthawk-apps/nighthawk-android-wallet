@@ -30,6 +30,7 @@ import android.os.Handler
 import android.os.HandlerThread
 import android.os.ParcelUuid
 import androidx.annotation.RequiresApi
+import androidx.core.content.ContextCompat
 import com.nighthawkapps.lib.android.spackle.Twig
 import java.security.SecureRandom
 import java.util.concurrent.ConcurrentHashMap
@@ -96,7 +97,12 @@ class NighthawkBleLink(
         thread = t
         radio = Handler(t.looper)
         try {
-            context.registerReceiver(adapterReceiver, IntentFilter(BluetoothAdapter.ACTION_STATE_CHANGED))
+            ContextCompat.registerReceiver(
+                context,
+                adapterReceiver,
+                IntentFilter(BluetoothAdapter.ACTION_STATE_CHANGED),
+                ContextCompat.RECEIVER_NOT_EXPORTED,
+            )
         } catch (e: Exception) {
             Twig.warn { "mesh: adapter receiver not registered" }
         }
@@ -272,6 +278,7 @@ class NighthawkBleLink(
                 gatewayArmed = gatewayArmed,
                 alwaysOn = alwaysOn,
             )
+        adapter?.let { restartAdvertisingLocked(it) }
         stopScanLocked()
         if (duty.scanOnMs == 0L) {
             return
@@ -281,6 +288,16 @@ class NighthawkBleLink(
             radio?.postDelayed({ stopScanLocked() }, duty.scanOnMs)
             radio?.postDelayed({ if (started) applyDutyLocked() }, duty.scanOnMs + duty.scanOffMs)
         }
+    }
+
+    @SuppressLint("MissingPermission")
+    private fun restartAdvertisingLocked(ad: BluetoothAdapter) {
+        try {
+            advertiser?.stopAdvertising(advertiseCallback)
+        } catch (_: Exception) {
+        }
+        advertising = false
+        startAdvertisingLocked(ad)
     }
 
     @SuppressLint("MissingPermission")

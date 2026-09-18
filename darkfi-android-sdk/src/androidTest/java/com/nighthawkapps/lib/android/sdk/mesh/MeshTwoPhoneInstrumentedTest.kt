@@ -59,11 +59,12 @@ class MeshTwoPhoneInstrumentedTest {
                     PackageManager.GET_PERMISSIONS,
                 )
             val perms = pkg.requestedPermissions ?: emptyArray()
-            val flags = pkg.requestedPermissionsFlags
+            val flags = pkg.requestedPermissionsFlags ?: intArrayOf()
             val scan = perms.indexOf(Manifest.permission.BLUETOOTH_SCAN)
             assertTrue(scan >= 0)
             assertTrue(
-                flags[scan] and PackageInfo.REQUESTED_PERMISSION_NEVER_FOR_LOCATION != 0,
+                scan < flags.size &&
+                    flags[scan] and PackageInfo.REQUESTED_PERMISSION_NEVER_FOR_LOCATION != 0,
             )
         }
         assertFalse(NighthawkMeshService.startFromForeground(ctx))

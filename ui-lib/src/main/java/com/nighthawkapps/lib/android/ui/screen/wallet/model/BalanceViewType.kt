@@ -5,25 +5,32 @@ import com.nighthawkapps.lib.android.sdk.wallet.DarkfiTokenBalance
 sealed interface BalanceViewType {
     data object SWIPE : BalanceViewType
 
-    data object TOTAL : BalanceViewType
-
-    data class Token(
-        val balance: DarkfiTokenBalance,
-    ) : BalanceViewType
+    /** Full asset portfolio (DRK first). */
+    data object ASSETS : BalanceViewType
 
     companion object {
-        /** Native DRK lives on [TOTAL]; extra tokens are later pager pages. */
-        fun pages(tokenBalances: List<DarkfiTokenBalance>): List<BalanceViewType> {
-            val extra = tokenBalances.filterNot { it.isNativeDrk() }
-            return buildList {
-                add(SWIPE)
-                add(TOTAL)
-                extra.forEach { add(Token(it)) }
-            }
-        }
+        fun pages(): List<BalanceViewType> = listOf(SWIPE, ASSETS)
     }
 }
 
 internal fun DarkfiTokenBalance.isNativeDrk(): Boolean =
     displayName.equals("DRK", ignoreCase = true) ||
         tokenId.equals("DRK", ignoreCase = true)
+
+/** DRK always first, then every other token. Native balance comes from the snapshot. */
+internal fun portfolioRows(
+    nativeAtomic: Long,
+    tokenBalances: List<DarkfiTokenBalance>,
+): List<DarkfiTokenBalance> {
+    val extras =
+        tokenBalances
+            .filterNot { it.isNativeDrk() }
+            .sortedBy { it.displayName.lowercase() }
+    val drk =
+        DarkfiTokenBalance(
+            tokenId = "DRK",
+            displayLabel = "DRK",
+            balanceAtomic = nativeAtomic,
+        )
+    return listOf(drk) + extras
+}

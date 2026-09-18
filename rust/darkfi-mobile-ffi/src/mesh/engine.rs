@@ -15,8 +15,8 @@ use super::packet::{decode, encode, CodecError};
 use super::session::{HsOutcome, SessionError, SessionTable};
 use super::types::{
     unix_ms, MeshPacket, PacketType, DAG_CACHE_MAX_BYTES, DAG_CACHE_MAX_EVENTS, DAG_SYNC_REPLY_MAX,
-    DEDUP_CAP, DEDUP_TTL_MS, EVENT_INNER_MAX, FRAGMENT_CHUNK, INBOUND_RATE_MAX,
-    INBOUND_RATE_WINDOW_MS, SENDER_LEN,
+    DEDUP_CAP, DEDUP_TTL_MS, EVENT_INNER_MAX, FRAGMENT_CHUNK, HANDSHAKE_TIMEOUT_MS,
+    INBOUND_RATE_MAX, INBOUND_RATE_WINDOW_MS, SENDER_LEN,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -80,6 +80,9 @@ pub enum EngineEvent {
     DagSync {
         missing: Vec<[u8; 16]>,
     },
+    CacheFull {
+        dropped: usize,
+    },
     Ping {
         sender: [u8; SENDER_LEN],
     },
@@ -116,6 +119,7 @@ pub struct MeshEngine {
     degree: u8,
     inbound_stamps: HashMap<[u8; SENDER_LEN], VecDeque<u64>>,
     sync_seen: HashMap<[u8; 16], u64>,
+    sync_sent: HashMap<[u8; SENDER_LEN], std::collections::HashSet<[u8; 16]>>,
     last_rotate_ms: u64,
     bulk_quota: Option<BulkQuota>,
     pub test_splice: Option<TestSplice>,
@@ -144,6 +148,7 @@ impl MeshEngine {
             degree: 1,
             inbound_stamps: HashMap::new(),
             sync_seen: HashMap::new(),
+            sync_sent: HashMap::new(),
             last_rotate_ms: unix_ms(),
             bulk_quota: None,
             test_splice: None,
@@ -207,6 +212,7 @@ impl MeshEngine {
         self.wifi_share_opt_in = true;
         self.inbound_stamps.clear();
         self.sync_seen.clear();
+        self.sync_sent.clear();
         self.bulk_quota = None;
         self.last_rotate_ms = unix_ms();
     }
@@ -289,9 +295,9 @@ impl MeshEngine {
     }
 
     pub fn neighbor_down(&mut self, dest: [u8; SENDER_LEN]) {
-        let _ = dest;
-        // Sessions expire on identity rotate / wipe. A downed GATT peer is
-        // forgotten when HS1 is refused after Ready (we keep Ready until rotate).
+        self.sessions.drop_peer(&dest);
+        self.sync_sent.remove(&dest);
+        self.degree = self.sessions.ready_peers().len() as u8;
     }
 
     /// Opaque EventGraph payload. `id` is the first 16 bytes of `Event.id()`.
@@ -386,8 +392,9 @@ impl MeshEngine {
         if !self.mesh_on {
             return Ok(());
         }
-        let pkt = decode(bytes)?;
         let now = unix_ms();
+        self.sessions.expire_handshakes(now, HANDSHAKE_TIMEOUT_MS);
+        let pkt = decode(bytes)?;
         self.maybe_rotate(now);
         if self.is_duplicate(&pkt, now) {
             return Err(IngestError::DroppedDuplicate);
@@ -555,23 +562,36 @@ impl MeshEngine {
                 self.events.push(EngineEvent::DagSync {
                     missing: missing.clone(),
                 });
-                let mut sent = 0usize;
+                let already = self
+                    .sync_sent
+                    .get(&from)
+                    .cloned()
+                    .unwrap_or_default();
+                let mut to_send = Vec::new();
                 for id in missing {
-                    if sent >= DAG_SYNC_REPLY_MAX {
+                    if already.contains(&id) {
+                        continue;
+                    }
+                    if to_send.len() >= DAG_SYNC_REPLY_MAX {
                         break;
                     }
-                    if let Some(body) = self.dag_payloads.get(&id).cloned() {
+                    if self.dag_payloads.contains_key(&id) {
+                        to_send.push(id);
+                    }
+                }
+                for id in &to_send {
+                    if let Some(body) = self.dag_payloads.get(id).cloned() {
                         let inner = encode_inner(&LwdInner {
                             kind: KIND_EVENT_PUT,
-                            corr_id: id,
+                            corr_id: *id,
                             method: "event".into(),
                             body,
                         })
                         .map_err(IngestError::Lwd)?;
                         self.send_directed_inner(from, inner)?;
-                        sent += 1;
                     }
                 }
+                self.sync_sent.entry(from).or_default().extend(to_send);
                 if !seen_recently {
                     let fwd = encode_inner(&LwdInner {
                         kind: KIND_DAG_SYNC,
@@ -636,6 +656,7 @@ impl MeshEngine {
         if self.dag_payloads.contains_key(&id) {
             return;
         }
+        let mut dropped = 0usize;
         while self.dag_ids.len() >= DAG_CACHE_MAX_EVENTS
             || self.dag_bytes.saturating_add(body.len()) > DAG_CACHE_MAX_BYTES
         {
@@ -644,9 +665,13 @@ impl MeshEngine {
                 if let Some(prev) = self.dag_payloads.remove(&old) {
                     self.dag_bytes = self.dag_bytes.saturating_sub(prev.len());
                 }
+                dropped += 1;
             } else {
                 break;
             }
+        }
+        if dropped > 0 {
+            self.events.push(EngineEvent::CacheFull { dropped });
         }
         self.dag_bytes = self.dag_bytes.saturating_add(body.len());
         self.dag_ids.push(id);

@@ -211,6 +211,12 @@ pub struct SyncEngine {
     pub reorg_callback: std::sync::Mutex<Option<Box<dyn crate::ReorgEventCallback>>>,
     /// Wallet birthday height (never trial-decrypt below this).
     birthday_height: std::sync::atomic::AtomicU32,
+    /// Last compact block (height, hash) accepted after parent-hash chaining (R2).
+    last_accepted_block: std::sync::Mutex<Option<(u32, [u8; 32])>>,
+    /// Last verified lightwalletd `chain_name` (S3). Survives in-process until reset.
+    verified_chain_name: std::sync::Mutex<Option<String>>,
+    /// App cache dir for persisting `lwd_chain_identity`.
+    data_dir: std::sync::Mutex<Option<std::path::PathBuf>>,
 }
 
 /// Threshold: a tip advance of >100 blocks between two GetLightInfo calls
@@ -252,6 +258,9 @@ impl SyncEngine {
             last_tip_update: std::sync::atomic::AtomicU64::new(0),
             reorg_callback: std::sync::Mutex::new(None),
             birthday_height: std::sync::atomic::AtomicU32::new(0),
+            last_accepted_block: std::sync::Mutex::new(None),
+            verified_chain_name: std::sync::Mutex::new(None),
+            data_dir: std::sync::Mutex::new(None),
         }
     }
 
@@ -272,6 +281,9 @@ impl SyncEngine {
             last_tip_update: std::sync::atomic::AtomicU64::new(0),
             reorg_callback: std::sync::Mutex::new(None),
             birthday_height: std::sync::atomic::AtomicU32::new(0),
+            last_accepted_block: std::sync::Mutex::new(None),
+            verified_chain_name: std::sync::Mutex::new(None),
+            data_dir: std::sync::Mutex::new(None),
         }
     }
 
@@ -285,6 +297,87 @@ impl SyncEngine {
     pub fn set_birthday_height(&self, height: u32) {
         self.birthday_height
             .store(height, std::sync::atomic::Ordering::Relaxed);
+    }
+
+    /// Persist chain identity next to compact-block cache.
+    pub fn set_data_dir(&self, dir: std::path::PathBuf) {
+        *self.data_dir.lock().unwrap() = Some(dir);
+        self.load_chain_identity_from_disk();
+    }
+
+    fn identity_path(dir: &std::path::Path) -> std::path::PathBuf {
+        dir.join("lwd_chain_identity")
+    }
+
+    fn load_chain_identity_from_disk(&self) {
+        let dir = self.data_dir.lock().unwrap().clone();
+        let Some(dir) = dir else {
+            return;
+        };
+        let path = Self::identity_path(&dir);
+        if let Ok(raw) = std::fs::read_to_string(&path) {
+            let name = raw.trim().to_ascii_lowercase();
+            if !name.is_empty() {
+                *self.verified_chain_name.lock().unwrap() = Some(name);
+            }
+        }
+    }
+
+    fn persist_chain_identity(&self, name: &str) {
+        let dir = self.data_dir.lock().unwrap().clone();
+        let Some(dir) = dir else {
+            return;
+        };
+        let _ = std::fs::create_dir_all(&dir);
+        let _ = std::fs::write(Self::identity_path(&dir), name.as_bytes());
+    }
+
+    fn clear_chain_identity_file(&self) {
+        let dir = self.data_dir.lock().unwrap().clone();
+        let Some(dir) = dir else {
+            return;
+        };
+        let _ = std::fs::remove_file(Self::identity_path(&dir));
+    }
+
+    /// S3: first successful GetLightInfo stores `chain_name`; later calls must match.
+    /// `reset_for_server_switch` clears the stored identity so a new server can be adopted.
+    pub fn ensure_server_chain_identity(&self, chain_name: &str) -> Result<(), String> {
+        let normalized = chain_name.trim().to_ascii_lowercase();
+        if normalized.is_empty() {
+            return Err("lightwalletd chain_name is empty".into());
+        }
+        let mut guard = self.verified_chain_name.lock().unwrap();
+        match guard.as_ref() {
+            None => {
+                *guard = Some(normalized.clone());
+                drop(guard);
+                self.persist_chain_identity(&normalized);
+                Ok(())
+            }
+            Some(prev) if prev == &normalized => Ok(()),
+            Some(prev) => Err(format!(
+                "lightwalletd chain_name '{chain_name}' does not match previously verified \
+                 chain '{prev}'. Reset sync before switching servers."
+            )),
+        }
+    }
+
+    pub fn last_accepted_block(&self) -> Option<(u32, [u8; 32])> {
+        *self.last_accepted_block.lock().unwrap()
+    }
+
+    pub fn record_accepted_block(&self, height: u32, hash: &[u8]) {
+        if hash.len() != 32 {
+            return;
+        }
+        let mut h = [0u8; 32];
+        h.copy_from_slice(hash);
+        *self.last_accepted_block.lock().unwrap() = Some((height, h));
+    }
+
+    pub fn clear_last_accepted_block(&self) {
+        *self.last_accepted_block.lock().unwrap() = None;
     }
 
     /// Record pipeline prefetch / apply heights for UI / tracing.
@@ -660,6 +753,8 @@ impl SyncEngine {
         state.reorg_detected = false;
         state.status = LightSyncStatus::Syncing;
         state.refresh_messages();
+        drop(state);
+        self.clear_last_accepted_block();
 
         tracing::info!(
             target: "sync-engine",
@@ -706,6 +801,9 @@ impl SyncEngine {
         // Reset atomic counters for backend catch-up detection
         self.prev_chain_tip.store(0, Ordering::Relaxed);
         self.last_tip_update.store(0, Ordering::Relaxed);
+        *self.verified_chain_name.lock().unwrap() = None;
+        self.clear_last_accepted_block();
+        self.clear_chain_identity_file();
 
         tracing::info!(
             target: "sync-engine",
@@ -1254,5 +1352,24 @@ mod tests {
         let snap = engine.snapshot();
         assert_eq!(snap.pipeline_applying, 100);
         assert_eq!(snap.pipeline_ahead, 200);
+    }
+
+    #[test]
+    fn chain_identity_pins_then_rejects_mismatch() {
+        let engine = SyncEngine::new("x".to_string());
+        engine
+            .ensure_server_chain_identity("mainnet")
+            .expect("first pin");
+        engine
+            .ensure_server_chain_identity("MainNet")
+            .expect("same chain");
+        let err = engine
+            .ensure_server_chain_identity("testnet")
+            .expect_err("mismatch");
+        assert!(err.contains("previously verified"), "{err}");
+        engine.reset_for_server_switch();
+        engine
+            .ensure_server_chain_identity("testnet")
+            .expect("after reset");
     }
 }

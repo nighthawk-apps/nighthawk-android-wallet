@@ -12,7 +12,7 @@ Index for the Nighthawk Android DarkFi wallet.
 | [android-darkirc-chat.md](android-darkirc-chat.md) | **Legacy** IRC / desktop reverse-port (not the Chat tab default) |
 | [darkirc-embedded-android.md](darkirc-embedded-android.md) | Optional AGPL `darkirc_exec` packaging |
 | [darkfi-chat-upstream.md](darkfi-chat-upstream.md) | Parity notes vs upstream `bin/darkirc` / `bin/app` |
-| [tor-embedded-android.md](tor-embedded-android.md) | Guardian tor-android SOCKS |
+| [tor-embedded-android.md](tor-embedded-android.md) | In-process Arti SOCKS |
 | [darkfid-embedded-android.md](darkfid-embedded-android.md) | Optional `darkfid_exec` |
 
 ## Features & planning

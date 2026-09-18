@@ -7,43 +7,31 @@ import org.junit.Test
 
 class BalanceViewTypeTest {
     @Test
-    fun pages_withoutTokens_isSwipeThenTotal() {
-        val pages = BalanceViewType.pages(emptyList())
-        assertEquals(listOf(BalanceViewType.SWIPE, BalanceViewType.TOTAL), pages)
+    fun pages_areSwipeThenAssets() {
+        assertEquals(listOf(BalanceViewType.SWIPE, BalanceViewType.ASSETS), BalanceViewType.pages())
     }
 
     @Test
-    fun pages_nativeDrkOnly_doesNotAddExtraPage() {
-        val pages =
-            BalanceViewType.pages(
-                listOf(DarkfiTokenBalance(tokenId = "DRK", displayLabel = "DRK", balanceAtomic = 0L)),
+    fun portfolio_putsDrkFirstThenSortedExtras() {
+        val rows =
+            portfolioRows(
+                nativeAtomic = 42L,
+                tokenBalances =
+                    listOf(
+                        DarkfiTokenBalance(tokenId = "zzz", displayLabel = "Zed", balanceAtomic = 1L),
+                        DarkfiTokenBalance(tokenId = "DRK", displayLabel = "DRK", balanceAtomic = 99L),
+                        DarkfiTokenBalance(tokenId = "aaa", displayLabel = "Alpha", balanceAtomic = 2L),
+                    ),
             )
-        assertEquals(2, pages.size)
-        assertEquals(BalanceViewType.SWIPE, pages[0])
-        assertEquals(BalanceViewType.TOTAL, pages[1])
+        assertEquals("DRK", rows.first().displayName)
+        assertEquals(42L, rows.first().balanceAtomic)
+        assertEquals(listOf("DRK", "Alpha", "Zed"), rows.map { it.displayName })
     }
 
     @Test
-    fun pages_appendsExtraTokensAfterTotal() {
-        val extra = DarkfiTokenBalance(tokenId = "token-abc", displayLabel = "DAO", balanceAtomic = 5L)
-        val pages =
-            BalanceViewType.pages(
-                listOf(
-                    DarkfiTokenBalance(tokenId = "DRK", displayLabel = "DRK", balanceAtomic = 1L),
-                    extra,
-                ),
-            )
-        assertEquals(3, pages.size)
-        assertEquals(BalanceViewType.Token(extra), pages[2])
-    }
-
-    @Test
-    fun isNativeDrk_matchesLabelOrId() {
-        assertTrue(
-            DarkfiTokenBalance(tokenId = "DRK", displayLabel = null, balanceAtomic = 0L).isNativeDrk(),
-        )
-        assertTrue(
-            DarkfiTokenBalance(tokenId = "0xabc", displayLabel = "drk", balanceAtomic = 0L).isNativeDrk(),
-        )
+    fun portfolio_synthesizesDrkWhenListEmpty() {
+        val rows = portfolioRows(nativeAtomic = 0L, tokenBalances = emptyList())
+        assertEquals(1, rows.size)
+        assertTrue(rows.first().isNativeDrk())
     }
 }

@@ -107,5 +107,8 @@ object ChatMessageLexer {
 
     fun hasFud(text: String): Boolean = lex(text).any { it is ChatInlineSpan.Fud }
 
+    fun fudUris(text: String): List<String> =
+        lex(text).mapNotNull { (it as? ChatInlineSpan.Fud)?.uri }
+
     private fun trimTrailingPunctuation(value: String): String = value.trimEnd { it == '.' || it == ',' || it == ';' || it == ')' }
 }

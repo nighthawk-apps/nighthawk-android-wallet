@@ -6,6 +6,7 @@ mod birthday;
 pub mod block_cache;
 pub mod bootstrap;
 mod dao;
+mod panic_fence;
 #[cfg(feature = "darkirc")]
 mod darkirc_daemon;
 mod memo;
@@ -522,10 +523,12 @@ pub fn shared_executor() -> Arc<Executor<'static>> {
 }
 
 pub fn start_arti_proxy(socks_listen: String) -> Result<bool, DarkfiWalletNativeError> {
-    let port = parse_socks_listen_port(&socks_listen).map_err(|e| {
-        DarkfiWalletNativeError::NativeDrkUnavailable(format!("invalid socks_listen: {e}"))
-    })?;
-    crate::tor::start_arti_proxy(port)
+    crate::panic_fence::catch_wallet("start_arti_proxy", || {
+        let port = parse_socks_listen_port(&socks_listen).map_err(|e| {
+            DarkfiWalletNativeError::NativeDrkUnavailable(format!("invalid socks_listen: {e}"))
+        })?;
+        crate::tor::start_arti_proxy(port)
+    })
 }
 
 fn parse_socks_listen_port(s: &str) -> Result<u16, String> {
@@ -656,6 +659,7 @@ pub struct DarkfiWalletHandle {
     _sync_started: bool,
     sync_engine: Arc<crate::lightwallet_sync::SyncEngine>,
     cache_path: String,
+    cache_key: [u8; 32],
 }
 
 impl std::fmt::Debug for DarkfiWalletHandle {
@@ -706,6 +710,8 @@ impl DarkfiWalletHandle {
             crate::parse_tls_pins(config.lightwallet_tls_pin_sha256.as_deref()).unwrap_or_default(),
         ));
         sync_engine.set_strict_omr_only(config.strict_omr_only);
+        sync_engine.set_data_dir(std::path::PathBuf::from(&config.cache_path));
+        let cache_key = blake3::derive_key("nighthawk compact-block-cache v1", config.wallet_pass.as_bytes());
         if config.birthday_height > 0 {
             if let Ok(height) = u32::try_from(config.birthday_height) {
                 sync_engine.set_birthday_height(height);
@@ -727,6 +733,7 @@ impl DarkfiWalletHandle {
             _sync_started: true,
             sync_engine,
             cache_path: config.cache_path.clone(),
+            cache_key,
         })
     }
 
@@ -1060,8 +1067,9 @@ impl DarkfiWalletHandle {
         block_on(async {
             let cache_db = std::path::Path::new(&cache_path).join("compact_blocks.db");
             if cache_db.exists() {
-                if let Ok(cache) = block_cache::MobileBlockCache::open(
+                if let Ok(cache) = block_cache::MobileBlockCache::open_with_key(
                     cache_db.to_str().unwrap_or("compact_blocks.db"),
+                    Some(self.cache_key),
                 ) {
                     let _ = cache.prune_above(rewind_to_height);
                 }

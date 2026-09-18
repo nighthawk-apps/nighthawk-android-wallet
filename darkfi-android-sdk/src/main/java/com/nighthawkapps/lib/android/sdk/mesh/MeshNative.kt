@@ -112,8 +112,20 @@ object MeshNative {
     private var neighborLib: NhMeshNeighborLib? = null
 
     @Volatile
+    var cacheEvicted: Boolean = false
+
+    @Volatile
     var available: Boolean = false
         private set
+
+    fun neighborsReady(): Boolean = neighborLib() != null
+
+    fun drainEngineEvents() {
+        val json = popEventsJson() ?: return
+        if (json.contains("\"cache_full\"")) {
+            cacheEvicted = true
+        }
+    }
 
     private val gatewayExec =
         Executors.newSingleThreadExecutor { r ->

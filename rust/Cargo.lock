@@ -1947,6 +1947,7 @@ dependencies = [
  "bip39",
  "blake3",
  "bs58",
+ "chacha20poly1305",
  "crypto_box",
  "darkfi",
  "darkfi-sdk",

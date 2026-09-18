@@ -14,7 +14,6 @@ import androidx.core.app.ServiceCompat
 import androidx.core.content.ContextCompat
 import com.nighthawkapps.lib.android.sdk.R
 import com.nighthawkapps.lib.android.spackle.Twig
-import com.nighthawkapps.lib.uniffi.darkfi_mobile_ffi.stopDarkirc
 
 /**
  * Keeps the in-process UniFFI **darkirc** daemon eligible to run while the app
@@ -53,13 +52,10 @@ class DarkircDaemonService : Service() {
         startId: Int,
         fgsType: Int,
     ) {
-        Twig.warn { "darkirc: FGS timed out — stopping daemon keep-alive" }
-        try {
-            stopDarkirc()
-        } catch (e: Exception) {
-            Twig.error(e) { "darkirc: stop on FGS timeout failed" }
-        }
+        Twig.warn { "darkirc: FGS timed out — demoting keep-alive; daemon stays in-process" }
         stopSelf(startId)
+        // Android 15 dataSync/remoteMessaging timeout: do not stopDarkirc here.
+        // UniFFI daemon threads can keep the EventGraph until ChatController reconnects.
     }
 
     override fun onDestroy() {

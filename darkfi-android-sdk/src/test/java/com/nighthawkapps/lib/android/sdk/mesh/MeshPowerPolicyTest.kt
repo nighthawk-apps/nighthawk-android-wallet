@@ -81,6 +81,20 @@ class MeshPowerPolicyTest {
     }
 
     @Test
+    fun backgroundAlwaysOnIsSparseNotStopped() {
+        val d =
+            MeshPowerPolicy.scanDuty(
+                foreground = false,
+                hasPeers = false,
+                charging = false,
+                gatewayArmed = false,
+                alwaysOn = true,
+            )
+        assertEquals(1_000, d.scanOnMs)
+        assertEquals(59_000, d.scanOffMs)
+    }
+
+    @Test
     fun lwdCtrlOriginateIsForegroundOnly() {
         assertFalse(MeshPowerPolicy.mayOriginateLwdCtrl(foreground = false))
         assertTrue(MeshPowerPolicy.mayOriginateLwdCtrl(foreground = true))

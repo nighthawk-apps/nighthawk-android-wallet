@@ -68,6 +68,7 @@ import com.nighthawkapps.lib.android.ui.screen.fiatcurrency.model.FiatCurrency
 import com.nighthawkapps.lib.android.ui.screen.fiatcurrency.model.FiatCurrencyUiState
 import com.nighthawkapps.lib.android.ui.screen.home.model.WalletDisplayValues
 import com.nighthawkapps.lib.android.ui.screen.home.model.WalletSnapshot
+import com.nighthawkapps.lib.android.ui.screen.home.model.spendableBalanceAtomic
 import com.nighthawkapps.lib.android.ui.screen.transactionhistory.view.TransactionOverviewHistoryRow
 import com.nighthawkapps.lib.android.ui.screen.wallet.model.BalanceDisplayValues
 import com.nighthawkapps.lib.android.ui.screen.wallet.model.BalanceUIModel
@@ -270,28 +271,36 @@ fun WalletView(
             contentAlignment = Alignment.Center,
         ) {
             if (walletSnapshot.status == DarkfiSyncStatus.SYNCED) {
-                val pages = remember(tokenBalances) { BalanceViewType.pages(tokenBalances) }
+                val pages = remember { BalanceViewType.pages() }
                 val state = rememberPagerState(initialPage = 0) { pages.size }
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     HorizontalPager(state = state) { pageNo ->
                         val page = pages[pageNo]
-                        val balanceDisplayValues =
-                            BalanceDisplayValues.getNextValue(
-                                LocalContext.current,
-                                page,
-                                walletSnapshot,
-                                isFiatCurrencyPreferred,
-                                fiatCurrencyUiState
-                            )
-                        val tokenId = (page as? BalanceViewType.Token)?.balance?.tokenId
-                        BalanceView(
-                            balanceDisplayValues = balanceDisplayValues,
-                            showFlipCurrencyIcon =
-                                page is BalanceViewType.TOTAL &&
-                                    fiatCurrencyUiState.fiatCurrency != FiatCurrency.OFF,
-                            onFlipCurrency = { onFlipCurrency(isFiatCurrencyPreferred.not()) },
-                            onClick = tokenId?.let { id -> { onTokenClick(id) } },
-                        )
+                        when (page) {
+                            BalanceViewType.SWIPE -> {
+                                val balanceDisplayValues =
+                                    BalanceDisplayValues.getNextValue(
+                                        LocalContext.current,
+                                        page,
+                                        walletSnapshot,
+                                        isFiatCurrencyPreferred,
+                                        fiatCurrencyUiState
+                                    )
+                                BalanceView(
+                                    balanceDisplayValues = balanceDisplayValues,
+                                    showFlipCurrencyIcon = false,
+                                    onFlipCurrency = {},
+                                )
+                            }
+                            BalanceViewType.ASSETS -> {
+                                TokenPortfolio(
+                                    nativeAtomic = walletSnapshot.spendableBalanceAtomic(),
+                                    balances = tokenBalances,
+                                    onTokenClick = onTokenClick,
+                                    modifier = Modifier.fillMaxWidth(),
+                                )
+                            }
+                        }
                     }
                     val balanceViewType = pages.getOrElse(state.currentPage) { BalanceViewType.SWIPE }
                     if (balanceViewType != BalanceViewType.SWIPE) {

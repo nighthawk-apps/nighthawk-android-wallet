@@ -42,10 +42,12 @@ enum SessState {
     InitSent {
         eph: SecretKey,
         queued: Vec<Vec<u8>>,
+        started_ms: u64,
     },
     WaitHs3 {
         their_eph: [u8; 32],
         our_eph: SecretKey,
+        started_ms: u64,
     },
     Ready {
         their_static: [u8; 32],
@@ -67,6 +69,32 @@ impl SessionTable {
     pub fn wipe(&mut self) {
         self.map.clear();
         self.lru.clear();
+    }
+
+    pub fn drop_peer(&mut self, peer: &[u8; SENDER_LEN]) {
+        self.map.remove(peer);
+        self.lru.retain(|k| k != peer);
+    }
+
+    /// Drop InitSent / WaitHs3 sessions that never finished (simultaneous-open deadlock).
+    pub fn expire_handshakes(&mut self, now_ms: u64, timeout_ms: u64) -> usize {
+        let stale: Vec<[u8; SENDER_LEN]> = self
+            .map
+            .iter()
+            .filter_map(|(k, s)| match &s.state {
+                SessState::InitSent { started_ms, .. } | SessState::WaitHs3 { started_ms, .. }
+                    if now_ms.saturating_sub(*started_ms) > timeout_ms =>
+                {
+                    Some(*k)
+                }
+                _ => None,
+            })
+            .collect();
+        let n = stale.len();
+        for k in stale {
+            self.drop_peer(&k);
+        }
+        n
     }
 
     pub fn ready_peers(&self) -> Vec<[u8; SENDER_LEN]> {
@@ -117,6 +145,7 @@ impl SessionTable {
                     } else {
                         vec![queued]
                     },
+                    started_ms: super::types::unix_ms(),
                 },
             },
         );
@@ -264,6 +293,7 @@ impl SessionTable {
                 state: SessState::WaitHs3 {
                     their_eph,
                     our_eph,
+                    started_ms: super::types::unix_ms(),
                 },
             },
         );
@@ -282,7 +312,7 @@ impl SessionTable {
         }
         let eph = match self.map.remove(&from) {
             Some(Session {
-                state: SessState::InitSent { eph, queued },
+                state: SessState::InitSent { eph, queued, .. },
             }) => (eph, queued),
             other => {
                 if let Some(s) = other {
@@ -332,6 +362,7 @@ impl SessionTable {
                 state: SessState::WaitHs3 {
                     their_eph,
                     our_eph,
+                    ..
                 },
             }) => (their_eph, our_eph),
             other => {

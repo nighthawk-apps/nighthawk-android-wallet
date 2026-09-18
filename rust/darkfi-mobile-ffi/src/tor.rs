@@ -1,12 +1,10 @@
-//! In-process Arti Tor integration for iOS.
+//! In-process Arti Tor integration for iOS and Android.
 //!
 //! Runs a real, in-process Arti SOCKS5 proxy on localhost. Outbound
 //! connections accepted on the SOCKS port are dialled through a bootstrapped
 //! [`arti_client::TorClient`] (the same arti-client build the vendored darkfi
 //! `net` layer links), giving Tor-routed connectivity for wallet RPC and the
 //! DarkIRC P2P transport without an external Tor app.
-//!
-//! On Android, Guardian tor-android is used (bundled native binary).
 //!
 //! NOTE: status is derived from the *actual* bootstrap result — it never
 //! reports `Connected` unless the Tor client genuinely bootstrapped. A failed

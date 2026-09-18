@@ -6,6 +6,7 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import kotlin.test.Test
 import kotlin.test.assertFalse
+import kotlin.test.assertTrue
 
 @RunWith(RobolectricTestRunner::class)
 class MeshCoordinatorTest {
@@ -14,6 +15,15 @@ class MeshCoordinatorTest {
         val app: Application = ApplicationProvider.getApplicationContext()
         assertFalse(NighthawkMeshService.startFromForeground(app))
         assertFalse(MeshPowerPolicy.mayStartForegroundServiceFromBackground())
+        assertTrue(app.findActivity() == null)
+    }
+
+    @Test
+    fun stickyRestartFollowsAlwaysOn() {
+        MeshCoordinator.setAlwaysOn(false)
+        assertFalse(MeshCoordinator.stickyRestart())
+        MeshCoordinator.setAlwaysOn(true)
+        assertTrue(MeshCoordinator.stickyRestart())
     }
 
     @Test

@@ -36,6 +36,7 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.nighthawkapps.lib.android.sdk.wallet.DarkfiAmountFormatter
+import com.nighthawkapps.lib.android.sdk.wallet.DarkfiExplorer
 import com.nighthawkapps.lib.android.sdk.wallet.DarkfiNetwork
 import com.nighthawkapps.lib.android.sdk.wallet.DarkfiSyncMethod
 import com.nighthawkapps.lib.android.sdk.wallet.DarkfiTransactionRecipient
@@ -43,7 +44,6 @@ import com.nighthawkapps.lib.android.spackle.Twig
 import com.nighthawkapps.lib.android.ui.R
 import com.nighthawkapps.lib.android.ui.common.AlertDialog
 import com.nighthawkapps.lib.android.ui.common.addressTypeNameId
-import com.nighthawkapps.lib.android.ui.common.darkfiExplorerUrlStringId
 import com.nighthawkapps.lib.android.ui.common.removeTrailingZero
 import com.nighthawkapps.lib.android.ui.design.component.BalanceText
 import com.nighthawkapps.lib.android.ui.design.component.BodyMedium
@@ -351,32 +351,33 @@ fun TransactionDetails(
             }
 
             val blockExplorerUrl =
-                stringResource(
-                    id = transactionDetailsUIModel.network.darkfiExplorerUrlStringId(),
+                DarkfiExplorer.transactionUrl(
                     transactionId,
+                    transactionDetailsUIModel.network,
                 )
             val onViewBlockExplorerClicked = { updateWarningStatus: Boolean ->
-                viewOnBlockExplorer(
-                    blockExplorerUrl,
-                    updateWarningStatus,
-                )
+                blockExplorerUrl?.let { url ->
+                    viewOnBlockExplorer(url, updateWarningStatus)
+                }
             }
-            TextButton(
-                onClick = {
-                    if (isNavigateAwayFromAppWarningShown) {
-                        onViewBlockExplorerClicked(false)
-                    } else {
-                        showAppLeavingDialog.value = true
-                    }
-                },
-                modifier = Modifier.align(Alignment.End)
-            ) {
-                BodyMedium(
-                    text = stringResource(id = R.string.ns_view_block_explorer),
-                    color = WalletTheme.colors.onBackgroundHeader,
-                    textAlign = TextAlign.End,
-                    textDecoration = TextDecoration.Underline
-                )
+            if (blockExplorerUrl != null) {
+                TextButton(
+                    onClick = {
+                        if (isNavigateAwayFromAppWarningShown) {
+                            onViewBlockExplorerClicked(false)
+                        } else {
+                            showAppLeavingDialog.value = true
+                        }
+                    },
+                    modifier = Modifier.align(Alignment.End)
+                ) {
+                    BodyMedium(
+                        text = stringResource(id = R.string.ns_view_block_explorer),
+                        color = WalletTheme.colors.onBackgroundHeader,
+                        textAlign = TextAlign.End,
+                        textDecoration = TextDecoration.Underline
+                    )
+                }
             }
 
             // Recipient
@@ -526,7 +527,7 @@ fun TransactionDetails(
             Spacer(modifier = Modifier.height(10.dp))
             MaxWidthHorizontalDivider()
 
-            if (showAppLeavingDialog.value) {
+            if (showAppLeavingDialog.value && blockExplorerUrl != null) {
                 AlertDialog(
                     title = stringResource(id = R.string.dialog_first_use_view_tx_title),
                     desc = stringResource(id = R.string.dialog_first_use_view_tx_message),

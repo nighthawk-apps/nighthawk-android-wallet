@@ -71,7 +71,7 @@ class DarkfiChatPreferences(
         }
 
     /**
-     * SOCKS5 address when Tor routing applies (defaults match bundled tor-android).
+     * SOCKS5 address when Tor routing applies (defaults match in-process Arti).
      */
     var socksHost: String
         get() =
@@ -91,9 +91,9 @@ class DarkfiChatPreferences(
         }
 
     /**
-     * When true (default), the app runs Guardian `tor-android` in-process for SOCKS. When false, only
+     * When true (default), the app runs in-process Arti for SOCKS. When false, only
      * an external SOCKS at [socksHost]:[socksPort] is used (you must run Tor or another SOCKS proxy yourself).
-     * Default matches iOS embedded Tor (`useEmbeddedTor = true`).
+     * Default matches iOS embedded Arti (`useEmbeddedTor = true`).
      */
     var useEmbeddedTor: Boolean
         get() = sp.getBoolean(KEY_EMBEDDED_TOR, true)
@@ -145,6 +145,16 @@ class DarkfiChatPreferences(
             sp.edit().putBoolean(KEY_DARKIRC_REPLAY_MODE, value).apply()
         }
 
+    /**
+     * When true, tap-to-queue `fud://` offers is allowed. Offers never auto-download
+     * and require Tor or mesh (never clearnet). Default off.
+     */
+    var allowFudTransfers: Boolean
+        get() = sp.getBoolean(KEY_FUD_TRANSFERS, false)
+        set(value) {
+            sp.edit().putBoolean(KEY_FUD_TRANSFERS, value).apply()
+        }
+
     fun darkircRuntimeSettings(): DarkircRuntimeSettings =
         DarkircRuntimeSettings(
             dagsCount = darkircDagsCount,
@@ -185,6 +195,7 @@ class DarkfiChatPreferences(
         private const val KEY_DARKIRC_DAGS_COUNT = "darkfi_darkirc_dags_count"
         private const val KEY_DARKIRC_FAST_MODE = "darkfi_darkirc_fast_mod"
         private const val KEY_DARKIRC_REPLAY_MODE = "darkfi_darkirc_replay_mode"
+        private const val KEY_FUD_TRANSFERS = "darkfi_allow_fud_transfers"
 
         private const val DEFAULT_HOST = "127.0.0.1"
         private const val DEFAULT_PORT = 6667

@@ -638,3 +638,33 @@ fn announce_never_sets_caps() {
     assert!(e.pop_outbound().is_empty());
     assert!(e.last_gateway_peer().is_none());
 }
+
+#[test]
+fn handshake_timeout_drops_unfinished() {
+    use super::session::SessionTable;
+    use super::types::HANDSHAKE_TIMEOUT_MS;
+    let mut t = SessionTable::default();
+    let peer = [9u8; 8];
+    t.begin_initiator(peer, Vec::new()).unwrap();
+    assert!(t.is_init_sent(&peer));
+    let n = t.expire_handshakes(unix_ms() + HANDSHAKE_TIMEOUT_MS + 1, HANDSHAKE_TIMEOUT_MS);
+    assert_eq!(n, 1);
+    assert!(!t.is_init_sent(&peer));
+}
+
+#[test]
+fn cache_full_event_on_eviction() {
+    let mut e = MeshEngine::new();
+    e.set_mesh_on(true);
+    for i in 0..300u16 {
+        let mut body = vec![i as u8; 64];
+        body.extend_from_slice(&i.to_be_bytes());
+        e.publish_dag_event(body);
+    }
+    let ev = e.pop_events();
+    assert!(
+        ev.iter()
+            .any(|x| matches!(x, EngineEvent::CacheFull { .. })),
+        "expected cache_full after exceeding 256 events"
+    );
+}

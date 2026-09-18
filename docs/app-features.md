@@ -46,7 +46,7 @@ Canonical list of **Android** capabilities for the DarkFi wallet APK (`com.night
 | Embedded `darkfid` fullnode | 🟡 | Foreground service when `darkfid_exec` bundled; prefs toggle |
 | Remote `darkfid` JSON-RPC | ✅ | Loopback, emulator `10.0.2.2`, custom host:port |
 | Endpoint presets / change server | ✅ | Mainnet/testnet ports; **network/port guard** (P0-6) |
-| Tor for wallet RPC (SOCKS) | ✅ | Settings → Tor network; tor-android or external SOCKS |
+| Tor for wallet RPC (SOCKS) | ✅ | Settings → Tor network; in-process Arti or external SOCKS |
 | Keep screen on while syncing | ✅ | Manual test doc / setting pattern from Nighthawk |
 
 ---
@@ -76,7 +76,7 @@ Canonical list of **Android** capabilities for the DarkFi wallet APK (`com.night
 | Transaction details screen | ✅ | Fee, height, status, memo row |
 | Recipient address on tx | 🟡 | `getRecipients` empty (P1-4) |
 | Mined / pending status | 🟡 | Status string from `drk` history |
-| Export tx / block explorer link | 🟡 | Explorer integration project-specific |
+| Export tx / block explorer link | ✅ | `DarkfiExplorer` — `/tx/{id}` only (testnet or mainnet) |
 | Rich contract call breakdown | ❌ | DAO / Deploy labels (P1-3) |
 
 ---
@@ -88,7 +88,7 @@ Canonical list of **Android** capabilities for the DarkFi wallet APK (`com.night
 | Public `#` channels | ✅ | UniFFI `start_darkirc` + `DarkircEventCallback` (same as iOS) |
 | In-process EventGraph | ✅ | `libdarkfi_mobile_ffi.so` |
 | Optional `darkirc_exec` | 🟡 | Legacy IRC subprocess; not the default message path |
-| Tor for chat / P2P | ✅ | Guardian tor-android SOCKS for native daemon |
+| Tor for chat / P2P | ✅ | In-process Arti SOCKS for native daemon |
 | Connection status | ✅ | `darkirc_status()` → ConnectedDirect / ConnectedViaTor |
 | Chat settings (DAG, fast mode) | ✅ | Settings → Chat |
 | E2E encrypted DMs | ✅ | ChaCha UniFFI; daemon refuses plaintext DMs |

@@ -1,7 +1,7 @@
 package com.nighthawkapps.lib.android.sdk.chat
 
 /**
- * Default loopback SOCKS5 target for bundled [tor-android] and advanced setups that point HTTP/IRC at
+ * Default loopback SOCKS5 target for in-process Arti and advanced setups that point HTTP/IRC at
  * a local Tor SOCKS listener.
  */
 object TorIntegrationHelper {

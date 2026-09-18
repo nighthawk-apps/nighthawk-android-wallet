@@ -401,8 +401,8 @@ pub fn darkirc_connection_phase() -> String {
 
 /// Start the darkirc daemon on a background thread.
 ///
-/// When `use_tor` is set, all P2P traffic is routed over Tor via the Guardian
-/// `tor-android` SOCKS5 proxy listening on `127.0.0.1:tor_socks_port`: the
+/// When `use_tor` is set, all P2P traffic is routed over Tor via the in-process
+/// Arti SOCKS5 proxy listening on `127.0.0.1:tor_socks_port`: the
 /// daemon dials the `socks5://…/<onion>:9601` darkirc seeds, so every
 /// connection (seed + discovered peers) stays inside Tor. When false the daemon
 /// connects over clearnet `tcp+tls` seeds. This mirrors the wallet's
@@ -413,6 +413,17 @@ pub fn darkirc_connection_phase() -> String {
 /// listener must already be reachable (the Kotlin layer waits on it via
 /// `TorSocksReadiness`) before this is called with `use_tor = true`.
 pub fn start_darkirc(
+    datastore_path: String,
+    use_tor: bool,
+    tor_socks_port: u16,
+    callback: Option<Box<dyn DarkircEventCallback>>,
+) -> Result<(), DarkfiWalletNativeError> {
+    crate::panic_fence::catch_wallet("start_darkirc", || {
+        start_darkirc_inner(datastore_path, use_tor, tor_socks_port, callback)
+    })
+}
+
+fn start_darkirc_inner(
     datastore_path: String,
     use_tor: bool,
     tor_socks_port: u16,
@@ -571,6 +582,16 @@ pub fn send_chat_message(
     nick: String,
     message: String,
 ) -> Result<(), DarkfiWalletNativeError> {
+    crate::panic_fence::catch_wallet("send_chat_message", || {
+        send_chat_message_inner(channel, nick, message)
+    })
+}
+
+fn send_chat_message_inner(
+    channel: String,
+    nick: String,
+    message: String,
+) -> Result<(), DarkfiWalletNativeError> {
     let current = DAEMON_STATUS.load(Ordering::Relaxed);
     if current != STATUS_RUNNING {
         return Err(DarkfiWalletNativeError::NativeDrkUnavailable(
@@ -693,7 +714,7 @@ const DARKIRC_ONION_SEEDS: [&str; 2] = [
 ];
 
 /// Builds the darkirc seed URLs that dial the onion seeds through a local
-/// SOCKS5 proxy on `127.0.0.1:tor_socks_port` (Guardian tor-android on Android).
+/// SOCKS5 proxy on `127.0.0.1:tor_socks_port` (in-process Arti).
 ///
 /// The resulting `socks5://127.0.0.1:<port>/<onion>:9601` form is exactly what
 /// darkfi's `net::transport::socks5` dialer expects (proxy in the authority,

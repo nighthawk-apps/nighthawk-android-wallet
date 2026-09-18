@@ -26,6 +26,7 @@ pub const EVENT_INNER_MAX: usize = 64 * 1024;
 pub const DAG_CACHE_MAX_EVENTS: usize = 256;
 pub const DAG_CACHE_MAX_BYTES: usize = 256 * 1024;
 pub const DAG_SYNC_REPLY_MAX: usize = 32;
+pub const HANDSHAKE_TIMEOUT_MS: u64 = 8_000;
 pub const INBOUND_RATE_MAX: usize = 32;
 pub const INBOUND_RATE_WINDOW_MS: u64 = 60_000;
 

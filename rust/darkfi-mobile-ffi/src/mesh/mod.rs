@@ -26,9 +26,9 @@ pub use lwd_ctrl::{decode_mesh_event, encode_mesh_event};
 pub use packet::{decode, encode, CodecError};
 pub use splice::{set_lwd_splice, LwdSpliceFn};
 pub use types::{
-    MeshPacket, PacketType, BLE_ALLOWED_LWD, BLE_FORBIDDEN_LWD, DEFAULT_TTL, FRAGMENT_CHUNK,
-    LOCAL_TTL, LWD_CTRL_MAX, MAX_PAYLOAD, NH_ANNOUNCE, NH_DAG_EVENT, NH_DAG_SYNC, NH_LWD_CTRL,
-    SENDER_LEN, EVENT_INNER_MAX,
+    MeshPacket, PacketType, BLE_ALLOWED_LWD, BLE_FORBIDDEN_LWD, DAG_SYNC_REPLY_MAX, DEFAULT_TTL,
+    FRAGMENT_CHUNK, LOCAL_TTL, LWD_CTRL_MAX, MAX_PAYLOAD, NH_ANNOUNCE, NH_DAG_EVENT, NH_DAG_SYNC,
+    NH_LWD_CTRL, SENDER_LEN, EVENT_INNER_MAX,
 };
 
 use std::collections::VecDeque;
@@ -48,15 +48,19 @@ fn hold() -> &'static Mutex<VecDeque<Vec<u8>>> {
 }
 
 pub fn start_mesh() -> Result<(), String> {
-    let mut g = engine().lock().map_err(|e| e.to_string())?;
-    g.set_mesh_on(true);
-    Ok(())
+    crate::panic_fence::catch_string("start_mesh", || {
+        let mut g = engine().lock().map_err(|e| e.to_string())?;
+        g.set_mesh_on(true);
+        Ok(())
+    })
 }
 
 pub fn stop_mesh() -> Result<(), String> {
-    let mut g = engine().lock().map_err(|e| e.to_string())?;
-    g.set_mesh_on(false);
-    Ok(())
+    crate::panic_fence::catch_string("stop_mesh", || {
+        let mut g = engine().lock().map_err(|e| e.to_string())?;
+        g.set_mesh_on(false);
+        Ok(())
+    })
 }
 
 pub fn mesh_status() -> String {
@@ -84,13 +88,15 @@ pub fn mesh_set_gateway_eligible(opt_in: bool) -> Result<(), String> {
 }
 
 pub fn mesh_wipe() -> Result<(), String> {
-    if let Ok(mut h) = hold().lock() {
-        h.clear();
-    }
-    clear_bulk_tcp_override();
-    let mut g = engine().lock().map_err(|e| e.to_string())?;
-    g.wipe();
-    Ok(())
+    crate::panic_fence::catch_string("mesh_wipe", || {
+        if let Ok(mut h) = hold().lock() {
+            h.clear();
+        }
+        clear_bulk_tcp_override();
+        let mut g = engine().lock().map_err(|e| e.to_string())?;
+        g.wipe();
+        Ok(())
+    })
 }
 
 fn bulk_tcp() -> &'static Mutex<Option<(String, u16)>> {
@@ -165,11 +171,13 @@ pub fn mesh_set_os_power_state(
 }
 
 pub fn mesh_ingest_link_bytes(bytes: Vec<u8>) -> Result<(), String> {
-    let mut g = engine().lock().map_err(|e| e.to_string())?;
-    match g.ingest_bytes(&bytes) {
-        Ok(()) | Err(EngErr::DroppedDuplicate) => Ok(()),
-        Err(e) => Err(format!("{e:?}")),
-    }
+    crate::panic_fence::catch_string("mesh_ingest_link_bytes", || {
+        let mut g = engine().lock().map_err(|e| e.to_string())?;
+        match g.ingest_bytes(&bytes) {
+            Ok(()) | Err(EngErr::DroppedDuplicate) => Ok(()),
+            Err(e) => Err(format!("{e:?}")),
+        }
+    })
 }
 
 pub fn mesh_pop_outbound() -> Vec<Vec<u8>> {
@@ -205,11 +213,13 @@ pub fn mesh_publish_dag(body: Vec<u8>) -> Result<(), String> {
 }
 
 pub fn mesh_publish_event(id: [u8; 16], body: Vec<u8>) -> Result<(), String> {
-    let mut g = engine().lock().map_err(|e| e.to_string())?;
-    if !g.is_on() {
-        return Err("mesh_off".into());
-    }
-    g.publish_event(id, body).map_err(|e| format!("{e:?}"))
+    crate::panic_fence::catch_string("mesh_publish_event", || {
+        let mut g = engine().lock().map_err(|e| e.to_string())?;
+        if !g.is_on() {
+            return Err("mesh_off".into());
+        }
+        g.publish_event(id, body).map_err(|e| format!("{e:?}"))
+    })
 }
 
 pub fn mesh_neighbor_up(dest: [u8; SENDER_LEN]) -> Result<(), String> {
@@ -267,7 +277,18 @@ pub fn mesh_pop_events_json() -> String {
                     payload.len()
                 ));
             }
-            _ => {}
+            EngineEvent::CacheFull { dropped } => {
+                parts.push(format!("{{\"t\":\"cache_full\",\"dropped\":{dropped}}}"));
+            }
+            EngineEvent::DagSync { missing } => {
+                let remaining = missing.len().saturating_sub(DAG_SYNC_REPLY_MAX);
+                parts.push(format!(
+                    "{{\"t\":\"dagsync\",\"missing\":{},\"remaining\":{}}}",
+                    missing.len(),
+                    remaining
+                ));
+            }
+            EngineEvent::Ping { .. } => {}
         }
     }
     format!("[{}]", parts.join(","))

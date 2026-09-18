@@ -19,7 +19,9 @@ A decrypted neighbor is an EventGraph peer (same observer model as DarkIRC p2p).
 | After Ready | Inner kinds `EventPut` (`0x20`) and GCS `DagSync` (`0x21`) |
 | Relays | Decrypt, cache, **re-seal** to other Ready neighbors (do not TTL-flood ciphertext) |
 | Replay | Sequence in envelope **and** inside AEAD plaintext; drop if `seq <= recv_seq` |
-| Payload cap | 64 KiB inner; cache 256 events / 256 KiB; DagSync replies max 32 |
+| Payload cap | 64 KiB inner; cache 256 events / 256 KiB; DagSync replies max 32 per request, paginated via per-peer `sync_sent` |
+| Handshake | Lexicographic initiator; `HANDSHAKE_TIMEOUT_MS = 8_000` drops stuck sessions |
+| Fragments | `FRAGMENT_CHUNK=469`, `MAX_FRAGMENTS=256`, `FRAGMENT_TTL_SECS=30`; assembler drops stale / oversized |
 | GCS | Over **event ids** (16-byte), not mesh `packet_id` |
 | Forbidden on BLE | Plaintext DAG/sync, LWD ctrl, bulk SSID/PSK, announce caps |
 | RLN | Mobile blob is empty (RLN off) |
@@ -46,6 +48,8 @@ Mesh neighbor APIs are C ABI, not UniFFI UDL. After `rust/darkfi-mobile-ffi/src/
 
 ```bash
 SKIP_UNIFFI_BINDGEN=1 MOBILE_FFI_ABIS=arm64-v8a ./scripts/build-darkfi-mobile-ffi-android.sh
+# emulator mesh (M-1): rebuild x86_64 so neighbor symbols exist
+SKIP_UNIFFI_BINDGEN=1 MOBILE_FFI_ABIS=x86_64 ./scripts/build-darkfi-mobile-ffi-android.sh
 ```
 
 Keep Android and iOS `rust/darkfi-mobile-ffi/src/mesh/` **lockstep** (`rsync` after edits). Do not regenerate UniFFI Kotlin/Swift unless `darkfi_mobile_ffi.udl` changed.

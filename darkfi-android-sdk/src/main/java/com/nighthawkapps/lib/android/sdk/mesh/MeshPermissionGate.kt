@@ -1,6 +1,7 @@
 package com.nighthawkapps.lib.android.sdk.mesh
 
 import android.Manifest
+import android.bluetooth.BluetoothManager
 import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Build
@@ -65,5 +66,10 @@ object MeshPermissionGate {
         return blePermissions().filter { perm ->
             ContextCompat.checkSelfPermission(context, perm) != PackageManager.PERMISSION_GRANTED
         }
+    }
+
+    fun isBluetoothAdapterEnabled(context: Context): Boolean {
+        val adapter = context.getSystemService(BluetoothManager::class.java)?.adapter
+        return adapter?.isEnabled == true
     }
 }

@@ -1,6 +1,5 @@
 package com.nighthawkapps.lib.android.sdk.mesh
 
-import android.app.Activity
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -21,6 +20,9 @@ import android.os.Looper
 import androidx.core.app.NotificationCompat
 import androidx.core.app.ServiceCompat
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.ProcessLifecycleOwner
 import com.nighthawkapps.lib.android.sdk.R
 import com.nighthawkapps.lib.android.spackle.Twig
 
@@ -34,13 +36,20 @@ class NighthawkMeshService : Service() {
     private var radio: NighthawkBleLink? = null
     private val inbox = MeshFrameInbox()
     private var connectivity: ConnectivityManager? = null
+    private var appForeground = true
     private val dagHandler = Handler(Looper.getMainLooper())
     private val dagTick =
         object : Runnable {
             override fun run() {
                 if (!isActive) return
+                if (!MeshPermissionGate.hasBlePermissions(this@NighthawkMeshService)) {
+                    Twig.warn { "mesh: BLE permission revoked — stopping" }
+                    userStop()
+                    return
+                }
                 MeshNative.requestDagSync()
                 MeshNative.flushOutbound { bytes -> radio?.send(bytes) }
+                refreshNotification()
                 dagHandler.postDelayed(this, DAG_SYNC_INTERVAL_MS)
             }
         }
@@ -68,10 +77,31 @@ class NighthawkMeshService : Service() {
             }
         }
 
+    private val lifecycleObserver =
+        LifecycleEventObserver { _, event ->
+            when (event) {
+                Lifecycle.Event.ON_START -> {
+                    appForeground = true
+                    ensureRadio()
+                    applyPower()
+                }
+                Lifecycle.Event.ON_STOP -> {
+                    appForeground = false
+                    applyPower()
+                    if (!MeshCoordinator.alwaysOn) {
+                        Twig.debug { "mesh: pausing FGS — always-on is off" }
+                        stopSelf()
+                    }
+                }
+                else -> Unit
+            }
+        }
+
     private val engineSink =
         MeshLinkSink { frame ->
             if (!inbox.shouldIngest(frame)) return@MeshLinkSink
             MeshNative.ingest(frame)
+            MeshNative.drainEngineEvents()
             val r = radio
             MeshNative.flushOutbound { bytes -> r?.send(bytes) }
         }
@@ -80,20 +110,22 @@ class NighthawkMeshService : Service() {
 
     override fun onCreate() {
         super.onCreate()
+        runningContext = this
+        MeshCoordinator.bind(this)
+        appForeground =
+            ProcessLifecycleOwner.get().lifecycle.currentState
+                .isAtLeast(Lifecycle.State.STARTED)
         promoteToForegroundOrStop()
-        if (foregroundPromoted &&
-            Build.VERSION.SDK_INT >= Build.VERSION_CODES.S &&
-            MeshPermissionGate.hasBlePermissions(this)
-        ) {
-            MeshNative.start()
-            MeshNative.setGatewayEligible(false)
-            val link = NighthawkBleLink(this, engineSink)
-            link.onEngineFlush = { MeshNative.flushOutbound { bytes -> link.send(bytes) } }
-            radio = link
-            link.start()
-            applyPower()
+        if (foregroundPromoted) {
+            ensureRadio()
             registerPowerListeners()
             dagHandler.post(dagTick)
+            Handler(Looper.getMainLooper()).post {
+                try {
+                    ProcessLifecycleOwner.get().lifecycle.addObserver(lifecycleObserver)
+                } catch (_: Exception) {
+                }
+            }
         }
     }
 
@@ -103,8 +135,12 @@ class NighthawkMeshService : Service() {
         startId: Int,
     ): Int {
         if (intent?.action == ACTION_STOP) {
-            stopSelf()
+            userStop()
             return START_NOT_STICKY
+        }
+        if (intent?.action == ACTION_POWER) {
+            applyPower()
+            return stickyFlag()
         }
         if (!MeshPermissionGate.isMeshSdkSupported()) {
             Twig.warn { "mesh: SDK ${Build.VERSION.SDK_INT} < 31 — stopping" }
@@ -114,7 +150,9 @@ class NighthawkMeshService : Service() {
         if (!foregroundPromoted && !promoteToForegroundOrStop()) {
             return START_NOT_STICKY
         }
-        return START_STICKY
+        ensureRadio()
+        applyPower()
+        return stickyFlag()
     }
 
     override fun onTimeout(
@@ -127,13 +165,41 @@ class NighthawkMeshService : Service() {
 
     override fun onDestroy() {
         dagHandler.removeCallbacks(dagTick)
+        try {
+            ProcessLifecycleOwner.get().lifecycle.removeObserver(lifecycleObserver)
+        } catch (_: Exception) {
+        }
         radio?.stop()
         radio = null
         unregisterPowerListeners()
         MeshNative.stop()
         foregroundPromoted = false
         isActive = false
+        if (runningContext === this) {
+            runningContext = null
+        }
         super.onDestroy()
+    }
+
+    private fun userStop() {
+        MeshPersist.setEnabled(this, false)
+        stopSelf()
+    }
+
+    private fun stickyFlag(): Int =
+        if (MeshCoordinator.stickyRestart()) START_STICKY else START_NOT_STICKY
+
+    private fun ensureRadio() {
+        if (!foregroundPromoted) return
+        if (!MeshPermissionGate.hasBlePermissions(this)) return
+        if (radio != null) return
+        MeshNative.start()
+        MeshNative.setGatewayEligible(false)
+        val link = NighthawkBleLink(this, engineSink)
+        link.onEngineFlush = { MeshNative.flushOutbound { bytes -> link.send(bytes) } }
+        radio = link
+        link.start()
+        applyPower()
     }
 
     private fun promoteToForegroundOrStop(): Boolean {
@@ -209,10 +275,9 @@ class NighthawkMeshService : Service() {
         val cm = getSystemService(ConnectivityManager::class.java)
         val caps = cm?.getNetworkCapabilities(cm.activeNetwork)
         val unmetered = MeshEnvironment.isUnmeteredWifi(caps)
-        // connectedDevice FGS may run NH_LWD_CTRL; treat the service as foreground.
-        MeshNative.setPower(true, charging, unmetered)
+        MeshNative.setPower(appForeground, charging, unmetered)
         radio?.setPower(
-            true,
+            appForeground,
             charging,
             MeshPowerPolicy.gatewayReady(
                 meshOn = true,
@@ -236,6 +301,15 @@ class NighthawkMeshService : Service() {
         )
     }
 
+    private fun refreshNotification() {
+        if (!foregroundPromoted) return
+        try {
+            val manager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
+            manager.notify(NOTIFICATION_ID, buildNotification())
+        } catch (_: Exception) {
+        }
+    }
+
     private fun buildNotification(): Notification {
         val stop =
             PendingIntent.getService(
@@ -244,6 +318,16 @@ class NighthawkMeshService : Service() {
                 Intent(this, NighthawkMeshService::class.java).setAction(ACTION_STOP),
                 PendingIntent.FLAG_IMMUTABLE,
             )
+        val launch =
+            packageManager.getLaunchIntentForPackage(packageName)?.let { intent ->
+                intent.addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP)
+                PendingIntent.getActivity(
+                    this,
+                    1,
+                    intent,
+                    PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
+                )
+            }
         val peers = radio?.peerCount ?: 0
         hudPeerCount = peers
         return NotificationCompat
@@ -253,6 +337,7 @@ class NighthawkMeshService : Service() {
             .setSmallIcon(android.R.drawable.stat_sys_data_bluetooth)
             .setOngoing(true)
             .setOnlyAlertOnce(true)
+            .setContentIntent(launch)
             .addAction(0, getString(R.string.mesh_fg_stop), stop)
             .build()
     }
@@ -262,6 +347,7 @@ class NighthawkMeshService : Service() {
         private const val NOTIFICATION_ID = 10086
         private const val DAG_SYNC_INTERVAL_MS = 15_000L
         const val ACTION_STOP: String = "com.nighthawkapps.mesh.STOP"
+        const val ACTION_POWER: String = "com.nighthawkapps.mesh.POWER"
 
         @Volatile
         var isActive: Boolean = false
@@ -271,22 +357,54 @@ class NighthawkMeshService : Service() {
         var hudPeerCount: Int = 0
             private set
 
+        @Volatile
+        private var runningContext: Context? = null
+
         fun startFromForeground(context: Context): Boolean {
-            if (context !is Activity) {
+            val activity = context.findActivity()
+            if (activity == null) {
                 Twig.warn { "mesh: FGS start refused — not an Activity" }
                 return false
             }
             if (!MeshPermissionGate.isMeshSdkSupported()) return false
-            if (isActive) return true
+            if (isActive) {
+                notifyPowerChanged()
+                return true
+            }
             return try {
                 ContextCompat.startForegroundService(
-                    context,
-                    Intent(context, NighthawkMeshService::class.java),
+                    activity,
+                    Intent(activity, NighthawkMeshService::class.java),
                 )
                 true
             } catch (e: Exception) {
                 Twig.error(e) { "mesh: cannot start FGS from this process state" }
                 false
+            }
+        }
+
+        fun startFromBootExemption(context: Context): Boolean {
+            if (!MeshPermissionGate.isMeshSdkSupported()) return false
+            if (isActive) return true
+            return try {
+                ContextCompat.startForegroundService(
+                    context.applicationContext,
+                    Intent(context.applicationContext, NighthawkMeshService::class.java),
+                )
+                true
+            } catch (e: Exception) {
+                Twig.error(e) { "mesh: boot FGS start blocked" }
+                false
+            }
+        }
+
+        fun notifyPowerChanged() {
+            val ctx = runningContext ?: return
+            try {
+                ctx.startService(
+                    Intent(ctx, NighthawkMeshService::class.java).setAction(ACTION_POWER),
+                )
+            } catch (_: Exception) {
             }
         }
 

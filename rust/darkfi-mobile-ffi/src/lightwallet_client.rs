@@ -19,7 +19,7 @@
 //! - **Debug logging at gRPC entrypoints** (logging commit): every RPC
 //!   call is logged at DEBUG level with method name and timing.
 
-use std::collections::VecDeque;
+use std::collections::{BTreeMap, VecDeque};
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
@@ -1795,6 +1795,71 @@ pub fn validate_compact_block(block: &LightCompactBlock) -> Result<(), String> {
     Ok(())
 }
 
+/// Security audit R2: if two compact blocks are adjacent heights, the child's
+/// `prev_hash` must equal the parent's `hash`. Non-adjacent heights (sparse
+/// UnifOMR match sets) are not chained here.
+pub fn validate_adjacent_compact_blocks(
+    parent: &LightCompactBlock,
+    child: &LightCompactBlock,
+) -> Result<(), String> {
+    validate_compact_block(parent)?;
+    validate_compact_block(child)?;
+    if child.height != parent.height.saturating_add(1) {
+        return Ok(());
+    }
+    if child.prev_hash != parent.hash {
+        return Err(format!(
+            "Block {} prev_hash does not match block {} hash (parent-hash chaining)",
+            child.height, parent.height
+        ));
+    }
+    Ok(())
+}
+
+/// Require `block.prev_hash == parent_hash` when `block.height == parent_height + 1`.
+pub fn validate_block_follows_parent(
+    block: &LightCompactBlock,
+    parent_height: u32,
+    parent_hash: &[u8],
+) -> Result<(), String> {
+    validate_compact_block(block)?;
+    if parent_hash.len() != 32 {
+        return Err("parent hash is not 32 bytes".into());
+    }
+    if block.height == parent_height.saturating_add(1) && block.prev_hash.as_slice() != parent_hash {
+        return Err(format!(
+            "Block {} prev_hash does not match accepted parent at height {parent_height}",
+            block.height
+        ));
+    }
+    Ok(())
+}
+
+/// Structural checks plus parent-hash chaining for every adjacent pair in `blocks`.
+pub fn validate_compact_block_batch(blocks: &[LightCompactBlock]) -> Result<(), String> {
+    let mut by_h: BTreeMap<u32, &LightCompactBlock> = BTreeMap::new();
+    for b in blocks {
+        validate_compact_block(b)?;
+        if let Some(prev) = by_h.insert(b.height, b) {
+            if prev.hash != b.hash {
+                return Err(format!(
+                    "Conflicting compact blocks at height {}",
+                    b.height
+                ));
+            }
+        }
+    }
+    for (&h, child) in &by_h {
+        if h == 0 {
+            continue;
+        }
+        if let Some(parent) = by_h.get(&(h - 1)) {
+            validate_adjacent_compact_blocks(parent, child)?;
+        }
+    }
+    Ok(())
+}
+
 /// Validate a block range request before sending to the server (finding 5.4).
 ///
 /// Adopted from zcash/lightwalletd's null-argument segfault fix: check
@@ -2389,6 +2454,43 @@ mod tests {
         block.prev_hash = vec![0u8; 64];
         let err = validate_compact_block(&block).unwrap_err();
         assert!(err.contains("prev_hash is 64 bytes"), "Got: {err}");
+    }
+
+    #[test]
+    fn validate_adjacent_blocks_chain() {
+        let mut parent = make_valid_block();
+        parent.height = 100;
+        parent.hash = vec![0xAAu8; 32];
+        parent.prev_hash = vec![0x00u8; 32];
+        let mut child = make_valid_block();
+        child.height = 101;
+        child.hash = vec![0xBBu8; 32];
+        child.prev_hash = vec![0xAAu8; 32];
+        assert!(validate_adjacent_compact_blocks(&parent, &child).is_ok());
+        child.prev_hash = vec![0xCCu8; 32];
+        let err = validate_adjacent_compact_blocks(&parent, &child).unwrap_err();
+        assert!(err.contains("parent-hash chaining"), "Got: {err}");
+    }
+
+    #[test]
+    fn validate_batch_sparse_skips_gap() {
+        let mut a = make_valid_block();
+        a.height = 100;
+        a.hash = vec![0x11u8; 32];
+        let mut b = make_valid_block();
+        b.height = 150;
+        b.hash = vec![0x22u8; 32];
+        b.prev_hash = vec![0xFFu8; 32];
+        assert!(validate_compact_block_batch(&[a, b]).is_ok());
+    }
+
+    #[test]
+    fn validate_block_follows_parent_rejects_mismatch() {
+        let mut block = make_valid_block();
+        block.height = 101;
+        block.prev_hash = vec![0x01u8; 32];
+        let err = validate_block_follows_parent(&block, 100, &[0x02u8; 32]).unwrap_err();
+        assert!(err.contains("accepted parent"), "Got: {err}");
     }
 
     #[test]

@@ -157,11 +157,6 @@ android {
 }
 
 dependencies {
-    // Embedded Tor (Guardian Project) — SOCKS on loopback.
-    implementation("info.guardianproject:tor-android:0.4.9.11")
-    implementation("info.guardianproject:jtorctl:0.4.5.7")
-    implementation("com.jaredrummler:android-shell:1.0.0")
-
     // UniFFI-generated Kotlin bindings (0.31+) use JNA to load `libdarkfi_mobile_ffi`.
     // `@aar` bundles per-ABI `libjnidispatch.so` (required on Android; plain `jna` jar does not).
     implementation("net.java.dev.jna:jna:5.19.1@aar")

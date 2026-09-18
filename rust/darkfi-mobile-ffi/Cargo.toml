@@ -60,6 +60,7 @@ regex-lite = "0.1"
 tokio-rustls = "0.26"
 # Compact-block side cache only (not the drk wallet DB). Upstream drk uses turso + aegis256.
 rusqlite = { version = "0.37", features = ["bundled"] }
+chacha20poly1305 = "0.10"
 fhe = "0.1.1"
 fhe-traits = "0.1.1"
 tokio = { version = "1", features = ["full"] }
