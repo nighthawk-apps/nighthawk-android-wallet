@@ -33,11 +33,9 @@ resolve_ndk_home() {
   local pinned
   pinned="$(pinned_ndk_version)"
 
-  local explicit=()
-  [[ -n "${ANDROID_NDK_HOME:-}" ]] && explicit+=("$ANDROID_NDK_HOME")
-  [[ -n "${ANDROID_NDK_ROOT:-}" ]] && explicit+=("$ANDROID_NDK_ROOT")
+  # Bash 3.2 + `set -u`: empty `"${arr[@]}"` is unbound — probe env vars directly.
   local c
-  for c in "${explicit[@]}"; do
+  for c in ${ANDROID_NDK_HOME:+"$ANDROID_NDK_HOME"} ${ANDROID_NDK_ROOT:+"$ANDROID_NDK_ROOT"}; do
     if [[ -f "$c/source.properties" ]]; then
       printf '%s' "$c"
       return
