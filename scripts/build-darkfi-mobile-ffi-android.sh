@@ -46,10 +46,8 @@ resolve_ndk_home() {
     fi
   done
 
-  local sdk_roots=() sdk
-  [[ -n "${ANDROID_HOME:-}" ]] && sdk_roots+=("$ANDROID_HOME")
-  [[ -n "${ANDROID_SDK_ROOT:-}" ]] && sdk_roots+=("$ANDROID_SDK_ROOT")
-  for sdk in "${sdk_roots[@]}"; do
+  local sdk
+  for sdk in ${ANDROID_HOME:+"$ANDROID_HOME"} ${ANDROID_SDK_ROOT:+"$ANDROID_SDK_ROOT"}; do
     if [[ -f "$sdk/ndk/$pinned/source.properties" ]]; then
       printf '%s' "$sdk/ndk/$pinned"
       return
