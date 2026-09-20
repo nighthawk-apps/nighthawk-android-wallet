@@ -41,6 +41,7 @@ private val HudShape = RoundedCornerShape(8.dp)
 fun NighthawkHudPanel(
     modifier: Modifier = Modifier,
     connectedGlow: Boolean = false,
+    compact: Boolean = false,
     content: @Composable ColumnScope.() -> Unit,
 ) {
     val border = MaterialTheme.colorScheme.outline
@@ -56,8 +57,8 @@ fun NighthawkHudPanel(
         tonalElevation = 2.dp,
     ) {
         Column(
-            modifier = Modifier.padding(12.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
+            modifier = Modifier.padding(if (compact) 4.dp else 12.dp),
+            verticalArrangement = Arrangement.spacedBy(if (compact) 2.dp else 8.dp),
             content = content,
         )
     }
@@ -69,15 +70,16 @@ fun PeerSlotRow(
     label: String,
     connected: Boolean,
     modifier: Modifier = Modifier,
+    compact: Boolean = false,
 ) {
     Row(
         modifier =
             modifier
                 .fillMaxWidth()
-                .heightIn(min = 44.dp)
+                .heightIn(min = if (compact) 28.dp else 44.dp)
                 .testTag("${CommonTag.HUD_PEER_SLOT}$slotIndex"),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(10.dp),
+        horizontalArrangement = Arrangement.spacedBy(if (compact) 6.dp else 10.dp),
     ) {
         Box(
             modifier =
@@ -122,27 +124,35 @@ fun TransportSegment(
     onSelectTor: (Boolean) -> Unit,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
+    compact: Boolean = false,
 ) {
-    Row(
-        modifier =
+    val rowModifier =
+        if (compact) {
+            modifier
+                .border(BorderStroke(1.dp, MaterialTheme.colorScheme.outline), HudShape)
+                .testTag(CommonTag.HUD_TRANSPORT)
+        } else {
             modifier
                 .fillMaxWidth()
                 .border(BorderStroke(1.dp, MaterialTheme.colorScheme.outline), HudShape)
-                .testTag(CommonTag.HUD_TRANSPORT),
-    ) {
+                .testTag(CommonTag.HUD_TRANSPORT)
+        }
+    Row(modifier = rowModifier) {
         TransportChip(
             label = tcpLabel,
             selected = !torSelected,
             enabled = enabled,
+            compact = compact,
             onClick = { onSelectTor(false) },
-            modifier = Modifier.weight(1f),
+            modifier = if (compact) Modifier else Modifier.weight(1f),
         )
         TransportChip(
             label = torLabel,
             selected = torSelected,
             enabled = enabled,
+            compact = compact,
             onClick = { onSelectTor(true) },
-            modifier = Modifier.weight(1f),
+            modifier = if (compact) Modifier else Modifier.weight(1f),
         )
     }
 }
@@ -154,6 +164,7 @@ private fun TransportChip(
     enabled: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    compact: Boolean = false,
 ) {
     val bg =
         if (selected) {
@@ -169,13 +180,16 @@ private fun TransportChip(
                 .semantics {
                     role = Role.Tab
                     this.selected = selected
-                }.heightIn(min = 44.dp)
-                .padding(horizontal = 12.dp, vertical = 10.dp),
+                }.heightIn(min = if (compact) 22.dp else 44.dp)
+                .padding(
+                    horizontal = if (compact) 8.dp else 12.dp,
+                    vertical = if (compact) 2.dp else 10.dp,
+                ),
         contentAlignment = Alignment.Center,
     ) {
         Text(
             text = label,
-            style = MaterialTheme.typography.labelLarge,
+            style = if (compact) MaterialTheme.typography.labelSmall else MaterialTheme.typography.labelLarge,
             color =
                 if (selected) {
                     MaterialTheme.colorScheme.primary

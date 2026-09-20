@@ -6,7 +6,9 @@ use smol::Executor;
 
 use crate::birthday::{seed_birthday_scan_cursor, seed_scan_cursor};
 use crate::lightwallet_client::LightwalletClient;
-use crate::mnemonic::secret_key_from_mnemonic;
+use crate::mnemonic::{
+    derivation_seed_from_mnemonic, secret_key_from_mnemonic, secret_key_from_seed_index,
+};
 use crate::DrkBootstrapConfig;
 use crate::DrkPtr;
 
@@ -197,7 +199,9 @@ async fn ensure_default_money_key(
     mnemonic: &[String],
     output: &mut Vec<String>,
 ) -> Result<(), String> {
+    persist_hd_seed(drk, &derivation_seed_from_mnemonic(mnemonic)).await?;
     if drk.default_address().await.is_ok() {
+        restore_hd_extra_keys(drk, mnemonic, output).await?;
         return Ok(());
     }
 
@@ -216,7 +220,149 @@ async fn ensure_default_money_key(
         }
     }
 
+    restore_hd_extra_keys(drk, mnemonic, output).await?;
     Ok(())
+}
+
+const HD_META_TABLE: &str = "nighthawk_hd_meta";
+const HD_KEY_SEED: &str = "derivation_seed";
+const HD_KEY_NEXT: &str = "next_index";
+
+async fn ensure_hd_meta_table(drk: &Drk) -> Result<(), String> {
+    drk.wallet
+        .exec_batch_sql(&format!(
+            "CREATE TABLE IF NOT EXISTS {HD_META_TABLE} (k TEXT PRIMARY KEY, v BLOB NOT NULL);"
+        ))
+        .await
+        .map_err(|e| format!("hd meta table: {e}"))
+}
+
+fn hd_sql_params(key: &str, value: Vec<u8>) -> Vec<drk::walletdb::Value> {
+    vec![
+        drk::walletdb::Value::from(key.to_string()),
+        drk::walletdb::Value::from(value),
+    ]
+}
+
+fn hd_lookup_params(key: &str) -> Vec<(String, drk::walletdb::Value)> {
+    vec![(
+        String::from(":k"),
+        drk::walletdb::Value::from(key.to_string()),
+    )]
+}
+
+async fn persist_hd_seed(drk: &Drk, seed: &[u8; 32]) -> Result<(), String> {
+    ensure_hd_meta_table(drk).await?;
+    let query = format!("INSERT OR REPLACE INTO {HD_META_TABLE} (k, v) VALUES (?1, ?2);");
+    drk.wallet
+        .exec_sql(&query, hd_sql_params(HD_KEY_SEED, seed.to_vec()))
+        .await
+        .map_err(|e| format!("persist hd seed: {e}"))?;
+    if load_hd_next_index(drk).await.unwrap_or(0) == 0 {
+        persist_hd_next_index(drk, 1).await?;
+    }
+    Ok(())
+}
+
+async fn load_hd_seed(drk: &Drk) -> Result<Option<[u8; 32]>, String> {
+    ensure_hd_meta_table(drk).await?;
+    let row = drk
+        .wallet
+        .query_single(HD_META_TABLE, &["v"], hd_lookup_params(HD_KEY_SEED))
+        .await
+        .ok();
+    let Some(row) = row else {
+        return Ok(None);
+    };
+    let Some(drk::walletdb::Value::Blob(bytes)) = row.into_iter().next() else {
+        return Ok(None);
+    };
+    if bytes.len() != 32 {
+        return Ok(None);
+    }
+    let mut seed = [0u8; 32];
+    seed.copy_from_slice(&bytes);
+    Ok(Some(seed))
+}
+
+async fn persist_hd_next_index(drk: &Drk, next: u32) -> Result<(), String> {
+    ensure_hd_meta_table(drk).await?;
+    let query = format!("INSERT OR REPLACE INTO {HD_META_TABLE} (k, v) VALUES (?1, ?2);");
+    drk.wallet
+        .exec_sql(
+            &query,
+            hd_sql_params(HD_KEY_NEXT, next.to_le_bytes().to_vec()),
+        )
+        .await
+        .map_err(|e| format!("persist hd next_index: {e}"))
+}
+
+async fn load_hd_next_index(drk: &Drk) -> Result<u32, String> {
+    ensure_hd_meta_table(drk).await?;
+    let row = drk
+        .wallet
+        .query_single(HD_META_TABLE, &["v"], hd_lookup_params(HD_KEY_NEXT))
+        .await
+        .ok();
+    let Some(row) = row else {
+        return Ok(1);
+    };
+    let Some(drk::walletdb::Value::Blob(bytes)) = row.into_iter().next() else {
+        return Ok(1);
+    };
+    if bytes.len() != 4 {
+        return Ok(1);
+    }
+    Ok(u32::from_le_bytes([bytes[0], bytes[1], bytes[2], bytes[3]]))
+}
+
+async fn restore_hd_extra_keys(
+    drk: &Drk,
+    mnemonic: &[String],
+    output: &mut Vec<String>,
+) -> Result<(), String> {
+    let seed = derivation_seed_from_mnemonic(mnemonic);
+    persist_hd_seed(drk, &seed).await?;
+    let next = load_hd_next_index(drk).await.unwrap_or(1);
+    if next <= 1 {
+        return Ok(());
+    }
+    let mut secrets = Vec::new();
+    for index in 1..next {
+        secrets.push(secret_key_from_seed_index(&seed, index)?);
+    }
+    if !secrets.is_empty() {
+        drk.import_money_secrets(secrets, output)
+            .await
+            .map_err(|e| format!("restore hd keys: {e}"))?;
+    }
+    Ok(())
+}
+
+/// Derive the next HD address (index >= 1). Never creates a random key.
+pub async fn generate_hd_address(drk: &Drk) -> Result<String, String> {
+    use darkfi_sdk::crypto::keypair::{Address, StandardAddress};
+    use darkfi_sdk::crypto::PublicKey;
+
+    let Some(seed) = load_hd_seed(drk).await? else {
+        tracing::debug!(
+            target: "wallet-addr",
+            "generate_new_address: no HD seed; returning default address"
+        );
+        let pubkey = drk.default_address().await.map_err(|e| e.to_string())?;
+        let address: Address = StandardAddress::from_public(drk.network, pubkey).into();
+        return Ok(address.to_string());
+    };
+    let index = load_hd_next_index(drk).await.unwrap_or(1);
+    let secret = secret_key_from_seed_index(&seed, index)?;
+    let mut output = Vec::new();
+    drk.import_money_secrets(vec![secret], &mut output)
+        .await
+        .map_err(|e| format!("import hd key: {e}"))?;
+    persist_hd_next_index(drk, index.saturating_add(1)).await?;
+    let pubkey = PublicKey::from_secret(secret);
+    let address: Address = StandardAddress::from_public(drk.network, pubkey).into();
+    Ok(address.to_string())
 }
 
 fn parse_network(network: &str) -> Network {

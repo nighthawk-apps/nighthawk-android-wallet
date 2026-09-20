@@ -46,6 +46,40 @@ pub fn secret_key_from_mnemonic(mnemonic: &[String]) -> Result<SecretKey, String
     Err("could not derive canonical SecretKey from mnemonic".into())
 }
 
+/// 32-byte HD derivation seed from mnemonic secret material.
+pub fn derivation_seed_from_mnemonic(mnemonic: &[String]) -> [u8; 32] {
+    let mut hasher = blake3::Hasher::new();
+    hasher.update(DERIVE_CONTEXT.as_bytes());
+    hasher.update(&[0]);
+    for word in mnemonic {
+        hasher.update(word.trim().to_lowercase().as_bytes());
+        hasher.update(&[0]);
+    }
+    *hasher.finalize().as_bytes()
+}
+
+/// Derive a [`SecretKey`] from a persisted 32-byte seed and address index.
+pub fn secret_key_from_seed_index(seed32: &[u8; 32], index: u32) -> Result<SecretKey, String> {
+    let mut hasher = blake3::Hasher::new_derive_key(DERIVE_CONTEXT);
+    hasher.update(seed32);
+    hasher.update(&index.to_le_bytes());
+    let mut seed_bytes = *hasher.finalize().as_bytes();
+
+    for counter in 0u8..=255 {
+        let mut bytes = seed_bytes;
+        bytes[31] ^= counter;
+        if let Ok(key) = SecretKey::from_bytes(bytes) {
+            bytes.zeroize();
+            seed_bytes.zeroize();
+            return Ok(key);
+        }
+        bytes.zeroize();
+    }
+
+    seed_bytes.zeroize();
+    Err("could not derive canonical SecretKey from seed index".into())
+}
+
 #[derive(Error, Debug)]
 pub enum MnemonicError {
     #[error("Unsupported seed type {0}")]
@@ -222,7 +256,7 @@ impl DarkfiMnemonic {
             if i != self.mnemonic_decode(&seed)? {
                 return Err(MnemonicError::EntropyMismatch);
             }
-            if is_new_seed(&seed, prefix) {
+            if is_new_seed(&seed, prefix) && seed.split_whitespace().count() == 22 {
                 break;
             }
         }

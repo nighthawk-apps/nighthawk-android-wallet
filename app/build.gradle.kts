@@ -43,11 +43,9 @@ android {
 
         testInstrumentationRunner = "com.nighthawkapps.lib.android.test.NighthawkUiTestRunner"
 
-        // JNA's AAR ships libjnidispatch.so for obsolete armeabi/mips/mips64. Those folders
-        // make F-Droid check-apk report "different libs in different ABI" (major). Keep the
-        // four ABIs we actually build DarkFi FFI for.
+        // jniLibs for armeabi-v7a / x86 are empty — do not ship those ABIs.
         ndk {
-            abiFilters += listOf("arm64-v8a", "armeabi-v7a", "x86", "x86_64")
+            abiFilters += listOf("arm64-v8a", "x86_64")
         }
     }
 

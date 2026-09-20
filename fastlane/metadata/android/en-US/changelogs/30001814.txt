@@ -1,0 +1,4 @@
+- Testnet 3.00.014: DarkFi pin f0978c222 (LWD-only spend zkas fallback, public scan_block).
+- Sync: tip-clamped UnifOMR padding, no Merkle double-append, reorg callback no deadlock.
+- Chat HUD: opaque peer labels (no reverse-DNS / raw IP). Send/Tor/mesh hardening.
+- F-Droid: WALLET_VERSION_CODE 30001814 / WALLET_VERSION_NAME 3.00.014; tag v3.00.014.

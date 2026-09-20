@@ -32,14 +32,30 @@
 //! - Pad block range requests to fixed bucket sizes where possible.
 //! - OMR is always attempted first; trial decryption only after OMR failure.
 
-use std::sync::Arc;
+use std::sync::{Arc, LazyLock, RwLock};
 
+use darkfi::blockchain::BlockInfo;
 use darkfi::system::sleep;
 use darkfi_sdk::pasta::group::ff::PrimeField;
 use smol::Executor;
 
 use crate::lightwallet_sync::{LightSyncStatus, LightSyncType, SyncEngine};
 use crate::DrkPtr;
+
+/// Apply a full darkfid [`BlockInfo`] through official `Drk::scan_block`.
+///
+/// Compact-block UnifOMR and trial-decrypt cannot use this — they only have
+/// stripped `LightCompactBlock`s. Call this only when a full block is already
+/// in memory. Do not fetch full blocks from darkfid just to scan them (S9).
+pub async fn apply_full_block(drk: &drk::Drk, block: &BlockInfo) -> Result<(), String> {
+    let mut scan_cache = drk
+        .scan_cache(false)
+        .await
+        .map_err(|e| format!("scan_cache: {e}"))?;
+    drk.scan_block(&mut scan_cache, block)
+        .await
+        .map_err(|e| format!("scan_block height {}: {e}", block.header.height))
+}
 
 /// Base poll interval during active sync (seconds).
 const LIGHTWALLET_POLL_BASE_SECS: u64 = 5;
@@ -384,6 +400,7 @@ async fn try_lightwallet_sync(drk: &DrkPtr, sync_engine: &SyncEngine) -> Result<
     // Exclusive lock for the rest of the cycle: coin inserts / scan cursor
     // must not race broadcast spend-marking.
     let drk_guard = drk.write().await;
+    let mut pending_reorg: Option<crate::ReorgEvent> = None;
 
     // Security audit R1: if a reorg was detected, rewind wallet state
     // before proceeding with the sync cycle.
@@ -422,28 +439,25 @@ async fn try_lightwallet_sync(drk: &DrkPtr, sync_engine: &SyncEngine) -> Result<
             rollback_height,
         );
 
-        // 6. Fire callback for UI notification
-        if let Ok(cb) = sync_engine.reorg_callback.lock() {
-            if let Some(callback) = cb.as_ref() {
-                callback.on_reorg(crate::ReorgEvent {
-                    detected_at_height: current_scanned,
-                    rewound_to: rollback_height,
-                    blocks_invalidated,
-                    txs_affected,
-                    summary_message: if txs_affected > 0 {
-                        format!(
-                            "Chain reorganization detected at height {}. Rewound to {} — {} blocks and {} transactions affected.",
-                            current_scanned, rollback_height, blocks_invalidated, txs_affected
-                        )
-                    } else {
-                        format!(
-                            "Chain reorganization detected at height {}. Rewound to {} — {} blocks invalidated.",
-                            current_scanned, rollback_height, blocks_invalidated
-                        )
-                    },
-                });
-            }
-        }
+        // Collect the event; fire the callback after dropping `drk_guard`
+        // so Kotlin `onReorg` can re-enter `confirmed_balance` / `list_transactions`.
+        pending_reorg = Some(crate::ReorgEvent {
+            detected_at_height: current_scanned,
+            rewound_to: rollback_height,
+            blocks_invalidated,
+            txs_affected,
+            summary_message: if txs_affected > 0 {
+                format!(
+                    "Chain reorganization detected at height {}. Rewound to {} — {} blocks and {} transactions affected.",
+                    current_scanned, rollback_height, blocks_invalidated, txs_affected
+                )
+            } else {
+                format!(
+                    "Chain reorganization detected at height {}. Rewound to {} — {} blocks invalidated.",
+                    current_scanned, rollback_height, blocks_invalidated
+                )
+            },
+        });
     }
 
     // Step 2: Determine best sync type
@@ -515,10 +529,11 @@ async fn try_lightwallet_sync(drk: &DrkPtr, sync_engine: &SyncEngine) -> Result<
                     "strict_omr_only refuses trial-decrypt sync type {:?}",
                     sync_type
                 );
-                return Err("strict_omr_only refuses trial decryption".into());
+                Err("strict_omr_only refuses trial decryption".into())
+            } else {
+                sync_engine.set_status(LightSyncStatus::Syncing);
+                try_trial_decryption_sync(&drk_guard, sync_engine, &client).await
             }
-            sync_engine.set_status(LightSyncStatus::Syncing);
-            try_trial_decryption_sync(&drk_guard, sync_engine, &client).await
         }
         LightSyncType::Idle => Ok(()),
     };
@@ -527,6 +542,18 @@ async fn try_lightwallet_sync(drk: &DrkPtr, sync_engine: &SyncEngine) -> Result<
     if sync_result.is_ok() && sync_engine.status() == LightSyncStatus::Synced {
         let money_id = darkfi_sdk::crypto::contract_id::MONEY_CONTRACT_ID.to_string();
         let _ = crate::zkas_cache::warm_zkas_cache(&client, &[&money_id]).await;
+    }
+
+    drop(drk_guard);
+    if let Some(event) = pending_reorg {
+        let callback = sync_engine
+            .reorg_callback
+            .lock()
+            .ok()
+            .and_then(|g| g.clone());
+        if let Some(callback) = callback {
+            callback.on_reorg(event);
+        }
     }
 
     sync_result
@@ -662,12 +689,9 @@ async fn try_omr_sync(
     // scan cursor to the server). The padded window shape stays uniform.
     loop {
         scan_end = tip.min(scan_start.saturating_add(window.saturating_sub(1)));
-        let (ps, pe) = crate::lightwallet_client::pad_block_range(scan_start, scan_end);
+        let (ps, pe) = crate::lightwallet_client::pad_block_range(scan_start, scan_end, tip);
         padded_start = ps;
-        // Clamp the padded window end to the chain tip — uniform with moonshine's
-        // pad_block_range (tip is public via GetChainTip, so this is not a
-        // client-distinguishing leak; it keeps both clients' windows identical).
-        padded_end = pe.min(tip);
+        padded_end = pe;
         if padded_end.saturating_sub(ps).saturating_add(1) <= max_range || window <= 1 {
             break;
         }
@@ -812,23 +836,11 @@ async fn try_omr_sync(
                 // the dropped tail heights are re-requested next cycle rather than
                 // skipped. All chunks share this range, so take the min covered end.
                 if !complete {
-                    if let Some(&covered_end) = slot_heights.iter().max() {
-                        if covered_end < window_tip {
-                            tracing::warn!(
-                                target: "wallet-sync",
-                                "UnifOMR digest truncated at DoS cap: covered up to \
-                                 height {covered_end} (< window_tip {window_tip}); \
-                                 clamping scan cursor"
-                            );
-                            window_tip = covered_end;
-                        }
-                    } else {
-                        return Err(
-                            "UnifOMR digest truncated with empty slot_heights; \
-                             refusing to skip the uncovered tail"
-                                .into(),
-                        );
-                    }
+                    window_tip = clamp_omr_truncated_tip(
+                        scan_start,
+                        window_tip,
+                        slot_heights.iter().max().copied(),
+                    )?;
                 }
                 let chunk_heights =
                     decrypt_unif_omr_heights(&chunk_clients, &digest_bytes, &slot_heights)?;
@@ -870,6 +882,19 @@ async fn try_omr_sync(
     if scheme.contains("unifomr") {
         sync_engine.set_status_message("UnifOMR fetching 2/2…");
     }
+    let trial_decrypt_all = !sync_engine.strict_omr_only();
+    if trial_decrypt_all && window_tip >= scan_start {
+        tracing::warn!(
+            target: "wallet-sync",
+            "Supplemental trial decrypt inside UnifOMR window [{scan_start}, {window_tip}] \
+             (single Merkle append; does not reveal the match set)"
+        );
+        sync_engine.set_status(LightSyncStatus::Degraded);
+        sync_engine.set_status_message(
+            "Trial-decrypting the UnifOMR window for wallets that do not attach clues. \
+             Enable strict OMR-only to keep the sparse PIR fetch.",
+        );
+    }
     apply_omr_sparse_window(
         drk,
         client,
@@ -882,31 +907,11 @@ async fn try_omr_sync(
         omr_network.to_byte(),
         scheme.contains("unifomr"),
         birthday,
+        trial_decrypt_all,
     )
     .await?;
 
-    // Trial-decrypt supplement for non-UnifOMR counterparties (`drk`).
-    // Always fetch the same padded window the digest already requested —
-    // never inter-match gaps — so empty vs non-empty digests look identical
-    // to lightwalletd. Strict mode skips this entirely.
-    if !sync_engine.strict_omr_only() && window_tip >= scan_start {
-        let td_start = padded_start.max(birthday);
-        if td_start <= padded_end {
-            tracing::warn!(
-                target: "wallet-sync",
-                "Supplemental trial decrypt over padded window [{td_start}, {padded_end}] \
-                 (same request as PIR-failure; does not reveal the match set)"
-            );
-            sync_engine.set_status(LightSyncStatus::Degraded);
-            sync_engine.set_status_message(
-                "Trial-decrypting the UnifOMR window for wallets that do not attach clues. \
-                 Enable strict OMR-only to keep the sparse PIR fetch.",
-            );
-            trial_decrypt_range(drk, client, td_start, padded_end).await?;
-        }
-    }
-
-    // Persist scan progress for this capped window; remaining tip syncs next cycle.
+    // Cursor is persisted inside apply_omr_sparse_window with the tree.
     persist_scanned_height(drk, window_tip)?;
     sync_engine.set_scanned_height(window_tip);
 
@@ -932,6 +937,7 @@ async fn trial_decrypt_range(
     client: &crate::lightwallet_client::LightwalletClient,
     start: u32,
     end: u32,
+    tip: u32,
 ) -> Result<(), String> {
     if start > end {
         return Ok(());
@@ -948,7 +954,7 @@ async fn trial_decrypt_range(
     while batch_start <= end {
         let batch_end = (batch_start + BATCH_SIZE - 1).min(end);
         let blocks = client
-            .get_compact_block_range(batch_start, batch_end)
+            .get_compact_block_range(batch_start, batch_end, tip)
             .await
             .map_err(|e| format!("trial_decrypt_range: get_compact_block_range({batch_start}..={batch_end}): {e}"))?;
         crate::lightwallet_client::validate_compact_block_batch(&blocks)?;
@@ -986,6 +992,7 @@ async fn apply_omr_sparse_window(
     network: u8,
     use_pir: bool,
     birthday: u32,
+    trial_decrypt_all: bool,
 ) -> Result<(), String> {
     use std::collections::{BTreeMap, HashMap, HashSet};
     use std::io::Cursor;
@@ -1025,9 +1032,27 @@ async fn apply_omr_sparse_window(
     }
 
     // 3) Sparse compact blocks — UnifOMR Round 2 PIR when available, else height RPC.
+    // Supplemental trial-decrypt (`trial_decrypt_all`) fetches the full padded
+    // window so every height can be decrypted without a second Merkle append.
     let mut blocks_by_height: HashMap<u32, crate::lightwallet_client::LightCompactBlock> =
         HashMap::new();
-    if !matching_heights.is_empty() {
+    if trial_decrypt_all {
+        let blocks = client
+            .get_compact_block_range_exact(padded_start, padded_end)
+            .await?;
+        for block in blocks {
+            if let Err(e) = crate::lightwallet_client::validate_compact_block(&block) {
+                return Err(format!(
+                    "Malformed compact block at height {}: {e}",
+                    block.height
+                ));
+            }
+            blocks_by_height.insert(block.height, block);
+        }
+        crate::lightwallet_client::validate_compact_block_batch(
+            &blocks_by_height.values().cloned().collect::<Vec<_>>(),
+        )?;
+    } else if !matching_heights.is_empty() {
         let mut fetched = false;
         if use_pir {
             match fetch_blocks_via_pir(
@@ -1081,7 +1106,7 @@ async fn apply_omr_sparse_window(
                  (privacy-preserving — does not reveal matched heights)"
             );
             let blocks = client
-                .get_compact_block_range(padded_start, padded_end)
+                .get_compact_block_range_exact(padded_start, padded_end)
                 .await?;
             let got: HashSet<u32> = blocks.iter().map(|b| b.height).collect();
             for h in matching_heights {
@@ -1110,7 +1135,7 @@ async fn apply_omr_sparse_window(
         .get_money_secrets()
         .await
         .map_err(|e| format!("Failed to load wallet secrets: {e}"))?;
-    if !matching_heights.is_empty() && secrets.is_empty() {
+    if (trial_decrypt_all || !matching_heights.is_empty()) && secrets.is_empty() {
         return Err("No wallet secrets available for trial decryption".into());
     }
 
@@ -1151,13 +1176,18 @@ async fn apply_omr_sparse_window(
             let mut repr = [0u8; 32];
             repr.copy_from_slice(coin_bytes);
             let Some(base) = Option::<pallas::Base>::from(pallas::Base::from_repr(repr)) else {
-                continue;
+                return Err(format!(
+                    "Invalid note commitment at height {height}: not a canonical pallas::Base"
+                ));
             };
             let coin = Coin::from(base);
             tree.append(MerkleNode::from(coin.inner()));
 
-            // Birthday enforcement: never trial-decrypt notes below birthday height
-            if height < birthday || !matching_set.contains(&height) {
+            // Birthday enforcement: never trial-decrypt notes below birthday height.
+            // Supplemental path decrypts every height in the window (single append).
+            let decrypt_height = height >= birthday
+                && (trial_decrypt_all || matching_set.contains(&height));
+            if !decrypt_height {
                 continue;
             }
             let Some(output) = out_by_coin.get(coin_bytes.as_slice()) else {
@@ -1298,7 +1328,9 @@ async fn apply_omr_sparse_window(
     drk.cache
         .insert_merkle_trees(&[(KVDB_MERKLE_TREES_MONEY, &tree)])
         .map_err(|e| format!("Failed to persist Money Merkle tree: {e}"))?;
-    let _ = drk.cache.kvdb.flush_default_mode();
+    // Persist the scan cursor in the same flush so a later supplemental
+    // failure cannot leave the tree ahead of the cursor.
+    persist_scanned_height(drk, tip)?;
     if scan_start == 0 {
         set_merkle_from_genesis(drk, true)?;
     }
@@ -1366,7 +1398,7 @@ async fn try_trial_decryption_sync(
     ));
 
     if td_start <= window_end {
-        trial_decrypt_range(drk, client, td_start, window_end).await?;
+        trial_decrypt_range(drk, client, td_start, window_end, tip).await?;
         if td_start == 0 {
             set_merkle_from_genesis(drk, true)?;
         }
@@ -1413,6 +1445,28 @@ pub(crate) fn assert_contiguous_heights(
 /// the sync engine (S5).
 const PAYMENT_MEMOS_TREE: &str = "payment_memos";
 const PAYMENT_RECIPIENTS_TREE: &str = "payment_recipients";
+
+static PAYMENT_META_KEY: LazyLock<RwLock<Option<[u8; 32]>>> =
+    LazyLock::new(|| RwLock::new(None));
+
+/// Install the XChaCha20-Poly1305 key used for payment memo/recipient blobs.
+pub(crate) fn set_payment_meta_key(key: [u8; 32]) {
+    if let Ok(mut slot) = PAYMENT_META_KEY.write() {
+        *slot = Some(key);
+    }
+}
+
+fn payment_meta_key() -> Option<[u8; 32]> {
+    PAYMENT_META_KEY.read().ok().and_then(|g| *g)
+}
+
+fn wrap_payment_meta(plaintext: &[u8]) -> Result<Vec<u8>, String> {
+    crate::block_cache::wrap_cache_blob(payment_meta_key().as_ref(), plaintext)
+}
+
+fn unwrap_payment_meta(data: &[u8]) -> Result<Vec<u8>, String> {
+    crate::block_cache::unwrap_cache_blob(payment_meta_key().as_ref(), data)
+}
 /// Cache flag: Money Merkle tree includes height-0 coins after the dummy ZERO leaf.
 const WALLET_MERKLE_META_TREE: &str = "wallet_merkle_meta";
 const KEY_MERKLE_FROM_GENESIS: &[u8] = b"merkle_from_genesis";
@@ -1480,15 +1534,18 @@ fn persist_received_memo_from_tx_hash(drk: &drk::Drk, tx_hash: &[u8], memo_bytes
     let b58 = bs58::encode(tx_hash).into_string();
     let hex: String = tx_hash.iter().map(|b| format!("{b:02x}")).collect();
     if let Ok(tree) = drk.cache.kvdb.open_tree_default(PAYMENT_MEMOS_TREE) {
-        let _ = tree.insert(b58.as_bytes(), memo_bytes);
-        let _ = tree.insert(hex.as_bytes(), memo_bytes);
+        if let Ok(stored) = wrap_payment_meta(memo_bytes) {
+            let _ = tree.insert(b58.as_bytes(), stored.as_slice());
+            let _ = tree.insert(hex.as_bytes(), stored.as_slice());
+        }
     }
 }
 
 pub(crate) fn load_received_memo(drk: &drk::Drk, tx_hash: &str) -> Option<String> {
     let tree = drk.cache.kvdb.open_tree_default(PAYMENT_MEMOS_TREE).ok()?;
     let v = tree.get(tx_hash.as_bytes()).ok()??;
-    String::from_utf8(v.to_vec())
+    let plain = unwrap_payment_meta(&v).ok()?;
+    String::from_utf8(plain)
         .ok()
         .map(|s| s.trim().to_string())
         .filter(|s| !s.is_empty())
@@ -1505,12 +1562,16 @@ pub(crate) fn persist_sent_payment_meta(
     }
     if let Some(memo) = memo.map(str::trim).filter(|s| !s.is_empty()) {
         if let Ok(tree) = drk.cache.kvdb.open_tree_default(PAYMENT_MEMOS_TREE) {
-            let _ = tree.insert(tx_hash.as_bytes(), memo.as_bytes());
+            if let Ok(stored) = wrap_payment_meta(memo.as_bytes()) {
+                let _ = tree.insert(tx_hash.as_bytes(), stored.as_slice());
+            }
         }
     }
     if let Some(recipient) = recipient.map(str::trim).filter(|s| !s.is_empty()) {
         if let Ok(tree) = drk.cache.kvdb.open_tree_default(PAYMENT_RECIPIENTS_TREE) {
-            let _ = tree.insert(tx_hash.as_bytes(), recipient.as_bytes());
+            if let Ok(stored) = wrap_payment_meta(recipient.as_bytes()) {
+                let _ = tree.insert(tx_hash.as_bytes(), stored.as_slice());
+            }
         }
     }
 }
@@ -1522,7 +1583,8 @@ pub(crate) fn load_sent_recipient(drk: &drk::Drk, tx_hash: &str) -> Option<Strin
         .open_tree_default(PAYMENT_RECIPIENTS_TREE)
         .ok()?;
     let v = tree.get(tx_hash.as_bytes()).ok()??;
-    String::from_utf8(v.to_vec())
+    let plain = unwrap_payment_meta(&v).ok()?;
+    String::from_utf8(plain)
         .ok()
         .map(|s| s.trim().to_string())
         .filter(|s| !s.is_empty())
@@ -1797,13 +1859,14 @@ async fn trial_decrypt_compact_block(
     drk: &drk::Drk,
     block: &crate::lightwallet_client::LightCompactBlock,
 ) -> Result<(), String> {
-    process_compact_block(drk, block, true).await
+    process_compact_block(drk, block, true, true).await
 }
 
 async fn process_compact_block(
     drk: &drk::Drk,
     block: &crate::lightwallet_client::LightCompactBlock,
     trial_decrypt: bool,
+    append_commitments: bool,
 ) -> Result<(), String> {
     // Finding 5.1: validate block structure before processing
     if let Err(e) = crate::lightwallet_client::validate_compact_block(block) {
@@ -1864,15 +1927,19 @@ async fn process_compact_block(
                 let mut repr = [0u8; 32];
                 repr.copy_from_slice(&output.coin);
                 let Some(base) = Option::<pallas::Base>::from(pallas::Base::from_repr(repr)) else {
-                    continue;
+                    return Err(format!(
+                        "Invalid note commitment at height {}: not a canonical pallas::Base",
+                        block.height
+                    ));
                 };
                 Coin::from(base)
             } else {
                 continue;
             };
 
-            // Always append the commitment so the tree stays consistent with chain order.
-            tree.append(MerkleNode::from(coin.inner()));
+            if append_commitments {
+                tree.append(MerkleNode::from(coin.inner()));
+            }
 
             if !trial_decrypt || output.encrypted_note.len() < 48 {
                 continue;
@@ -1896,7 +1963,11 @@ async fn process_compact_block(
                 continue;
             };
 
-            let leaf_position = tree.mark().unwrap();
+            let leaf_position = if append_commitments {
+                tree.mark().unwrap()
+            } else {
+                continue;
+            };
             found += 1;
 
             let memo_bytes = crate::memo::recover_user_memo(
@@ -2157,12 +2228,72 @@ pub fn redact_sync_error(error: &str) -> String {
         .map(|re| re.replace_all(error, "[redacted-addr]").to_string())
         .unwrap_or_else(|_| error.to_string());
 
-    // Remove hostnames that look like server URLs
-    let redacted = regex_lite::Regex::new(r"(https?://|tcp://|tcp\+tls://)[^\s]+")
-        .map(|re| re.replace_all(&redacted, "[redacted-url]").to_string())
+    // IPv6 (bracketed or bare)
+    let redacted = regex_lite::Regex::new(
+        r"\[(?:[0-9a-fA-F]{0,4}:){2,7}[0-9a-fA-F]{0,4}\](?::\d+)?|(?:[0-9a-fA-F]{1,4}:){2,7}[0-9a-fA-F]{1,4}",
+    )
+    .map(|re| re.replace_all(&redacted, "[redacted-addr]").to_string())
+    .unwrap_or(redacted);
+
+    // .onion hosts
+    let redacted = regex_lite::Regex::new(r"[a-zA-Z2-7]{16,56}\.onion(?::\d+)?")
+        .map(|re| re.replace_all(&redacted, "[redacted-addr]").to_string())
         .unwrap_or(redacted);
 
+    // Remove hostnames that look like server URLs
+    let redacted = regex_lite::Regex::new(
+        r"(https?://|tcp://|tcp\+tls://|socks5://|grpc://|wss?://)[^\s]+",
+    )
+    .map(|re| re.replace_all(&redacted, "[redacted-url]").to_string())
+    .unwrap_or(redacted);
+
     redacted
+}
+
+/// Clamp a truncated UnifOMR digest so the scan cursor never rewinds.
+pub(crate) fn clamp_omr_truncated_tip(
+    scan_start: u32,
+    window_tip: u32,
+    covered_end: Option<u32>,
+) -> Result<u32, String> {
+    let Some(covered_end) = covered_end else {
+        return Err(
+            "UnifOMR digest truncated with empty slot_heights; \
+             refusing to skip the uncovered tail"
+                .into(),
+        );
+    };
+    if covered_end < scan_start {
+        return Err(
+            "UnifOMR digest truncated below scan cursor; retry with smaller window".into(),
+        );
+    }
+    if covered_end < window_tip {
+        tracing::warn!(
+            target: "wallet-sync",
+            "UnifOMR digest truncated at DoS cap: covered up to \
+             height {covered_end} (< window_tip {window_tip}); \
+             clamping scan cursor"
+        );
+        Ok(covered_end)
+    } else {
+        Ok(window_tip)
+    }
+}
+
+/// Append unique commitments once. Used to lock the M1 two-pass invariant.
+pub(crate) fn append_commitment_leaves(
+    tree: &mut darkfi_sdk::crypto::MerkleTree,
+    coins: &[[u8; 32]],
+) -> Result<usize, String> {
+    let mut n = 0usize;
+    for coin in coins {
+        let node = merkle_node_from_coin_bytes(coin)
+            .ok_or_else(|| "invalid commitment".to_string())?;
+        tree.append(node);
+        n += 1;
+    }
+    Ok(n)
 }
 
 #[cfg(test)]
@@ -2395,5 +2526,59 @@ mod tests {
             total_wait_secs > 600,
             "Total backoff too short, would reset channel too aggressively: {total_wait_secs}s"
         );
+    }
+
+    #[test]
+    fn two_pass_window_does_not_double_append() {
+        let mut c1 = [0u8; 32];
+        c1[0] = 1;
+        let mut c2 = [0u8; 32];
+        c2[0] = 2;
+        let coins = [c1, c2];
+        let mut once = empty_money_tree();
+        append_commitment_leaves(&mut once, &coins).unwrap();
+        let root_once = once.root(0).unwrap();
+
+        let mut twice = empty_money_tree();
+        append_commitment_leaves(&mut twice, &coins).unwrap();
+        append_commitment_leaves(&mut twice, &coins).unwrap();
+        assert_ne!(
+            twice.root(0).unwrap(),
+            root_once,
+            "appending the same window twice must change the Money tree"
+        );
+
+        let mut supplemental = empty_money_tree();
+        append_commitment_leaves(&mut supplemental, &coins).unwrap();
+        // Supplemental trial-decrypt (append=false) must leave size/root unchanged.
+        assert_eq!(supplemental.root(0).unwrap(), root_once);
+    }
+
+    #[test]
+    fn clamp_omr_truncated_tip_errors_below_scan_start() {
+        let err = clamp_omr_truncated_tip(100, 200, Some(50)).unwrap_err();
+        assert!(err.contains("truncated below scan cursor"));
+    }
+
+    #[test]
+    fn clamp_omr_truncated_tip_errors_on_empty_slots() {
+        let err = clamp_omr_truncated_tip(100, 200, None).unwrap_err();
+        assert!(err.contains("empty slot_heights"));
+    }
+
+    #[test]
+    fn clamp_omr_truncated_tip_clamps_within_window() {
+        assert_eq!(clamp_omr_truncated_tip(100, 200, Some(150)).unwrap(), 150);
+        assert_eq!(clamp_omr_truncated_tip(100, 200, Some(200)).unwrap(), 200);
+    }
+
+    #[test]
+    fn test_redact_sync_error_strips_ipv6_onion_and_proxy_schemes() {
+        let input = "fail socks5://127.0.0.1:9050/abc.onion:9601 grpc://[2001:db8::1]:9067 wss://lw.example";
+        let output = redact_sync_error(input);
+        assert!(!output.contains("127.0.0.1"), "{output}");
+        assert!(!output.contains("abc.onion"), "{output}");
+        assert!(!output.contains("2001:db8::1"), "{output}");
+        assert!(!output.contains("lw.example"), "{output}");
     }
 }

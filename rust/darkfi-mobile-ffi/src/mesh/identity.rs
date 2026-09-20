@@ -55,11 +55,18 @@ impl MeshIdentity {
         use zeroize::Zeroize;
         self.secret.zeroize();
         self.epoch = 0;
+        *self = Self::generate();
+    }
+
+    pub fn secret_is_zero(&self) -> bool {
+        self.secret.iter().all(|&b| b == 0)
     }
 }
 
 impl Drop for MeshIdentity {
     fn drop(&mut self) {
-        self.wipe();
+        use zeroize::Zeroize;
+        self.secret.zeroize();
+        self.epoch = 0;
     }
 }

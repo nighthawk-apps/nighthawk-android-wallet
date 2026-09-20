@@ -134,6 +134,18 @@ impl ZkasCache {
         Some(disk)
     }
 
+    /// All cached `(namespace, bincode)` pairs for a contract.
+    pub fn entries_for_contract(&self, contract_id: &str) -> Vec<(String, Vec<u8>)> {
+        let Ok(guard) = self.memory.read() else {
+            return Vec::new();
+        };
+        guard
+            .iter()
+            .filter(|((cid, _), _)| cid == contract_id)
+            .map(|((_, ns), e)| (ns.clone(), e.bincode.clone()))
+            .collect()
+    }
+
     /// Insert or update a cache entry.
     pub fn insert(&self, entry: ZkasCacheEntry) {
         persist_entry(&entry);

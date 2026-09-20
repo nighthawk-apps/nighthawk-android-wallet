@@ -130,11 +130,13 @@ pub fn unpad_frame(padded: &[u8]) -> Result<Vec<u8>, LwdCtrlError> {
     if padded.len() < 4 {
         return Err(LwdCtrlError::Empty);
     }
-    let n = u32::from_be_bytes(padded[0..4].try_into().unwrap()) as usize;
-    if n > EVENT_INNER_MAX || 4 + n > padded.len() {
+    let n = usize::try_from(u32::from_be_bytes(padded[0..4].try_into().unwrap()))
+        .map_err(|_| LwdCtrlError::TooLarge)?;
+    let end = 4usize.checked_add(n).ok_or(LwdCtrlError::TooLarge)?;
+    if n > EVENT_INNER_MAX || end > padded.len() {
         return Err(LwdCtrlError::TooLarge);
     }
-    Ok(padded[4..4 + n].to_vec())
+    Ok(padded[4..end].to_vec())
 }
 
 /// `u32 event_len || event || u32 blob_len || blob` — EventGraph wire for mesh.
@@ -160,13 +162,18 @@ pub fn decode_mesh_event(bytes: &[u8]) -> Result<(Vec<u8>, Vec<u8>), LwdCtrlErro
     if bytes.len() > EVENT_INNER_MAX {
         return Err(LwdCtrlError::TooLarge);
     }
-    let el = u32::from_be_bytes(bytes[0..4].try_into().unwrap()) as usize;
-    if 4 + el + 4 > bytes.len() {
+    let el = usize::try_from(u32::from_be_bytes(bytes[0..4].try_into().unwrap()))
+        .map_err(|_| LwdCtrlError::Empty)?;
+    let el_end = 4usize.checked_add(el).ok_or(LwdCtrlError::Empty)?;
+    let bl_off = el_end.checked_add(4).ok_or(LwdCtrlError::Empty)?;
+    if bl_off > bytes.len() {
         return Err(LwdCtrlError::Empty);
     }
-    let bl = u32::from_be_bytes(bytes[4 + el..8 + el].try_into().unwrap()) as usize;
-    if 8 + el + bl != bytes.len() {
+    let bl = usize::try_from(u32::from_be_bytes(bytes[el_end..bl_off].try_into().unwrap()))
+        .map_err(|_| LwdCtrlError::Empty)?;
+    let total = bl_off.checked_add(bl).ok_or(LwdCtrlError::Empty)?;
+    if total != bytes.len() {
         return Err(LwdCtrlError::Empty);
     }
-    Ok((bytes[4..4 + el].to_vec(), bytes[8 + el..].to_vec()))
+    Ok((bytes[4..el_end].to_vec(), bytes[bl_off..].to_vec()))
 }

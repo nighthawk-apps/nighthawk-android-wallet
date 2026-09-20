@@ -64,13 +64,14 @@ service DarkFiLightWallet {
   rpc GetNullifiers(BlockRange) returns (stream NullifierUpdate);
 
   // Get the Merkle tree state snapshot at a given height.
-  // Historical heights are supported when the server has persisted checkpoints.
-  // Returns FAILED_PRECONDITION if the requested height is not available.
+  // Currently tip-only. Historical heights return FAILED_PRECONDITION
+  // (checkpoints are not retained on disk).
   rpc GetTreeState(BlockHeight) returns (TreeState);
 
   // Get a checkpoint snapshot for instant wallet restore.
-  // The server streams the snapshot (tree + nullifiers + cursor) so a new
-  // device does not need to replay [0, tip].
+  // Tip-only: preferred_height must be 0 or equal to the current tip.
+  // The server streams the snapshot (tree + cursor) so a new device can
+  // skip replaying [0, tip] when the client accepts a tip snapshot.
   rpc GetCheckpointSnapshot(CheckpointRequest) returns (stream CheckpointSnapshot);
 
   // === Contract State ===

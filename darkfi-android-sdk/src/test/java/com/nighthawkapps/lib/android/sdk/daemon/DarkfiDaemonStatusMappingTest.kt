@@ -80,4 +80,19 @@ class DarkfiDaemonStatusMappingTest {
             ),
         )
     }
+
+    @Test
+    fun reorgRecovery_when_wallet_reports_reorg_detected() {
+        assertEquals(
+            DarkfiDaemonStatus.ReorgRecovery,
+            DarkfiDaemonStatusMapping.map(
+                walletPresent = true,
+                walletStatus = DarkfiSyncStatus.REORG_DETECTED,
+                walletHasError = false,
+                chatState = DarkfiChatConnectionState.ConnectedDirect,
+                embeddedDarkircEnabled = false,
+                bootstrapComplete = true,
+            ),
+        )
+    }
 }

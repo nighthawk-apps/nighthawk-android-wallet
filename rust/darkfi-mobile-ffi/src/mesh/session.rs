@@ -229,7 +229,7 @@ impl SessionTable {
             return Err(SessionError::Truncated);
         }
         let seq = u64::from_be_bytes(payload[24..32].try_into().unwrap());
-        let their = match self.map.get_mut(peer) {
+        let (their, recv_seq) = match self.map.get(peer) {
             Some(Session {
                 state:
                     SessState::Ready {
@@ -237,13 +237,7 @@ impl SessionTable {
                         recv_seq,
                         ..
                     },
-            }) => {
-                if seq <= *recv_seq {
-                    return Err(SessionError::Replay);
-                }
-                *recv_seq = seq;
-                *their_static
-            }
+            }) => (*their_static, *recv_seq),
             _ => return Err(SessionError::BadState),
         };
         let tagged = box_open(&their, &id.secret_bytes(), payload)?;
@@ -251,8 +245,15 @@ impl SessionTable {
             return Err(SessionError::Truncated);
         }
         let inner_seq = u64::from_be_bytes(tagged[..8].try_into().unwrap());
-        if inner_seq != seq {
+        if inner_seq != seq || seq <= recv_seq {
             return Err(SessionError::Replay);
+        }
+        if let Some(Session {
+            state: SessState::Ready { recv_seq, .. },
+            ..
+        }) = self.map.get_mut(peer)
+        {
+            *recv_seq = seq;
         }
         unpad_frame(&tagged[8..]).map_err(|_| SessionError::Pad)
     }

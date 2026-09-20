@@ -88,6 +88,7 @@ const OUTBOUND_SLOTS_FILE: &str = "outbound_slots.json";
 
 static DATASTORE_PATH: std::sync::OnceLock<PathBuf> = std::sync::OnceLock::new();
 
+#[allow(dead_code)]
 fn json_escape(s: &str) -> String {
     let mut out = String::with_capacity(s.len());
     for c in s.chars() {
@@ -104,40 +105,29 @@ fn json_escape(s: &str) -> String {
     out
 }
 
-fn format_outbound_slots_json(connected_urls: &[String], connecting: bool) -> String {
+fn format_outbound_slots_json(connected: usize, handshake: bool) -> String {
     let mut parts = Vec::with_capacity(OUTBOUND_HUD_SLOTS);
     for i in 0..OUTBOUND_HUD_SLOTS {
-        let (state, url) = if let Some(u) = connected_urls.get(i) {
-            ("connected", Some(u.as_str()))
-        } else if connecting {
-            ("connecting", None)
+        let state = if i < connected {
+            "connected"
+        } else if handshake {
+            "handshake"
         } else {
-            ("sleeping", None)
+            "sleeping"
         };
-        let url_json = match url {
-            Some(u) => format!("\"{}\"", json_escape(u)),
-            None => "null".to_string(),
-        };
-        parts.push(format!(
-            "{{\"slot\":{i},\"url\":{url_json},\"state\":\"{state}\"}}"
-        ));
+        parts.push(format!("{{\"slot\":{i},\"state\":\"{state}\"}}"));
     }
     format!("[{}]", parts.join(","))
 }
 
-fn snapshot_connected_peer_urls() -> Vec<String> {
+fn snapshot_connected_peer_count() -> usize {
     let Some(guard) = P2P.try_read() else {
-        return Vec::new();
+        return 0;
     };
     let Some(p2p) = guard.as_ref() else {
-        return Vec::new();
+        return 0;
     };
-    p2p.hosts()
-        .peers()
-        .into_iter()
-        .take(OUTBOUND_HUD_SLOTS)
-        .map(|ch| ch.address().to_string())
-        .collect()
+    p2p.hosts().peers().into_iter().take(OUTBOUND_HUD_SLOTS).count()
 }
 
 fn connecting_for_hud() -> bool {
@@ -153,9 +143,9 @@ fn connecting_for_hud() -> bool {
 
 /// Live outbound HUD slots as JSON (three slots: connected / connecting / sleeping).
 pub fn darkirc_outbound_slots() -> String {
-    let urls = snapshot_connected_peer_urls();
-    let connecting = urls.is_empty() && connecting_for_hud();
-    format_outbound_slots_json(&urls, connecting)
+    let connected = snapshot_connected_peer_count();
+    let handshake = connected == 0 && connecting_for_hud();
+    format_outbound_slots_json(connected, handshake)
 }
 
 fn publish_outbound_slots() {
@@ -205,26 +195,97 @@ fn new_privmsg(channel: String, nick: String, msg: String) -> Privmsg {
     }
 }
 
-/// Desktop-compatible DM/private-channel encryption. Public `#` channels stay
-/// plaintext inside `Event.content` (same as DarkIRC p2p). DMs must already
-/// carry ChaCha/saltbox ciphertext in `msg` from the wallet crypto layer.
-fn try_encrypt_privmsg(privmsg: &mut Privmsg) {
-    if privmsg.channel.starts_with('#') {
-        return;
-    }
-    if looks_like_saltbox(&privmsg.msg) {
-        return;
-    }
-    log::warn!(
-        "DM/private send without ciphertext; refusing to put plaintext nick/msg on EventGraph/mesh"
-    );
+const MAX_PRIVMSG_FIELD_LEN: usize = 512;
+const MAX_NICK_LEN: usize = 24;
+
+/// Contact saltboxes for DM encryption (channel/nick/msg), keyed by contact nick.
+static DM_CONTACTS: std::sync::LazyLock<std::sync::Mutex<std::collections::HashMap<String, DmContactBoxes>>> =
+    std::sync::LazyLock::new(|| std::sync::Mutex::new(std::collections::HashMap::new()));
+
+struct DmContactBoxes {
+    saltbox: crypto_box::ChaChaBox,
+    self_saltbox: crypto_box::ChaChaBox,
 }
 
-fn looks_like_saltbox(s: &str) -> bool {
-    let Ok(raw) = bs58::decode(s).into_vec() else {
-        return false;
+/// Register a DM contact so `send_chat_message` can encrypt channel+nick+msg.
+pub fn register_dm_contact(nick: &str, my_secret: &[u8], their_public: &[u8]) -> Result<(), String> {
+    let my_sk = crypto_box::SecretKey::from_slice(my_secret).map_err(|e| e.to_string())?;
+    let their_pk = crypto_box::PublicKey::from_slice(their_public).map_err(|e| e.to_string())?;
+    let my_pk = my_sk.public_key();
+    let boxes = DmContactBoxes {
+        saltbox: crypto_box::ChaChaBox::new(&their_pk, &my_sk),
+        self_saltbox: crypto_box::ChaChaBox::new(&my_pk, &my_sk),
     };
-    raw.len() >= 25
+    DM_CONTACTS
+        .lock()
+        .map_err(|e| e.to_string())?
+        .insert(nick.to_string(), boxes);
+    Ok(())
+}
+
+fn load_dm_contacts_from_datastore(dir: &std::path::Path) {
+    let path = dir.join("darkirc_crypto_bundle.json");
+    let Ok(raw) = std::fs::read_to_string(path) else {
+        return;
+    };
+    for contact in parse_dm_contacts_json(&raw) {
+        let _ = register_dm_contact(&contact.0, &contact.1, &contact.2);
+    }
+}
+
+fn parse_dm_contacts_json(raw: &str) -> Vec<(String, Vec<u8>, Vec<u8>)> {
+    // Minimal parse of DarkircCryptoBundle.contacts without a serde_json dep.
+    let mut out = Vec::new();
+    let Some(arr) = raw.split("\"contacts\"").nth(1) else {
+        return out;
+    };
+    for chunk in arr.split('{').skip(1) {
+        let Some(end) = chunk.find('}') else {
+            continue;
+        };
+        let obj = &chunk[..end];
+        let nick = json_string_field(obj, "nick")
+            .or_else(|| json_string_field(obj, "nick"));
+        let secret = json_string_field(obj, "myDmChachaSecretBase58")
+            .or_else(|| json_string_field(obj, "my_dm_chacha_secret_base58"));
+        let public = json_string_field(obj, "dmChachaPublicBase58")
+            .or_else(|| json_string_field(obj, "dm_chacha_public_base58"));
+        if let (Some(nick), Some(secret), Some(public)) = (nick, secret, public) {
+            if let (Ok(sk), Ok(pk)) = (bs58::decode(secret).into_vec(), bs58::decode(public).into_vec()) {
+                if sk.len() == 32 && pk.len() == 32 {
+                    out.push((nick.to_string(), sk, pk));
+                }
+            }
+        }
+    }
+    out
+}
+
+fn json_string_field<'a>(obj: &'a str, key: &str) -> Option<&'a str> {
+    let pat = format!("\"{key}\"");
+    let rest = obj.split(&pat).nth(1)?;
+    let rest = rest.trim_start_matches([' ', ':', '\t']);
+    let rest = rest.strip_prefix('"')?;
+    let end = rest.find('"')?;
+    Some(&rest[..end])
+}
+
+/// Encrypt channel, nick, and message for DMs exactly as upstream `try_encrypt`.
+fn try_encrypt_privmsg(privmsg: &mut Privmsg) -> Result<(), String> {
+    if privmsg.channel.starts_with('#') {
+        return Ok(());
+    }
+    let contacts = DM_CONTACTS.lock().map_err(|e| e.to_string())?;
+    let Some(contact) = contacts.get(&privmsg.channel) else {
+        return Err(format!(
+            "DM contact '{}' is not registered; refusing plaintext channel/nick on the wire",
+            privmsg.channel
+        ));
+    };
+    privmsg.channel = irc2::crypto::saltbox::encrypt(&contact.saltbox, &[0x00; MAX_NICK_LEN]);
+    privmsg.nick = irc2::crypto::saltbox::encrypt(&contact.self_saltbox, &[0x00; MAX_NICK_LEN]);
+    privmsg.msg = irc2::crypto::saltbox::encrypt(&contact.saltbox, privmsg.msg.as_bytes());
+    Ok(())
 }
 
 fn mesh_event_id16(event: &darkfi::event_graph::Event) -> [u8; 16] {
@@ -451,6 +512,7 @@ fn start_darkirc_inner(
 
     let db_path = PathBuf::from(&datastore_path);
     let _ = DATASTORE_PATH.set(db_path.clone());
+    load_dm_contacts_from_datastore(&db_path);
     let cb: Option<Arc<dyn DarkircEventCallback>> = callback.map(Arc::from);
     DAG_SYNCED.store(0, Ordering::Relaxed);
     set_phase(PHASE_STARTING);
@@ -541,6 +603,8 @@ fn start_darkirc_inner(
             }
         })
         .map_err(|e| {
+            DAEMON_STATUS.store(STATUS_FAILED, Ordering::Relaxed);
+            set_phase(PHASE_FAILED);
             DarkfiWalletNativeError::NativeDrkUnavailable(format!(
                 "failed to spawn darkirc thread: {e}"
             ))
@@ -604,17 +668,23 @@ fn send_chat_message_inner(
         ));
     }
 
+    if channel.len() > MAX_PRIVMSG_FIELD_LEN
+        || nick.len() > MAX_PRIVMSG_FIELD_LEN
+        || message.len() > MAX_PRIVMSG_FIELD_LEN
+    {
+        return Err(DarkfiWalletNativeError::NativeDrkUnavailable(
+            "channel, nick, and message must be at most 512 bytes".into(),
+        ));
+    }
+
     crate::block_on(async move {
         let eg_lock = EVENT_GRAPH.read().await;
         let p2p_lock = P2P.read().await;
 
         if let (Some(eg), Some(p2p)) = (&*eg_lock, &*p2p_lock) {
             let mut msg = new_privmsg(channel.clone(), nick.clone(), message.clone());
-            try_encrypt_privmsg(&mut msg);
-            if !msg.channel.starts_with('#') && !looks_like_saltbox(&msg.msg) {
-                return Err(DarkfiWalletNativeError::NativeDrkUnavailable(
-                    "DM must be encrypted before send".to_string(),
-                ));
+            if let Err(e) = try_encrypt_privmsg(&mut msg) {
+                return Err(DarkfiWalletNativeError::NativeDrkUnavailable(e));
             }
 
             let event = match darkfi::event_graph::Event::new(serialize_async(&msg).await, eg).await
@@ -1207,23 +1277,19 @@ mod tests {
 
     #[test]
     fn outbound_hud_json_pads_three_sleeping_slots() {
-        let json = format_outbound_slots_json(&[], false);
+        let json = format_outbound_slots_json(0, false);
         assert_eq!(
             json,
-            r#"[{"slot":0,"url":null,"state":"sleeping"},{"slot":1,"url":null,"state":"sleeping"},{"slot":2,"url":null,"state":"sleeping"}]"#
+            r#"[{"slot":0,"state":"sleeping"},{"slot":1,"state":"sleeping"},{"slot":2,"state":"sleeping"}]"#
         );
     }
 
     #[test]
-    fn outbound_hud_json_escapes_peer_urls_and_marks_remainder_connecting() {
-        let json = format_outbound_slots_json(
-            &[r#"tcp+tls://seed.example/"quote""#.to_string()],
-            true,
-        );
-        assert!(json.contains(r#""slot":0"#));
-        assert!(json.contains(r#"\"quote\""#));
+    fn outbound_hud_json_never_includes_peer_urls() {
+        let json = format_outbound_slots_json(1, true);
+        assert!(!json.contains("url"));
         assert!(json.contains(r#""state":"connected""#));
-        assert!(json.contains(r#""slot":1,"url":null,"state":"connecting""#));
+        assert!(json.contains(r#""state":"handshake""#));
     }
 
     #[test]
@@ -1236,18 +1302,21 @@ mod tests {
     #[test]
     fn public_channel_privmsg_stays_plaintext() {
         let mut msg = new_privmsg("#dev".into(), "alice".into(), "hello".into());
-        try_encrypt_privmsg(&mut msg);
+        try_encrypt_privmsg(&mut msg).unwrap();
         assert_eq!(msg.channel, "#dev");
         assert_eq!(msg.msg, "hello");
-        assert!(!looks_like_saltbox(&msg.msg));
     }
 
     #[test]
-    fn saltbox_heuristic_accepts_nonce_ciphertext() {
-        let mut raw = vec![0u8; 40];
-        raw[0] = 1;
-        let b58 = bs58::encode(raw).into_string();
-        assert!(looks_like_saltbox(&b58));
-        assert!(!looks_like_saltbox("hello"));
+    fn dm_encrypts_channel_nick_and_message() {
+        let kp = crate::generate_dm_keypair();
+        let sk = bs58::decode(&kp.secret_b58).into_vec().unwrap();
+        let pk = bs58::decode(&kp.public_b58).into_vec().unwrap();
+        register_dm_contact("bob", &sk, &pk).unwrap();
+        let mut msg = new_privmsg("bob".into(), "alice".into(), "hello".into());
+        try_encrypt_privmsg(&mut msg).unwrap();
+        assert_ne!(msg.channel, "bob");
+        assert_ne!(msg.nick, "alice");
+        assert_ne!(msg.msg, "hello");
     }
 }

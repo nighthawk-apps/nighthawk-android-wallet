@@ -829,8 +829,8 @@ pub mod dark_fi_light_wallet_client {
             self.inner.server_streaming(req, path, codec).await
         }
         /// Get the Merkle tree state snapshot at a given height.
-        /// Historical heights are supported when the server has persisted checkpoints.
-        /// Returns FAILED_PRECONDITION if the requested height is not available.
+        /// Currently tip-only. Historical heights return FAILED_PRECONDITION
+        /// (checkpoints are not retained on disk).
         pub async fn get_tree_state(
             &mut self,
             request: impl tonic::IntoRequest<super::BlockHeight>,
@@ -858,8 +858,9 @@ pub mod dark_fi_light_wallet_client {
             self.inner.unary(req, path, codec).await
         }
         /// Get a checkpoint snapshot for instant wallet restore.
-        /// The server streams the snapshot (tree + nullifiers + cursor) so a new
-        /// device does not need to replay [0, tip].
+        /// Tip-only: preferred_height must be 0 or equal to the current tip.
+        /// The server streams the snapshot (tree + cursor) so a new device can
+        /// skip replaying [0, tip] when the client accepts a tip snapshot.
         pub async fn get_checkpoint_snapshot(
             &mut self,
             request: impl tonic::IntoRequest<super::CheckpointRequest>,

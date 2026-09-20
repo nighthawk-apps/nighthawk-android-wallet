@@ -49,9 +49,9 @@ object DarkfiEndpointCatalog {
             DarkfiNetwork.Testnet -> {
                 listOf(
                     DarkfiEndpointPreset(
-                        "Studio testnet (ngrok)",
+                        "Studio testnet (ngrok, test-only)",
                         DarkfiEndpoint(
-                            host = "epidermis-sandbox-marshland.ngrok-free.dev",
+                            host = DarkfiEndpoint.STUDIO_TESTNET_LWD_HOST,
                             port = 443,
                             isTls = true,
                         ),

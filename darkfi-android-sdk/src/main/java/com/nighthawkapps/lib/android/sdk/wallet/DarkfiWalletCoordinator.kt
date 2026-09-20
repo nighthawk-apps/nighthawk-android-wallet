@@ -16,6 +16,7 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class DarkfiWalletCoordinator internal constructor(
     private val context: Context,
@@ -79,9 +80,13 @@ class DarkfiWalletCoordinator internal constructor(
         }
     }
 
-    /** Recreates the synchronizer (e.g. after Tor toggle rewrites the darkfid connect URL). */
-    fun reloadSynchronizer() {
-        scope.launch(Dispatchers.IO) {
+    /**
+     * Recreates the synchronizer (e.g. after Tor toggle rewrites the darkfid connect URL).
+     * Completes only after the previous handle is closed and the replacement is installed,
+     * so callers can rescan without racing close-while-refresh.
+     */
+    suspend fun reloadSynchronizer() {
+        withContext(Dispatchers.IO) {
             replaceSynchronizer(persistableWallet.value, synchronizerAllowedState.value)
         }
     }

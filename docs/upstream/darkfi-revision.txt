@@ -1,5 +1,7 @@
-98bbf153359d94e610c3867d0cc5f82aec82c599
+f0978c22242267b5684e6b8334cdf063652d2b37
 # nighthawk24/darkfi branch nighthawk-testnet
 # darkrenaissance/darkfi master merged onto fdroid-arti-0.45
-# plus EventGraph mesh ingest (MAX_MESH_EVENT_BLOB / ingest_mesh_event).
+# plus EventGraph mesh ingest (MAX_MESH_EVENT_BLOB / ingest_mesh_event),
+# public Drk::scan_block, scan_blocks without progress_pub, and darkfid
+# sync hardening (response-hash verify, incomplete-sync retry, skip bad peer).
 # Do not pin darkrenaissance/darkfi master — that tree is Arti 0.42 without the overlay.

@@ -986,33 +986,54 @@ impl LightwalletClient {
     /// from the range endpoints. The client discards blocks outside the
     /// originally requested range after receiving them.
     ///
+    /// `tip` clamps the padded end so GetBlockRange never asks past the
+    /// known chain tip (server aborts on missing heights).
+    ///
     /// Returns blocks in ascending height order.
     pub async fn get_compact_block_range(
         &self,
         start_height: u32,
         end_height: u32,
+        tip: u32,
     ) -> Result<Vec<LightCompactBlock>, String> {
-        // Finding 5.4: validate range before sending to server
         validate_block_range(start_height, end_height)?;
-
-        let start = Instant::now();
-        // PRIVACY: Pad the range to hide exact wallet birthday
-        let (padded_start, padded_end) = pad_block_range(start_height, end_height);
-
+        let (padded_start, padded_end) = pad_block_range(start_height, end_height, tip);
         tracing::debug!(
             target: "lightwallet-client",
             "gRPC GetBlockRange({start_height}..={end_height}) padded to \
-             ({padded_start}..={padded_end})"
+             ({padded_start}..={padded_end}) tip={tip}"
         );
+        self.fetch_compact_block_range(padded_start, padded_end, start_height, end_height)
+            .await
+    }
 
+    /// Fetch an already-padded compact-block range without re-padding.
+    pub async fn get_compact_block_range_exact(
+        &self,
+        start_height: u32,
+        end_height: u32,
+    ) -> Result<Vec<LightCompactBlock>, String> {
+        validate_block_range(start_height, end_height)?;
+        self.fetch_compact_block_range(start_height, end_height, start_height, end_height)
+            .await
+    }
+
+    async fn fetch_compact_block_range(
+        &self,
+        request_start: u32,
+        request_end: u32,
+        filter_start: u32,
+        filter_end: u32,
+    ) -> Result<Vec<LightCompactBlock>, String> {
+        let start = Instant::now();
         let blocks: Vec<LightCompactBlock> = async_compat::Compat::new(async {
             let channel = self.connect_channel().await?;
 
             let mut client = lwd_client(channel);
 
             let request = lightwallet_proto::BlockRange {
-                start_height: padded_start,
-                end_height: padded_end,
+                start_height: request_start,
+                end_height: request_end,
             };
 
             let mut stream = client
@@ -1021,9 +1042,7 @@ impl LightwalletClient {
                 .map_err(|e| format!("GetBlockRange RPC: {e}"))?
                 .into_inner();
 
-            // Pre-allocate based on expected range size to avoid
-            // per-block allocations (lesson from zcash memory fix).
-            let expected_count = (padded_end.saturating_sub(padded_start) + 1) as usize;
+            let expected_count = (request_end.saturating_sub(request_start) + 1) as usize;
             let mut blocks = Vec::with_capacity(expected_count.min(10_000));
             while let Some(proto_block) = stream
                 .message()
@@ -1037,17 +1056,14 @@ impl LightwalletClient {
         })
         .await?;
 
-        // PRIVACY: Filter to only the originally requested range.
-        // The server received the padded range; discard the padding blocks.
         let filtered: Vec<LightCompactBlock> = blocks
             .into_iter()
-            .filter(|b| b.height >= start_height && b.height <= end_height)
+            .filter(|b| b.height >= filter_start && b.height <= filter_end)
             .collect();
 
         tracing::debug!(
             target: "lightwallet-client",
-            "gRPC GetBlockRange: {} blocks received, {} after filter ({:?})",
-            filtered.len() + (end_height.saturating_sub(start_height) + 1) as usize - filtered.len(),
+            "gRPC GetBlockRange: {} after filter ({:?})",
             filtered.len(),
             start.elapsed(),
         );
@@ -1539,7 +1555,51 @@ impl LightwalletClient {
         end_height: u32,
         limb_index: u32,
     ) -> Result<Vec<Vec<u8>>, String> {
-        let result = async_compat::Compat::new(async {
+        const MAX_TRIES: u32 = 3;
+        let mut delay_ms = 200u64;
+        let mut last_err = None;
+        for attempt in 0..MAX_TRIES {
+            let result = self
+                .fetch_pir_batch_once(
+                    query_ciphertexts.clone(),
+                    start_height,
+                    end_height,
+                    limb_index,
+                )
+                .await;
+            match result {
+                Ok(payloads) => {
+                    self.metrics.pir_requests.fetch_add(1, Ordering::Relaxed);
+                    return Ok(payloads);
+                }
+                Err(e) if pir_is_resource_exhausted(&e) && attempt + 1 < MAX_TRIES => {
+                    tracing::warn!(
+                        target: "lightwallet-client",
+                        "FetchPirBatch ResourceExhausted (try {}/{MAX_TRIES}); backing off {delay_ms}ms",
+                        attempt + 1
+                    );
+                    smol::Timer::after(std::time::Duration::from_millis(delay_ms)).await;
+                    delay_ms = delay_ms.saturating_mul(2);
+                    last_err = Some(e);
+                }
+                Err(e) => {
+                    self.metrics.pir_requests.fetch_add(1, Ordering::Relaxed);
+                    return Err(e);
+                }
+            }
+        }
+        self.metrics.pir_requests.fetch_add(1, Ordering::Relaxed);
+        Err(last_err.unwrap_or_else(|| "FetchPirBatch failed".into()))
+    }
+
+    async fn fetch_pir_batch_once(
+        &self,
+        query_ciphertexts: Vec<Vec<u8>>,
+        start_height: u32,
+        end_height: u32,
+        limb_index: u32,
+    ) -> Result<Vec<Vec<u8>>, String> {
+        async_compat::Compat::new(async {
             let channel = self.connect_channel().await?;
             let mut client = lwd_client(channel);
 
@@ -1551,12 +1611,16 @@ impl LightwalletClient {
                     limb_index,
                 })
                 .await
-                .map_err(|e| format!("FetchPirBatch RPC: {e}"))?;
+                .map_err(|e| {
+                    if e.code() == tonic::Code::ResourceExhausted {
+                        format!("FetchPirBatch RPC ResourceExhausted: {e}")
+                    } else {
+                        format!("FetchPirBatch RPC: {e}")
+                    }
+                })?;
             Ok(resp.into_inner().payload_ciphertexts)
         })
-        .await;
-        self.metrics.pir_requests.fetch_add(1, Ordering::Relaxed);
-        result
+        .await
     }
 
     /// Retrieve and authenticate Merkle tree state at historical or tip height.
@@ -1896,14 +1960,17 @@ const MIN_BUCKET_SIZE: u32 = 1024;
 /// ## Examples
 ///
 /// ```text
-/// pad_block_range(42000, 42500) → (41984, 43007)  // 1024-block bucket
-/// pad_block_range(0, 50000)     → (0, 65535)       // 65536-block bucket
-/// pad_block_range(100, 100)     → (0, 1023)        // minimum 1024 bucket
+/// pad_block_range(42000, 42500, u32::MAX) → (41984, 43007)  // 1024-block bucket
+/// pad_block_range(0, 50000, u32::MAX)     → (0, 65535)       // 65536-block bucket
+/// pad_block_range(100, 100, u32::MAX)     → (0, 1023)        // minimum 1024 bucket
+/// pad_block_range(42000, 42500, 42500)    → (41984, 42500)   // tip clamp
 /// ```
 ///
 /// The server sees only the padded range. The client silently discards
-/// blocks outside the originally requested range.
-pub fn pad_block_range(start: u32, end: u32) -> (u32, u32) {
+/// blocks outside the originally requested range. `tip` is public via
+/// GetChainTip / GetLightInfo, so clamping `aligned_end.min(tip)` does
+/// not distinguish clients.
+pub fn pad_block_range(start: u32, end: u32, tip: u32) -> (u32, u32) {
     let range_size = end.saturating_sub(start).saturating_add(1);
 
     // Round up to next power of 2, with minimum bucket size
@@ -1919,7 +1986,13 @@ pub fn pad_block_range(start: u32, end: u32) -> (u32, u32) {
         aligned_end = aligned_end.saturating_add(bucket);
     }
 
+    aligned_end = aligned_end.min(tip);
     (aligned_start, aligned_end)
+}
+
+fn pir_is_resource_exhausted(error: &str) -> bool {
+    let lower = error.to_ascii_lowercase();
+    lower.contains("resourceexhausted") || lower.contains("resource exhausted")
 }
 
 // =============================================================================
@@ -2214,7 +2287,7 @@ mod tests {
 
     #[test]
     fn pad_single_block_to_min_bucket() {
-        let (start, end) = pad_block_range(500, 500);
+        let (start, end) = pad_block_range(500, 500, u32::MAX);
         // Single block should pad to MIN_BUCKET_SIZE (1024)
         assert_eq!(start, 0);
         assert_eq!(end, 1023);
@@ -2223,7 +2296,7 @@ mod tests {
 
     #[test]
     fn pad_small_range_to_min_bucket() {
-        let (start, end) = pad_block_range(42000, 42100);
+        let (start, end) = pad_block_range(42000, 42100, u32::MAX);
         // 101 blocks → pad to 1024 bucket
         let bucket_size = end - start + 1;
         assert_eq!(bucket_size, 1024);
@@ -2236,7 +2309,7 @@ mod tests {
 
     #[test]
     fn pad_medium_range_to_power_of_2() {
-        let (start, end) = pad_block_range(10000, 12000);
+        let (start, end) = pad_block_range(10000, 12000, u32::MAX);
         // 2001 blocks → next power of 2 = 2048
         // Start aligned to 2048 boundary: (10000/2048)*2048 = 8192
         // First bucket ends at 10239, which < 12000, so extends
@@ -2247,7 +2320,7 @@ mod tests {
 
     #[test]
     fn pad_large_range() {
-        let (start, end) = pad_block_range(0, 50000);
+        let (start, end) = pad_block_range(0, 50000, u32::MAX);
         // 50001 blocks → next power of 2 = 65536
         let bucket_size = end - start + 1;
         assert_eq!(bucket_size, 65536);
@@ -2257,7 +2330,7 @@ mod tests {
 
     #[test]
     fn pad_aligned_range_stays_same_size() {
-        let (start, end) = pad_block_range(0, 1023);
+        let (start, end) = pad_block_range(0, 1023, u32::MAX);
         // Already 1024 blocks = MIN_BUCKET_SIZE
         assert_eq!(start, 0);
         assert_eq!(end, 1023);
@@ -2265,7 +2338,7 @@ mod tests {
 
     #[test]
     fn pad_range_near_boundary() {
-        let (start, end) = pad_block_range(1024, 2047);
+        let (start, end) = pad_block_range(1024, 2047, u32::MAX);
         // 1024 blocks starting at boundary
         assert_eq!(start, 1024);
         assert_eq!(end, 2047);
@@ -2274,23 +2347,30 @@ mod tests {
     #[test]
     fn pad_range_hides_birthday() {
         // Wallet born at block 42,000 syncing to tip 42,500
-        let (start, end) = pad_block_range(42000, 42500);
+        let (start, end) = pad_block_range(42000, 42500, u32::MAX);
         // Server should NOT see exact birthday (42000)
         assert!(start < 42000, "Padding must hide exact birthday");
         assert!(end > 42500, "Padding must extend past exact scan point");
     }
 
     #[test]
+    fn pad_range_clamps_end_to_tip() {
+        let (start, end) = pad_block_range(42000, 42500, 42500);
+        assert!(start <= 42000);
+        assert_eq!(end, 42500);
+    }
+
+    #[test]
     fn pad_range_is_deterministic() {
-        let r1 = pad_block_range(42000, 42500);
-        let r2 = pad_block_range(42000, 42500);
+        let r1 = pad_block_range(42000, 42500, u32::MAX);
+        let r2 = pad_block_range(42000, 42500, u32::MAX);
         assert_eq!(r1, r2, "Padding must be deterministic for same input");
     }
 
     #[test]
     fn pad_range_overflow_safety() {
         // Near u32::MAX — should not overflow
-        let (start, end) = pad_block_range(u32::MAX - 100, u32::MAX);
+        let (start, end) = pad_block_range(u32::MAX - 100, u32::MAX, u32::MAX);
         assert!(start <= u32::MAX - 100);
         assert!(end >= u32::MAX - 100);
     }

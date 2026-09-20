@@ -13,7 +13,7 @@ mod memo;
 pub mod mnemonic;
 mod omr_envelope;
 pub mod sync;
-pub use sync::redact_sync_error;
+pub use sync::{apply_full_block, redact_sync_error};
 mod tokens;
 mod tor;
 pub mod transactions;
@@ -712,6 +712,8 @@ impl DarkfiWalletHandle {
         sync_engine.set_strict_omr_only(config.strict_omr_only);
         sync_engine.set_data_dir(std::path::PathBuf::from(&config.cache_path));
         let cache_key = blake3::derive_key("nighthawk compact-block-cache v1", config.wallet_pass.as_bytes());
+        crate::sync::set_payment_meta_key(cache_key);
+        crate::tor::set_arti_storage_dir(std::path::PathBuf::from(&config.cache_path));
         if config.birthday_height > 0 {
             if let Ok(height) = u32::try_from(config.birthday_height) {
                 sync_engine.set_birthday_height(height);
@@ -759,19 +761,8 @@ impl DarkfiWalletHandle {
         })
         .map_err(DarkfiWalletNativeError::native)?;
 
-        // Prefer native DRK; fall back to sole token if wallet only holds one.
         let dark_id = darkfi_money_contract::model::DARK_TOKEN_ID.to_string();
-        let total = balances
-            .get(&dark_id)
-            .copied()
-            .or_else(|| {
-                if balances.len() == 1 {
-                    balances.values().next().copied()
-                } else {
-                    None
-                }
-            })
-            .unwrap_or(0);
+        let total = balances.get(&dark_id).copied().unwrap_or(0);
         Ok(i64::try_from(total).unwrap_or(i64::MAX))
     }
 
@@ -932,14 +923,7 @@ impl DarkfiWalletHandle {
         let drk = self.drk.clone();
         block_on(async move {
             let drk = drk.write().await;
-            let mut output = Vec::new();
-            drk.money_keygen(&mut output)
-                .await
-                .map_err(|e| e.to_string())?;
-            output
-                .last()
-                .cloned()
-                .ok_or_else(|| "No address generated".to_string())
+            crate::bootstrap::generate_hd_address(&drk).await
         })
         .map_err(DarkfiWalletNativeError::native)
     }
@@ -1035,7 +1019,7 @@ impl DarkfiWalletHandle {
     /// mobile apps to show a notification on the main screen.
     pub fn set_reorg_callback(&self, callback: Option<Box<dyn ReorgEventCallback>>) {
         if let Ok(mut cb) = self.sync_engine.reorg_callback.lock() {
-            *cb = callback;
+            *cb = callback.map(std::sync::Arc::from);
         }
     }
 
@@ -1103,11 +1087,15 @@ impl DarkfiWalletHandle {
             },
         };
 
-        // Step 6: Fire callback for UI notification
-        if let Ok(cb) = self.sync_engine.reorg_callback.lock() {
-            if let Some(callback) = cb.as_ref() {
-                callback.on_reorg(event.clone());
-            }
+        // Step 6: Fire callback for UI notification (lock dropped before call)
+        let callback = self
+            .sync_engine
+            .reorg_callback
+            .lock()
+            .ok()
+            .and_then(|g| g.clone());
+        if let Some(callback) = callback {
+            callback.on_reorg(event.clone());
         }
 
         tracing::warn!(
@@ -1380,9 +1368,10 @@ mod tests {
     #[test]
     fn mnemonic_generates_22_words() {
         let words = generate_darkfi_mnemonic();
-        assert!(
-            words.len() >= 21 && words.len() <= 22,
-            "DarkFi mnemonic should be 21-22 words, got {}",
+        assert_eq!(
+            words.len(),
+            22,
+            "DarkFi mnemonic should be 22 words, got {}",
             words.len()
         );
     }
@@ -1430,6 +1419,14 @@ mod tests {
 
         let key1 = mnemonic::secret_key_from_mnemonic(&words).unwrap();
         let key2 = mnemonic::secret_key_from_mnemonic(&words).unwrap();
+        let seed = mnemonic::derivation_seed_from_mnemonic(&words);
+        let hd0 = mnemonic::secret_key_from_seed_index(&seed, 0).unwrap();
+        let hd1 = mnemonic::secret_key_from_seed_index(&seed, 1).unwrap();
+        assert_eq!(
+            mnemonic::secret_key_from_seed_index(&seed, 1).unwrap(),
+            hd1
+        );
+        assert_ne!(hd0, hd1);
         assert_eq!(key1, key2, "Same mnemonic must produce same key");
     }
 

@@ -24,6 +24,14 @@ pub const DEFAULT_MOBILE_BLOCK_RETENTION: u32 = 2000;
 const CACHE_MAGIC: &[u8] = b"NHC1";
 const NONCE_LEN: usize = 24;
 
+pub(crate) fn wrap_cache_blob(key: Option<&[u8; 32]>, plaintext: &[u8]) -> Result<Vec<u8>, String> {
+    wrap_blob(key, plaintext)
+}
+
+pub(crate) fn unwrap_cache_blob(key: Option<&[u8; 32]>, data: &[u8]) -> Result<Vec<u8>, String> {
+    unwrap_blob(key, data)
+}
+
 fn wrap_blob(key: Option<&[u8; 32]>, plaintext: &[u8]) -> Result<Vec<u8>, String> {
     let Some(key) = key else {
         return Ok(plaintext.to_vec());

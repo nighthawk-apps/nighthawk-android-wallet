@@ -328,7 +328,7 @@ private fun ChatScreen(
             onToggleHud = { showNetworkHud = !showNetworkHud },
         )
         if (showNetworkHud) {
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(4.dp))
             ChatNetworkHud(
                 slots = outboundSlots,
                 torSelected = useTor,

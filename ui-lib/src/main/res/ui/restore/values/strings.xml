@@ -197,6 +197,8 @@
     <string name="ns_chat_title">DarkFi chat</string>
     <string name="ns_chat_hud_title">Network</string>
     <string name="ns_chat_hud_subtitle">Outbound peers · tap status to hide</string>
+    <string name="ns_chat_hud_peers">Peers</string>
+    <string name="ns_chat_hud_peers_empty">No connected peers</string>
     <string name="ns_chat_transport_tcp">tcp</string>
     <string name="ns_chat_transport_tor_short">tor</string>
     <string name="ns_chat_encrypt_channel">Encrypt channel</string>

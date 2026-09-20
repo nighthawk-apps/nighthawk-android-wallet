@@ -164,6 +164,9 @@ impl MeshEngine {
     }
 
     pub fn set_mesh_on(&mut self, on: bool) {
+        if on && self.identity.secret_is_zero() {
+            self.identity = MeshIdentity::generate();
+        }
         self.mesh_on = on;
     }
 
@@ -248,6 +251,10 @@ impl MeshEngine {
 
     pub fn pop_events(&mut self) -> Vec<EngineEvent> {
         std::mem::take(&mut self.events)
+    }
+
+    pub fn peek_inbound_event_len(&self) -> Option<usize> {
+        self.inbound_events.first().map(|(_, b)| b.len())
     }
 
     pub fn pop_inbound_event(&mut self) -> Option<([u8; 16], Vec<u8>)> {

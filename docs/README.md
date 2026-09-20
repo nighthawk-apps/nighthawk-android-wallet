@@ -38,7 +38,7 @@ Index for the Nighthawk Android DarkFi wallet.
 | [darkfi-mainnet-android.md](darkfi-mainnet-android.md) | Mainnet runbook |
 | [fdroid.md](fdroid.md) | F-Droid testnet edition |
 | [Setup.md](Setup.md) | IDE, NDK, emulators |
-| [upstream/](upstream/) | DarkFi pin (`327fa9f1…`) |
+| [upstream/](upstream/) | DarkFi pin (`f0978c222…`) |
 
 ## Security
 

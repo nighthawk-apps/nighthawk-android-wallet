@@ -187,14 +187,25 @@ pub fn mesh_pop_outbound() -> Vec<Vec<u8>> {
         .unwrap_or_default()
 }
 
-/// One outbound frame for the C ABI. Does not drop siblings.
-pub fn mesh_pop_one_outbound() -> Option<Vec<u8>> {
-    let mut h = hold().lock().ok()?;
+fn refill_outbound_hold(h: &mut VecDeque<Vec<u8>>) {
     if h.is_empty() {
         for f in mesh_pop_outbound() {
             h.push_back(f);
         }
     }
+}
+
+/// Peek the next outbound frame length without popping.
+pub fn mesh_peek_one_outbound_len() -> Option<usize> {
+    let mut h = hold().lock().ok()?;
+    refill_outbound_hold(&mut h);
+    h.front().map(|f| f.len())
+}
+
+/// One outbound frame for the C ABI. Does not drop siblings.
+pub fn mesh_pop_one_outbound() -> Option<Vec<u8>> {
+    let mut h = hold().lock().ok()?;
+    refill_outbound_hold(&mut h);
     h.pop_front()
 }
 
@@ -231,6 +242,10 @@ pub fn mesh_neighbor_down(dest: [u8; SENDER_LEN]) -> Result<(), String> {
     let mut g = engine().lock().map_err(|e| e.to_string())?;
     g.neighbor_down(dest);
     Ok(())
+}
+
+pub fn mesh_peek_inbound_event_len() -> Option<usize> {
+    engine().lock().ok().and_then(|g| g.peek_inbound_event_len())
 }
 
 pub fn mesh_pop_inbound_event() -> Option<([u8; 16], Vec<u8>)> {

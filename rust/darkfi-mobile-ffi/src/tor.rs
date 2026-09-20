@@ -12,10 +12,29 @@
 
 use std::sync::{
     atomic::{AtomicU8, Ordering},
-    Arc,
+    Arc, OnceLock,
 };
 
-use arti_client::{TorClient, TorClientConfig};
+use arti_client::config::{BoolOrAuto, TorClientConfigBuilder};
+use arti_client::{StreamPrefs, TorClient, TorClientConfig};
+
+static ARTI_STORAGE_DIR: OnceLock<std::path::PathBuf> = OnceLock::new();
+
+/// App cache directory used for Arti state + cache (set at wallet open).
+pub fn set_arti_storage_dir(path: std::path::PathBuf) {
+    let _ = ARTI_STORAGE_DIR.set(path);
+}
+
+fn arti_dirs() -> Result<(std::path::PathBuf, std::path::PathBuf), String> {
+    let base = ARTI_STORAGE_DIR.get().cloned().ok_or_else(|| {
+        "Tor was requested but no app cache directory is configured for Arti storage".to_string()
+    })?;
+    let state_dir = base.join("arti").join("state");
+    let cache_dir = base.join("arti").join("cache");
+    std::fs::create_dir_all(&state_dir).map_err(|e| format!("arti state_dir: {e}"))?;
+    std::fs::create_dir_all(&cache_dir).map_err(|e| format!("arti cache_dir: {e}"))?;
+    Ok((state_dir, cache_dir))
+}
 use futures::{AsyncReadExt, AsyncWriteExt};
 use smol::net::{TcpListener, TcpStream};
 
@@ -152,7 +171,12 @@ async fn run_socks_proxy(socks_port: u16) -> Result<(), String> {
         .map_err(|e| format!("SOCKS bind on 127.0.0.1:{socks_port} failed: {e}"))?;
     tracing::info!("arti SOCKS bound on 127.0.0.1:{socks_port}; bootstrapping Tor client...");
 
-    let config = TorClientConfig::default();
+    let (state_dir, cache_dir) = arti_dirs()?;
+    let mut builder = TorClientConfigBuilder::from_directories(state_dir, cache_dir);
+    builder.address_filter().allow_onion_addrs(true);
+    let config: TorClientConfig = builder
+        .build()
+        .map_err(|e| format!("Tor config (onion must be enabled): {e}"))?;
     // Arti ≥0.45 returns Arc<TorClient<_>>; isolated_client() also yields Arc.
     let tor_client: Arc<TorClient<tor_rtcompat::PreferredRuntime>> =
         TorClient::create_bootstrapped(config)
@@ -285,8 +309,13 @@ async fn handle_socks_conn(
         .map_err(|e| e.to_string())?;
     let port = u16::from_be_bytes(port_bytes);
 
-    // --- Dial the target through Tor ---
-    let tor_stream = match tor_client.connect((host.as_str(), port)).await {
+    // --- Dial the target through Tor (onion enabled; never fall back to clearnet) ---
+    let mut prefs = StreamPrefs::new();
+    prefs.connect_to_onion_services(BoolOrAuto::Explicit(true));
+    let tor_stream = match tor_client
+        .connect_with_prefs((host.as_str(), port), &prefs)
+        .await
+    {
         Ok(s) => s,
         Err(e) => {
             // Reply "host unreachable".

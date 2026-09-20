@@ -200,7 +200,7 @@ pub struct SyncEngine {
     /// If true, halt sync entirely instead of falling back to trial decryption
     /// when max failures is exceeded. This prevents a downgrade attack from
     /// forcing the client into a less private sync mode.
-    /// Production default: enabled (`true`).
+    /// Production default: disabled (`false`) to match the mobile apps.
     strict_omr_only: std::sync::atomic::AtomicBool,
     /// Previous chain tip seen by the sync loop (finding 5.6).
     /// Used together with `last_tip_update` to detect rapid tip advancement.
@@ -208,7 +208,7 @@ pub struct SyncEngine {
     /// Epoch-seconds of the last chain tip update (finding 5.6).
     last_tip_update: std::sync::atomic::AtomicU64,
     /// Optional callback for chain reorg events — fires to notify mobile UI.
-    pub reorg_callback: std::sync::Mutex<Option<Box<dyn crate::ReorgEventCallback>>>,
+    pub reorg_callback: std::sync::Mutex<Option<std::sync::Arc<dyn crate::ReorgEventCallback>>>,
     /// Wallet birthday height (never trial-decrypt below this).
     birthday_height: std::sync::atomic::AtomicU32,
     /// Last compact block (height, hash) accepted after parent-hash chaining (R2).
@@ -251,9 +251,9 @@ impl SyncEngine {
             server_endpoint,
             tls_pins,
             max_omr_failures: DEFAULT_MAX_OMR_FAILURES,
-            // Default: UnifOMR-only. Supplemental trial-decrypt is an explicit
-            // Advanced Settings opt-in (privacy leak of the scan window to LWD).
-            strict_omr_only: std::sync::atomic::AtomicBool::new(true),
+            // Default matches the mobile apps: allow supplemental trial-decrypt.
+            // Use `new_strict` / `set_strict_omr_only(true)` for UnifOMR-only.
+            strict_omr_only: std::sync::atomic::AtomicBool::new(false),
             prev_chain_tip: std::sync::atomic::AtomicU32::new(0),
             last_tip_update: std::sync::atomic::AtomicU64::new(0),
             reorg_callback: std::sync::Mutex::new(None),
@@ -838,7 +838,7 @@ mod tests {
         assert_eq!(snap.omr_failure_count, 0);
         assert_eq!(snap.status_message, "Server unreachable");
         assert_eq!(snap.sync_type_message, "Idle");
-        assert!(engine.strict_omr_only());
+        assert!(!engine.strict_omr_only());
     }
 
     #[test]
@@ -1051,10 +1051,10 @@ mod tests {
     }
 
     #[test]
-    fn test_default_strict_without_omr_is_idle() {
+    fn test_default_allows_trial_decrypt_without_omr() {
         let engine = SyncEngine::new("x".to_string());
-        assert!(engine.strict_omr_only());
-        assert_eq!(engine.choose_sync_type(), LightSyncType::Idle);
+        assert!(!engine.strict_omr_only());
+        assert_eq!(engine.choose_sync_type(), LightSyncType::TrialDecryption);
     }
 
     #[test]

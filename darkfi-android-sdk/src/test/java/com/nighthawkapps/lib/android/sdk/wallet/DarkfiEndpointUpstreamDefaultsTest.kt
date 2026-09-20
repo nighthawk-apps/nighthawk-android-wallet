@@ -18,8 +18,9 @@ class DarkfiEndpointUpstreamDefaultsTest {
         val ep = DarkfiEndpoint.defaultForNetwork(DarkfiNetwork.Testnet)
         assertEquals(443, ep.port)
         assertEquals(true, ep.isTls)
+        assertEquals(DarkfiEndpoint.STUDIO_TESTNET_LWD_HOST, ep.host)
         assertEquals(
-            "tcp+tls://epidermis-sandbox-marshland.ngrok-free.dev:443",
+            "tcp+tls://${DarkfiEndpoint.STUDIO_TESTNET_LWD_HOST}:443",
             ep.toDisplayString(),
         )
     }

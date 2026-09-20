@@ -55,6 +55,7 @@ class NativeDarkfiSynchronizer internal constructor(
     private val _omrAvailable = MutableStateFlow(false)
     private val _fallbackReason = MutableStateFlow("")
     private val _fallbackUserMessage = MutableStateFlow("")
+    private val _lastReorg = MutableStateFlow<ReorgEvent?>(null)
     private val syncScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private var syncJob: Job? = null
 
@@ -62,6 +63,8 @@ class NativeDarkfiSynchronizer internal constructor(
         handle.setReorgCallback(
             object : ReorgEventCallback {
                 override fun onReorg(event: ReorgEvent) {
+                    _lastReorg.value = event
+                    _status.value = DarkfiSyncStatus.REORG_DETECTED
                     _fallbackReason.value = "Reorg"
                     _fallbackUserMessage.value = event.summaryMessage
                     _syncStatusMessage.value = event.summaryMessage
@@ -308,33 +311,45 @@ class NativeDarkfiSynchronizer internal constructor(
     }
 
     override suspend fun refreshNow() {
-        _status.value = DarkfiSyncStatus.SYNCING
-        runCatching { handle.refreshNow() }
-            .onSuccess {
-                applySyncSnapshot(it)
-                _walletErrors.value = null
-            }.onFailure { e ->
-                android.util.Log.e("NativeDarkfiSynchronizer", "refreshNow failed", e)
-                _walletErrors.value =
-                    DarkfiWalletError.Processor(e)
-                _status.value = DarkfiSyncStatus.DISCONNECTED
-                tryMeshOfflineWallet()
-            }
-        refreshBalanceBestEffort()
-        refreshTokenBalancesBestEffort()
-        refreshTransactionsBestEffort()
-        _status.value =
-            if (_walletErrors.value != null) {
-                DarkfiSyncStatus.DISCONNECTED
+        withContext(Dispatchers.IO) {
+            _status.value = DarkfiSyncStatus.SYNCING
+            runCatching { handle.refreshNow() }
+                .onSuccess {
+                    applySyncSnapshot(it)
+                    _walletErrors.value = null
+                    _lastReorg.value = null
+                }.onFailure { e ->
+                    if (isDestroyedHandle(e)) {
+                        return@withContext
+                    }
+                    android.util.Log.e("NativeDarkfiSynchronizer", "refreshNow failed", e)
+                    _walletErrors.value =
+                        DarkfiWalletError.Processor(e)
+                    _status.value = DarkfiSyncStatus.DISCONNECTED
+                    tryMeshOfflineWallet()
+                }
+            refreshBalanceBestEffort()
+            refreshTokenBalancesBestEffort()
+            refreshTransactionsBestEffort()
+            if (_lastReorg.value != null) {
+                _status.value = DarkfiSyncStatus.REORG_DETECTED
             } else {
-                DarkfiSyncStatus.SYNCED
+                _status.value =
+                    if (_walletErrors.value != null) {
+                        DarkfiSyncStatus.DISCONNECTED
+                    } else {
+                        DarkfiSyncStatus.SYNCED
+                    }
             }
+        }
     }
 
     private fun refreshTransactionsBestEffort() {
-        runCatching { handle.listTransactions() }
-            .onSuccess { _transactions.value = DrkTransactionMapping.overviews(it) }
-            .onFailure { /* keep last known list */ }
+        try {
+            _transactions.value = DrkTransactionMapping.overviews(handle.listTransactions())
+        } catch (_: Throwable) {
+            // keep last known list (includes destroyed UniFFI handle)
+        }
     }
 
     private fun refreshBalanceBestEffort() {
@@ -342,15 +357,17 @@ class NativeDarkfiSynchronizer internal constructor(
             _balanceAtomic.value = handle.confirmedBalanceAtomic()
         } catch (_: DarkfiWalletNativeException.WalletNotInitialized) {
             _balanceAtomic.value = 0L
-        } catch (e: DarkfiWalletNativeException) {
-            _balanceAtomic.value = 0L
+        } catch (_: Throwable) {
+            // destroyed handle / transient FFI — keep last known
         }
     }
 
     private fun refreshTokenBalancesBestEffort() {
-        runCatching { handle.listTokenBalances() }
-            .onSuccess { _tokenBalances.value = DrkTokenBalanceMapping.balances(it) }
-            .onFailure { /* keep last known list */ }
+        try {
+            _tokenBalances.value = DrkTokenBalanceMapping.balances(handle.listTokenBalances())
+        } catch (_: Throwable) {
+            // keep last known list (includes destroyed UniFFI handle)
+        }
     }
 
     private fun startSyncProgressPolling() {
@@ -380,41 +397,64 @@ class NativeDarkfiSynchronizer internal constructor(
     }
 
     private fun applySyncSnapshotBestEffort() {
-        runCatching { handle.syncSnapshot() }
-            .onSuccess { applySyncSnapshot(it) }
+        try {
+            applySyncSnapshot(handle.syncSnapshot())
+        } catch (_: Throwable) {
+            // destroyed handle / transient FFI
+        }
 
         // Also read the light sync state for OMR/sync type info
-        runCatching { handle.lightSyncSnapshot() }
-            .onSuccess { lightState ->
-                _syncType.value = DarkfiSyncType.fromRustString(lightState.syncType)
-                _syncMethod.value = DarkfiSyncMethod.fromRust(lightState.syncMethod)
-                _syncStatusMessage.value = lightState.statusMessage ?: ""
-                _syncTypeMessage.value = lightState.syncTypeMessage ?: ""
-                _omrAvailable.value = lightState.omrAvailable
-                _fallbackReason.value = lightState.fallbackReason.name
-                _fallbackUserMessage.value = lightState.fallbackUserMessage
+        try {
+            val lightState = handle.lightSyncSnapshot()
+            _syncType.value = DarkfiSyncType.fromRustString(lightState.syncType)
+            _syncMethod.value = DarkfiSyncMethod.fromRust(lightState.syncMethod)
+            _omrAvailable.value = lightState.omrAvailable
+            _syncTypeMessage.value = lightState.syncTypeMessage ?: ""
 
-                // Map light sync status to DarkfiSyncStatus.
-                // Uses lightState.status (LightSyncStatus enum Display output:
-                // "Disconnected", "Connecting", "Syncing", etc.) — NOT
-                // lightState.statusMessage which contains free-text like
-                // "Syncing block 42 of 1000" that would never match.
-                _status.value =
-                    if (lightState.protoVersionMismatch) {
-                        DarkfiSyncStatus.PROTO_MISMATCH
-                    } else {
-                        when (lightState.status) {
-                            "Disconnected" -> DarkfiSyncStatus.DISCONNECTED
-                            "Connecting" -> DarkfiSyncStatus.CONNECTING
-                            "Syncing" -> DarkfiSyncStatus.SYNCING
-                            "Synced" -> DarkfiSyncStatus.SYNCED
-                            "Retrying" -> DarkfiSyncStatus.RETRYING
-                            "Degraded" -> DarkfiSyncStatus.DEGRADED
-                            "Error" -> DarkfiSyncStatus.ERROR
-                            else -> _status.value
-                        }
-                    }
+            val reorg = _lastReorg.value
+            if (reorg != null) {
+                // Sticky reorg banner: snapshot polling must not clobber REORG_DETECTED
+                // or the reorg summary until refreshNow clears _lastReorg.
+                _status.value = DarkfiSyncStatus.REORG_DETECTED
+                _fallbackReason.value = "Reorg"
+                _fallbackUserMessage.value = reorg.summaryMessage
+                _syncStatusMessage.value = reorg.summaryMessage
+                return
             }
+
+            _syncStatusMessage.value = lightState.statusMessage ?: ""
+            _fallbackReason.value = lightState.fallbackReason.name
+            _fallbackUserMessage.value = lightState.fallbackUserMessage
+
+            // Map light sync status to DarkfiSyncStatus.
+            // Uses lightState.status (LightSyncStatus enum Display output:
+            // "Disconnected", "Connecting", "Syncing", etc.) — NOT
+            // lightState.statusMessage which contains free-text like
+            // "Syncing block 42 of 1000" that would never match.
+            _status.value =
+                if (lightState.protoVersionMismatch) {
+                    DarkfiSyncStatus.PROTO_MISMATCH
+                } else {
+                    when (lightState.status) {
+                        "Disconnected" -> DarkfiSyncStatus.DISCONNECTED
+                        "Connecting" -> DarkfiSyncStatus.CONNECTING
+                        "Syncing" -> DarkfiSyncStatus.SYNCING
+                        "Synced" -> DarkfiSyncStatus.SYNCED
+                        "Retrying" -> DarkfiSyncStatus.RETRYING
+                        "Degraded" -> DarkfiSyncStatus.DEGRADED
+                        "Error" -> DarkfiSyncStatus.ERROR
+                        else -> _status.value
+                    }
+                }
+        } catch (_: Throwable) {
+            // destroyed handle / transient FFI
+        }
+    }
+
+    private fun isDestroyedHandle(error: Throwable): Boolean {
+        val message = error.message.orEmpty()
+        return error is IllegalStateException &&
+            message.contains("already been destroyed", ignoreCase = true)
     }
 
     private fun applySyncSnapshot(snapshot: DrkSyncSnapshot) {

@@ -8,6 +8,6 @@ halo2_gadgets = { git = "https://github.com/parazyd/halo2", branch = "v050" }
 url = { git = "https://github.com/darkrenaissance/rust-url", branch = "v258" }
 
 [profile.release]
-opt-level = 0
-lto = false
-strip = "none"
+opt-level = 3
+lto = "thin"
+strip = "symbols"

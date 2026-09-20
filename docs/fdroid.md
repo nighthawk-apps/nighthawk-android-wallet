@@ -36,7 +36,25 @@ srclib SHA edit.
 
 Tagging alone does **not** run this repo’s GitHub `Deploy` workflow (that is branch/`workflow_dispatch` + Play secrets). F-Droid’s scanner is separate.
 
-## 3.00.013 (this release)
+## 3.00.014 (this release)
+
+| Field | Value |
+|-------|--------|
+| `WALLET_VERSION_NAME` | `3.00.014` |
+| `WALLET_VERSION_CODE` | `30001814` |
+| Suggested git tag | `v3.00.014` |
+| Fastlane changelog | `fastlane/metadata/android/en-US/changelogs/30001814.txt` |
+| Local F-Droid APK | `bundle exec fastlane fdroid` → `assembleDarkfitestnetRelease` (unsigned) |
+| DarkFi pin | `f0978c22242267b5684e6b8334cdf063652d2b37` (`nighthawk-testnet`) |
+
+What's new for testers:
+
+- DarkFi pin includes public `Drk::scan_block`, `scan_blocks` without `progress_pub`, and darkfid sync hardening.
+- Native FFI 0.2.1 (tower 0.5). Lightwalletd proto comments match tip-only checkpoints.
+
+After tagging, update the fdroiddata recipe only if the checkout branch / submodule SHAs changed. `UpdateCheckData` on `gradle.properties` should pick up `30001814` automatically.
+
+## 3.00.013
 
 | Field | Value |
 |-------|--------|
