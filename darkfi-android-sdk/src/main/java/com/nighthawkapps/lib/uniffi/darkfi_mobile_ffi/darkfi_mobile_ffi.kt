@@ -651,7 +651,7 @@ internal interface UniffiForeignFutureCompleteVoid : com.sun.jna.Callback {
     fun callback(`callbackData`: Long,`result`: UniffiForeignFutureResultVoid.UniffiByValue,)
 }
 internal interface UniffiCallbackInterfaceDarkircEventCallbackMethod0 : com.sun.jna.Callback {
-    fun callback(`uniffiHandle`: Long,`eventId`: RustBuffer.ByValue,`channel`: RustBuffer.ByValue,`nick`: RustBuffer.ByValue,`message`: RustBuffer.ByValue,`timestamp`: Long,`uniffiOutReturn`: Pointer,uniffiCallStatus: UniffiRustCallStatus,)
+    fun callback(`uniffiHandle`: Long,`eventId`: RustBuffer.ByValue,`channel`: RustBuffer.ByValue,`nick`: RustBuffer.ByValue,`message`: RustBuffer.ByValue,`timestamp`: Long,`isOutgoing`: Byte,`uniffiOutReturn`: Pointer,uniffiCallStatus: UniffiRustCallStatus,)
 }
 internal interface UniffiCallbackInterfaceReorgEventCallbackMethod0 : com.sun.jna.Callback {
     fun callback(`uniffiHandle`: Long,`event`: RustBuffer.ByValue,`uniffiOutReturn`: Pointer,uniffiCallStatus: UniffiRustCallStatus,)
@@ -1162,7 +1162,7 @@ private fun uniffiCheckApiChecksums(lib: IntegrityCheckingUniffiLib) {
     if (lib.uniffi_darkfi_mobile_ffi_checksum_constructor_darkfiwallethandle_new() != 8185) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_darkfi_mobile_ffi_checksum_method_darkirceventcallback_on_message() != 64769) {
+    if (lib.uniffi_darkfi_mobile_ffi_checksum_method_darkirceventcallback_on_message() != 10857) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if (lib.uniffi_darkfi_mobile_ffi_checksum_method_reorgeventcallback_on_reorg() != 9856) {
@@ -3148,7 +3148,7 @@ public object FfiConverterTypeSyncMethod: FfiConverterRustBuffer<SyncMethod> {
 
 public interface DarkircEventCallback {
     
-    fun `onMessage`(`eventId`: kotlin.String, `channel`: kotlin.String, `nick`: kotlin.String, `message`: kotlin.String, `timestamp`: kotlin.ULong)
+    fun `onMessage`(`eventId`: kotlin.String, `channel`: kotlin.String, `nick`: kotlin.String, `message`: kotlin.String, `timestamp`: kotlin.ULong, `isOutgoing`: kotlin.Boolean)
     
     companion object
 }
@@ -3158,7 +3158,7 @@ public interface DarkircEventCallback {
 // Put the implementation in an object so we don't pollute the top-level namespace
 internal object uniffiCallbackInterfaceDarkircEventCallback {
     internal object `onMessage`: UniffiCallbackInterfaceDarkircEventCallbackMethod0 {
-        override fun callback(`uniffiHandle`: Long,`eventId`: RustBuffer.ByValue,`channel`: RustBuffer.ByValue,`nick`: RustBuffer.ByValue,`message`: RustBuffer.ByValue,`timestamp`: Long,`uniffiOutReturn`: Pointer,uniffiCallStatus: UniffiRustCallStatus,) {
+        override fun callback(`uniffiHandle`: Long,`eventId`: RustBuffer.ByValue,`channel`: RustBuffer.ByValue,`nick`: RustBuffer.ByValue,`message`: RustBuffer.ByValue,`timestamp`: Long,`isOutgoing`: Byte,`uniffiOutReturn`: Pointer,uniffiCallStatus: UniffiRustCallStatus,) {
             val uniffiObj = FfiConverterTypeDarkircEventCallback.handleMap.get(uniffiHandle)
             val makeCall = { ->
                 uniffiObj.`onMessage`(
@@ -3167,6 +3167,7 @@ internal object uniffiCallbackInterfaceDarkircEventCallback {
                     FfiConverterString.lift(`nick`),
                     FfiConverterString.lift(`message`),
                     FfiConverterULong.lift(`timestamp`),
+                    FfiConverterBoolean.lift(`isOutgoing`),
                 )
             }
             val writeReturn = { _: Unit -> Unit }
@@ -3564,9 +3565,7 @@ public object FfiConverterSequenceTypeDrkTransactionRecord: FfiConverterRustBuff
             FfiConverterTypeDrkTransactionRecord.write(it, buf)
         }
     }
-}
-
-fun `bridgePing`(): kotlin.String {
+} fun `bridgePing`(): kotlin.String {
             return FfiConverterString.lift(
     uniffiRustCall() { _status ->
     UniffiLib.uniffi_darkfi_mobile_ffi_fn_func_bridge_ping(

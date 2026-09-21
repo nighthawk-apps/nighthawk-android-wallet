@@ -36,7 +36,23 @@ srclib SHA edit.
 
 Tagging alone does **not** run this repo’s GitHub `Deploy` workflow (that is branch/`workflow_dispatch` + Play secrets). F-Droid’s scanner is separate.
 
-## 3.00.014 (this release)
+## 3.00.015 (this release)
+
+| Field | Value |
+|-------|--------|
+| `WALLET_VERSION_NAME` | `3.00.015` |
+| `WALLET_VERSION_CODE` | `30001815` |
+| Suggested git tag | `v3.00.015` |
+| Fastlane changelog | `fastlane/metadata/android/en-US/changelogs/30001815.txt` |
+| Local F-Droid APK | `bundle exec fastlane fdroid` → `assembleDarkfitestnetRelease` (unsigned) |
+| DarkFi pin | `f0978c22242267b5684e6b8334cdf063652d2b37` (`nighthawk-testnet`) |
+
+What's new for testers:
+
+- Fable 5.1 follow-ups: DarkFi mnemonic seed-prefix validation, tx direction from net atomic, chat `isOutgoing` from FFI (Android UI no longer nick-spoofs).
+- Payment memo/recipient meta encrypted at rest; broadcast failures clear pending sent markers.
+
+## 3.00.014
 
 | Field | Value |
 |-------|--------|

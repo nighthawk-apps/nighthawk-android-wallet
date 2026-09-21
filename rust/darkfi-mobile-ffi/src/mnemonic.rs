@@ -212,8 +212,9 @@ impl DarkfiMnemonic {
     }
 
     pub fn mnemonic_decode(&self, seed: &str) -> Result<BigUint, MnemonicError> {
+        let normalized = normalize_text(seed);
         let n = BigUint::from(self.wordlist.len());
-        let mut words: Vec<&str> = seed.split_whitespace().collect();
+        let mut words: Vec<&str> = normalized.split_whitespace().collect();
         let mut i = BigUint::zero();
         while let Some(w) = words.pop() {
             let k = self
@@ -262,6 +263,22 @@ impl DarkfiMnemonic {
         }
         Ok(seed)
     }
+}
+
+/// Validates if a mnemonic seed is a valid DarkFi seed:
+/// 1. Exactly 22 whitespace-separated words
+/// 2. All words exist in the wordlist
+/// 3. Matches the DarkFi standard seed version prefix (HMAC-SHA512("Seed version", seed)[0] == 0x01)
+pub fn is_valid_darkfi_seed(seed: &str) -> bool {
+    let normalized = normalize_text(seed);
+    if normalized.split_whitespace().count() != 22 {
+        return false;
+    }
+    let mnemonic_engine = DarkfiMnemonic::default();
+    if mnemonic_engine.mnemonic_decode(&normalized).is_err() {
+        return false;
+    }
+    is_new_seed(&normalized, SeedPrefix::Standard)
 }
 
 fn hmac_oneshot(key: &[u8], msg: &[u8]) -> Vec<u8> {

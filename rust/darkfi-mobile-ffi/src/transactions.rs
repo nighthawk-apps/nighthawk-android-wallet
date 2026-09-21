@@ -545,34 +545,57 @@ async fn decrypt_user_memo_from_tx(drk: &Drk, tx: &Transaction) -> Result<Option
     Ok(None)
 }
 
+pub(crate) fn is_outgoing_transaction(
+    net_atomic: i64,
+    status: &str,
+    has_recipient: bool,
+    has_sent_scheme: bool,
+) -> bool {
+    net_atomic < 0
+        || (net_atomic == 0 && (status == "Broadcasted" || has_recipient || has_sent_scheme))
+}
+
 pub async fn list_transaction_history(drk: &Drk) -> Result<Vec<DrkTransactionRecord>, String> {
     let rows = drk.get_txs_history().await.map_err(|e| e.to_string())?;
     let mut records = Vec::with_capacity(rows.len());
 
     for (tx_hash, status, block_height) in rows {
-        let is_sent = status == "Broadcasted";
+        let recipient_address = outgoing_recipient(drk, &tx_hash);
+        let has_sent_scheme = SENT_SYNC_SCHEMES
+            .read()
+            .ok()
+            .map(|map| map.contains_key(&tx_hash))
+            .unwrap_or(false);
+
         let mut fee_atomic = 0i64;
         let mut net_atomic = 0i64;
-        let contract_summary = match drk.get_tx_history_record(&tx_hash).await {
-            Ok((_, _, _, tx)) => {
-                fee_atomic = drk
-                    .get_tx_fee(&tx, true)
-                    .await
-                    .ok()
-                    .and_then(|f| i64::try_from(f).ok())
-                    .unwrap_or(0);
-                net_atomic = net_value_atomic(drk, &tx).await.unwrap_or(0);
-                contract_summary_for_tx(&tx)
+        let mut summary_opt = None;
+
+        if let Ok((_, _, _, tx)) = drk.get_tx_history_record(&tx_hash).await {
+            fee_atomic = drk
+                .get_tx_fee(&tx, true)
+                .await
+                .ok()
+                .and_then(|f| i64::try_from(f).ok())
+                .unwrap_or(0);
+            net_atomic = net_value_atomic(drk, &tx).await.unwrap_or(0);
+            summary_opt = Some(contract_summary_for_tx(&tx));
+        }
+
+        let is_sent = is_outgoing_transaction(
+            net_atomic,
+            &status,
+            recipient_address.is_some(),
+            has_sent_scheme,
+        );
+
+        let contract_summary = summary_opt.unwrap_or_else(|| {
+            if is_sent {
+                "Outgoing transfer".to_string()
+            } else {
+                "Transaction".to_string()
             }
-            Err(_) => {
-                if is_sent {
-                    "Outgoing transfer".to_string()
-                } else {
-                    "Transaction".to_string()
-                }
-            }
-        };
-        let recipient_address = outgoing_recipient(drk, &tx_hash);
+        });
 
         // Resolve how this tx was discovered/built: sent txs carry the OMR
         // scheme we embedded (UnifOMR); received txs may have no
@@ -786,5 +809,24 @@ mod tests {
             "paper clue under registered pk must decrypt within R_PRIME (got max={max}, R_PRIME={})",
             crate::unifomr::R_PRIME
         );
+    }
+
+    #[test]
+    fn test_is_outgoing_transaction_determination() {
+        // Confirmed transaction with negative net balance is outgoing regardless of status string.
+        assert!(is_outgoing_transaction(-5000, "Confirmed", false, false));
+        assert!(is_outgoing_transaction(-1, "Mined", false, false));
+
+        // Incoming transaction with positive net balance is NOT outgoing even if broadcasted.
+        assert!(!is_outgoing_transaction(10000, "Confirmed", false, false));
+        assert!(!is_outgoing_transaction(10000, "Broadcasted", false, false));
+
+        // Net zero but has recipient or sent scheme or broadcasted pending.
+        assert!(is_outgoing_transaction(0, "Broadcasted", false, false));
+        assert!(is_outgoing_transaction(0, "Confirmed", true, false));
+        assert!(is_outgoing_transaction(0, "Confirmed", false, true));
+
+        // Net zero without outgoing markers is not outgoing.
+        assert!(!is_outgoing_transaction(0, "Confirmed", false, false));
     }
 }

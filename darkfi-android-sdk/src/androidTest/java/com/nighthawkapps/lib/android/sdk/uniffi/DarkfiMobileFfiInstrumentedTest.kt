@@ -69,6 +69,7 @@ class DarkfiMobileFfiInstrumentedTest {
                 nick: String,
                 message: String,
                 timestamp: ULong,
+                isOutgoing: Boolean,
             ) {
                 // Ignore
             }
@@ -126,6 +127,7 @@ class DarkfiMobileFfiInstrumentedTest {
                 nick: String,
                 message: String,
                 timestamp: ULong,
+                isOutgoing: Boolean,
             ) {
                 if (message.contains(token)) {
                     received.set(Triple(channel, nick, message))

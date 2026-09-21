@@ -46,7 +46,7 @@ namespace darkfi_mobile_ffi {
 };
 
 callback interface DarkircEventCallback {
-    void on_message(string event_id, string channel, string nick, string message, u64 timestamp);
+    void on_message(string event_id, string channel, string nick, string message, u64 timestamp, boolean is_outgoing);
 };
 
 dictionary DmKeypair {

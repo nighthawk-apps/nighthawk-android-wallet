@@ -55,6 +55,7 @@ pub trait DarkircEventCallback: Send + Sync {
         nick: String,
         message: String,
         timestamp: u64,
+        is_outgoing: bool,
     );
 }
 
@@ -1141,9 +1142,11 @@ pub fn generate_bip39_chat_mnemonic() -> Vec<String> {
 
 /// Validates a DarkFi mnemonic phrase.
 pub fn validate_darkfi_mnemonic(phrase: Vec<String>) -> bool {
+    if phrase.len() != 22 {
+        return false;
+    }
     let phrase_str = phrase.join(" ");
-    let mnemonic_engine = mnemonic::DarkfiMnemonic::default();
-    mnemonic_engine.mnemonic_decode(&phrase_str).is_ok()
+    mnemonic::is_valid_darkfi_seed(&phrase_str)
 }
 
 /// Decodes 12-word phrase to entropy bytes if valid.
@@ -1159,6 +1162,7 @@ pub fn decode_chat_entropy(phrase: Vec<String>) -> Option<Vec<u8>> {
         None
     }
 }
+
 
 /// ChaChaBox DM keypair (base58-encoded secret + public keys).
 #[derive(Debug, Clone)]
@@ -1404,6 +1408,28 @@ mod tests {
             "not".into(),
             "valid".into()
         ]));
+    }
+
+    #[test]
+    fn mnemonic_validation_rejects_wrong_length_or_invalid_seed_prefix() {
+        // Valid dictionary words, but 22 arbitrary words that lack the DarkFi standard version prefix
+        let arbitrary_words: Vec<String> = vec![
+            "abandon", "ability", "able", "about", "above", "absent", "absorb", "abstract",
+            "absurd", "abuse", "access", "accident", "account", "accuse", "achieve", "acid",
+            "acoustic", "acquire", "across", "act", "action", "actor",
+        ]
+        .into_iter()
+        .map(|s| s.to_string())
+        .collect();
+        assert!(
+            !validate_darkfi_mnemonic(arbitrary_words),
+            "Arbitrary 22 dictionary words without 0x01 version prefix must be rejected"
+        );
+
+        // Wrong word count
+        let mut truncated = generate_darkfi_mnemonic();
+        truncated.pop();
+        assert!(!validate_darkfi_mnemonic(truncated));
     }
 
     #[test]

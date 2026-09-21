@@ -946,7 +946,8 @@ private fun ChatMessageLine(
     onLongPress: () -> Unit,
     onFudTap: (String) -> Unit,
 ) {
-    val isOwn = ChatChrome.isOwnNick(line.nick, myNick)
+    // Trust FFI isOutgoing only — nick string compare is spoofable (Fable 5.1 Fix 3).
+    val isOwn = line.isOutgoing
     val nickColor = Color(ChatChrome.nickArgb(line.nick, myNick))
     val bodyColor = Color(ChatChrome.bodyArgb(isOwn))
     val time = ChatTimeline.gutterTime(line.timestampMs)

@@ -3,7 +3,7 @@
 **Audit date:** 2026-09-20  
 **Model:** Claude Fable 5.1  
 **Review date:** 2026-09-21  
-**Shipped:** app `3.00.014` / `WALLET_VERSION_CODE=30001814`; FFI `darkfi-mobile-ffi` 0.2.1  
+**Shipped:** app `3.00.015` / `WALLET_VERSION_CODE=30001815`; FFI `darkfi-mobile-ffi` 0.2.2  
 
 Full auditor transcripts:
 
@@ -42,14 +42,14 @@ Full auditor transcripts:
 | 1.1 | Reorg callback deadlock | **FIXED** | Collect reorg → `drop(drk_guard)` → callback |
 | 1.2 | Send needs darkfid | **FIXED** | `set_zkas_lookup_fallback` / LWD `LookupZkas` |
 | 1.3 | `generate_new_address` = random key | **FIXED** | HD via `bootstrap::generate_hd_address` |
-| 1.4 | Plaintext memos in unencrypted kvdb | **PENDING** | Still stores payment meta locally |
-| 1.5 | Broadcast timeout keeps SENT meta | **PARTIAL** | History write path improved; timeout edge cases review |
-| 1.6 | No `put_tx_history_record` | **FIXED** | `put_tx_history_record(..., "Broadcasted")` |
+| 1.4 | Plaintext memos in unencrypted kvdb | **FIXED** | `wrap_payment_meta` / `unwrap_payment_meta` XChaCha20-Poly1305 encryption (`sync.rs`) |
+| 1.5 | Broadcast timeout keeps SENT meta | **FIXED** | Pending marker removed on broadcast error (`transactions.rs:424-425`) |
+| 1.6 | No `put_tx_history_record` | **FIXED** | `put_tx_history_record(..., "Broadcasted")`; `is_sent` derived from negative net atomic (`transactions.rs`) |
 | 1.7 | Mesh wipe → all-zero key | **FIXED** | `identity::wipe` regenerates via RNG after zeroize |
 | 1.8 | `recv_seq` before AEAD | **FIXED** | Decrypt / seq check ordering in `mesh/session.rs` |
 | 1.9 | Tor onion disabled | **FIXED** | `allow_onion_addrs(true)` / `connect_to_onion_services` |
-| 1.10 | ~1/2048 mnemonics 21 words | **PENDING** | Confirm encoder always emits 22 |
-| 1.11 | DM channel/nick plaintext | **FIXED** | Saltbox encrypts channel + nick + msg |
+| 1.10 | ~1/2048 mnemonics 21 words / validation bypass | **FIXED** | `make_seed` enforces 22 words; `validate_darkfi_mnemonic` verifies count + `is_new_seed` prefix |
+| 1.11 | DM channel/nick plaintext | **FIXED** | Saltbox encrypts channel + nick + msg; `is_outgoing` via FFI; AndroidChat uses `line.isOutgoing` |
 | 1.12 | Release `opt-level=0` | **FIXED** | Same as A1.3 |
 
 ## SHOULD-FIX / process

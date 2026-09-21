@@ -40,6 +40,7 @@ data class ChatChannelMessage(
     val nick: String,
     val text: String,
     val timestampMs: Long,
+    val isOutgoing: Boolean = false,
 )
 
 /**
@@ -212,7 +213,8 @@ class DarkfiChatController(
                         channel: String,
                         nick: String,
                         message: String,
-                        timestamp: ULong
+                        timestamp: ULong,
+                        isOutgoing: Boolean,
                     ) {
                         val rawMsg =
                             ChatChannelMessage(
@@ -220,7 +222,8 @@ class DarkfiChatController(
                                 channel = channel,
                                 nick = nick,
                                 text = message,
-                                timestampMs = timestamp.toLong()
+                                timestampMs = timestamp.toLong(),
+                                isOutgoing = isOutgoing,
                             )
                         ingestIncomingMessage(rawMsg)
                     }

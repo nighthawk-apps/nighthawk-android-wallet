@@ -21,9 +21,10 @@ fn dispatch_darkirc_message(
     nick: String,
     message: String,
     timestamp: u64,
+    is_outgoing: bool,
 ) {
     let _ = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-        cb.on_message(event_id, channel, nick, message, timestamp);
+        cb.on_message(event_id, channel, nick, message, timestamp, is_outgoing);
     }));
 }
 
@@ -758,6 +759,7 @@ fn send_chat_message_inner(
                     nick.clone(),
                     message,
                     event_ts,
+                    true,
                 );
             }
 
@@ -995,6 +997,7 @@ async fn run_darkirc_daemon(
                         privmsg.nick,
                         privmsg.msg,
                         ev.header.timestamp,
+                        false,
                     );
                 }
             }
@@ -1104,6 +1107,7 @@ async fn run_darkirc_daemon(
                         privmsg.nick,
                         privmsg.msg,
                         ev.header.timestamp,
+                        false,
                     );
                 }
             }

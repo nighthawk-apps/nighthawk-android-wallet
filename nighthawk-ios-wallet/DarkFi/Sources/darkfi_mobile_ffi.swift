@@ -39,6 +39,52 @@ fileprivate extension ForeignBytes {
     init(bufferPointer: UnsafeBufferPointer<UInt8>) {
         self.init(len: Int32(bufferPointer.count), data: bufferPointer.baseAddress)
     }
+
+    init(rawBufferPointer: UnsafeRawBufferPointer) {
+        self.init(
+            len: Int32(rawBufferPointer.count),
+            data: rawBufferPointer.baseAddress?.assumingMemoryBound(to: UInt8.self)
+        )
+    }
+}
+
+// Converter for `&[u8]` / `[ByRef] bytes` arguments.
+//
+// Conforms to `FfiConverter` so the compiler enforces the full converter
+// method set. Only the scope-bound `lower(_:_body:)` overload is sound —
+// zero-copy byte buffers only flow foreign -> Rust, and only in argument
+// position. The four protocol-witness methods (`lift`, `lower`, `read`,
+// `write`) `fatalError` at runtime if anyone reaches them.
+//
+// The scope-bound `lower` takes a closure because the `ForeignBytes`
+// pointer is only guaranteed valid for the duration of
+// `Data.withUnsafeBytes`. Callers must run the full FFI call inside
+// the closure body.
+fileprivate enum FfiConverterByRefBytes: FfiConverter {
+    typealias SwiftType = Data
+    typealias FfiType = ForeignBytes
+
+    static func lower<R>(_ value: Data, _ body: (ForeignBytes) throws -> R) rethrows -> R {
+        return try value.withUnsafeBytes { rawBuf in
+            try body(ForeignBytes(rawBufferPointer: rawBuf))
+        }
+    }
+
+    static func lower(_ value: Data) -> ForeignBytes {
+        fatalError("ByRef bytes cannot use the plain lower: returning ForeignBytes escapes the Data.withUnsafeBytes scope. Use the scope-bound lower(_:_body:) overload instead.")
+    }
+
+    static func lift(_ value: ForeignBytes) throws -> Data {
+        fatalError("ByRef bytes cannot be lifted: zero-copy &[u8] only flows foreign->Rust")
+    }
+
+    static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> Data {
+        fatalError("ByRef bytes cannot be read from a buffer: zero-copy &[u8] is only supported in argument position, not nested in records/options/etc.")
+    }
+
+    static func write(_ value: Data, into buf: inout [UInt8]) {
+        fatalError("ByRef bytes cannot be written to a buffer: zero-copy &[u8] is only supported in argument position, not nested in records/options/etc.")
+    }
 }
 
 // For every type used in the interface, we provide helper methods for conveniently
@@ -557,7 +603,11 @@ fileprivate struct FfiConverterString: FfiConverter {
             return String()
         }
         let bytes = UnsafeBufferPointer<UInt8>(start: value.data!, count: Int(value.len))
-        return String(bytes: bytes, encoding: String.Encoding.utf8)!
+        // Use Swift's native UTF-8 decoder; `String(bytes:encoding:.utf8)` goes
+        // through Foundation's NSString and silently strips a leading U+FEFF BOM.
+        // Invalid UTF-8 substitutes U+FFFD instead of trapping (unreachable
+        // given Rust's `String` invariant).
+        return String(decoding: bytes, as: UTF8.self)
     }
 
     public static func lower(_ value: String) -> RustBuffer {
@@ -573,7 +623,8 @@ fileprivate struct FfiConverterString: FfiConverter {
 
     public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> String {
         let len: Int32 = try readInt(&buf)
-        return String(bytes: try readBytes(&buf, count: Int(len)), encoding: String.Encoding.utf8)!
+        // See `lift` above for why we avoid Foundation's NSString-backed decoder here.
+        return String(decoding: try readBytes(&buf, count: Int(len)), as: UTF8.self)
     }
 
     public static func write(_ value: String, into buf: inout [UInt8]) {
@@ -594,11 +645,22 @@ public protocol DarkfiWalletHandleProtocol: AnyObject, Sendable {
     
     func confirmedBalanceAtomic() throws  -> Int64
     
+    func daoProposeTransfer(daoName: String, durationBlockwindows: UInt64, amount: String, tokenId: String?, recipientAddress: String) throws  -> String
+    
+    func daoVote(proposalBullaB58: String, voteYes: Bool) throws  -> String
+    
     func estimateTransferFee(recipientAddress: String, amount: String, tokenId: String?, paymentMemo: String?) throws  -> Int64
     
     func generateNewAddress() throws  -> String
     
     func getProposal(proposalBullaB58: String) throws  -> DrkDaoProposalDetail
+    
+    /**
+     * Handle a detected chain reorganization: rewinds state, invalidates
+     * transactions above the fork point, re-scans affected blocks, and
+     * returns a ReorgEvent describing what changed.
+     */
+    func handleReorgRecovery(rewindToHeight: UInt32) throws  -> ReorgEvent
     
     func lightSyncSnapshot()  -> DrkLightSyncState
     
@@ -615,6 +677,22 @@ public protocol DarkfiWalletHandleProtocol: AnyObject, Sendable {
     func primaryDepositAddress() throws  -> String
     
     func refreshNow() throws  -> DrkSyncSnapshot
+    
+    /**
+     * Register a callback for chain reorganization events.
+     * The callback fires when reorg is detected during sync.
+     */
+    func setReorgCallback(callback: ReorgEventCallback?) 
+    
+    /**
+     * Enable or disable strict UnifOMR-only sync (no trial-decrypt fallback).
+     */
+    func setStrictOmrOnly(strict: Bool) 
+    
+    /**
+     * Whether strict UnifOMR-only sync is currently enabled.
+     */
+    func strictOmrOnly()  -> Bool
     
     func syncSnapshot() throws  -> DrkSyncSnapshot
     
@@ -665,8 +743,9 @@ open class DarkfiWalletHandle: DarkfiWalletHandleProtocol, @unchecked Sendable {
 public convenience init(config: DrkBootstrapConfig)throws  {
     let handle =
         try rustCallWithError(FfiConverterTypeDarkfiWalletNativeError_lift) {
+        uniffiCallStatus in
     uniffi_darkfi_mobile_ffi_fn_constructor_darkfiwallethandle_new(
-        FfiConverterTypeDrkBootstrapConfig_lower(config),$0
+        FfiConverterTypeDrkBootstrapConfig_lower(config),uniffiCallStatus
     )
 }
     self.init(unsafeFromHandle: handle)
@@ -686,151 +765,245 @@ public convenience init(config: DrkBootstrapConfig)throws  {
     
 open func broadcastTransfer(txBytes: [UInt8], paymentMemo: String?, recipientAddress: String?)throws  -> String  {
     return try  FfiConverterString.lift(try rustCallWithError(FfiConverterTypeDarkfiWalletNativeError_lift) {
+        uniffiCallStatus in
     uniffi_darkfi_mobile_ffi_fn_method_darkfiwallethandle_broadcast_transfer(
             self.uniffiCloneHandle(),
         FfiConverterSequenceUInt8.lower(txBytes),
         FfiConverterOptionString.lower(paymentMemo),
-        FfiConverterOptionString.lower(recipientAddress),$0
+        FfiConverterOptionString.lower(recipientAddress),uniffiCallStatus
     )
 })
 }
     
 open func buildTransfer(recipientAddress: String, amount: String, tokenId: String?, paymentMemo: String?)throws  -> [UInt8]  {
     return try  FfiConverterSequenceUInt8.lift(try rustCallWithError(FfiConverterTypeDarkfiWalletNativeError_lift) {
+        uniffiCallStatus in
     uniffi_darkfi_mobile_ffi_fn_method_darkfiwallethandle_build_transfer(
             self.uniffiCloneHandle(),
         FfiConverterString.lower(recipientAddress),
         FfiConverterString.lower(amount),
         FfiConverterOptionString.lower(tokenId),
-        FfiConverterOptionString.lower(paymentMemo),$0
+        FfiConverterOptionString.lower(paymentMemo),uniffiCallStatus
     )
 })
 }
     
 open func confirmedBalanceAtomic()throws  -> Int64  {
     return try  FfiConverterInt64.lift(try rustCallWithError(FfiConverterTypeDarkfiWalletNativeError_lift) {
+        uniffiCallStatus in
     uniffi_darkfi_mobile_ffi_fn_method_darkfiwallethandle_confirmed_balance_atomic(
-            self.uniffiCloneHandle(),$0
+            self.uniffiCloneHandle(),uniffiCallStatus
+    )
+})
+}
+    
+open func daoProposeTransfer(daoName: String, durationBlockwindows: UInt64, amount: String, tokenId: String?, recipientAddress: String)throws  -> String  {
+    return try  FfiConverterString.lift(try rustCallWithError(FfiConverterTypeDarkfiWalletNativeError_lift) {
+        uniffiCallStatus in
+    uniffi_darkfi_mobile_ffi_fn_method_darkfiwallethandle_dao_propose_transfer(
+            self.uniffiCloneHandle(),
+        FfiConverterString.lower(daoName),
+        FfiConverterUInt64.lower(durationBlockwindows),
+        FfiConverterString.lower(amount),
+        FfiConverterOptionString.lower(tokenId),
+        FfiConverterString.lower(recipientAddress),uniffiCallStatus
+    )
+})
+}
+    
+open func daoVote(proposalBullaB58: String, voteYes: Bool)throws  -> String  {
+    return try  FfiConverterString.lift(try rustCallWithError(FfiConverterTypeDarkfiWalletNativeError_lift) {
+        uniffiCallStatus in
+    uniffi_darkfi_mobile_ffi_fn_method_darkfiwallethandle_dao_vote(
+            self.uniffiCloneHandle(),
+        FfiConverterString.lower(proposalBullaB58),
+        FfiConverterBool.lower(voteYes),uniffiCallStatus
     )
 })
 }
     
 open func estimateTransferFee(recipientAddress: String, amount: String, tokenId: String?, paymentMemo: String?)throws  -> Int64  {
     return try  FfiConverterInt64.lift(try rustCallWithError(FfiConverterTypeDarkfiWalletNativeError_lift) {
+        uniffiCallStatus in
     uniffi_darkfi_mobile_ffi_fn_method_darkfiwallethandle_estimate_transfer_fee(
             self.uniffiCloneHandle(),
         FfiConverterString.lower(recipientAddress),
         FfiConverterString.lower(amount),
         FfiConverterOptionString.lower(tokenId),
-        FfiConverterOptionString.lower(paymentMemo),$0
+        FfiConverterOptionString.lower(paymentMemo),uniffiCallStatus
     )
 })
 }
     
 open func generateNewAddress()throws  -> String  {
     return try  FfiConverterString.lift(try rustCallWithError(FfiConverterTypeDarkfiWalletNativeError_lift) {
+        uniffiCallStatus in
     uniffi_darkfi_mobile_ffi_fn_method_darkfiwallethandle_generate_new_address(
-            self.uniffiCloneHandle(),$0
+            self.uniffiCloneHandle(),uniffiCallStatus
     )
 })
 }
     
 open func getProposal(proposalBullaB58: String)throws  -> DrkDaoProposalDetail  {
     return try  FfiConverterTypeDrkDaoProposalDetail_lift(try rustCallWithError(FfiConverterTypeDarkfiWalletNativeError_lift) {
+        uniffiCallStatus in
     uniffi_darkfi_mobile_ffi_fn_method_darkfiwallethandle_get_proposal(
             self.uniffiCloneHandle(),
-        FfiConverterString.lower(proposalBullaB58),$0
+        FfiConverterString.lower(proposalBullaB58),uniffiCallStatus
+    )
+})
+}
+    
+    /**
+     * Handle a detected chain reorganization: rewinds state, invalidates
+     * transactions above the fork point, re-scans affected blocks, and
+     * returns a ReorgEvent describing what changed.
+     */
+open func handleReorgRecovery(rewindToHeight: UInt32)throws  -> ReorgEvent  {
+    return try  FfiConverterTypeReorgEvent_lift(try rustCallWithError(FfiConverterTypeDarkfiWalletNativeError_lift) {
+        uniffiCallStatus in
+    uniffi_darkfi_mobile_ffi_fn_method_darkfiwallethandle_handle_reorg_recovery(
+            self.uniffiCloneHandle(),
+        FfiConverterUInt32.lower(rewindToHeight),uniffiCallStatus
     )
 })
 }
     
 open func lightSyncSnapshot() -> DrkLightSyncState  {
     return try!  FfiConverterTypeDrkLightSyncState_lift(try! rustCall() {
+        uniffiCallStatus in
     uniffi_darkfi_mobile_ffi_fn_method_darkfiwallethandle_light_sync_snapshot(
-            self.uniffiCloneHandle(),$0
+            self.uniffiCloneHandle(),uniffiCallStatus
     )
 })
 }
     
 open func listAddresses()throws  -> [String]  {
     return try  FfiConverterSequenceString.lift(try rustCallWithError(FfiConverterTypeDarkfiWalletNativeError_lift) {
+        uniffiCallStatus in
     uniffi_darkfi_mobile_ffi_fn_method_darkfiwallethandle_list_addresses(
-            self.uniffiCloneHandle(),$0
+            self.uniffiCloneHandle(),uniffiCallStatus
     )
 })
 }
     
 open func listDaos()throws  -> [DrkDaoSummary]  {
     return try  FfiConverterSequenceTypeDrkDaoSummary.lift(try rustCallWithError(FfiConverterTypeDarkfiWalletNativeError_lift) {
+        uniffiCallStatus in
     uniffi_darkfi_mobile_ffi_fn_method_darkfiwallethandle_list_daos(
-            self.uniffiCloneHandle(),$0
+            self.uniffiCloneHandle(),uniffiCallStatus
     )
 })
 }
     
 open func listProposals(daoName: String?)throws  -> [DrkDaoProposalSummary]  {
     return try  FfiConverterSequenceTypeDrkDaoProposalSummary.lift(try rustCallWithError(FfiConverterTypeDarkfiWalletNativeError_lift) {
+        uniffiCallStatus in
     uniffi_darkfi_mobile_ffi_fn_method_darkfiwallethandle_list_proposals(
             self.uniffiCloneHandle(),
-        FfiConverterOptionString.lower(daoName),$0
+        FfiConverterOptionString.lower(daoName),uniffiCallStatus
     )
 })
 }
     
 open func listTokenBalances()throws  -> [DrkTokenBalance]  {
     return try  FfiConverterSequenceTypeDrkTokenBalance.lift(try rustCallWithError(FfiConverterTypeDarkfiWalletNativeError_lift) {
+        uniffiCallStatus in
     uniffi_darkfi_mobile_ffi_fn_method_darkfiwallethandle_list_token_balances(
-            self.uniffiCloneHandle(),$0
+            self.uniffiCloneHandle(),uniffiCallStatus
     )
 })
 }
     
 open func listTransactions()throws  -> [DrkTransactionRecord]  {
     return try  FfiConverterSequenceTypeDrkTransactionRecord.lift(try rustCallWithError(FfiConverterTypeDarkfiWalletNativeError_lift) {
+        uniffiCallStatus in
     uniffi_darkfi_mobile_ffi_fn_method_darkfiwallethandle_list_transactions(
-            self.uniffiCloneHandle(),$0
+            self.uniffiCloneHandle(),uniffiCallStatus
     )
 })
 }
     
 open func primaryDepositAddress()throws  -> String  {
     return try  FfiConverterString.lift(try rustCallWithError(FfiConverterTypeDarkfiWalletNativeError_lift) {
+        uniffiCallStatus in
     uniffi_darkfi_mobile_ffi_fn_method_darkfiwallethandle_primary_deposit_address(
-            self.uniffiCloneHandle(),$0
+            self.uniffiCloneHandle(),uniffiCallStatus
     )
 })
 }
     
 open func refreshNow()throws  -> DrkSyncSnapshot  {
     return try  FfiConverterTypeDrkSyncSnapshot_lift(try rustCallWithError(FfiConverterTypeDarkfiWalletNativeError_lift) {
+        uniffiCallStatus in
     uniffi_darkfi_mobile_ffi_fn_method_darkfiwallethandle_refresh_now(
-            self.uniffiCloneHandle(),$0
+            self.uniffiCloneHandle(),uniffiCallStatus
+    )
+})
+}
+    
+    /**
+     * Register a callback for chain reorganization events.
+     * The callback fires when reorg is detected during sync.
+     */
+open func setReorgCallback(callback: ReorgEventCallback?)  {try! rustCall() {
+        uniffiCallStatus in
+    uniffi_darkfi_mobile_ffi_fn_method_darkfiwallethandle_set_reorg_callback(
+            self.uniffiCloneHandle(),
+        FfiConverterOptionCallbackInterfaceReorgEventCallback.lower(callback),uniffiCallStatus
+    )
+}
+}
+    
+    /**
+     * Enable or disable strict UnifOMR-only sync (no trial-decrypt fallback).
+     */
+open func setStrictOmrOnly(strict: Bool)  {try! rustCall() {
+        uniffiCallStatus in
+    uniffi_darkfi_mobile_ffi_fn_method_darkfiwallethandle_set_strict_omr_only(
+            self.uniffiCloneHandle(),
+        FfiConverterBool.lower(strict),uniffiCallStatus
+    )
+}
+}
+    
+    /**
+     * Whether strict UnifOMR-only sync is currently enabled.
+     */
+open func strictOmrOnly() -> Bool  {
+    return try!  FfiConverterBool.lift(try! rustCall() {
+        uniffiCallStatus in
+    uniffi_darkfi_mobile_ffi_fn_method_darkfiwallethandle_strict_omr_only(
+            self.uniffiCloneHandle(),uniffiCallStatus
     )
 })
 }
     
 open func syncSnapshot()throws  -> DrkSyncSnapshot  {
     return try  FfiConverterTypeDrkSyncSnapshot_lift(try rustCallWithError(FfiConverterTypeDarkfiWalletNativeError_lift) {
+        uniffiCallStatus in
     uniffi_darkfi_mobile_ffi_fn_method_darkfiwallethandle_sync_snapshot(
-            self.uniffiCloneHandle(),$0
+            self.uniffiCloneHandle(),uniffiCallStatus
     )
 })
 }
     
 open func transactionPaymentMemo(txHash: String)throws  -> String?  {
     return try  FfiConverterOptionString.lift(try rustCallWithError(FfiConverterTypeDarkfiWalletNativeError_lift) {
+        uniffiCallStatus in
     uniffi_darkfi_mobile_ffi_fn_method_darkfiwallethandle_transaction_payment_memo(
             self.uniffiCloneHandle(),
-        FfiConverterString.lower(txHash),$0
+        FfiConverterString.lower(txHash),uniffiCallStatus
     )
 })
 }
     
 open func transactionRecipient(txHash: String)throws  -> String?  {
     return try  FfiConverterOptionString.lift(try rustCallWithError(FfiConverterTypeDarkfiWalletNativeError_lift) {
+        uniffiCallStatus in
     uniffi_darkfi_mobile_ffi_fn_method_darkfiwallethandle_transaction_recipient(
             self.uniffiCloneHandle(),
-        FfiConverterString.lower(txHash),$0
+        FfiConverterString.lower(txHash),uniffiCallStatus
     )
 })
 }
@@ -883,6 +1056,60 @@ public func FfiConverterTypeDarkfiWalletHandle_lower(_ value: DarkfiWalletHandle
 
 
 
+public struct DmKeypair: Equatable, Hashable {
+    public var secretB58: String
+    public var publicB58: String
+
+    // Default memberwise initializers are never public by default, so we
+    // declare one manually.
+    public init(secretB58: String, publicB58: String) {
+        self.secretB58 = secretB58
+        self.publicB58 = publicB58
+    }
+
+    
+
+    
+}
+
+#if compiler(>=6)
+extension DmKeypair: Sendable {}
+#endif
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public struct FfiConverterTypeDmKeypair: FfiConverterRustBuffer {
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> DmKeypair {
+        return
+            try DmKeypair(
+                secretB58: FfiConverterString.read(from: &buf), 
+                publicB58: FfiConverterString.read(from: &buf)
+        )
+    }
+
+    public static func write(_ value: DmKeypair, into buf: inout [UInt8]) {
+        FfiConverterString.write(value.secretB58, into: &buf)
+        FfiConverterString.write(value.publicB58, into: &buf)
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeDmKeypair_lift(_ buf: RustBuffer) throws -> DmKeypair {
+    return try FfiConverterTypeDmKeypair.lift(buf)
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeDmKeypair_lower(_ value: DmKeypair) -> RustBuffer {
+    return FfiConverterTypeDmKeypair.lower(value)
+}
+
+
 public struct DrkBootstrapConfig: Equatable, Hashable {
     public var network: String
     public var mnemonic: [String]
@@ -891,11 +1118,35 @@ public struct DrkBootstrapConfig: Equatable, Hashable {
     public var walletPass: String
     public var lightwalletServerUrl: String
     public var birthdayHeight: Int64
-    public var lightwalletTlsPinSha256: Data?
+    /**
+     * Optional SHA-256 of lightwalletd leaf cert DER (32 bytes). Required for remote HTTPS.
+     */
+    public var lightwalletTlsPinSha256: [UInt8]?
+    public var useTor: Bool
+    public var torSocksPort: UInt16
+    /**
+     * Optional darkfid JSON-RPC URL for broadcast fallback only.
+     * Leave unset/empty for lightwalletd-only (recommended). Never hardcode a testnet port.
+     */
+    public var darkfidRpcUrl: String?
+    /**
+     * When true, UnifOMR-only (no supplemental/gap trial decrypt). Nighthawk default false.
+     */
+    public var strictOmrOnly: Bool
 
     // Default memberwise initializers are never public by default, so we
     // declare one manually.
-    public init(network: String, mnemonic: [String], walletDbPath: String, cachePath: String, walletPass: String, lightwalletServerUrl: String, birthdayHeight: Int64, lightwalletTlsPinSha256: Data?) {
+    public init(network: String, mnemonic: [String], walletDbPath: String, cachePath: String, walletPass: String, lightwalletServerUrl: String, birthdayHeight: Int64, 
+        /**
+         * Optional SHA-256 of lightwalletd leaf cert DER (32 bytes). Required for remote HTTPS.
+         */lightwalletTlsPinSha256: [UInt8]?, useTor: Bool, torSocksPort: UInt16, 
+        /**
+         * Optional darkfid JSON-RPC URL for broadcast fallback only.
+         * Leave unset/empty for lightwalletd-only (recommended). Never hardcode a testnet port.
+         */darkfidRpcUrl: String?, 
+        /**
+         * When true, UnifOMR-only (no supplemental/gap trial decrypt). Nighthawk default false.
+         */strictOmrOnly: Bool) {
         self.network = network
         self.mnemonic = mnemonic
         self.walletDbPath = walletDbPath
@@ -904,6 +1155,10 @@ public struct DrkBootstrapConfig: Equatable, Hashable {
         self.lightwalletServerUrl = lightwalletServerUrl
         self.birthdayHeight = birthdayHeight
         self.lightwalletTlsPinSha256 = lightwalletTlsPinSha256
+        self.useTor = useTor
+        self.torSocksPort = torSocksPort
+        self.darkfidRpcUrl = darkfidRpcUrl
+        self.strictOmrOnly = strictOmrOnly
     }
 
     
@@ -928,8 +1183,12 @@ public struct FfiConverterTypeDrkBootstrapConfig: FfiConverterRustBuffer {
                 cachePath: FfiConverterString.read(from: &buf), 
                 walletPass: FfiConverterString.read(from: &buf), 
                 lightwalletServerUrl: FfiConverterString.read(from: &buf), 
-                birthdayHeight: FfiConverterInt64.read(from: &buf),
-                lightwalletTlsPinSha256: FfiConverterOptionSequenceUInt8.read(from: &buf).map { Data($0) }
+                birthdayHeight: FfiConverterInt64.read(from: &buf), 
+                lightwalletTlsPinSha256: FfiConverterOptionSequenceUInt8.read(from: &buf), 
+                useTor: FfiConverterBool.read(from: &buf), 
+                torSocksPort: FfiConverterUInt16.read(from: &buf), 
+                darkfidRpcUrl: FfiConverterOptionString.read(from: &buf), 
+                strictOmrOnly: FfiConverterBool.read(from: &buf)
         )
     }
 
@@ -941,7 +1200,11 @@ public struct FfiConverterTypeDrkBootstrapConfig: FfiConverterRustBuffer {
         FfiConverterString.write(value.walletPass, into: &buf)
         FfiConverterString.write(value.lightwalletServerUrl, into: &buf)
         FfiConverterInt64.write(value.birthdayHeight, into: &buf)
-        FfiConverterOptionSequenceUInt8.write(value.lightwalletTlsPinSha256.map { Array($0) }, into: &buf)
+        FfiConverterOptionSequenceUInt8.write(value.lightwalletTlsPinSha256, into: &buf)
+        FfiConverterBool.write(value.useTor, into: &buf)
+        FfiConverterUInt16.write(value.torSocksPort, into: &buf)
+        FfiConverterOptionString.write(value.darkfidRpcUrl, into: &buf)
+        FfiConverterBool.write(value.strictOmrOnly, into: &buf)
     }
 }
 
@@ -1239,10 +1502,14 @@ public struct DrkLightSyncState: Equatable, Hashable {
     public var scannedHeight: Int64
     public var chainTip: Int64
     public var omrAvailable: Bool
+    public var syncMethod: SyncMethod
+    public var fallbackReason: SyncFallbackReason
+    public var fallbackUserMessage: String
+    public var protoVersionMismatch: Bool
 
     // Default memberwise initializers are never public by default, so we
     // declare one manually.
-    public init(status: String, syncType: String, statusMessage: String, syncTypeMessage: String, scannedHeight: Int64, chainTip: Int64, omrAvailable: Bool) {
+    public init(status: String, syncType: String, statusMessage: String, syncTypeMessage: String, scannedHeight: Int64, chainTip: Int64, omrAvailable: Bool, syncMethod: SyncMethod, fallbackReason: SyncFallbackReason, fallbackUserMessage: String, protoVersionMismatch: Bool) {
         self.status = status
         self.syncType = syncType
         self.statusMessage = statusMessage
@@ -1250,6 +1517,10 @@ public struct DrkLightSyncState: Equatable, Hashable {
         self.scannedHeight = scannedHeight
         self.chainTip = chainTip
         self.omrAvailable = omrAvailable
+        self.syncMethod = syncMethod
+        self.fallbackReason = fallbackReason
+        self.fallbackUserMessage = fallbackUserMessage
+        self.protoVersionMismatch = protoVersionMismatch
     }
 
     
@@ -1274,7 +1545,11 @@ public struct FfiConverterTypeDrkLightSyncState: FfiConverterRustBuffer {
                 syncTypeMessage: FfiConverterString.read(from: &buf), 
                 scannedHeight: FfiConverterInt64.read(from: &buf), 
                 chainTip: FfiConverterInt64.read(from: &buf), 
-                omrAvailable: FfiConverterBool.read(from: &buf)
+                omrAvailable: FfiConverterBool.read(from: &buf), 
+                syncMethod: FfiConverterTypeSyncMethod.read(from: &buf), 
+                fallbackReason: FfiConverterTypeSyncFallbackReason.read(from: &buf), 
+                fallbackUserMessage: FfiConverterString.read(from: &buf), 
+                protoVersionMismatch: FfiConverterBool.read(from: &buf)
         )
     }
 
@@ -1286,6 +1561,10 @@ public struct FfiConverterTypeDrkLightSyncState: FfiConverterRustBuffer {
         FfiConverterInt64.write(value.scannedHeight, into: &buf)
         FfiConverterInt64.write(value.chainTip, into: &buf)
         FfiConverterBool.write(value.omrAvailable, into: &buf)
+        FfiConverterTypeSyncMethod.write(value.syncMethod, into: &buf)
+        FfiConverterTypeSyncFallbackReason.write(value.fallbackReason, into: &buf)
+        FfiConverterString.write(value.fallbackUserMessage, into: &buf)
+        FfiConverterBool.write(value.protoVersionMismatch, into: &buf)
     }
 }
 
@@ -1426,10 +1705,11 @@ public struct DrkTransactionRecord: Equatable, Hashable {
     public var netValueAtomic: Int64
     public var contractSummary: String
     public var recipientAddress: String?
+    public var syncMethod: SyncMethod
 
     // Default memberwise initializers are never public by default, so we
     // declare one manually.
-    public init(txHash: String, status: String, blockHeight: Int64, feeAtomic: Int64, isSent: Bool, netValueAtomic: Int64, contractSummary: String, recipientAddress: String?) {
+    public init(txHash: String, status: String, blockHeight: Int64, feeAtomic: Int64, isSent: Bool, netValueAtomic: Int64, contractSummary: String, recipientAddress: String?, syncMethod: SyncMethod) {
         self.txHash = txHash
         self.status = status
         self.blockHeight = blockHeight
@@ -1438,6 +1718,7 @@ public struct DrkTransactionRecord: Equatable, Hashable {
         self.netValueAtomic = netValueAtomic
         self.contractSummary = contractSummary
         self.recipientAddress = recipientAddress
+        self.syncMethod = syncMethod
     }
 
     
@@ -1463,7 +1744,8 @@ public struct FfiConverterTypeDrkTransactionRecord: FfiConverterRustBuffer {
                 isSent: FfiConverterBool.read(from: &buf), 
                 netValueAtomic: FfiConverterInt64.read(from: &buf), 
                 contractSummary: FfiConverterString.read(from: &buf), 
-                recipientAddress: FfiConverterOptionString.read(from: &buf)
+                recipientAddress: FfiConverterOptionString.read(from: &buf), 
+                syncMethod: FfiConverterTypeSyncMethod.read(from: &buf)
         )
     }
 
@@ -1476,6 +1758,7 @@ public struct FfiConverterTypeDrkTransactionRecord: FfiConverterRustBuffer {
         FfiConverterInt64.write(value.netValueAtomic, into: &buf)
         FfiConverterString.write(value.contractSummary, into: &buf)
         FfiConverterOptionString.write(value.recipientAddress, into: &buf)
+        FfiConverterTypeSyncMethod.write(value.syncMethod, into: &buf)
     }
 }
 
@@ -1495,7 +1778,108 @@ public func FfiConverterTypeDrkTransactionRecord_lower(_ value: DrkTransactionRe
 }
 
 
-public enum DarkfiWalletNativeError: Swift.Error, Equatable, Hashable, Foundation.LocalizedError {
+/**
+ * Event emitted when a chain reorganization is detected.
+ * Exposed to the mobile UI for user notification and transaction refresh.
+ */
+public struct ReorgEvent: Equatable, Hashable {
+    /**
+     * Height at which the reorg was first detected
+     */
+    public var detectedAtHeight: UInt32
+    /**
+     * Height the wallet rewound to
+     */
+    public var rewoundTo: UInt32
+    /**
+     * Number of blocks invalidated
+     */
+    public var blocksInvalidated: UInt32
+    /**
+     * Number of transactions affected (re-scanned / status changed)
+     */
+    public var txsAffected: UInt32
+    /**
+     * Human-readable summary for UI display
+     */
+    public var summaryMessage: String
+
+    // Default memberwise initializers are never public by default, so we
+    // declare one manually.
+    public init(
+        /**
+         * Height at which the reorg was first detected
+         */detectedAtHeight: UInt32, 
+        /**
+         * Height the wallet rewound to
+         */rewoundTo: UInt32, 
+        /**
+         * Number of blocks invalidated
+         */blocksInvalidated: UInt32, 
+        /**
+         * Number of transactions affected (re-scanned / status changed)
+         */txsAffected: UInt32, 
+        /**
+         * Human-readable summary for UI display
+         */summaryMessage: String) {
+        self.detectedAtHeight = detectedAtHeight
+        self.rewoundTo = rewoundTo
+        self.blocksInvalidated = blocksInvalidated
+        self.txsAffected = txsAffected
+        self.summaryMessage = summaryMessage
+    }
+
+    
+
+    
+}
+
+#if compiler(>=6)
+extension ReorgEvent: Sendable {}
+#endif
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public struct FfiConverterTypeReorgEvent: FfiConverterRustBuffer {
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> ReorgEvent {
+        return
+            try ReorgEvent(
+                detectedAtHeight: FfiConverterUInt32.read(from: &buf), 
+                rewoundTo: FfiConverterUInt32.read(from: &buf), 
+                blocksInvalidated: FfiConverterUInt32.read(from: &buf), 
+                txsAffected: FfiConverterUInt32.read(from: &buf), 
+                summaryMessage: FfiConverterString.read(from: &buf)
+        )
+    }
+
+    public static func write(_ value: ReorgEvent, into buf: inout [UInt8]) {
+        FfiConverterUInt32.write(value.detectedAtHeight, into: &buf)
+        FfiConverterUInt32.write(value.rewoundTo, into: &buf)
+        FfiConverterUInt32.write(value.blocksInvalidated, into: &buf)
+        FfiConverterUInt32.write(value.txsAffected, into: &buf)
+        FfiConverterString.write(value.summaryMessage, into: &buf)
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeReorgEvent_lift(_ buf: RustBuffer) throws -> ReorgEvent {
+    return try FfiConverterTypeReorgEvent.lift(buf)
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeReorgEvent_lower(_ value: ReorgEvent) -> RustBuffer {
+    return FfiConverterTypeReorgEvent.lower(value)
+}
+
+
+public 
+enum DarkfiWalletNativeError: Swift.Error, Equatable, Hashable, Foundation.LocalizedError {
 
     
     
@@ -1504,6 +1888,26 @@ public enum DarkfiWalletNativeError: Swift.Error, Equatable, Hashable, Foundatio
     case InvalidBootstrapConfig(message: String)
     
     case NativeDrkUnavailable(message: String)
+    
+    case ConnectionFailed(message: String)
+    
+    case SyncFailed(message: String)
+    
+    case CryptoError(message: String)
+    
+    case NetworkTimeout(message: String)
+    
+    case ServerUnavailable(message: String)
+    
+    case InvalidAddress(message: String)
+    
+    case InsufficientFunds(message: String)
+    
+    case TransactionBuildFailed(message: String)
+    
+    case OmrDetectionFailed(message: String)
+    
+    case TrialDecryptFailed(message: String)
     
 
     
@@ -1546,6 +1950,46 @@ public struct FfiConverterTypeDarkfiWalletNativeError: FfiConverterRustBuffer {
             message: try FfiConverterString.read(from: &buf)
         )
         
+        case 4: return .ConnectionFailed(
+            message: try FfiConverterString.read(from: &buf)
+        )
+        
+        case 5: return .SyncFailed(
+            message: try FfiConverterString.read(from: &buf)
+        )
+        
+        case 6: return .CryptoError(
+            message: try FfiConverterString.read(from: &buf)
+        )
+        
+        case 7: return .NetworkTimeout(
+            message: try FfiConverterString.read(from: &buf)
+        )
+        
+        case 8: return .ServerUnavailable(
+            message: try FfiConverterString.read(from: &buf)
+        )
+        
+        case 9: return .InvalidAddress(
+            message: try FfiConverterString.read(from: &buf)
+        )
+        
+        case 10: return .InsufficientFunds(
+            message: try FfiConverterString.read(from: &buf)
+        )
+        
+        case 11: return .TransactionBuildFailed(
+            message: try FfiConverterString.read(from: &buf)
+        )
+        
+        case 12: return .OmrDetectionFailed(
+            message: try FfiConverterString.read(from: &buf)
+        )
+        
+        case 13: return .TrialDecryptFailed(
+            message: try FfiConverterString.read(from: &buf)
+        )
+        
 
         default: throw UniffiInternalError.unexpectedEnumCase
         }
@@ -1563,6 +2007,26 @@ public struct FfiConverterTypeDarkfiWalletNativeError: FfiConverterRustBuffer {
             writeInt(&buf, Int32(2))
         case .NativeDrkUnavailable(_ /* message is ignored*/):
             writeInt(&buf, Int32(3))
+        case .ConnectionFailed(_ /* message is ignored*/):
+            writeInt(&buf, Int32(4))
+        case .SyncFailed(_ /* message is ignored*/):
+            writeInt(&buf, Int32(5))
+        case .CryptoError(_ /* message is ignored*/):
+            writeInt(&buf, Int32(6))
+        case .NetworkTimeout(_ /* message is ignored*/):
+            writeInt(&buf, Int32(7))
+        case .ServerUnavailable(_ /* message is ignored*/):
+            writeInt(&buf, Int32(8))
+        case .InvalidAddress(_ /* message is ignored*/):
+            writeInt(&buf, Int32(9))
+        case .InsufficientFunds(_ /* message is ignored*/):
+            writeInt(&buf, Int32(10))
+        case .TransactionBuildFailed(_ /* message is ignored*/):
+            writeInt(&buf, Int32(11))
+        case .OmrDetectionFailed(_ /* message is ignored*/):
+            writeInt(&buf, Int32(12))
+        case .TrialDecryptFailed(_ /* message is ignored*/):
+            writeInt(&buf, Int32(13))
 
         
         }
@@ -1586,10 +2050,184 @@ public func FfiConverterTypeDarkfiWalletNativeError_lower(_ value: DarkfiWalletN
 
 
 
+public enum SyncFallbackReason: Equatable, Hashable {
+    
+    case none
+    case serverOmrUnsupported
+    case omrDetectionFailed
+    case missingOmrClues
+    case keyPoolExpired
+    case keyPoolNotRegistered
+    case unknown
+
+
+
+
+
+}
+
+#if compiler(>=6)
+extension SyncFallbackReason: Sendable {}
+#endif
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public struct FfiConverterTypeSyncFallbackReason: FfiConverterRustBuffer {
+    typealias SwiftType = SyncFallbackReason
+
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> SyncFallbackReason {
+        let variant: Int32 = try readInt(&buf)
+        switch variant {
+        
+        case 1: return .none
+        
+        case 2: return .serverOmrUnsupported
+        
+        case 3: return .omrDetectionFailed
+        
+        case 4: return .missingOmrClues
+        
+        case 5: return .keyPoolExpired
+        
+        case 6: return .keyPoolNotRegistered
+        
+        case 7: return .unknown
+        
+        default: throw UniffiInternalError.unexpectedEnumCase
+        }
+    }
+
+    public static func write(_ value: SyncFallbackReason, into buf: inout [UInt8]) {
+        switch value {
+        
+        
+        case .none:
+            writeInt(&buf, Int32(1))
+        
+        
+        case .serverOmrUnsupported:
+            writeInt(&buf, Int32(2))
+        
+        
+        case .omrDetectionFailed:
+            writeInt(&buf, Int32(3))
+        
+        
+        case .missingOmrClues:
+            writeInt(&buf, Int32(4))
+        
+        
+        case .keyPoolExpired:
+            writeInt(&buf, Int32(5))
+        
+        
+        case .keyPoolNotRegistered:
+            writeInt(&buf, Int32(6))
+        
+        
+        case .unknown:
+            writeInt(&buf, Int32(7))
+        
+        }
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeSyncFallbackReason_lift(_ buf: RustBuffer) throws -> SyncFallbackReason {
+    return try FfiConverterTypeSyncFallbackReason.lift(buf)
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeSyncFallbackReason_lower(_ value: SyncFallbackReason) -> RustBuffer {
+    return FfiConverterTypeSyncFallbackReason.lower(value)
+}
+
+
+
+
+public enum SyncMethod: Equatable, Hashable {
+    
+    case unifOmr
+    case trialDecrypt
+    case unknown
+
+
+
+
+
+}
+
+#if compiler(>=6)
+extension SyncMethod: Sendable {}
+#endif
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public struct FfiConverterTypeSyncMethod: FfiConverterRustBuffer {
+    typealias SwiftType = SyncMethod
+
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> SyncMethod {
+        let variant: Int32 = try readInt(&buf)
+        switch variant {
+        
+        case 1: return .unifOmr
+        
+        case 2: return .trialDecrypt
+        
+        case 3: return .unknown
+        
+        default: throw UniffiInternalError.unexpectedEnumCase
+        }
+    }
+
+    public static func write(_ value: SyncMethod, into buf: inout [UInt8]) {
+        switch value {
+        
+        
+        case .unifOmr:
+            writeInt(&buf, Int32(1))
+        
+        
+        case .trialDecrypt:
+            writeInt(&buf, Int32(2))
+        
+        
+        case .unknown:
+            writeInt(&buf, Int32(3))
+        
+        }
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeSyncMethod_lift(_ buf: RustBuffer) throws -> SyncMethod {
+    return try FfiConverterTypeSyncMethod.lift(buf)
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeSyncMethod_lower(_ value: SyncMethod) -> RustBuffer {
+    return FfiConverterTypeSyncMethod.lower(value)
+}
+
+
+
+
 
 public protocol DarkircEventCallback: AnyObject, Sendable {
     
-    func onMessage(channel: String, nick: String, message: String, timestamp: UInt64) 
+    func onMessage(eventId: String, channel: String, nick: String, message: String, timestamp: UInt64, isOutgoing: Bool) 
     
 }
 
@@ -1618,10 +2256,12 @@ fileprivate struct UniffiCallbackInterfaceDarkircEventCallback {
         },
         onMessage: { (
             uniffiHandle: UInt64,
+            eventId: RustBuffer,
             channel: RustBuffer,
             nick: RustBuffer,
             message: RustBuffer,
             timestamp: UInt64,
+            isOutgoing: Int8,
             uniffiOutReturn: UnsafeMutableRawPointer,
             uniffiCallStatus: UnsafeMutablePointer<RustCallStatus>
         ) in
@@ -1631,10 +2271,12 @@ fileprivate struct UniffiCallbackInterfaceDarkircEventCallback {
                     throw UniffiInternalError.unexpectedStaleHandle
                 }
                 return uniffiObj.onMessage(
+                     eventId: try FfiConverterString.lift(eventId),
                      channel: try FfiConverterString.lift(channel),
                      nick: try FfiConverterString.lift(nick),
                      message: try FfiConverterString.lift(message),
-                     timestamp: try FfiConverterUInt64.lift(timestamp)
+                     timestamp: try FfiConverterUInt64.lift(timestamp),
+                     isOutgoing: try FfiConverterBool.lift(isOutgoing)
                 )
             }
 
@@ -1650,7 +2292,11 @@ fileprivate struct UniffiCallbackInterfaceDarkircEventCallback {
 
     // Rust stores this pointer for future callback invocations, so it must live
     // for the process lifetime (not just for the init function call).
-    static let vtablePtr: UnsafePointer<UniffiVTableCallbackInterfaceDarkircEventCallback> = {
+    //
+    // `nonisolated(unsafe)` is needed under Swift 6 strict concurrency.
+    // This is safe because the pointee is initialized once during static init
+    // and never mutated by either side of the FFI.  Its fields are C function pointers.
+    nonisolated(unsafe) static let vtablePtr: UnsafePointer<UniffiVTableCallbackInterfaceDarkircEventCallback> = {
         let ptr = UnsafeMutablePointer<UniffiVTableCallbackInterfaceDarkircEventCallback>.allocate(capacity: 1)
         ptr.initialize(to: vtable)
         return UnsafePointer(ptr)
@@ -1721,6 +2367,145 @@ public func FfiConverterCallbackInterfaceDarkircEventCallback_lower(_ v: Darkirc
     return FfiConverterCallbackInterfaceDarkircEventCallback.lower(v)
 }
 
+
+
+
+/**
+ * Optional callback for chain reorganization events.
+ * Mobile apps implement this to show reorg notifications.
+ */
+public protocol ReorgEventCallback: AnyObject, Sendable {
+    
+    func onReorg(event: ReorgEvent) 
+    
+}
+
+
+// Put the implementation in a struct so we don't pollute the top-level namespace
+fileprivate struct UniffiCallbackInterfaceReorgEventCallback {
+
+    // Create the VTable using a series of closures.
+    // Swift automatically converts these into C callback functions.
+    //
+    // Store the vtable directly.
+    static let vtable: UniffiVTableCallbackInterfaceReorgEventCallback = UniffiVTableCallbackInterfaceReorgEventCallback(
+        uniffiFree: { (uniffiHandle: UInt64) -> () in
+            do {
+                try FfiConverterCallbackInterfaceReorgEventCallback.handleMap.remove(handle: uniffiHandle)
+            } catch {
+                print("Uniffi callback interface ReorgEventCallback: handle missing in uniffiFree")
+            }
+        },
+        uniffiClone: { (uniffiHandle: UInt64) -> UInt64 in
+            do {
+                return try FfiConverterCallbackInterfaceReorgEventCallback.handleMap.clone(handle: uniffiHandle)
+            } catch {
+                fatalError("Uniffi callback interface ReorgEventCallback: handle missing in uniffiClone")
+            }
+        },
+        onReorg: { (
+            uniffiHandle: UInt64,
+            event: RustBuffer,
+            uniffiOutReturn: UnsafeMutableRawPointer,
+            uniffiCallStatus: UnsafeMutablePointer<RustCallStatus>
+        ) in
+            let makeCall = {
+                () throws -> () in
+                guard let uniffiObj = try? FfiConverterCallbackInterfaceReorgEventCallback.handleMap.get(handle: uniffiHandle) else {
+                    throw UniffiInternalError.unexpectedStaleHandle
+                }
+                return uniffiObj.onReorg(
+                     event: try FfiConverterTypeReorgEvent_lift(event)
+                )
+            }
+
+            
+            let writeReturn = { () }
+            uniffiTraitInterfaceCall(
+                callStatus: uniffiCallStatus,
+                makeCall: makeCall,
+                writeReturn: writeReturn
+            )
+        }
+    )
+
+    // Rust stores this pointer for future callback invocations, so it must live
+    // for the process lifetime (not just for the init function call).
+    //
+    // `nonisolated(unsafe)` is needed under Swift 6 strict concurrency.
+    // This is safe because the pointee is initialized once during static init
+    // and never mutated by either side of the FFI.  Its fields are C function pointers.
+    nonisolated(unsafe) static let vtablePtr: UnsafePointer<UniffiVTableCallbackInterfaceReorgEventCallback> = {
+        let ptr = UnsafeMutablePointer<UniffiVTableCallbackInterfaceReorgEventCallback>.allocate(capacity: 1)
+        ptr.initialize(to: vtable)
+        return UnsafePointer(ptr)
+    }()
+}
+
+private func uniffiCallbackInitReorgEventCallback() {
+    uniffi_darkfi_mobile_ffi_fn_init_callback_vtable_reorgeventcallback(UniffiCallbackInterfaceReorgEventCallback.vtablePtr)
+}
+
+// FfiConverter protocol for callback interfaces
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+fileprivate struct FfiConverterCallbackInterfaceReorgEventCallback {
+    fileprivate static let handleMap = UniffiHandleMap<ReorgEventCallback>()
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+extension FfiConverterCallbackInterfaceReorgEventCallback : FfiConverter {
+    typealias SwiftType = ReorgEventCallback
+    typealias FfiType = UInt64
+
+#if swift(>=5.8)
+    @_documentation(visibility: private)
+#endif
+    public static func lift(_ handle: UInt64) throws -> SwiftType {
+        try handleMap.get(handle: handle)
+    }
+
+#if swift(>=5.8)
+    @_documentation(visibility: private)
+#endif
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> SwiftType {
+        let handle: UInt64 = try readInt(&buf)
+        return try lift(handle)
+    }
+
+#if swift(>=5.8)
+    @_documentation(visibility: private)
+#endif
+    public static func lower(_ v: SwiftType) -> UInt64 {
+        return handleMap.insert(obj: v)
+    }
+
+#if swift(>=5.8)
+    @_documentation(visibility: private)
+#endif
+    public static func write(_ v: SwiftType, into buf: inout [UInt8]) {
+        writeInt(&buf, lower(v))
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterCallbackInterfaceReorgEventCallback_lift(_ handle: UInt64) throws -> ReorgEventCallback {
+    return try FfiConverterCallbackInterfaceReorgEventCallback.lift(handle)
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterCallbackInterfaceReorgEventCallback_lower(_ v: ReorgEventCallback) -> UInt64 {
+    return FfiConverterCallbackInterfaceReorgEventCallback.lower(v)
+}
+
 #if swift(>=5.8)
 @_documentation(visibility: private)
 #endif
@@ -1764,6 +2549,30 @@ fileprivate struct FfiConverterOptionCallbackInterfaceDarkircEventCallback: FfiC
         switch try readInt(&buf) as Int8 {
         case 0: return nil
         case 1: return try FfiConverterCallbackInterfaceDarkircEventCallback.read(from: &buf)
+        default: throw UniffiInternalError.unexpectedOptionalTag
+        }
+    }
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+fileprivate struct FfiConverterOptionCallbackInterfaceReorgEventCallback: FfiConverterRustBuffer {
+    typealias SwiftType = ReorgEventCallback?
+
+    public static func write(_ value: SwiftType, into buf: inout [UInt8]) {
+        guard let value = value else {
+            writeInt(&buf, Int8(0))
+            return
+        }
+        writeInt(&buf, Int8(1))
+        FfiConverterCallbackInterfaceReorgEventCallback.write(value, into: &buf)
+    }
+
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> SwiftType {
+        switch try readInt(&buf) as Int8 {
+        case 0: return nil
+        case 1: return try FfiConverterCallbackInterfaceReorgEventCallback.read(from: &buf)
         default: throw UniffiInternalError.unexpectedOptionalTag
         }
     }
@@ -1944,85 +2753,139 @@ fileprivate struct FfiConverterSequenceTypeDrkTransactionRecord: FfiConverterRus
 }
 public func bridgePing() -> String  {
     return try!  FfiConverterString.lift(try! rustCall() {
-    uniffi_darkfi_mobile_ffi_fn_func_bridge_ping($0
+        uniffiCallStatus in
+    uniffi_darkfi_mobile_ffi_fn_func_bridge_ping(uniffiCallStatus
     )
 })
 }
 public func bridgeVersion() -> String  {
     return try!  FfiConverterString.lift(try! rustCall() {
-    uniffi_darkfi_mobile_ffi_fn_func_bridge_version($0
+        uniffiCallStatus in
+    uniffi_darkfi_mobile_ffi_fn_func_bridge_version(uniffiCallStatus
     )
 })
 }
 public func chachaDecryptDm(mySecret: [UInt8], theirPublic: [UInt8], ciphertextB58: String)throws  -> String  {
     return try  FfiConverterString.lift(try rustCallWithError(FfiConverterTypeDarkfiWalletNativeError_lift) {
+        uniffiCallStatus in
     uniffi_darkfi_mobile_ffi_fn_func_chacha_decrypt_dm(
         FfiConverterSequenceUInt8.lower(mySecret),
         FfiConverterSequenceUInt8.lower(theirPublic),
-        FfiConverterString.lower(ciphertextB58),$0
+        FfiConverterString.lower(ciphertextB58),uniffiCallStatus
     )
 })
 }
 public func chachaEncryptDm(mySecret: [UInt8], theirPublic: [UInt8], plaintext: String)throws  -> String  {
     return try  FfiConverterString.lift(try rustCallWithError(FfiConverterTypeDarkfiWalletNativeError_lift) {
+        uniffiCallStatus in
     uniffi_darkfi_mobile_ffi_fn_func_chacha_encrypt_dm(
         FfiConverterSequenceUInt8.lower(mySecret),
         FfiConverterSequenceUInt8.lower(theirPublic),
-        FfiConverterString.lower(plaintext),$0
+        FfiConverterString.lower(plaintext),uniffiCallStatus
+    )
+})
+}
+public func darkircConnectionPhase() -> String  {
+    return try!  FfiConverterString.lift(try! rustCall() {
+        uniffiCallStatus in
+    uniffi_darkfi_mobile_ffi_fn_func_darkirc_connection_phase(uniffiCallStatus
+    )
+})
+}
+public func darkircOutboundSlots() -> String  {
+    return try!  FfiConverterString.lift(try! rustCall() {
+        uniffiCallStatus in
+    uniffi_darkfi_mobile_ffi_fn_func_darkirc_outbound_slots(uniffiCallStatus
     )
 })
 }
 public func darkircStatus() -> String  {
     return try!  FfiConverterString.lift(try! rustCall() {
-    uniffi_darkfi_mobile_ffi_fn_func_darkirc_status($0
+        uniffiCallStatus in
+    uniffi_darkfi_mobile_ffi_fn_func_darkirc_status(uniffiCallStatus
     )
 })
 }
 public func decodeChatEntropy(phrase: [String]) -> [UInt8]?  {
     return try!  FfiConverterOptionSequenceUInt8.lift(try! rustCall() {
+        uniffiCallStatus in
     uniffi_darkfi_mobile_ffi_fn_func_decode_chat_entropy(
-        FfiConverterSequenceString.lower(phrase),$0
+        FfiConverterSequenceString.lower(phrase),uniffiCallStatus
     )
 })
 }
 public func generateBip39ChatMnemonic() -> [String]  {
     return try!  FfiConverterSequenceString.lift(try! rustCall() {
-    uniffi_darkfi_mobile_ffi_fn_func_generate_bip39_chat_mnemonic($0
+        uniffiCallStatus in
+    uniffi_darkfi_mobile_ffi_fn_func_generate_bip39_chat_mnemonic(uniffiCallStatus
     )
 })
 }
 public func generateDarkfiMnemonic() -> [String]  {
     return try!  FfiConverterSequenceString.lift(try! rustCall() {
-    uniffi_darkfi_mobile_ffi_fn_func_generate_darkfi_mnemonic($0
+        uniffiCallStatus in
+    uniffi_darkfi_mobile_ffi_fn_func_generate_darkfi_mnemonic(uniffiCallStatus
+    )
+})
+}
+public func generateDmKeypair() -> DmKeypair  {
+    return try!  FfiConverterTypeDmKeypair_lift(try! rustCall() {
+        uniffiCallStatus in
+    uniffi_darkfi_mobile_ffi_fn_func_generate_dm_keypair(uniffiCallStatus
+    )
+})
+}
+public func isArtiRunning() -> Bool  {
+    return try!  FfiConverterBool.lift(try! rustCall() {
+        uniffiCallStatus in
+    uniffi_darkfi_mobile_ffi_fn_func_is_arti_running(uniffiCallStatus
     )
 })
 }
 public func sendChatMessage(channel: String, nick: String, message: String)throws   {try rustCallWithError(FfiConverterTypeDarkfiWalletNativeError_lift) {
+        uniffiCallStatus in
     uniffi_darkfi_mobile_ffi_fn_func_send_chat_message(
         FfiConverterString.lower(channel),
         FfiConverterString.lower(nick),
-        FfiConverterString.lower(message),$0
+        FfiConverterString.lower(message),uniffiCallStatus
     )
 }
 }
+public func startArtiProxy(socksListen: String)throws  -> Bool  {
+    return try  FfiConverterBool.lift(try rustCallWithError(FfiConverterTypeDarkfiWalletNativeError_lift) {
+        uniffiCallStatus in
+    uniffi_darkfi_mobile_ffi_fn_func_start_arti_proxy(
+        FfiConverterString.lower(socksListen),uniffiCallStatus
+    )
+})
+}
 public func startDarkirc(datastorePath: String, useTor: Bool, torSocksPort: UInt16, callback: DarkircEventCallback?)throws   {try rustCallWithError(FfiConverterTypeDarkfiWalletNativeError_lift) {
+        uniffiCallStatus in
     uniffi_darkfi_mobile_ffi_fn_func_start_darkirc(
         FfiConverterString.lower(datastorePath),
         FfiConverterBool.lower(useTor),
         FfiConverterUInt16.lower(torSocksPort),
-        FfiConverterOptionCallbackInterfaceDarkircEventCallback.lower(callback),$0
+        FfiConverterOptionCallbackInterfaceDarkircEventCallback.lower(callback),uniffiCallStatus
+    )
+}
+}
+public func stopArtiProxy()  {try! rustCall() {
+        uniffiCallStatus in
+    uniffi_darkfi_mobile_ffi_fn_func_stop_arti_proxy(uniffiCallStatus
     )
 }
 }
 public func stopDarkirc()throws   {try rustCallWithError(FfiConverterTypeDarkfiWalletNativeError_lift) {
-    uniffi_darkfi_mobile_ffi_fn_func_stop_darkirc($0
+        uniffiCallStatus in
+    uniffi_darkfi_mobile_ffi_fn_func_stop_darkirc(uniffiCallStatus
     )
 }
 }
 public func validateDarkfiMnemonic(phrase: [String]) -> Bool  {
     return try!  FfiConverterBool.lift(try! rustCall() {
+        uniffiCallStatus in
     uniffi_darkfi_mobile_ffi_fn_func_validate_darkfi_mnemonic(
-        FfiConverterSequenceString.lower(phrase),$0
+        FfiConverterSequenceString.lower(phrase),uniffiCallStatus
     )
 })
 }
@@ -2048,46 +2911,70 @@ private let initializationResult: InitializationResult = {
     if (uniffi_darkfi_mobile_ffi_checksum_func_bridge_version() != 4310) {
         return InitializationResult.apiChecksumMismatch
     }
-    if (uniffi_darkfi_mobile_ffi_checksum_func_chacha_decrypt_dm() != 31696) {
+    if (uniffi_darkfi_mobile_ffi_checksum_func_chacha_decrypt_dm() != 30210) {
         return InitializationResult.apiChecksumMismatch
     }
-    if (uniffi_darkfi_mobile_ffi_checksum_func_chacha_encrypt_dm() != 54760) {
+    if (uniffi_darkfi_mobile_ffi_checksum_func_chacha_encrypt_dm() != 37407) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_darkfi_mobile_ffi_checksum_func_darkirc_connection_phase() != 60093) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_darkfi_mobile_ffi_checksum_func_darkirc_outbound_slots() != 49871) {
         return InitializationResult.apiChecksumMismatch
     }
     if (uniffi_darkfi_mobile_ffi_checksum_func_darkirc_status() != 29954) {
         return InitializationResult.apiChecksumMismatch
     }
-    if (uniffi_darkfi_mobile_ffi_checksum_func_decode_chat_entropy() != 49247) {
+    if (uniffi_darkfi_mobile_ffi_checksum_func_decode_chat_entropy() != 57193) {
         return InitializationResult.apiChecksumMismatch
     }
-    if (uniffi_darkfi_mobile_ffi_checksum_func_generate_bip39_chat_mnemonic() != 13350) {
+    if (uniffi_darkfi_mobile_ffi_checksum_func_generate_bip39_chat_mnemonic() != 52715) {
         return InitializationResult.apiChecksumMismatch
     }
-    if (uniffi_darkfi_mobile_ffi_checksum_func_generate_darkfi_mnemonic() != 7911) {
+    if (uniffi_darkfi_mobile_ffi_checksum_func_generate_darkfi_mnemonic() != 48186) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_darkfi_mobile_ffi_checksum_func_generate_dm_keypair() != 60508) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_darkfi_mobile_ffi_checksum_func_is_arti_running() != 33624) {
         return InitializationResult.apiChecksumMismatch
     }
     if (uniffi_darkfi_mobile_ffi_checksum_func_send_chat_message() != 4769) {
         return InitializationResult.apiChecksumMismatch
     }
-    if (uniffi_darkfi_mobile_ffi_checksum_func_start_darkirc() != 37036) {
+    if (uniffi_darkfi_mobile_ffi_checksum_func_start_arti_proxy() != 48169) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_darkfi_mobile_ffi_checksum_func_start_darkirc() != 62586) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_darkfi_mobile_ffi_checksum_func_stop_arti_proxy() != 38081) {
         return InitializationResult.apiChecksumMismatch
     }
     if (uniffi_darkfi_mobile_ffi_checksum_func_stop_darkirc() != 44306) {
         return InitializationResult.apiChecksumMismatch
     }
-    if (uniffi_darkfi_mobile_ffi_checksum_func_validate_darkfi_mnemonic() != 42375) {
+    if (uniffi_darkfi_mobile_ffi_checksum_func_validate_darkfi_mnemonic() != 33875) {
         return InitializationResult.apiChecksumMismatch
     }
-    if (uniffi_darkfi_mobile_ffi_checksum_method_darkfiwallethandle_broadcast_transfer() != 37823) {
+    if (uniffi_darkfi_mobile_ffi_checksum_method_darkfiwallethandle_broadcast_transfer() != 31867) {
         return InitializationResult.apiChecksumMismatch
     }
-    if (uniffi_darkfi_mobile_ffi_checksum_method_darkfiwallethandle_build_transfer() != 40440) {
+    if (uniffi_darkfi_mobile_ffi_checksum_method_darkfiwallethandle_build_transfer() != 46602) {
         return InitializationResult.apiChecksumMismatch
     }
     if (uniffi_darkfi_mobile_ffi_checksum_method_darkfiwallethandle_confirmed_balance_atomic() != 48819) {
         return InitializationResult.apiChecksumMismatch
     }
-    if (uniffi_darkfi_mobile_ffi_checksum_method_darkfiwallethandle_estimate_transfer_fee() != 27640) {
+    if (uniffi_darkfi_mobile_ffi_checksum_method_darkfiwallethandle_dao_propose_transfer() != 39787) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_darkfi_mobile_ffi_checksum_method_darkfiwallethandle_dao_vote() != 28282) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_darkfi_mobile_ffi_checksum_method_darkfiwallethandle_estimate_transfer_fee() != 53987) {
         return InitializationResult.apiChecksumMismatch
     }
     if (uniffi_darkfi_mobile_ffi_checksum_method_darkfiwallethandle_generate_new_address() != 60300) {
@@ -2096,22 +2983,25 @@ private let initializationResult: InitializationResult = {
     if (uniffi_darkfi_mobile_ffi_checksum_method_darkfiwallethandle_get_proposal() != 62881) {
         return InitializationResult.apiChecksumMismatch
     }
+    if (uniffi_darkfi_mobile_ffi_checksum_method_darkfiwallethandle_handle_reorg_recovery() != 42149) {
+        return InitializationResult.apiChecksumMismatch
+    }
     if (uniffi_darkfi_mobile_ffi_checksum_method_darkfiwallethandle_light_sync_snapshot() != 6168) {
         return InitializationResult.apiChecksumMismatch
     }
-    if (uniffi_darkfi_mobile_ffi_checksum_method_darkfiwallethandle_list_addresses() != 34533) {
+    if (uniffi_darkfi_mobile_ffi_checksum_method_darkfiwallethandle_list_addresses() != 441) {
         return InitializationResult.apiChecksumMismatch
     }
-    if (uniffi_darkfi_mobile_ffi_checksum_method_darkfiwallethandle_list_daos() != 26155) {
+    if (uniffi_darkfi_mobile_ffi_checksum_method_darkfiwallethandle_list_daos() != 41886) {
         return InitializationResult.apiChecksumMismatch
     }
-    if (uniffi_darkfi_mobile_ffi_checksum_method_darkfiwallethandle_list_proposals() != 62268) {
+    if (uniffi_darkfi_mobile_ffi_checksum_method_darkfiwallethandle_list_proposals() != 42935) {
         return InitializationResult.apiChecksumMismatch
     }
-    if (uniffi_darkfi_mobile_ffi_checksum_method_darkfiwallethandle_list_token_balances() != 28349) {
+    if (uniffi_darkfi_mobile_ffi_checksum_method_darkfiwallethandle_list_token_balances() != 41120) {
         return InitializationResult.apiChecksumMismatch
     }
-    if (uniffi_darkfi_mobile_ffi_checksum_method_darkfiwallethandle_list_transactions() != 40596) {
+    if (uniffi_darkfi_mobile_ffi_checksum_method_darkfiwallethandle_list_transactions() != 20689) {
         return InitializationResult.apiChecksumMismatch
     }
     if (uniffi_darkfi_mobile_ffi_checksum_method_darkfiwallethandle_primary_deposit_address() != 18714) {
@@ -2120,23 +3010,36 @@ private let initializationResult: InitializationResult = {
     if (uniffi_darkfi_mobile_ffi_checksum_method_darkfiwallethandle_refresh_now() != 57567) {
         return InitializationResult.apiChecksumMismatch
     }
+    if (uniffi_darkfi_mobile_ffi_checksum_method_darkfiwallethandle_set_reorg_callback() != 19199) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_darkfi_mobile_ffi_checksum_method_darkfiwallethandle_set_strict_omr_only() != 57332) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_darkfi_mobile_ffi_checksum_method_darkfiwallethandle_strict_omr_only() != 1580) {
+        return InitializationResult.apiChecksumMismatch
+    }
     if (uniffi_darkfi_mobile_ffi_checksum_method_darkfiwallethandle_sync_snapshot() != 34731) {
         return InitializationResult.apiChecksumMismatch
     }
-    if (uniffi_darkfi_mobile_ffi_checksum_method_darkfiwallethandle_transaction_payment_memo() != 63542) {
+    if (uniffi_darkfi_mobile_ffi_checksum_method_darkfiwallethandle_transaction_payment_memo() != 24617) {
         return InitializationResult.apiChecksumMismatch
     }
-    if (uniffi_darkfi_mobile_ffi_checksum_method_darkfiwallethandle_transaction_recipient() != 27939) {
+    if (uniffi_darkfi_mobile_ffi_checksum_method_darkfiwallethandle_transaction_recipient() != 54355) {
         return InitializationResult.apiChecksumMismatch
     }
     if (uniffi_darkfi_mobile_ffi_checksum_constructor_darkfiwallethandle_new() != 8185) {
         return InitializationResult.apiChecksumMismatch
     }
-    if (uniffi_darkfi_mobile_ffi_checksum_method_darkirceventcallback_on_message() != 6163) {
+    if (uniffi_darkfi_mobile_ffi_checksum_method_darkirceventcallback_on_message() != 10857) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_darkfi_mobile_ffi_checksum_method_reorgeventcallback_on_reorg() != 9856) {
         return InitializationResult.apiChecksumMismatch
     }
 
     uniffiCallbackInitDarkircEventCallback()
+    uniffiCallbackInitReorgEventCallback()
     return InitializationResult.ok
 }()
 

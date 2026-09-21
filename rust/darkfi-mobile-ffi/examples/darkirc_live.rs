@@ -20,7 +20,15 @@ struct CountingCallback {
 }
 
 impl DarkircEventCallback for CountingCallback {
-    fn on_message(&self, _event_id: String, channel: String, nick: String, msg: String, ts: u64) {
+    fn on_message(
+        &self,
+        _event_id: String,
+        channel: String,
+        nick: String,
+        msg: String,
+        ts: u64,
+        _is_outgoing: bool,
+    ) {
         let n = self.received.fetch_add(1, Ordering::Relaxed) + 1;
         // Print a small sample so the operator can eyeball real traffic.
         if n <= 10 || n.is_multiple_of(500) {
