@@ -206,7 +206,17 @@ if [[ "${SKIP_UNIFFI_BINDGEN:-0}" != "1" && "${FDROID_BUILD:-0}" != "1" ]]; then
   (
     cd "$RUST"
     cargo build -p darkfi-mobile-ffi >/dev/null
-    cargo run --bin uniffi-bindgen generate \
+    # Cargo 1.99+ only runs workspace bins for `cargo run --bin`. The
+    # uniffi-bindgen binary lives in the uniffi 0.32 crate (feature `cli`).
+    cargo_home="${CARGO_HOME:-$HOME/.cargo}"
+    uniffi_src="$(find "${cargo_home}/registry/src" -maxdepth 2 -type d -name 'uniffi-0.32.0' 2>/dev/null | head -1)"
+    if [[ -z "${uniffi_src}" ]]; then
+      echo "error: uniffi 0.32.0 sources not in the cargo registry" >&2
+      exit 1
+    fi
+    # Keep the bindgen build out of the Cargo registry source tree.
+    CARGO_TARGET_DIR="${RUST}/target/uniffi-bindgen" \
+      cargo run --manifest-path "${uniffi_src}/Cargo.toml" --features cli --bin uniffi-bindgen -- generate \
       darkfi-mobile-ffi/src/darkfi_mobile_ffi.udl \
       --language kotlin \
       --crate darkfi_mobile_ffi \
