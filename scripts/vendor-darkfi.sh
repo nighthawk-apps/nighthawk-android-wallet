@@ -38,6 +38,8 @@ elif [[ -d "${DEST}/bin/drk" && ! -e "${DEST}/.git" ]]; then
 else
   if [[ ! -d "${DEST}/.git" ]]; then
     mkdir -p "$(dirname "${DEST}")"
+    # Pin lives on the Nighthawk fork. Upstream DarkFi is
+    # https://git.dark.fi/darkrenaissance/darkfi and does not contain this SHA.
     git clone --filter=blob:none https://github.com/nighthawk24/darkfi.git "${DEST}"
   fi
   (

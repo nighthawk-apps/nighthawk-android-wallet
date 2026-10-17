@@ -1,6 +1,6 @@
 # Upstream DarkFi proposals (crypto / wallet)
 
-Nighthawk cannot land these directly in `darkrenaissance/darkfi`. This list is
+Nighthawk cannot land these directly in [git.dark.fi/darkrenaissance/darkfi](https://git.dark.fi/darkrenaissance/darkfi) (not the GitHub mirror). This list is
 for upstream discussion / PRs.
 
 **Client pin policy (pre-release):** Android / iOS / desktop UniFFI track tip

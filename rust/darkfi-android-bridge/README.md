@@ -18,4 +18,4 @@ Copy **`target/<triple>/release/libdarkfi_android_bridge.so`** → **`darkfi-and
 
 ## Linking DarkFi
 
-Clone [darkrenaissance/darkfi](https://github.com/darkrenaissance/darkfi) and add path/workspace dependencies incrementally—ideally behind **`darkfi-mobile-ffi`** so Kotlin bindings stay on one UDL surface.
+Clone [darkrenaissance/darkfi](https://git.dark.fi/darkrenaissance/darkfi) and add path/workspace dependencies incrementally—ideally behind **`darkfi-mobile-ffi`** so Kotlin bindings stay on one UDL surface.

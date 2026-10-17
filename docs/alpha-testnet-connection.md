@@ -11,7 +11,7 @@ This documents how Nighthawk connects to the **DarkFi alpha testnet** (App **0.3
 
 Nighthawk embeds **`drk`** via UniFFI and can embed **`darkfid`** (packaged `darkfid_exec`) like upstream expects an external fullnode on loopback **18345**. Without the binary, run `darkfid` elsewhere or use **`adb reverse`** — see below.
 
-Upstream desktop **App 0.3-alpha** runs both in-process: wallet plugin talks to loopback `tcp://127.0.0.1:18345` ([`bin/app/src/plugin/drk.rs`](https://github.com/darkrenaissance/darkfi/blob/master/bin/app/src/plugin/drk.rs)).
+Upstream desktop **App 0.3-alpha** runs both in-process: wallet plugin talks to loopback `tcp://127.0.0.1:18345` ([`bin/app/src/plugin/drk.rs`](https://git.dark.fi/darkrenaissance/darkfi/src/master/bin/app/src/plugin/drk.rs)).
 
 ## Quick start (desktop reference)
 
@@ -88,7 +88,7 @@ There is **no official public hosted darkfid RPC** in upstream docs — operator
 
 ## Tor (optional)
 
-- **Desktop App 0.3-alpha**: create `use_tor.txt` in app data ([release notes](https://github.com/darkrenaissance/darkfi/releases/tag/app-0.3-alpha)).
+- **Desktop App 0.3-alpha**: create `use_tor.txt` in app data ([release notes](https://git.dark.fi/darkrenaissance/darkfi/releases/tag/app-0.3-alpha)).
 - **darkfid**: configure `[network_config."testnet".net]` profiles per [Tor guide](https://dark.fi/book/misc/nodes/tor-guide.html).
 - **Nighthawk**: Tor for IRC/HTTP is separate from wallet RPC (Phase 4 in [`drk-native-implementation.md`](drk-native-implementation.md)).
 

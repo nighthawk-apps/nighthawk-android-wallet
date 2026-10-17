@@ -12,7 +12,7 @@ import java.nio.charset.StandardCharsets.UTF_8
 
 /**
  * darkfid TCP JSON-RPC: one request per line, terminated with CRLF (`write_to_stream` in upstream
- * [darkfi/src/rpc/common.rs](https://github.com/darkrenaissance/darkfi)).
+ * [darkfi/src/rpc/common.rs](https://git.dark.fi/darkrenaissance/darkfi)).
  */
 class DarkfidLineJsonRpcCaller(
     appContext: Context,

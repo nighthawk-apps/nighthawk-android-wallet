@@ -61,4 +61,4 @@ Source: `bin/darkirc/darkirc_config.toml`
 
 - [Running a Node (alpha testnet)](https://dark.fi/book/testnet/node.html)
 - [Node port reference](https://dark.fi/book/misc/nodes/node-configurations.html)
-- [App 0.3-alpha release](https://github.com/darkrenaissance/darkfi/releases/tag/app-0.3-alpha)
+- [App 0.3-alpha release](https://git.dark.fi/darkrenaissance/darkfi/releases/tag/app-0.3-alpha)

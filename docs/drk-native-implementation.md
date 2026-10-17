@@ -6,10 +6,10 @@ This document maps upstream **`bin/app/src/plugin/drk.rs`** and **`bin/drk`** to
 
 | Upstream | Role |
 |----------|------|
-| [`bin/app/src/plugin/drk.rs`](https://github.com/darkrenaissance/darkfi/blob/master/bin/app/src/plugin/drk.rs) | In-process plugin: paths, `Drk::new`, scan loop, balance UI hooks |
-| [`bin/drk/src/lib.rs`](https://github.com/darkrenaissance/darkfi/blob/master/bin/drk/src/lib.rs) | Wallet core: turso + aegis256 `wallet.db`, money contracts, RPC to `darkfid` |
-| [`bin/drk/drk_config.toml`](https://github.com/darkrenaissance/darkfi/blob/master/bin/drk/drk_config.toml) | Default endpoints / network |
-| [`bin/darkfid/src/rpc/`](https://github.com/darkrenaissance/darkfi/tree/master/bin/darkfid/src/rpc) | Chain JSON-RPC consumed by `drk` |
+| [`bin/app/src/plugin/drk.rs`](https://git.dark.fi/darkrenaissance/darkfi/src/master/bin/app/src/plugin/drk.rs) | In-process plugin: paths, `Drk::new`, scan loop, balance UI hooks |
+| [`bin/drk/src/lib.rs`](https://git.dark.fi/darkrenaissance/darkfi/src/master/bin/drk/src/lib.rs) | Wallet core: turso + aegis256 `wallet.db`, money contracts, RPC to `darkfid` |
+| [`bin/drk/drk_config.toml`](https://git.dark.fi/darkrenaissance/darkfi/src/master/bin/drk/drk_config.toml) | Default endpoints / network |
+| [`bin/darkfid/src/rpc/`](https://git.dark.fi/darkrenaissance/darkfi/src/master/bin/darkfid/src/rpc) | Chain JSON-RPC consumed by `drk` |
 
 Pinned revision: **`docs/upstream/darkfi-revision.txt`** (full tip SHA; no `bin/drk` overlay).
 

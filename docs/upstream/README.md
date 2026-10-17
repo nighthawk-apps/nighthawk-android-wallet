@@ -1,8 +1,8 @@
 # Upstream DarkFi reference
 
-This folder pins the DarkFi Git revision used when auditing Kotlin RPC constants, endpoint defaults, and chat presets against [darkrenaissance/darkfi](https://github.com/darkrenaissance/darkfi).
+This folder pins the DarkFi Git revision used when auditing Kotlin RPC constants, endpoint defaults, and chat presets against [darkrenaissance/darkfi](https://git.dark.fi/darkrenaissance/darkfi).
 
-There is **no separate “darkfi wallet” repository** — wallet logic lives in the monorepo under **`bin/drk`** (library + CLI). The reference **native wallet UI** is **[`bin/app`](https://github.com/darkrenaissance/darkfi/tree/master/bin/app)** (Rust + miniquad, plugins for **`drk`**, **`DarkIrc`**, **`fud`**). Mobile UniFFI targets **`Drk::new`** in **`bin/drk/src/lib.rs`**, not a reimplementation of the miniquad scene graph.
+There is **no separate “darkfi wallet” repository** — wallet logic lives in the monorepo under **`bin/drk`** (library + CLI). The reference **native wallet UI** is **[`bin/app`](https://git.dark.fi/darkrenaissance/darkfi/src/master/bin/app)** (Rust + miniquad, plugins for **`drk`**, **`DarkIrc`**, **`fud`**). Mobile UniFFI targets **`Drk::new`** in **`bin/drk/src/lib.rs`**, not a reimplementation of the miniquad scene graph.
 
 The authoritative ✅ / ❌ summary lives in **`darkfi-integration.md`** → **Upstream parity status**.
 

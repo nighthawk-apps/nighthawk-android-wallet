@@ -15,7 +15,7 @@ With **Run embedded DarkIRC node** enabled (Chat → settings), the app can stil
 
 ## Quick path (desktop darkirc + USB debugging) — legacy
 
-1. Build/run [`darkirc`](https://github.com/darkrenaissance/darkfi/tree/master/bin/darkirc) on your workstation with defaults (`tcp://127.0.0.1:6667`).
+1. Build/run [`darkirc`](https://git.dark.fi/darkrenaissance/darkfi/src/master/bin/darkirc) on your workstation with defaults (`tcp://127.0.0.1:6667`).
 2. Enable USB debugging on the phone and connect it.
 3. Run `adb reverse tcp:6667 tcp:6667` so the phone’s `127.0.0.1:6667` forwards to the workstation IRC listener.
 4. Point **legacy** IRC settings at `127.0.0.1:6667` — this does **not** replace in-process UniFFI chat.

@@ -101,7 +101,7 @@ The Android library does **not** invoke Cargo. CI/local flows should run **`carg
 
 Display strings use `tcp://host:port` (and `tcps://…` if TLS is ever enabled). The field is still named `tls` in JSON for wire compatibility.
 
-[`DarkfidJsonRpc`](../darkfi-android-sdk/src/main/java/com/nighthawkapps/lib/android/sdk/wallet/rpc/DarkfidJsonRpc.kt) lists JSON-RPC **method names** from upstream [`bin/darkfid/src/rpc/mod.rs`](https://github.com/darkrenaissance/darkfi/blob/master/bin/darkfid/src/rpc/mod.rs) for when a socket transport or JNI caller is wired — **wallet balances and keys still live in `drk`’s local `wallet.db`**, not on these node methods.
+[`DarkfidJsonRpc`](../darkfi-android-sdk/src/main/java/com/nighthawkapps/lib/android/sdk/wallet/rpc/DarkfidJsonRpc.kt) lists JSON-RPC **method names** from upstream [`bin/darkfid/src/rpc/mod.rs`](https://git.dark.fi/darkrenaissance/darkfi/src/master/bin/darkfid/src/rpc/mod.rs) for when a socket transport or JNI caller is wired — **wallet balances and keys still live in `drk`’s local `wallet.db`**, not on these node methods.
 
 Upstream **`darkfid`** exposes a **second** management listener (`ManagementRoute` in Kotlin — **`dnet.*`**, **`p2p.get_info`**); ports come from **`darkfid`** settings, not `drk_config.toml`. Mining-facing RPC (**`stratum`**, **`xmr`**) shares the darkfid daemon but uses additional **`RpcSettings`** binds upstream — intentionally **not** mirrored in Kotlin until product needs them.
 
@@ -124,7 +124,7 @@ This table closes the audit loop against **`docs/upstream/darkfi-revision.txt`**
 
 ### Upstream revision pin
 
-Integration audits track a **single pinned SHA** for [darkrenaissance/darkfi](https://github.com/darkrenaissance/darkfi):
+Integration audits track a **single pinned SHA** for [darkrenaissance/darkfi](https://git.dark.fi/darkrenaissance/darkfi):
 
 - **`docs/upstream/darkfi-revision.txt`** — full commit SHA on line 1 (comment lines below allowed).
 - **`scripts/verify-darkfi-upstream-pin.sh`** — asserts GitHub **`raw.githubusercontent.com`** returns HTTP 200 for `bin/drk/drk_config.toml`, `bin/darkirc/darkirc_config.toml`, and every **`bin/darkfid/src/rpc/*.rs`** used for RPC audits.
@@ -154,7 +154,7 @@ See **[Upstream parity status](#upstream-parity-status)** for the structured ✅
 
 ## References
 
-- DarkFi tree: [darkrenaissance/darkfi](https://github.com/darkrenaissance/darkfi) — pinned SHA in **`docs/upstream/darkfi-revision.txt`**
+- DarkFi tree: [darkrenaissance/darkfi](https://git.dark.fi/darkrenaissance/darkfi) — pinned SHA in **`docs/upstream/darkfi-revision.txt`**
 - **[Upstream DarkFi reference](upstream/README.md)** — bump checklist for RPC / config files
 - **[Wallet roadmap](wallet-roadmap.md)** — embedded wallet vs hosted coordinator (UniFFI shape)
 - **[Packaging darkfid](darkfid-embedded-android.md)** — upstream vs Nighthawk subprocess model, build/CI

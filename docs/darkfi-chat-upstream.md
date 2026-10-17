@@ -1,6 +1,6 @@
 # DarkIRC / P2P parity (upstream scan)
 
-This summarizes what **darkfi `bin/darkirc`** and **`bin/app`** do today and how Nighthawk aligns. It is not a substitute for reading [darkrenaissance/darkfi](https://github.com/darkrenaissance/darkfi).
+This summarizes what **darkfi `bin/darkirc`** and **`bin/app`** do today and how Nighthawk aligns. It is not a substitute for reading [darkrenaissance/darkfi](https://git.dark.fi/darkrenaissance/darkfi).
 
 ## Upstream `bin/app` vs Nighthawk Android
 
@@ -25,7 +25,7 @@ Upstream does **not** spawn external `darkirc`. Nighthawk Chat matches that: **i
 
 ## Channel & contact configuration (`settings.rs`)
 
-[`bin/darkirc/src/settings.rs`](https://github.com/darkrenaissance/darkfi/blob/master/bin/darkirc/src/settings.rs) defines TOML-backed structures the Android UI does **not** parse yet:
+[`bin/darkirc/src/settings.rs`](https://git.dark.fi/darkrenaissance/darkfi/src/master/bin/darkirc/src/settings.rs) defines TOML-backed structures the Android UI does **not** parse yet:
 
 | Upstream | Meaning |
 |----------|---------|
