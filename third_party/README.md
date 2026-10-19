@@ -4,8 +4,8 @@
 
 Upstream DarkFi is [git.dark.fi/darkrenaissance/darkfi](https://git.dark.fi/darkrenaissance/darkfi),
 not the GitHub mirror. This submodule is [nighthawk24/darkfi](https://github.com/nighthawk24/darkfi)
-at the commit in `docs/upstream/darkfi-revision.txt` (F-Droid pin:
-`fdroid-arti-0.45` / tag `fdroid-55a81e5c6` — Arti 0.45 + keccak overlay),
+at the commit in `docs/upstream/darkfi-revision.txt` (`nighthawk-testnet`:
+latest dark.fi master merged in, Arti kept at 0.45),
 because that Nighthawk pin is not published on git.dark.fi.
 
 ## `RandomX/`

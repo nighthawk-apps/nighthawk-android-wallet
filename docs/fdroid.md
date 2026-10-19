@@ -36,7 +36,23 @@ srclib SHA edit.
 
 Tagging alone does **not** run this repo’s GitHub `Deploy` workflow (that is branch/`workflow_dispatch` + Play secrets). F-Droid’s scanner is separate.
 
-## 3.00.017 (this release)
+## 3.00.018 (this release)
+
+| Field | Value |
+|-------|--------|
+| `WALLET_VERSION_NAME` | `3.00.018` |
+| `WALLET_VERSION_CODE` | `30001818` |
+| Suggested git tag | `v3.00.018` |
+| Fastlane changelog | `fastlane/metadata/android/en-US/changelogs/30001818.txt` |
+| Local F-Droid APK | `bundle exec fastlane fdroid` → `assembleDarkfitestnetRelease` (unsigned) |
+| DarkFi pin | `e4e624179305952c95af1360100d379a81272586` (`nighthawk-testnet`, Arti 0.45) |
+
+What's new for testers:
+
+- Darkirc and the rest of the DarkFi pin now include current dark.fi master. Tor stays on Arti 0.45.
+- The 3.00.017 F-Droid review fixes remain: Android wallet file lock, license-only copy, screenshot blocking, and a local lightwalletd default.
+
+## 3.00.017
 
 | Field | Value |
 |-------|--------|

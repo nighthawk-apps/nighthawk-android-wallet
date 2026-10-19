@@ -1,8 +1,8 @@
-f0978c22242267b5684e6b8334cdf063652d2b37
+e4e624179305952c95af1360100d379a81272586
 # nighthawk24/darkfi branch nighthawk-testnet
 # Upstream is https://git.dark.fi/darkrenaissance/darkfi — do not clone the GitHub mirror.
-# This pin is not on git.dark.fi. It is dark.fi master merged onto fdroid-arti-0.45
-# plus EventGraph mesh ingest (MAX_MESH_EVENT_BLOB / ingest_mesh_event),
-# public Drk::scan_block, scan_blocks without progress_pub, and darkfid
-# sync hardening (response-hash verify, incomplete-sync retry, skip bad peer).
+# This pin is not on git.dark.fi. It is dark.fi master (1cd71ea34) merged onto the
+# Arti 0.45 pin. Upstream master is still Arti 0.42; this branch keeps 0.45.
+# Also keeps the kvdb-overlay pin, EventGraph mesh ingest, public Drk::scan_block,
+# scan_blocks without progress_pub, and darkfid sync hardening.
 # Do not pin git.dark.fi master — that tree is Arti 0.42 without the overlay.

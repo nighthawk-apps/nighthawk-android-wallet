@@ -1,0 +1,4 @@
+Testnet 3.00.018: current DarkFi darkirc, Arti stays 0.45.
+
+- The pinned DarkFi branch now includes the latest dark.fi master, including darkirc. Tor remains Arti 0.45.
+- F-Droid review fixes stay: wallet open on Rust 1.91, MIT license only, seed screenshots blocked, local lightwalletd by default.
