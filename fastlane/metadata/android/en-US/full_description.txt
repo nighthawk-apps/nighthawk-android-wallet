@@ -1,25 +1,30 @@
-TESTNET EDITION — This Nighthawk release targets the DarkFi testnet only (not mainnet). It is built for alpha testing against the Studio testnet lightwalletd endpoint (ngrok TLS).
+TESTNET EDITION — Nighthawk targets the DarkFi testnet only (not mainnet).
 
-Nighthawk is a self-custodial, privacy-first wallet for the DarkFi network. Your keys, your coins — no intermediaries.
+Nighthawk is a self-custodial, privacy-first wallet for the DarkFi network. Your keys, your coins.
 
 Features
 - Self-custodial 22-word DarkFi recovery phrase with PDF backup
-- Native DarkFi wallet sync via UniFFI Rust core (lightwalletd / UnifOMR)
-- Send and receive testnet DRK with full privacy
-- Trial-decrypt fallback (default on) so you can receive from non-UnifOMR wallets
-- Optional Strict UnifOMR sync in Advanced settings
-- DAO governance hub — browse DAOs and proposals
-- DarkIRC encrypted chat (in-process)
-- Embedded Tor (Arti) on by default; disable anytime in Settings or on the splash screen
-- Configurable lightwalletd endpoints and TLS pinning (defaults to Studio ngrok testnet)
+- Native DarkFi wallet sync (lightwalletd / UniFOMR)
+- Send and receive testnet DRK
+- Strict UniFOMR by default. Optional trial decryption is in Advanced settings
+- DAO governance hub
+- DarkIRC encrypted chat
+- Embedded Tor (Arti) on by default; turn it off in Settings or on the splash screen
+- You choose the lightwalletd. A fresh install uses local 127.0.0.1:9067 and does not call out. Change server has an optional Studio ngrok preset; that free-tunnel hostname changes and may be offline
 
-Privacy by default
-- DarkFi addresses derived from your recovery phrase
-- No analytics, no tracking SDKs in the F-Droid build path
-- Wallet data stays on your device
+Optional nearby mesh
+Mesh is off unless you start it. It can request Bluetooth scan, advertise, and connect, nearby Wi-Fi devices (NEARBY_WIFI_DEVICES), and Wi-Fi state changes (CHANGE_WIFI_STATE, ACCESS_WIFI_STATE). None of these are required to create a wallet, sync, or send.
 
-Note
-This is the DarkFi testnet edition (package com.nighthawkwallet.android.testnet, flavor darkfitestnet), not the legacy Zcash listing and not a mainnet release. The app is provided "as is", without warranty.
+Privacy
+- Addresses come from your recovery phrase
+- No analytics or tracking SDKs on the F-Droid build
+- Wallet data stays on the device
+- The seed, restore, and backup screens block screenshots
+
+License
+MIT. Use is covered only by that license. There are no additional terms of service.
+
+This is package com.nighthawkwallet.android.testnet, flavor darkfitestnet. It is not the legacy Zcash listing and not a mainnet release. The app is provided "as is", without warranty.
 
 Source code: https://github.com/nighthawk-apps/nighthawk-android-wallet
 Support: nighthawkwallet@protonmail.com

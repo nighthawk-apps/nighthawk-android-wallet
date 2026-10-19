@@ -46,7 +46,7 @@ internal fun WrapAboutView(
             activity.onLaunchUrl(activity.getString(R.string.ns_credits_link))
         },
         onTermAndCondition = {
-            activity.onLaunchUrl(activity.getString(R.string.ns_privacy_policy_link))
+            activity.onLaunchUrl(activity.getString(R.string.ns_license_link))
         },
         onViewLicence = {
             onViewLicences.value = true

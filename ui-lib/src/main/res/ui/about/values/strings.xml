@@ -7,5 +7,5 @@
     <string name="about_build_header">Build</string>
     <string name="about_build_configuration">Configuration</string>
     <string name="about_legal_header">Legal</string>
-    <string name="about_legal_info">Nighthawk Wallet is open-source software. Use at your own risk. By using this software, you agree to the Terms of Service and Privacy Policy available at nighthawkapps.com.</string>
+    <string name="about_legal_info">Nighthawk Wallet is free software. Use at your own risk. Use is covered only by the app license, with no additional terms.</string>
 </resources>

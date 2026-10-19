@@ -14,13 +14,13 @@ class DarkfiEndpointUpstreamDefaultsTest {
     }
 
     @Test
-    fun defaultTestnetIsStudioNgrokHttps() {
+    fun defaultTestnetIsLocalLightwalletd() {
         val ep = DarkfiEndpoint.defaultForNetwork(DarkfiNetwork.Testnet)
-        assertEquals(443, ep.port)
-        assertEquals(true, ep.isTls)
-        assertEquals(DarkfiEndpoint.STUDIO_TESTNET_LWD_HOST, ep.host)
+        assertEquals(DarkfiEndpoint.LIGHTWALLET_GRPC_PORT, ep.port)
+        assertEquals(false, ep.isTls)
+        assertEquals("127.0.0.1", ep.host)
         assertEquals(
-            "tcp+tls://${DarkfiEndpoint.STUDIO_TESTNET_LWD_HOST}:443",
+            "tcp://127.0.0.1:${DarkfiEndpoint.LIGHTWALLET_GRPC_PORT}",
             ep.toDisplayString(),
         )
     }

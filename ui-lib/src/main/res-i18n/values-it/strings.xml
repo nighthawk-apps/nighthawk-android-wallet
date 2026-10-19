@@ -7,7 +7,7 @@
     <string name="about_build_header">Costruisci</string>
     <string name="about_build_configuration">Configurazione</string>
     <string name="about_legal_header">Informazioni legali</string>
-    <string name="about_legal_info">Segnalazione GitHub #392</string>
+    <string name="about_legal_info">Nighthawk Wallet is free software. Use at your own risk. Use is covered only by the app license, with no additional terms.</string>
     <string name="new_wallet_navigation_back_button_content_description">Indietro</string>
     <string name="new_wallet_toolbar_more_button_content_description">Altro</string>
     <string name="new_wallet_short_header">La mia frase segreta</string>
@@ -130,8 +130,8 @@
     <string name="ns_motto">Where privacy is proven, not promised.</string>
     <string name="ns_get_started">Get Started</string>
     <string name="ns_landing_text">If it\'s your first time using Nighthawk, you\'ll need to create a wallet. If you are returning to Nighthawk, you can try to restore your previous wallet.</string>
-    <string name="ns_landing_footer">Utilizzando questa app accetti la nostra</string>
-    <string name="ns_terms_conditions">Terms and Conditions</string>
+    <string name="ns_landing_footer">This app is free software. Use is covered only by its license.</string>
+    <string name="ns_terms_conditions">View license</string>
     <string name="ns_create_wallet">Create Wallet</string>
     <string name="ns_create_wallet_title">Write down your backup seed</string>
     <string name="ns_create_wallet_text">Se perdi l\'accesso al telefono o a Nighthawk Wallet, l\'unico modo per recuperare l\'accesso al wallet è questa frase di 22 parole e il codice di compleanno del wallet.

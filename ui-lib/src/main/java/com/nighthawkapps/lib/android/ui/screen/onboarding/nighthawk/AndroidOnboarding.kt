@@ -28,7 +28,7 @@ internal fun WrapOnBoarding(activity: ComponentActivity) {
             onCreateWallet = { walletViewModel.persistNewWallet() },
             onRestore = { onBoardingViewModel.setIsImporting(true) },
             onReference = {
-                activity.onLaunchUrl(url = activity.getString(R.string.ns_privacy_policy_link))
+                activity.onLaunchUrl(url = activity.getString(R.string.ns_license_link))
             },
             createWalletError = createWalletError,
         )

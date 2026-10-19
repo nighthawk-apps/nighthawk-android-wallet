@@ -8,7 +8,7 @@
 | Gradle flavor | `zcashmainnet` | **`darkfitestnet`** |
 | Version props | `ZCASH_VERSION_*` | **`WALLET_VERSION_*`** |
 | F-Droid metadata | existing `fdroiddata` recipe | **`metadata/com.nighthawkwallet.android.testnet.yml`** |
-| Default LWD | (Zcash) | Studio testnet ngrok TLS (`DarkfiEndpoint.defaultForNetwork`) |
+| Default LWD | (Zcash) | Local `127.0.0.1:9067`. Studio ngrok is an optional Change-server preset only. |
 
 This is a **testnet** listing for alpha / Studio ngrok lightwalletd — not mainnet.
 A future mainnet F-Droid app would use `com.nighthawkwallet.android` / `darkfimainnet`.
@@ -36,7 +36,26 @@ srclib SHA edit.
 
 Tagging alone does **not** run this repo’s GitHub `Deploy` workflow (that is branch/`workflow_dispatch` + Play secrets). F-Droid’s scanner is separate.
 
-## 3.00.016 (this release)
+## 3.00.017 (this release)
+
+| Field | Value |
+|-------|--------|
+| `WALLET_VERSION_NAME` | `3.00.017` |
+| `WALLET_VERSION_CODE` | `30001817` |
+| Suggested git tag | `v3.00.017` |
+| Fastlane changelog | `fastlane/metadata/android/en-US/changelogs/30001817.txt` |
+| Local F-Droid APK | `bundle exec fastlane fdroid` → `assembleDarkfitestnetRelease` (unsigned) |
+| DarkFi pin | `94b140902e4b67ba141b35b63b602b819f0b0c6e` (`nighthawk-testnet`) |
+
+What's new for testers:
+
+- Wallet open no longer fails on Android when Rust's `File::try_lock` is unsupported (F-Droid's Rust 1.91). The vendored fjall falls back to `flock`.
+- Welcome and about copy follow the MIT license only.
+- Seed, restore, and backup screens set `FLAG_SECURE`.
+- A fresh install syncs to local lightwalletd. The Studio ngrok host is optional because that hostname changes.
+- The store listing describes optional Bluetooth and nearby Wi-Fi mesh permissions.
+
+## 3.00.016
 
 | Field | Value |
 |-------|--------|

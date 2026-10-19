@@ -1,1 +1,1 @@
-DarkFi testnet wallet — UnifOMR, Tor, DarkIRC (ngrok LWD)
+DarkFi testnet wallet. UniFOMR, Tor, chat, optional nearby mesh

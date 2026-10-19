@@ -1,0 +1,7 @@
+Testnet 3.00.017: F-Droid review fixes.
+
+- Wallet open works on Android when Rust 1.91 file locks are unsupported.
+- Welcome and about text follow the MIT license only. No extra terms.
+- Seed, restore, and backup screens block screenshots.
+- Default lightwalletd is local. The Studio ngrok preset is optional because that hostname changes.
+- The store listing describes optional Bluetooth and nearby Wi-Fi mesh permissions.

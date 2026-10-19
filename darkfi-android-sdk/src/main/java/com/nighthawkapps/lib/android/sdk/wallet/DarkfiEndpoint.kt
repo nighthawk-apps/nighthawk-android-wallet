@@ -35,21 +35,24 @@ data class DarkfiEndpoint(
         const val DARKFID_MANAGEMENT_RPC_PORT_LOCALNET: Int = 28346
 
         /**
-         * Studio testnet LWD via ngrok. **Test-only** — not a production ship default.
-         * Release / F-Droid users must pick a lightwalletd they run or trust (Change server).
+         * Optional Change-server preset. Free ngrok hostnames rotate and go offline.
+         * Not the default: a fresh install must not probe this host.
          * No stable public Nighthawk LWD URL exists; do not replace this with an invented host.
          */
         const val STUDIO_TESTNET_LWD_HOST: String = "epidermis-sandbox-marshland.ngrok-free.dev"
 
-        /** Defaults to Studio testnet LWD via ngrok (test-only). Network match is enforced at sync via chain_name. */
+        /**
+         * Local lightwalletd. Users pick a remote server in Change server, including the
+         * optional Studio ngrok preset. Network match is enforced at sync via chain_name.
+         */
         @Suppress("UNUSED_PARAMETER")
         fun defaultForNetwork(network: DarkfiNetwork): DarkfiEndpoint =
             when (network) {
                 DarkfiNetwork.Testnet -> {
                     DarkfiEndpoint(
-                        host = STUDIO_TESTNET_LWD_HOST,
-                        port = 443,
-                        isTls = true,
+                        host = "127.0.0.1",
+                        port = LIGHTWALLET_GRPC_PORT,
+                        isTls = false,
                     )
                 }
 

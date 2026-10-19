@@ -7,7 +7,7 @@
     <string name="about_build_header">Build</string>
     <string name="about_build_configuration">Configuration</string>
     <string name="about_legal_header">Legal</string>
-    <string name="about_legal_info">Nighthawk Wallet is open-source software. Use at your own risk. By using this software, you agree to the Terms of Service and Privacy Policy available at nighthawkapps.com.</string>
+    <string name="about_legal_info">Nighthawk Wallet is free software. Use at your own risk. Use is covered only by the app license, with no additional terms.</string>
     <string name="new_wallet_navigation_back_button_content_description">Back</string>
     <string name="new_wallet_toolbar_more_button_content_description">More</string>
     <string name="new_wallet_short_header">My secret phrase</string>
@@ -130,8 +130,8 @@
     <string name="ns_motto">Where privacy is proven, not promised.</string>
     <string name="ns_get_started">Get Started</string>
     <string name="ns_landing_text">If it\'s your first time using Nighthawk, you\'ll need to create a wallet. If you are returning to Nighthawk, you can try to restore your previous wallet.</string>
-    <string name="ns_landing_footer">By using this app you accept our</string>
-    <string name="ns_terms_conditions">Terms and Conditions</string>
+    <string name="ns_landing_footer">This app is free software. Use is covered only by its license.</string>
+    <string name="ns_terms_conditions">View license</string>
     <string name="ns_create_wallet">Create Wallet</string>
     <string name="ns_create_wallet_title">Write down your backup seed</string>
     <string name="ns_create_wallet_confirm_text">I confirm I have written down my seed phrase.</string>

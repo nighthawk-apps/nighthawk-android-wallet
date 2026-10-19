@@ -37,7 +37,7 @@ private fun ComponentActivity.observeScreenSecurityFlag(screenSecurity: ScreenSe
                 FirebaseTestLabUtil.isFirebaseTestLab(applicationContext) ||
                     EmulatorWtfUtil.isEmulatorWtf(applicationContext)
 
-            if (false) {
+            if (isSecure && !isTest && shouldSecureScreen) {
                 window.setFlags(
                     WindowManager.LayoutParams.FLAG_SECURE,
                     WindowManager.LayoutParams.FLAG_SECURE,
