@@ -8,8 +8,8 @@ use std::sync::RwLock;
 use darkfi::tx::Transaction;
 use darkfi_money_contract::{client::MoneyNote, model::MoneyTransferParamsV1, MoneyFunction};
 use darkfi_sdk::crypto::contract_id::MONEY_CONTRACT_ID;
-use darkfi_sdk::crypto::ContractId;
 use darkfi_sdk::crypto::keypair::Address;
+use darkfi_sdk::crypto::ContractId;
 use darkfi_sdk::pasta::group::ff::PrimeField;
 use darkfi_serial::{deserialize_async, serialize_async};
 use drk::Drk;
@@ -90,8 +90,8 @@ static SENT_PAYMENT_META: LazyLock<RwLock<BoundedCache<(Option<String>, Option<S
 const MAX_SENT_CACHE_ENTRIES: usize = 10_000;
 
 fn zkas_lookup_fallback(contract_id: &ContractId) -> darkfi::Result<Vec<(String, Vec<u8>)>> {
-    let entries = crate::zkas_cache::global_zkas_cache()
-        .entries_for_contract(&contract_id.to_string());
+    let entries =
+        crate::zkas_cache::global_zkas_cache().entries_for_contract(&contract_id.to_string());
     if entries.is_empty() {
         return Err(darkfi::Error::Custom(format!(
             "zkas cache empty for {contract_id}; LookupZkas prefetch required"
@@ -162,17 +162,9 @@ fn cache_and_persist_payment_meta(
     recipient: Option<String>,
 ) {
     if let Ok(mut cache) = SENT_PAYMENT_META.write() {
-        cache.insert(
-            tx_hash.to_string(),
-            (memo.clone(), recipient.clone()),
-        );
+        cache.insert(tx_hash.to_string(), (memo.clone(), recipient.clone()));
     }
-    crate::sync::persist_sent_payment_meta(
-        drk,
-        tx_hash,
-        memo.as_deref(),
-        recipient.as_deref(),
-    );
+    crate::sync::persist_sent_payment_meta(drk, tx_hash, memo.as_deref(), recipient.as_deref());
 }
 
 fn derive_omr_memo_key(secret_bytes: &[u8; 32], recipient_pk: &[u8; 32], nonce: &[u8]) -> [u8; 32] {
@@ -261,19 +253,11 @@ pub async fn build_transfer(
         .filter(|s| !s.is_empty())
         .map(|s| s.as_bytes().to_vec());
 
-    crate::sync::ensure_spendable_money_tree(
-        drk,
-        lightwallet_server_url,
-        lightwallet_tls_pin,
-    )
-    .await
-    .map_err(|e| format!("merkle rebuild for spend: {e}"))?;
+    crate::sync::ensure_spendable_money_tree(drk, lightwallet_server_url, lightwallet_tls_pin)
+        .await
+        .map_err(|e| format!("merkle rebuild for spend: {e}"))?;
 
-    prefetch_money_zkas(
-        lightwallet_server_url,
-        lightwallet_tls_pin,
-    )
-    .await?;
+    prefetch_money_zkas(lightwallet_server_url, lightwallet_tls_pin).await?;
 
     let tx = drk
         .transfer(amount, token, *recipient.public_key(), None, None, false)
@@ -708,7 +692,10 @@ mod tests {
         cache.insert("b".into(), 2u8);
         cache.insert("a".into(), 9u8);
         cache.insert("c".into(), 3u8);
-        assert!(!cache.contains_key("a"), "oldest insert was a, even after update");
+        assert!(
+            !cache.contains_key("a"),
+            "oldest insert was a, even after update"
+        );
         assert_eq!(cache.get("b"), Some(&2));
         assert_eq!(cache.get("c"), Some(&3));
     }

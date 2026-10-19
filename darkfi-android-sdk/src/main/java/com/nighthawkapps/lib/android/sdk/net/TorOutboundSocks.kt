@@ -19,7 +19,9 @@ object TorOutboundSocks {
         return h == DEFAULT_HOST_IF_BLANK ||
             h.equals("localhost", ignoreCase = true) ||
             h == "::1" ||
-            h == "127.0.0.1"
+            h == "127.0.0.1" ||
+            // Android emulator alias for the host machine's loopback.
+            h == "10.0.2.2"
     }
 
     /**

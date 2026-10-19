@@ -68,7 +68,7 @@ fun Project.configureStealthKotlinJvmCompileTasksFromAgpBuiltInKotlin() {
     }
 }
 
-/** compileSdk 37 + minor 2 ⇒ platform API 37.2 (additive APIs; targetSdk stays 37). */
+/** Android 17: compileSdk 37 + minor 2 ⇒ platform API 37.2 (targetSdk stays 37). */
 fun Project.applyStealthCompileSdk(android: CommonExtension) {
     android.compileSdk = property("ANDROID_COMPILE_SDK_VERSION").toString().toInt()
     findProperty("ANDROID_COMPILE_SDK_MINOR")?.toString()?.toIntOrNull()?.takeIf { it > 0 }?.let {

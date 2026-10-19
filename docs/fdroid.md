@@ -36,7 +36,24 @@ srclib SHA edit.
 
 Tagging alone does **not** run this repo’s GitHub `Deploy` workflow (that is branch/`workflow_dispatch` + Play secrets). F-Droid’s scanner is separate.
 
-## 3.00.015 (this release)
+## 3.00.016 (this release)
+
+| Field | Value |
+|-------|--------|
+| `WALLET_VERSION_NAME` | `3.00.016` |
+| `WALLET_VERSION_CODE` | `30001816` |
+| Suggested git tag | `v3.00.016` |
+| Fastlane changelog | `fastlane/metadata/android/en-US/changelogs/30001816.txt` |
+| Local F-Droid APK | `bundle exec fastlane fdroid` → `assembleDarkfitestnetRelease` (unsigned) |
+| DarkFi pin | `94b140902e4b67ba141b35b63b602b819f0b0c6e` (`nighthawk-testnet`) |
+
+What's new for testers:
+
+- Strict UniFOMR is the default. Turn it off in settings to trial-decrypt payments that have no clue.
+- PIR limb fetches are rounded up so the matched payload size is not visible from the request count.
+- Gradle 9.8.1 and Android Gradle Plugin 9.4.1. kvdb-overlay is pinned because its latest git HEAD no longer builds with this DarkFi tree.
+
+## 3.00.015
 
 | Field | Value |
 |-------|--------|

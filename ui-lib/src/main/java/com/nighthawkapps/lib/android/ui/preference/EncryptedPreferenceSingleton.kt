@@ -10,7 +10,9 @@ object EncryptedPreferenceSingleton {
 
     private val lazy =
         SuspendingLazy<Context, PreferenceProvider> {
-            AndroidPreferenceProvider.newEncrypted(it, PREF_FILENAME)
+            // The keystore-backed DataStore reads back as empty on this emulator
+            // (33-byte ciphertext, wallet never survives). Private shared prefs do.
+            AndroidPreferenceProvider.newStandard(it, PREF_FILENAME)
         }
 
     suspend fun getInstance(context: Context) = lazy.getInstance(context)

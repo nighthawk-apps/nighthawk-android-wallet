@@ -65,7 +65,11 @@ pub struct FragmentAssembler {
 }
 
 impl FragmentAssembler {
-    pub fn ingest(&mut self, pkt: &MeshPacket, now_ms: u64) -> Result<Option<MeshPacket>, FragError> {
+    pub fn ingest(
+        &mut self,
+        pkt: &MeshPacket,
+        now_ms: u64,
+    ) -> Result<Option<MeshPacket>, FragError> {
         self.gc(now_ms);
         if pkt.typ != PacketType::Fragment {
             return Ok(Some(pkt.clone()));
@@ -81,8 +85,7 @@ impl FragmentAssembler {
         if total == 0 || index >= total || total > MAX_FRAGMENTS {
             return Err(FragError::BadHeader);
         }
-        if self.inflight.len() >= MAX_IN_FLIGHT_ASSEMBLIES && !self.inflight.contains_key(&stream)
-        {
+        if self.inflight.len() >= MAX_IN_FLIGHT_ASSEMBLIES && !self.inflight.contains_key(&stream) {
             return Err(FragError::TooManyFragments);
         }
         let entry = self.inflight.entry(stream).or_insert_with(|| Assembly {

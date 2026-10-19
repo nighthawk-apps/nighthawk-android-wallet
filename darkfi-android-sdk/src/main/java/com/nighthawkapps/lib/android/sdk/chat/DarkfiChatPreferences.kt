@@ -31,7 +31,7 @@ class DarkfiChatPreferences(
      * Default off so testers can receive from upstream `drk` (trial-decrypt fallback).
      */
     var strictOmrOnly: Boolean
-        get() = sp.getBoolean(KEY_STRICT_OMR_ONLY, false)
+        get() = sp.getBoolean(KEY_STRICT_OMR_ONLY, true)
         set(value) {
             sp.edit().putBoolean(KEY_STRICT_OMR_ONLY, value).apply()
         }

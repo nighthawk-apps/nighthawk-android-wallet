@@ -138,7 +138,7 @@ pub fn start_background_sync(
     drk: DrkPtr,
     _ex: Arc<Executor<'static>>,
     sync_engine: Arc<SyncEngine>,
-) {
+) -> std::thread::JoinHandle<()> {
     std::thread::Builder::new()
         .name("darkfi-wallet-sync".into())
         .spawn(move || {
@@ -149,14 +149,29 @@ pub fn start_background_sync(
                 // Adopted from zcash/lightwalletd's FirstRPC() pattern:
                 // verify the server is reachable and darkfid has synced
                 // past genesis before entering the main sync loop.
+                // The stop side lets handle close abort a long probe and
+                // drop `drk` so the Fjall cache can be reopened.
                 let client = sync_engine.lightwallet_client();
-                match client
-                    .probe_health(
-                        HEALTH_PROBE_MAX_RETRIES,
-                        std::time::Duration::from_secs(HEALTH_PROBE_INTERVAL_SECS),
-                    )
-                    .await
-                {
+                let probe_result = smol::future::or(
+                    async {
+                        client
+                            .probe_health(
+                                HEALTH_PROBE_MAX_RETRIES,
+                                std::time::Duration::from_secs(HEALTH_PROBE_INTERVAL_SECS),
+                            )
+                            .await
+                    },
+                    async {
+                        wait_until_stopped(&sync_engine).await;
+                        Err("sync stopped".to_string())
+                    },
+                )
+                .await;
+                if sync_engine.is_stopped() {
+                    checkpoint_wallet(&drk).await;
+                    return;
+                }
+                match probe_result {
                     Ok(info) => {
                         tracing::info!(
                             target: "wallet-sync",
@@ -184,19 +199,34 @@ pub fn start_background_sync(
                 // ========================================================
                 let mut consecutive_failures: u32 = 0;
 
-                loop {
+                while !sync_engine.is_stopped() {
                     sync_engine.set_status(LightSyncStatus::Connecting);
 
                     // Per-cycle timeout guard (finding 1.2): abort stalled
                     // sync cycles so we don't hang forever on a slow server.
+                    // The same race observes `request_stop` so close() can
+                    // join this thread and release the wallet database.
                     let cycle_result = smol::future::or(
                         async { try_lightwallet_sync(&drk, &sync_engine).await },
                         async {
-                            sleep(MAX_SYNC_CYCLE_SECS).await;
-                            Err("sync cycle timed out (stall guard)".to_string())
+                            let mut waited = 0u64;
+                            loop {
+                                if sync_engine.is_stopped() {
+                                    return Err("sync stopped".to_string());
+                                }
+                                if waited >= MAX_SYNC_CYCLE_SECS {
+                                    return Err("sync cycle timed out (stall guard)".to_string());
+                                }
+                                sleep(1).await;
+                                waited += 1;
+                            }
                         },
                     )
                     .await;
+
+                    if sync_engine.is_stopped() {
+                        break;
+                    }
 
                     match cycle_result {
                         Ok(()) => {
@@ -208,7 +238,7 @@ pub fn start_background_sync(
                                 LIGHTWALLET_IDLE_BASE_SECS
                             };
                             let next_secs = jittered_sleep_secs(base);
-                            sleep(next_secs).await;
+                            sleep_or_stop(&sync_engine, next_secs).await;
                         }
                         Err(e) => {
                             consecutive_failures = consecutive_failures.saturating_add(1);
@@ -242,13 +272,40 @@ pub fn start_background_sync(
                                 RETRY_MAX_SECS,
                             );
                             let retry_secs = jittered_sleep_secs(backoff_base);
-                            sleep(retry_secs).await;
+                            sleep_or_stop(&sync_engine, retry_secs).await;
                         }
                     }
                 }
+                checkpoint_wallet(&drk).await;
             })
         })
-        .ok();
+        .expect("spawn darkfi-wallet-sync")
+}
+
+async fn checkpoint_wallet(drk: &DrkPtr) {
+    let guard = drk.read().await;
+    if let Err(e) = guard
+        .wallet
+        .exec_sql("PRAGMA wal_checkpoint(TRUNCATE)", Vec::new())
+        .await
+    {
+        tracing::warn!(target: "wallet-sync", "wal checkpoint failed: {e}");
+    }
+}
+
+async fn wait_until_stopped(engine: &SyncEngine) {
+    while !engine.is_stopped() {
+        sleep(1).await;
+    }
+}
+
+async fn sleep_or_stop(engine: &SyncEngine, secs: u64) {
+    let mut left = secs;
+    while left > 0 && !engine.is_stopped() {
+        let step = left.min(1);
+        sleep(step).await;
+        left -= step;
+    }
 }
 
 /// Build a UnifOMR detection key for this cycle.
@@ -360,9 +417,6 @@ async fn try_lightwallet_sync(drk: &DrkPtr, sync_engine: &SyncEngine) -> Result<
     sync_engine.ensure_server_chain_identity(&server_info.chain_name)?;
 
     sync_engine.set_omr_available(server_info.omr_supported);
-    if server_info.chain_tip_height > 0 {
-        sync_engine.set_chain_tip(server_info.chain_tip_height);
-    }
     if server_info.proto_version_mismatch {
         tracing::warn!(
             target: "wallet-sync",
@@ -375,6 +429,8 @@ async fn try_lightwallet_sync(drk: &DrkPtr, sync_engine: &SyncEngine) -> Result<
         sync_engine.set_proto_version_mismatch(false);
     }
 
+    // Hash check must see the previous tip height. set_chain_tip() first makes
+    // every new block look like a same-height hash change.
     if !server_info.best_block_hash.is_empty() {
         let reorg = sync_engine
             .update_chain_tip_hash(server_info.chain_tip_height, &server_info.best_block_hash);
@@ -386,6 +442,8 @@ async fn try_lightwallet_sync(drk: &DrkPtr, sync_engine: &SyncEngine) -> Result<
                 server_info.chain_tip_height,
             );
         }
+    } else if server_info.chain_tip_height > 0 {
+        sync_engine.set_chain_tip(server_info.chain_tip_height);
     }
 
     let backend_syncing = sync_engine.is_backend_catching_up(server_info.chain_tip_height);
@@ -1004,12 +1062,12 @@ async fn apply_omr_sparse_window(
     };
     use darkfi_serial::{serialize, Decodable};
     use drk::money::{
-        MONEY_COINS_COL_COIN, MONEY_COINS_COL_COIN_BLIND, MONEY_COINS_COL_CREATION_HEIGHT,
-        MONEY_COINS_COL_IS_SPENT, MONEY_COINS_COL_LEAF_POSITION, MONEY_COINS_COL_MEMO,
-        MONEY_COINS_COL_SECRET, MONEY_COINS_COL_SPEND_HOOK, MONEY_COINS_COL_SPENT_HEIGHT,
-        MONEY_COINS_COL_TOKEN_BLIND, MONEY_COINS_COL_TOKEN_ID, MONEY_COINS_COL_USER_DATA,
-        MONEY_COINS_COL_VALUE, MONEY_COINS_COL_VALUE_BLIND, MONEY_COINS_TABLE,
-        KVDB_MERKLE_TREES_MONEY,
+        KVDB_MERKLE_TREES_MONEY, MONEY_COINS_COL_COIN, MONEY_COINS_COL_COIN_BLIND,
+        MONEY_COINS_COL_CREATION_HEIGHT, MONEY_COINS_COL_IS_SPENT, MONEY_COINS_COL_LEAF_POSITION,
+        MONEY_COINS_COL_MEMO, MONEY_COINS_COL_SECRET, MONEY_COINS_COL_SPEND_HOOK,
+        MONEY_COINS_COL_SPENT_HEIGHT, MONEY_COINS_COL_TOKEN_BLIND, MONEY_COINS_COL_TOKEN_ID,
+        MONEY_COINS_COL_USER_DATA, MONEY_COINS_COL_VALUE, MONEY_COINS_COL_VALUE_BLIND,
+        MONEY_COINS_TABLE,
     };
 
     let matching_set: HashSet<u32> = matching_heights.iter().copied().collect();
@@ -1185,8 +1243,8 @@ async fn apply_omr_sparse_window(
 
             // Birthday enforcement: never trial-decrypt notes below birthday height.
             // Supplemental path decrypts every height in the window (single append).
-            let decrypt_height = height >= birthday
-                && (trial_decrypt_all || matching_set.contains(&height));
+            let decrypt_height =
+                height >= birthday && (trial_decrypt_all || matching_set.contains(&height));
             if !decrypt_height {
                 continue;
             }
@@ -1392,9 +1450,7 @@ async fn try_trial_decryption_sync(
     let window_end = tip.min(scanned.saturating_add(MAX_TRIAL_WINDOW));
     sync_engine.set_status_message(&format!(
         "Trial decrypt {}–{} / tip {}",
-        td_start,
-        window_end,
-        tip
+        td_start, window_end, tip
     ));
 
     if td_start <= window_end {
@@ -1446,8 +1502,7 @@ pub(crate) fn assert_contiguous_heights(
 const PAYMENT_MEMOS_TREE: &str = "payment_memos";
 const PAYMENT_RECIPIENTS_TREE: &str = "payment_recipients";
 
-static PAYMENT_META_KEY: LazyLock<RwLock<Option<[u8; 32]>>> =
-    LazyLock::new(|| RwLock::new(None));
+static PAYMENT_META_KEY: LazyLock<RwLock<Option<[u8; 32]>>> = LazyLock::new(|| RwLock::new(None));
 
 /// Install the XChaCha20-Poly1305 key used for payment memo/recipient blobs.
 pub(crate) fn set_payment_meta_key(key: [u8; 32]) {
@@ -1672,10 +1727,11 @@ pub(crate) async fn rewind_wallet_after_reorg(
     client: Option<&crate::lightwallet_client::LightwalletClient>,
     rollback_height: u32,
 ) -> Result<u32, String> {
+    let coins_table = drk::money::MONEY_COINS_TABLE.as_str();
     if let Err(e) = drk
         .wallet
         .exec_sql(
-            "DELETE FROM money_coins WHERE creation_height > ?1",
+            &format!("DELETE FROM {coins_table} WHERE creation_height > ?1"),
             vec![drk::walletdb::Value::from(i64::from(rollback_height))],
         )
         .await
@@ -1685,7 +1741,9 @@ pub(crate) async fn rewind_wallet_after_reorg(
     if let Err(e) = drk
         .wallet
         .exec_sql(
-            "UPDATE money_coins SET is_spent = 0, spent_height = NULL WHERE spent_height > ?1",
+            &format!(
+                "UPDATE {coins_table} SET is_spent = 0, spent_height = NULL WHERE spent_height > ?1"
+            ),
             vec![drk::walletdb::Value::from(i64::from(rollback_height))],
         )
         .await
@@ -1739,7 +1797,10 @@ pub(crate) async fn rebuild_money_tree_to_height(
     let coins = drk.get_coins(true).await.map_err(|e| e.to_string())?;
     let mut own: HashMap<Vec<u8>, Vec<u8>> = HashMap::new();
     for (oc, _, _, _, _) in &coins {
-        own.insert(oc.coin.inner().to_repr().to_vec(), oc.coin.to_bytes().to_vec());
+        own.insert(
+            oc.coin.inner().to_repr().to_vec(),
+            oc.coin.to_bytes().to_vec(),
+        );
     }
 
     let mut tree = empty_money_tree();
@@ -1762,12 +1823,12 @@ pub(crate) async fn rebuild_money_tree_to_height(
                 };
                 tree.append(node);
                 if let Some(sql_key) = own.get(coin_bytes) {
-                    let pos = tree.mark().ok_or_else(|| "merkle mark failed".to_string())?;
+                    let pos = tree
+                        .mark()
+                        .ok_or_else(|| "merkle mark failed".to_string())?;
                     let query = format!(
                         "UPDATE {} SET {} = ?1 WHERE {} = ?2;",
-                        *MONEY_COINS_TABLE,
-                        MONEY_COINS_COL_LEAF_POSITION,
-                        MONEY_COINS_COL_COIN,
+                        *MONEY_COINS_TABLE, MONEY_COINS_COL_LEAF_POSITION, MONEY_COINS_COL_COIN,
                     );
                     drk.wallet
                         .exec_sql(
@@ -1889,12 +1950,12 @@ async fn process_compact_block(
     };
     use darkfi_serial::{serialize, Decodable};
     use drk::money::{
-        MONEY_COINS_COL_COIN, MONEY_COINS_COL_COIN_BLIND, MONEY_COINS_COL_CREATION_HEIGHT,
-        MONEY_COINS_COL_IS_SPENT, MONEY_COINS_COL_LEAF_POSITION, MONEY_COINS_COL_MEMO,
-        MONEY_COINS_COL_SECRET, MONEY_COINS_COL_SPEND_HOOK, MONEY_COINS_COL_SPENT_HEIGHT,
-        MONEY_COINS_COL_TOKEN_BLIND, MONEY_COINS_COL_TOKEN_ID, MONEY_COINS_COL_USER_DATA,
-        MONEY_COINS_COL_VALUE, MONEY_COINS_COL_VALUE_BLIND, MONEY_COINS_TABLE,
-        KVDB_MERKLE_TREES_MONEY,
+        KVDB_MERKLE_TREES_MONEY, MONEY_COINS_COL_COIN, MONEY_COINS_COL_COIN_BLIND,
+        MONEY_COINS_COL_CREATION_HEIGHT, MONEY_COINS_COL_IS_SPENT, MONEY_COINS_COL_LEAF_POSITION,
+        MONEY_COINS_COL_MEMO, MONEY_COINS_COL_SECRET, MONEY_COINS_COL_SPEND_HOOK,
+        MONEY_COINS_COL_SPENT_HEIGHT, MONEY_COINS_COL_TOKEN_BLIND, MONEY_COINS_COL_TOKEN_ID,
+        MONEY_COINS_COL_USER_DATA, MONEY_COINS_COL_VALUE, MONEY_COINS_COL_VALUE_BLIND,
+        MONEY_COINS_TABLE,
     };
 
     let secrets = if trial_decrypt {
@@ -2139,7 +2200,7 @@ async fn fetch_blocks_via_pir(
             if max_need == 0 {
                 return Err("PIR returned empty payloads for all matching heights".into());
             }
-            needed_limbs = Some(max_need);
+            needed_limbs = Some(crate::batch_pir::padded_limb_count(max_need));
         }
         if let Some(n) = needed_limbs {
             if limb_cols.len() >= n {
@@ -2241,11 +2302,10 @@ pub fn redact_sync_error(error: &str) -> String {
         .unwrap_or(redacted);
 
     // Remove hostnames that look like server URLs
-    let redacted = regex_lite::Regex::new(
-        r"(https?://|tcp://|tcp\+tls://|socks5://|grpc://|wss?://)[^\s]+",
-    )
-    .map(|re| re.replace_all(&redacted, "[redacted-url]").to_string())
-    .unwrap_or(redacted);
+    let redacted =
+        regex_lite::Regex::new(r"(https?://|tcp://|tcp\+tls://|socks5://|grpc://|wss?://)[^\s]+")
+            .map(|re| re.replace_all(&redacted, "[redacted-url]").to_string())
+            .unwrap_or(redacted);
 
     redacted
 }
@@ -2257,16 +2317,12 @@ pub(crate) fn clamp_omr_truncated_tip(
     covered_end: Option<u32>,
 ) -> Result<u32, String> {
     let Some(covered_end) = covered_end else {
-        return Err(
-            "UnifOMR digest truncated with empty slot_heights; \
+        return Err("UnifOMR digest truncated with empty slot_heights; \
              refusing to skip the uncovered tail"
-                .into(),
-        );
+            .into());
     };
     if covered_end < scan_start {
-        return Err(
-            "UnifOMR digest truncated below scan cursor; retry with smaller window".into(),
-        );
+        return Err("UnifOMR digest truncated below scan cursor; retry with smaller window".into());
     }
     if covered_end < window_tip {
         tracing::warn!(
@@ -2288,8 +2344,8 @@ pub(crate) fn append_commitment_leaves(
 ) -> Result<usize, String> {
     let mut n = 0usize;
     for coin in coins {
-        let node = merkle_node_from_coin_bytes(coin)
-            .ok_or_else(|| "invalid commitment".to_string())?;
+        let node =
+            merkle_node_from_coin_bytes(coin).ok_or_else(|| "invalid commitment".to_string())?;
         tree.append(node);
         n += 1;
     }

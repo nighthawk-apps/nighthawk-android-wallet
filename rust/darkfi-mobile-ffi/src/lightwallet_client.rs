@@ -384,11 +384,7 @@ impl rustls::client::danger::ServerCertVerifier for PinnedVerifier {
         let mut hasher = Sha256::new();
         hasher.update(end_entity.as_ref());
         let hash = hasher.finalize();
-        if !self
-            .pinned_sha256
-            .iter()
-            .any(|pin| hash.as_slice() == pin)
-        {
+        if !self.pinned_sha256.iter().any(|pin| hash.as_slice() == pin) {
             return Err(rustls::Error::InvalidCertificate(
                 rustls::CertificateError::UnknownIssuer,
             ));
@@ -548,7 +544,10 @@ impl LightwalletClient {
             require_https_over_socks: true,
             channel: tokio::sync::OnceCell::new(),
             metrics: Arc::new(RpcMetrics::default()),
-            omr_limiter: SlidingWindowLimiter::new(Self::OMR_RATE_LIMIT_PER_MIN, Duration::from_secs(60)),
+            omr_limiter: SlidingWindowLimiter::new(
+                Self::OMR_RATE_LIMIT_PER_MIN,
+                Duration::from_secs(60),
+            ),
             chain_tip_limiter: SlidingWindowLimiter::new(
                 Self::CHAIN_TIP_RATE_LIMIT_PER_MIN,
                 Duration::from_secs(60),
@@ -587,7 +586,10 @@ impl LightwalletClient {
             require_https_over_socks: true,
             channel: tokio::sync::OnceCell::new(),
             metrics: Arc::new(RpcMetrics::default()),
-            omr_limiter: SlidingWindowLimiter::new(Self::OMR_RATE_LIMIT_PER_MIN, Duration::from_secs(60)),
+            omr_limiter: SlidingWindowLimiter::new(
+                Self::OMR_RATE_LIMIT_PER_MIN,
+                Duration::from_secs(60),
+            ),
             chain_tip_limiter: SlidingWindowLimiter::new(
                 Self::CHAIN_TIP_RATE_LIMIT_PER_MIN,
                 Duration::from_secs(60),
@@ -948,8 +950,7 @@ impl LightwalletClient {
 
             let info = resp.into_inner();
             let proto_version = info.proto_version.clone();
-            let proto_version_mismatch =
-                proto_major_mismatch(&proto_version, CLIENT_PROTO_VERSION);
+            let proto_version_mismatch = proto_major_mismatch(&proto_version, CLIENT_PROTO_VERSION);
 
             self.metrics
                 .chain_tip_requests
@@ -1068,9 +1069,7 @@ impl LightwalletClient {
             start.elapsed(),
         );
 
-        self.metrics
-            .block_requests
-            .fetch_add(1, Ordering::Relaxed);
+        self.metrics.block_requests.fetch_add(1, Ordering::Relaxed);
         Ok(filtered)
     }
 
@@ -1640,10 +1639,9 @@ impl LightwalletClient {
 
             if !ts.state_root.is_empty() && !ts.tree_data.is_empty() {
                 let computed_hash = blake3::hash(&ts.tree_data);
-                if ts.state_root.len() == 32 && computed_hash.as_bytes() != ts.state_root.as_slice() {
-                    return Err(format!(
-                        "TreeState state_root mismatch at height {height}"
-                    ));
+                if ts.state_root.len() == 32 && computed_hash.as_bytes() != ts.state_root.as_slice()
+                {
+                    return Err(format!("TreeState state_root mismatch at height {height}"));
                 }
             }
 
@@ -1708,10 +1706,7 @@ impl LightwalletClient {
     }
 
     /// Look up compiled zkas bincodes for a contract ID.
-    pub async fn lookup_zkas(
-        &self,
-        contract_id: &str,
-    ) -> Result<Vec<(String, Vec<u8>)>, String> {
+    pub async fn lookup_zkas(&self, contract_id: &str) -> Result<Vec<(String, Vec<u8>)>, String> {
         let start = Instant::now();
         let result = async_compat::Compat::new(async {
             let channel = self.connect_channel().await?;
@@ -1890,7 +1885,8 @@ pub fn validate_block_follows_parent(
     if parent_hash.len() != 32 {
         return Err("parent hash is not 32 bytes".into());
     }
-    if block.height == parent_height.saturating_add(1) && block.prev_hash.as_slice() != parent_hash {
+    if block.height == parent_height.saturating_add(1) && block.prev_hash.as_slice() != parent_hash
+    {
         return Err(format!(
             "Block {} prev_hash does not match accepted parent at height {parent_height}",
             block.height
@@ -1906,10 +1902,7 @@ pub fn validate_compact_block_batch(blocks: &[LightCompactBlock]) -> Result<(), 
         validate_compact_block(b)?;
         if let Some(prev) = by_h.insert(b.height, b) {
             if prev.hash != b.hash {
-                return Err(format!(
-                    "Conflicting compact blocks at height {}",
-                    b.height
-                ));
+                return Err(format!("Conflicting compact blocks at height {}", b.height));
             }
         }
     }
@@ -2078,7 +2071,11 @@ pub fn normalize_lightwallet_url(url: &str) -> String {
 }
 
 pub fn is_loopback_host(host: &str) -> bool {
-    matches!(host, "127.0.0.1" | "localhost" | "::1" | "[::1]")
+    // 10.0.2.2 is the Android emulator alias for the host's loopback.
+    matches!(
+        host,
+        "127.0.0.1" | "localhost" | "::1" | "[::1]" | "10.0.2.2"
+    )
 }
 
 #[cfg(test)]

@@ -36,6 +36,23 @@ internal object DrkWalletPassStore {
         }
     }
 
+    /**
+     * Database key derived from the mnemonic. The Android Keystore copy used to
+     * come back empty on the emulator, so every cold start generated a new pass
+     * and turso reported `Decryption failed for page=1`.
+     */
+    fun forMnemonic(words: List<String>): String {
+        val mac = javax.crypto.Mac.getInstance("HmacSHA256")
+        mac.init(
+            javax.crypto.spec.SecretKeySpec(
+                "nighthawk-drk-wallet-pass-v1".toByteArray(Charsets.UTF_8),
+                "HmacSHA256",
+            ),
+        )
+        val phrase = words.joinToString(" ") { it.trim() }.toByteArray(Charsets.UTF_8)
+        return Base64.encodeToString(mac.doFinal(phrase), Base64.NO_WRAP)
+    }
+
     fun getOrCreate(context: Context): String =
         runBlocking {
             val ds = getDataStore(context)

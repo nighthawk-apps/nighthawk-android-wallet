@@ -51,6 +51,14 @@ object DarkfiMobileFfiApi {
     /** Serializes `Drk::new` so two callers cannot hold the same Fjall cache lock. */
     private val openLock = Any()
 
+    /**
+     * One native session per process. A second `Drk::new` hits `FjallError: Locked`,
+     * and wiping then deletes the database the first session still has open.
+     * [releaseWallet] drops it only after the last synchronizer closes.
+     */
+    private var liveHandle: DarkfiWalletHandle? = null
+    private var liveUsers: Int = 0
+
     /** Semver of the Rust `darkfi-mobile-ffi` crate, or null if the native library is unavailable. */
     fun nativeCrateSemver(): String? = runCatching { ffiBridgeVersion() }.getOrNull()
 
@@ -77,7 +85,7 @@ object DarkfiMobileFfiApi {
             mnemonic = wallet.seedPhrase,
             walletDbPath = DrkWalletPaths.walletDb(context).absolutePath,
             cachePath = DrkWalletPaths.cacheDir(context).absolutePath,
-            walletPass = DrkWalletPassStore.getOrCreate(context),
+            walletPass = DrkWalletPassStore.forMnemonic(wallet.seedPhrase),
             lightwalletServerUrl = TorDarkfidEndpoint.displayUrlForWallet(context, wallet.endpoint),
             birthdayHeight = wallet.birthdayHeight ?: -1L, // null → full history; 0 → tip seed
 
@@ -103,20 +111,38 @@ object DarkfiMobileFfiApi {
     ): DarkfiWalletHandle {
         val app = context.applicationContext
         synchronized(openLock) {
+            val existing = liveHandle
+            if (existing != null && !existing.uniffiIsDestroyed) {
+                liveUsers += 1
+                return existing
+            }
+            liveHandle = null
+            liveUsers = 0
+
             var last: DarkfiWalletNativeException.NativeDrkUnavailable? = null
             repeat(3) { attempt ->
                 try {
-                    return DarkfiWalletHandle(buildBootstrapConfig(app, wallet))
+                    val handle = DarkfiWalletHandle(buildBootstrapConfig(app, wallet))
+                    liveHandle = handle
+                    liveUsers = 1
+                    return handle
                 } catch (e: DarkfiWalletNativeException.NativeDrkUnavailable) {
                     if (!isRecoverableWalletOpenFailure(e.message)) {
                         throw e
                     }
                     last = e
-                    android.util.Log.w(
-                        "DarkfiMobileFfiApi",
-                        "native wallet open failed (attempt ${attempt + 1}/3); wiping local DB: ${e.message}",
-                    )
-                    DrkWalletPaths.wipeLocalState(app)
+                    if (shouldWipeBeforeRetry(e.message)) {
+                        android.util.Log.w(
+                            "DarkfiMobileFfiApi",
+                            "native wallet open failed (attempt ${attempt + 1}/3); wiping local DB: ${e.message}",
+                        )
+                        DrkWalletPaths.wipeLocalState(app)
+                    } else {
+                        android.util.Log.w(
+                            "DarkfiMobileFfiApi",
+                            "native wallet open failed (attempt ${attempt + 1}/3); lock held, retrying without wipe: ${e.message}",
+                        )
+                    }
                     // Fjall Drop / exclusive lock can lag behind UniFFI destroy().
                     try {
                         Thread.sleep(200L * (attempt + 1))
@@ -128,6 +154,38 @@ object DarkfiMobileFfiApi {
             throw last
                 ?: DarkfiWalletNativeException.NativeDrkUnavailable("native wallet open failed")
         }
+    }
+
+    /**
+     * Drops one user of the process-wide session. The native handle is destroyed
+     * only when the last synchronizer closes, so a reload cannot hand out a dead object.
+     */
+    fun releaseWallet(handle: DarkfiWalletHandle) {
+        synchronized(openLock) {
+            if (liveHandle !== handle) {
+                if (!handle.uniffiIsDestroyed) {
+                    handle.close()
+                }
+                return
+            }
+            liveUsers = (liveUsers - 1).coerceAtLeast(0)
+            if (liveUsers > 0) {
+                return
+            }
+            liveHandle = null
+            liveUsers = 0
+            if (!handle.uniffiIsDestroyed) {
+                handle.close()
+            }
+        }
+    }
+
+    /** Lock conflicts must be retried. Deleting the DB while it is open destroys the live handle. */
+    internal fun shouldWipeBeforeRetry(message: String?): Boolean {
+        val lower = message?.lowercase() ?: return false
+        return !lower.contains("locked") &&
+            !lower.contains("could not acquire lock") &&
+            !lower.contains("resource temporarily unavailable")
     }
 
     /**

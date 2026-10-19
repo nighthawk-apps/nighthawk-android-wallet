@@ -938,9 +938,7 @@ pub fn encode_messages_padded(
 /// Returns `(messages, slot_heights)` where `messages[i]` is the clue packed
 /// into slot `i` and `slot_heights[i]` is its block height. (Mirrors
 /// lightwalletd; used server-side and in tests.)
-pub fn flatten_messages(
-    block_notes: &[(u32, Vec<ClueNote>)],
-) -> (Vec<RlweCiphertext>, Vec<u32>) {
+pub fn flatten_messages(block_notes: &[(u32, Vec<ClueNote>)]) -> (Vec<RlweCiphertext>, Vec<u32>) {
     let mut messages = Vec::new();
     let mut slot_heights = Vec::new();
     for (h, notes) in block_notes {
@@ -985,7 +983,10 @@ pub fn cap_messages_to_whole_heights(
         cut -= 1;
     }
     if cut == 0 {
-        cut = slot_heights.iter().take_while(|&&h| h == boundary_h).count();
+        cut = slot_heights
+            .iter()
+            .take_while(|&&h| h == boundary_h)
+            .count();
     }
     messages.truncate(cut);
     slot_heights.truncate(cut);
@@ -1250,7 +1251,11 @@ mod tests {
         let (_, slot_heights) = flatten_messages(&notes);
         assert_eq!(slot_heights, vec![77, 77], "two clues at height 77");
         let slots = alice_client.decrypt_digest_slots(&digest).unwrap();
-        assert_eq!(slots[0], detector.params.plaintext() / 2, "bob's slot fails");
+        assert_eq!(
+            slots[0],
+            detector.params.plaintext() / 2,
+            "bob's slot fails"
+        );
         assert_eq!(slots[1], 0, "alice's slot matches");
         let matches = UnifOmrClient::range_check_matches(&slots, &slot_heights).unwrap();
         assert_eq!(
@@ -1327,10 +1332,7 @@ mod tests {
             (10u32, vec![ClueNote { omr_clue: spam }]),
             (
                 20u32,
-                vec![
-                    ClueNote { omr_clue: spam2 },
-                    ClueNote { omr_clue: mine_a },
-                ],
+                vec![ClueNote { omr_clue: spam2 }, ClueNote { omr_clue: mine_a }],
             ),
             (30u32, vec![ClueNote { omr_clue: mine_b }]),
         ];
@@ -1341,7 +1343,11 @@ mod tests {
         let digest = detector.evaluate(&det_key, &notes).unwrap();
         let slots = alice_client.decrypt_digest_slots(&digest).unwrap();
         let matches = UnifOmrClient::range_check_matches(&slots, &slot_heights).unwrap();
-        assert_eq!(matches, vec![20, 30], "alice matches heights 20 and 30 only");
+        assert_eq!(
+            matches,
+            vec![20, 30],
+            "alice matches heights 20 and 30 only"
+        );
     }
 
     #[test]

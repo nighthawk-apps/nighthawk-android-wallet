@@ -211,6 +211,11 @@ class WalletViewModel(
         val application = getApplication<Application>()
         _createWalletError.value = null
         viewModelScope.launch(Dispatchers.IO) {
+            val preferenceProvider = EncryptedPreferenceSingleton.getInstance(application)
+            if (EncryptedPreferenceKeys.PERSISTABLE_DARKFI_WALLET.getValue(preferenceProvider) != null) {
+                Twig.info { "Wallet already exists; skipping create" }
+                return@launch
+            }
             runCatching {
                 val network = darkfiNetworkFromPackage(application)
                 val newWallet =
@@ -244,24 +249,32 @@ class WalletViewModel(
     }
 
     fun updateDarkfiEndpoint(endpoint: DarkfiEndpoint): Boolean {
-        val wallet = walletCoordinator.persistableWallet.value ?: return false
-        when (val check = DarkfiEndpointNetworkGuard.validate(wallet.network, endpoint)) {
-            is DarkfiEndpointNetworkGuard.Result.Mismatch -> {
-                _endpointSaveError.value = DarkfiEndpointNetworkGuard.mismatchMessage(check)
-                return false
-            }
-
-            DarkfiEndpointNetworkGuard.Result.Ok -> {
-                _endpointSaveError.value = null
-            }
-        }
         val application = getApplication<Application>()
         viewModelScope.launch(Dispatchers.IO) {
             persistWalletMutex.withLock {
                 val preferenceProvider = EncryptedPreferenceSingleton.getInstance(application)
-                EncryptedPreferenceKeys.PERSISTABLE_DARKFI_WALLET.getValue(preferenceProvider)?.copyWithEndpoint(endpoint)?.let {
-                    persistExistingWallet(it)
+                // The in-memory flow drops to null when the home screen stops
+                // collecting it. Read the persisted wallet so Change Server still
+                // rewrites the endpoint the synchronizer actually dials.
+                val wallet =
+                    walletCoordinator.persistableWallet.value
+                        ?: EncryptedPreferenceKeys.PERSISTABLE_DARKFI_WALLET.getValue(preferenceProvider)
+                        ?: return@withLock
+                when (val check = DarkfiEndpointNetworkGuard.validate(wallet.network, endpoint)) {
+                    is DarkfiEndpointNetworkGuard.Result.Mismatch -> {
+                        _endpointSaveError.value = DarkfiEndpointNetworkGuard.mismatchMessage(check)
+                        return@withLock
+                    }
+
+                    DarkfiEndpointNetworkGuard.Result.Ok -> {
+                        _endpointSaveError.value = null
+                    }
                 }
+                EncryptedPreferenceKeys.PERSISTABLE_DARKFI_WALLET.putValue(
+                    preferenceProvider,
+                    wallet.copyWithEndpoint(endpoint),
+                )
+                Twig.info { "Persisted wallet endpoint ${endpoint.toDisplayString()}" }
             }
         }
         return true

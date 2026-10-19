@@ -15,10 +15,7 @@ pub fn encode_gcs(ids: &[[u8; 16]]) -> (u8, u32, Vec<u8>) {
     let p = golomb_p();
     let n = ids.len().max(1);
     let m = (n as u64).saturating_mul(1u64 << p).min(u32::MAX as u64) as u32;
-    let mut mapped: Vec<u32> = ids
-        .iter()
-        .map(|id| (h64(id) % m as u64) as u32)
-        .collect();
+    let mut mapped: Vec<u32> = ids.iter().map(|id| (h64(id) % m as u64) as u32).collect();
     mapped.sort_unstable();
     mapped.dedup();
     let mut bits = BitWriter::default();

@@ -29,9 +29,15 @@ pub fn validate_lwd_ctrl(payload: &[u8]) -> Result<&str, LwdCtrlError> {
     if payload.len() > LWD_CTRL_MAX {
         return Err(LwdCtrlError::TooLarge);
     }
-    let nl = payload.iter().position(|&b| b == b'\n').unwrap_or(payload.len());
+    let nl = payload
+        .iter()
+        .position(|&b| b == b'\n')
+        .unwrap_or(payload.len());
     let method = std::str::from_utf8(&payload[..nl]).unwrap_or("");
-    if let Some(bad) = BLE_FORBIDDEN_LWD.iter().copied().find(|m| method.eq_ignore_ascii_case(m))
+    if let Some(bad) = BLE_FORBIDDEN_LWD
+        .iter()
+        .copied()
+        .find(|m| method.eq_ignore_ascii_case(m))
     {
         return Err(LwdCtrlError::Forbidden(bad));
     }
@@ -48,6 +54,11 @@ pub fn validate_lwd_ctrl(payload: &[u8]) -> Result<&str, LwdCtrlError> {
     Err(LwdCtrlError::UnknownMethod)
 }
 
-pub fn gateway_eligible(mesh_on: bool, gateway_opt_in: bool, charging: bool, unmetered: bool) -> bool {
+pub fn gateway_eligible(
+    mesh_on: bool,
+    gateway_opt_in: bool,
+    charging: bool,
+    unmetered: bool,
+) -> bool {
     mesh_on && gateway_opt_in && charging && unmetered
 }

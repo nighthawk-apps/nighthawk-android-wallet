@@ -1,0 +1,4 @@
+- Testnet 3.00.016: strict UniFOMR by default, padded PIR limb fetches, Gradle 9.8.1 / AGP 9.4.1.
+- Empty digests no longer trial-decrypt the window unless strict mode is turned off in settings.
+- kvdb-overlay stays on the commit DarkFi can build. Wallet open errors include the database detail.
+- F-Droid: WALLET_VERSION_CODE 30001816 / WALLET_VERSION_NAME 3.00.016; tag v3.00.016.

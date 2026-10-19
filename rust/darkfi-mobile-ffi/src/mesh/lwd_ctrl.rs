@@ -110,7 +110,16 @@ fn inner_cap(kind: u8) -> usize {
 pub fn pad_frame(plain: &[u8]) -> Result<Vec<u8>, LwdCtrlError> {
     let need = plain.len().saturating_add(4);
     const BUCKETS: &[usize] = &[
-        256, 512, 1024, 2048, 4096, 8192, 16384, 32768, 65536, EVENT_INNER_MAX + 64,
+        256,
+        512,
+        1024,
+        2048,
+        4096,
+        8192,
+        16384,
+        32768,
+        65536,
+        EVENT_INNER_MAX + 64,
     ];
     let target = BUCKETS
         .iter()
@@ -169,8 +178,10 @@ pub fn decode_mesh_event(bytes: &[u8]) -> Result<(Vec<u8>, Vec<u8>), LwdCtrlErro
     if bl_off > bytes.len() {
         return Err(LwdCtrlError::Empty);
     }
-    let bl = usize::try_from(u32::from_be_bytes(bytes[el_end..bl_off].try_into().unwrap()))
-        .map_err(|_| LwdCtrlError::Empty)?;
+    let bl = usize::try_from(u32::from_be_bytes(
+        bytes[el_end..bl_off].try_into().unwrap(),
+    ))
+    .map_err(|_| LwdCtrlError::Empty)?;
     let total = bl_off.checked_add(bl).ok_or(LwdCtrlError::Empty)?;
     if total != bytes.len() {
         return Err(LwdCtrlError::Empty);

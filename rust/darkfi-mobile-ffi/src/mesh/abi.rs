@@ -49,12 +49,13 @@ pub extern "C" fn nh_mesh_stop() -> c_int {
 
 #[no_mangle]
 pub extern "C" fn nh_mesh_set_gateway_eligible(opt_in: c_int) -> c_int {
-    abi_catch("nh_mesh_set_gateway_eligible", || {
-        match mesh_set_gateway_eligible(opt_in != 0) {
+    abi_catch(
+        "nh_mesh_set_gateway_eligible",
+        || match mesh_set_gateway_eligible(opt_in != 0) {
             Ok(()) => 0,
             Err(_) => -1,
-        }
-    })
+        },
+    )
 }
 
 #[no_mangle]
@@ -63,12 +64,13 @@ pub extern "C" fn nh_mesh_set_os_power_state(
     charging: c_int,
     unmetered: c_int,
 ) -> c_int {
-    abi_catch("nh_mesh_set_os_power_state", || {
-        match mesh_set_os_power_state(foreground != 0, charging != 0, unmetered != 0) {
+    abi_catch(
+        "nh_mesh_set_os_power_state",
+        || match mesh_set_os_power_state(foreground != 0, charging != 0, unmetered != 0) {
             Ok(()) => 0,
             Err(_) => -1,
-        }
-    })
+        },
+    )
 }
 
 #[no_mangle]
@@ -103,7 +105,9 @@ pub extern "C" fn nh_mesh_pop_outbound(ptr: *mut c_uchar, cap: c_int) -> c_int {
 
 #[no_mangle]
 pub extern "C" fn nh_mesh_status(ptr: *mut c_uchar, cap: c_int) -> c_int {
-    abi_catch("nh_mesh_status", || copy_bytes(ptr, cap, mesh_status().as_bytes()))
+    abi_catch("nh_mesh_status", || {
+        copy_bytes(ptr, cap, mesh_status().as_bytes())
+    })
 }
 
 #[no_mangle]
@@ -113,10 +117,13 @@ pub extern "C" fn nh_mesh_peer_id(ptr: *mut c_uchar, cap: c_int) -> c_int {
 
 #[no_mangle]
 pub extern "C" fn nh_mesh_last_gateway_peer(ptr: *mut c_uchar, cap: c_int) -> c_int {
-    abi_catch("nh_mesh_last_gateway_peer", || match mesh_last_gateway_peer() {
-        Some(id) => copy_bytes(ptr, cap, &id),
-        None => 0,
-    })
+    abi_catch(
+        "nh_mesh_last_gateway_peer",
+        || match mesh_last_gateway_peer() {
+            Some(id) => copy_bytes(ptr, cap, &id),
+            None => 0,
+        },
+    )
 }
 
 #[no_mangle]
@@ -128,32 +135,32 @@ pub extern "C" fn nh_mesh_submit_lwd_ctrl(
     corr_out: *mut c_uchar,
 ) -> c_int {
     abi_catch("nh_mesh_submit_lwd_ctrl", || {
-    if dest.is_null() || method.is_null() {
-        return -2;
-    }
-    let mut dest_id = [0u8; 8];
-    unsafe {
-        dest_id.copy_from_slice(std::slice::from_raw_parts(dest, 8));
-    }
-    let method = unsafe { std::ffi::CStr::from_ptr(method) }
-        .to_str()
-        .unwrap_or("");
-    let body = if body.is_null() || body_len <= 0 {
-        Vec::new()
-    } else {
-        unsafe { std::slice::from_raw_parts(body, body_len as usize) }.to_vec()
-    };
-    match mesh_submit_lwd_ctrl(dest_id, method, &body) {
-        Ok(corr) => {
-            if !corr_out.is_null() {
-                unsafe {
-                    std::ptr::copy_nonoverlapping(corr.as_ptr(), corr_out, 16);
-                }
-            }
-            0
+        if dest.is_null() || method.is_null() {
+            return -2;
         }
-        Err(_) => -1,
-    }
+        let mut dest_id = [0u8; 8];
+        unsafe {
+            dest_id.copy_from_slice(std::slice::from_raw_parts(dest, 8));
+        }
+        let method = unsafe { std::ffi::CStr::from_ptr(method) }
+            .to_str()
+            .unwrap_or("");
+        let body = if body.is_null() || body_len <= 0 {
+            Vec::new()
+        } else {
+            unsafe { std::slice::from_raw_parts(body, body_len as usize) }.to_vec()
+        };
+        match mesh_submit_lwd_ctrl(dest_id, method, &body) {
+            Ok(corr) => {
+                if !corr_out.is_null() {
+                    unsafe {
+                        std::ptr::copy_nonoverlapping(corr.as_ptr(), corr_out, 16);
+                    }
+                }
+                0
+            }
+            Err(_) => -1,
+        }
     })
 }
 
@@ -183,24 +190,24 @@ pub extern "C" fn nh_mesh_wipe() -> c_int {
 #[no_mangle]
 pub extern "C" fn nh_mesh_submit_bulk_join(dest: *const c_uchar, corr_out: *mut c_uchar) -> c_int {
     abi_catch("nh_mesh_submit_bulk_join", || {
-    if dest.is_null() {
-        return -2;
-    }
-    let mut dest_id = [0u8; 8];
-    unsafe {
-        dest_id.copy_from_slice(std::slice::from_raw_parts(dest, 8));
-    }
-    match mesh_submit_bulk_join(dest_id) {
-        Ok(corr) => {
-            if !corr_out.is_null() {
-                unsafe {
-                    std::ptr::copy_nonoverlapping(corr.as_ptr(), corr_out, 16);
-                }
-            }
-            0
+        if dest.is_null() {
+            return -2;
         }
-        Err(_) => -1,
-    }
+        let mut dest_id = [0u8; 8];
+        unsafe {
+            dest_id.copy_from_slice(std::slice::from_raw_parts(dest, 8));
+        }
+        match mesh_submit_bulk_join(dest_id) {
+            Ok(corr) => {
+                if !corr_out.is_null() {
+                    unsafe {
+                        std::ptr::copy_nonoverlapping(corr.as_ptr(), corr_out, 16);
+                    }
+                }
+                0
+            }
+            Err(_) => -1,
+        }
     })
 }
 
@@ -215,52 +222,52 @@ pub extern "C" fn nh_mesh_submit_bulk_offer(
     session_id: *const c_uchar,
 ) -> c_int {
     abi_catch("nh_mesh_submit_bulk_offer", || {
-    if dest.is_null() || ssid.is_null() {
-        return -2;
-    }
-    let mut dest_id = [0u8; 8];
-    unsafe {
-        dest_id.copy_from_slice(std::slice::from_raw_parts(dest, 8));
-    }
-    let ssid = unsafe { std::ffi::CStr::from_ptr(ssid) }
-        .to_str()
-        .unwrap_or("");
-    let psk = if psk.is_null() || psk_len <= 0 {
-        Vec::new()
-    } else {
-        unsafe { std::slice::from_raw_parts(psk, psk_len as usize) }.to_vec()
-    };
-    let mut sid = [0u8; 16];
-    if !session_id.is_null() {
-        unsafe {
-            sid.copy_from_slice(std::slice::from_raw_parts(session_id, 16));
+        if dest.is_null() || ssid.is_null() {
+            return -2;
         }
-    }
-    match mesh_submit_bulk_offer(dest_id, kind as u8, port as u16, ssid, &psk, sid) {
-        Ok(()) => 0,
-        Err(_) => -1,
-    }
+        let mut dest_id = [0u8; 8];
+        unsafe {
+            dest_id.copy_from_slice(std::slice::from_raw_parts(dest, 8));
+        }
+        let ssid = unsafe { std::ffi::CStr::from_ptr(ssid) }
+            .to_str()
+            .unwrap_or("");
+        let psk = if psk.is_null() || psk_len <= 0 {
+            Vec::new()
+        } else {
+            unsafe { std::slice::from_raw_parts(psk, psk_len as usize) }.to_vec()
+        };
+        let mut sid = [0u8; 16];
+        if !session_id.is_null() {
+            unsafe {
+                sid.copy_from_slice(std::slice::from_raw_parts(session_id, 16));
+            }
+        }
+        match mesh_submit_bulk_offer(dest_id, kind as u8, port as u16, ssid, &psk, sid) {
+            Ok(()) => 0,
+            Err(_) => -1,
+        }
     })
 }
 
 #[no_mangle]
 pub extern "C" fn nh_mesh_set_bulk_tcp(host: *const c_char, port: c_int) -> c_int {
     abi_catch("nh_mesh_set_bulk_tcp", || {
-    if host.is_null() || port <= 0 || port > 65535 {
-        clear_bulk_tcp_override();
-        return 0;
-    }
-    let host = unsafe { std::ffi::CStr::from_ptr(host) }
-        .to_str()
-        .unwrap_or("");
-    if host.is_empty() {
-        clear_bulk_tcp_override();
-        return 0;
-    }
-    match set_bulk_tcp_override(Some(host.to_string()), port as u16) {
-        Ok(()) => 0,
-        Err(_) => -1,
-    }
+        if host.is_null() || port <= 0 || port > 65535 {
+            clear_bulk_tcp_override();
+            return 0;
+        }
+        let host = unsafe { std::ffi::CStr::from_ptr(host) }
+            .to_str()
+            .unwrap_or("");
+        if host.is_empty() {
+            clear_bulk_tcp_override();
+            return 0;
+        }
+        match set_bulk_tcp_override(Some(host.to_string()), port as u16) {
+            Ok(()) => 0,
+            Err(_) => -1,
+        }
     })
 }
 
@@ -291,9 +298,11 @@ pub extern "C" fn nh_mesh_publish_dag(ptr: *const c_uchar, len: c_int) -> c_int 
 
 #[no_mangle]
 pub extern "C" fn nh_mesh_request_dag_sync() -> c_int {
-    abi_catch("nh_mesh_request_dag_sync", || match mesh_request_dag_sync() {
-        Ok(()) => 0,
-        Err(_) => -1,
+    abi_catch("nh_mesh_request_dag_sync", || {
+        match mesh_request_dag_sync() {
+            Ok(()) => 0,
+            Err(_) => -1,
+        }
     })
 }
 
@@ -332,7 +341,11 @@ pub extern "C" fn nh_mesh_neighbor_down(dest: *const c_uchar) -> c_int {
 }
 
 #[no_mangle]
-pub extern "C" fn nh_mesh_pop_inbound_event(id_out: *mut c_uchar, ptr: *mut c_uchar, cap: c_int) -> c_int {
+pub extern "C" fn nh_mesh_pop_inbound_event(
+    id_out: *mut c_uchar,
+    ptr: *mut c_uchar,
+    cap: c_int,
+) -> c_int {
     abi_catch("nh_mesh_pop_inbound_event", || {
         let Some(len) = super::mesh_peek_inbound_event_len() else {
             return 0;

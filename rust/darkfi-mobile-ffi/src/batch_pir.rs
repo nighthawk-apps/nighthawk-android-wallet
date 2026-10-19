@@ -23,6 +23,13 @@ pub const MAX_PIR_LIMBS: usize = 4096;
 /// Max stripes (must match server `MAX_PIR_STRIPES`).
 pub const MAX_PIR_STRIPES: usize = 8;
 
+/// Round a needed limb count up to the next power of two (min 8).
+/// Hides the exact matched payload size from the number of PIR round trips.
+pub fn padded_limb_count(needed: usize) -> usize {
+    let n = needed.max(8).min(MAX_PIR_LIMBS);
+    n.next_power_of_two().min(MAX_PIR_LIMBS)
+}
+
 /// Derive PIR client seed from wallet secret (independent of detection key).
 pub fn derive_pir_seed(wallet_secret: &[u8], network: u8) -> Result<[u8; 32], String> {
     if wallet_secret.len() < 32 {

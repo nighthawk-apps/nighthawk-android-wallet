@@ -43,7 +43,13 @@ fn sha256_hex(bytes: &[u8]) -> String {
 
 fn sanitize_component(s: &str) -> String {
     s.chars()
-        .map(|c| if c.is_ascii_alphanumeric() || c == '-' || c == '_' { c } else { '_' })
+        .map(|c| {
+            if c.is_ascii_alphanumeric() || c == '-' || c == '_' {
+                c
+            } else {
+                '_'
+            }
+        })
         .collect()
 }
 
@@ -227,7 +233,8 @@ pub async fn warm_zkas_cache(
             Ok(bincodes) => {
                 for (namespace, bincode) in bincodes {
                     let bincode_hash = sha256_hex(&bincode);
-                    if let Some(existing) = cache.get(contract_id, &namespace, Some(&bincode_hash)) {
+                    if let Some(existing) = cache.get(contract_id, &namespace, Some(&bincode_hash))
+                    {
                         if existing.proving_key.is_some() {
                             tracing::debug!(
                                 target: "zkas-cache",

@@ -128,7 +128,11 @@ fn snapshot_connected_peer_count() -> usize {
     let Some(p2p) = guard.as_ref() else {
         return 0;
     };
-    p2p.hosts().peers().into_iter().take(OUTBOUND_HUD_SLOTS).count()
+    p2p.hosts()
+        .peers()
+        .into_iter()
+        .take(OUTBOUND_HUD_SLOTS)
+        .count()
 }
 
 fn connecting_for_hud() -> bool {
@@ -200,8 +204,9 @@ const MAX_PRIVMSG_FIELD_LEN: usize = 512;
 const MAX_NICK_LEN: usize = 24;
 
 /// Contact saltboxes for DM encryption (channel/nick/msg), keyed by contact nick.
-static DM_CONTACTS: std::sync::LazyLock<std::sync::Mutex<std::collections::HashMap<String, DmContactBoxes>>> =
-    std::sync::LazyLock::new(|| std::sync::Mutex::new(std::collections::HashMap::new()));
+static DM_CONTACTS: std::sync::LazyLock<
+    std::sync::Mutex<std::collections::HashMap<String, DmContactBoxes>>,
+> = std::sync::LazyLock::new(|| std::sync::Mutex::new(std::collections::HashMap::new()));
 
 struct DmContactBoxes {
     saltbox: crypto_box::ChaChaBox,
@@ -209,7 +214,11 @@ struct DmContactBoxes {
 }
 
 /// Register a DM contact so `send_chat_message` can encrypt channel+nick+msg.
-pub fn register_dm_contact(nick: &str, my_secret: &[u8], their_public: &[u8]) -> Result<(), String> {
+pub fn register_dm_contact(
+    nick: &str,
+    my_secret: &[u8],
+    their_public: &[u8],
+) -> Result<(), String> {
     let my_sk = crypto_box::SecretKey::from_slice(my_secret).map_err(|e| e.to_string())?;
     let their_pk = crypto_box::PublicKey::from_slice(their_public).map_err(|e| e.to_string())?;
     let my_pk = my_sk.public_key();
@@ -245,14 +254,16 @@ fn parse_dm_contacts_json(raw: &str) -> Vec<(String, Vec<u8>, Vec<u8>)> {
             continue;
         };
         let obj = &chunk[..end];
-        let nick = json_string_field(obj, "nick")
-            .or_else(|| json_string_field(obj, "nick"));
+        let nick = json_string_field(obj, "nick").or_else(|| json_string_field(obj, "nick"));
         let secret = json_string_field(obj, "myDmChachaSecretBase58")
             .or_else(|| json_string_field(obj, "my_dm_chacha_secret_base58"));
         let public = json_string_field(obj, "dmChachaPublicBase58")
             .or_else(|| json_string_field(obj, "dm_chacha_public_base58"));
         if let (Some(nick), Some(secret), Some(public)) = (nick, secret, public) {
-            if let (Ok(sk), Ok(pk)) = (bs58::decode(secret).into_vec(), bs58::decode(public).into_vec()) {
+            if let (Ok(sk), Ok(pk)) = (
+                bs58::decode(secret).into_vec(),
+                bs58::decode(public).into_vec(),
+            ) {
                 if sk.len() == 32 && pk.len() == 32 {
                     out.push((nick.to_string(), sk, pk));
                 }

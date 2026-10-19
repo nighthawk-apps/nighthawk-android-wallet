@@ -26,6 +26,7 @@ class TorOutboundSocksTest {
         assertTrue(TorOutboundSocks.isLocalLoopbackHost("::1"))
         assertTrue(TorOutboundSocks.isLocalLoopbackHost(""))
         assertTrue(TorOutboundSocks.isLocalLoopbackHost("   "))
+        assertTrue(TorOutboundSocks.isLocalLoopbackHost("10.0.2.2"))
     }
 
     @Test

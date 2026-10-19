@@ -217,6 +217,10 @@ pub struct SyncEngine {
     verified_chain_name: std::sync::Mutex<Option<String>>,
     /// App cache dir for persisting `lwd_chain_identity`.
     data_dir: std::sync::Mutex<Option<std::path::PathBuf>>,
+    /// Set when the owning wallet handle is closing. The background sync
+    /// thread must observe this and drop `Drk` before a new session opens
+    /// the same Fjall cache.
+    stop: std::sync::atomic::AtomicBool,
 }
 
 /// Threshold: a tip advance of >100 blocks between two GetLightInfo calls
@@ -252,8 +256,9 @@ impl SyncEngine {
             tls_pins,
             max_omr_failures: DEFAULT_MAX_OMR_FAILURES,
             // Default matches the mobile apps: allow supplemental trial-decrypt.
-            // Use `new_strict` / `set_strict_omr_only(true)` for UnifOMR-only.
-            strict_omr_only: std::sync::atomic::AtomicBool::new(false),
+            // Strict by default: UniFOMR only. Call set_strict_omr_only(false)
+            // to trial-decrypt payments that have no clue.
+            strict_omr_only: std::sync::atomic::AtomicBool::new(true),
             prev_chain_tip: std::sync::atomic::AtomicU32::new(0),
             last_tip_update: std::sync::atomic::AtomicU64::new(0),
             reorg_callback: std::sync::Mutex::new(None),
@@ -261,7 +266,17 @@ impl SyncEngine {
             last_accepted_block: std::sync::Mutex::new(None),
             verified_chain_name: std::sync::Mutex::new(None),
             data_dir: std::sync::Mutex::new(None),
+            stop: std::sync::atomic::AtomicBool::new(false),
         }
+    }
+
+    /// Ask the background sync thread to exit and drop its `Drk` clone.
+    pub fn request_stop(&self) {
+        self.stop.store(true, std::sync::atomic::Ordering::SeqCst);
+    }
+
+    pub fn is_stopped(&self) -> bool {
+        self.stop.load(std::sync::atomic::Ordering::SeqCst)
     }
 
     /// Create a new sync engine in strict OMR-only mode.
@@ -284,6 +299,7 @@ impl SyncEngine {
             last_accepted_block: std::sync::Mutex::new(None),
             verified_chain_name: std::sync::Mutex::new(None),
             data_dir: std::sync::Mutex::new(None),
+            stop: std::sync::atomic::AtomicBool::new(false),
         }
     }
 
@@ -838,7 +854,7 @@ mod tests {
         assert_eq!(snap.omr_failure_count, 0);
         assert_eq!(snap.status_message, "Server unreachable");
         assert_eq!(snap.sync_type_message, "Idle");
-        assert!(!engine.strict_omr_only());
+        assert!(engine.strict_omr_only());
     }
 
     #[test]
@@ -1051,10 +1067,10 @@ mod tests {
     }
 
     #[test]
-    fn test_default_allows_trial_decrypt_without_omr() {
+    fn test_default_is_strict_omr_without_trial_decrypt() {
         let engine = SyncEngine::new("x".to_string());
-        assert!(!engine.strict_omr_only());
-        assert_eq!(engine.choose_sync_type(), LightSyncType::TrialDecryption);
+        assert!(engine.strict_omr_only());
+        assert_eq!(engine.choose_sync_type(), LightSyncType::Idle);
     }
 
     #[test]

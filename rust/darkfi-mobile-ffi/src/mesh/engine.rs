@@ -4,10 +4,10 @@ use std::collections::{HashMap, VecDeque};
 use std::sync::Arc;
 
 use super::allowlist::{gateway_eligible, validate_lwd_ctrl, LwdCtrlError};
+use super::bulk_session::{BulkOffer, BulkQuota, ID_ROTATE_MS};
 use super::fragment::{split, FragError, FragmentAssembler};
 use super::gcs::{encode_gcs, gcs_contains};
 use super::identity::MeshIdentity;
-use super::bulk_session::{BulkOffer, BulkQuota, ID_ROTATE_MS};
 use super::lwd_ctrl::{
     decode_inner, encode_inner, LwdInner, KIND_DAG_SYNC, KIND_EVENT_PUT, KIND_REQ,
 };
@@ -108,7 +108,7 @@ pub struct MeshEngine {
     dag_bytes: usize,
     outbound: Vec<Vec<u8>>,
     events: Vec<EngineEvent>,
-    inbound_events: Vec<( [u8; 16], Vec<u8> )>,
+    inbound_events: Vec<([u8; 16], Vec<u8>)>,
     sessions: SessionTable,
     pending_lwd: Vec<LwdRequest>,
     last_gateway: Option<[u8; SENDER_LEN]>,
@@ -424,12 +424,7 @@ impl MeshEngine {
     ) -> Result<(), IngestError> {
         if self.sessions.is_ready(&dest) {
             let sealed = self.sessions.seal(&self.identity, &dest, &inner)?;
-            let pkt = MeshPacket::directed(
-                PacketType::NoiseEnc,
-                self.peer_id(),
-                dest,
-                sealed,
-            );
+            let pkt = MeshPacket::directed(PacketType::NoiseEnc, self.peer_id(), dest, sealed);
             self.queue_maybe_fragment(pkt);
             return Ok(());
         }
@@ -485,12 +480,8 @@ impl MeshEngine {
             }
             PacketType::Ping => {
                 self.events.push(EngineEvent::Ping { sender: pkt.sender });
-                let pong = MeshPacket::directed(
-                    PacketType::Pong,
-                    self.peer_id(),
-                    pkt.sender,
-                    Vec::new(),
-                );
+                let pong =
+                    MeshPacket::directed(PacketType::Pong, self.peer_id(), pkt.sender, Vec::new());
                 self.queue_maybe_fragment(pong);
                 Ok(())
             }
@@ -502,7 +493,10 @@ impl MeshEngine {
 
     fn on_noise_hs(&mut self, pkt: MeshPacket) -> Result<(), IngestError> {
         let from = pkt.sender;
-        match self.sessions.ingest_hs(&self.identity, from, &pkt.payload)? {
+        match self
+            .sessions
+            .ingest_hs(&self.identity, from, &pkt.payload)?
+        {
             HsOutcome::Reply(payload) => {
                 let reply =
                     MeshPacket::directed(PacketType::NoiseHs, self.peer_id(), from, payload);
@@ -516,12 +510,8 @@ impl MeshEngine {
                 }
                 for inner in flush {
                     let sealed = self.sessions.seal(&self.identity, &from, &inner)?;
-                    let enc = MeshPacket::directed(
-                        PacketType::NoiseEnc,
-                        self.peer_id(),
-                        from,
-                        sealed,
-                    );
+                    let enc =
+                        MeshPacket::directed(PacketType::NoiseEnc, self.peer_id(), from, sealed);
                     self.queue_maybe_fragment(enc);
                 }
                 self.degree = self.sessions.ready_peers().len() as u8;
@@ -569,11 +559,7 @@ impl MeshEngine {
                 self.events.push(EngineEvent::DagSync {
                     missing: missing.clone(),
                 });
-                let already = self
-                    .sync_sent
-                    .get(&from)
-                    .cloned()
-                    .unwrap_or_default();
+                let already = self.sync_sent.get(&from).cloned().unwrap_or_default();
                 let mut to_send = Vec::new();
                 for id in missing {
                     if already.contains(&id) {

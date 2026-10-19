@@ -1,8 +1,8 @@
 [versions]
 detektGradlePlugin = "1.23.8"
-gradle = "9.4.0"
-jetbrainsKotlinxKover = "0.9.8"
-kotlinGradlePlugin = "2.2.10"
+gradle = "9.4.1"
+jetbrainsKotlinxKover = "0.9.11"
+kotlinGradlePlugin = "2.2.21"
 orgEclipseJgit = "6.4.0.202211300538-r"
 
 [libraries]

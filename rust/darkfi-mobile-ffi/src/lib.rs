@@ -6,12 +6,12 @@ mod birthday;
 pub mod block_cache;
 pub mod bootstrap;
 mod dao;
-mod panic_fence;
 #[cfg(feature = "darkirc")]
 mod darkirc_daemon;
 mod memo;
 pub mod mnemonic;
 mod omr_envelope;
+mod panic_fence;
 pub mod sync;
 pub use sync::{apply_full_block, redact_sync_error};
 mod tokens;
@@ -657,7 +657,9 @@ fn sync_snapshot_from_engine(
 /// Opaque handle for an on-device `Drk` session (upstream `bin/drk/src/lib.rs`).
 pub struct DarkfiWalletHandle {
     drk: DrkPtr,
-    _sync_started: bool,
+    /// Joined from `Drop` after `request_stop`, so the sync thread releases
+    /// the Fjall cache before another `Drk::new` runs in this process.
+    sync_thread: std::sync::Mutex<Option<std::thread::JoinHandle<()>>>,
     sync_engine: Arc<crate::lightwallet_sync::SyncEngine>,
     cache_path: String,
     cache_key: [u8; 32],
@@ -669,6 +671,22 @@ impl std::fmt::Debug for DarkfiWalletHandle {
     }
 }
 
+/// True when the lightwalletd URL host is loopback. Those dials stay direct.
+fn lightwallet_url_is_loopback(url: &str) -> bool {
+    let rest = url
+        .trim()
+        .trim_start_matches("https://")
+        .trim_start_matches("http://")
+        .trim_start_matches("tcp+tls://")
+        .trim_start_matches("tcp://");
+    let host = if let Some(v6) = rest.strip_prefix('[') {
+        v6.split(']').next().unwrap_or("")
+    } else {
+        rest.split(['/', ':']).next().unwrap_or("")
+    };
+    crate::lightwallet_client::is_loopback_host(host)
+}
+
 impl DarkfiWalletHandle {
     pub fn new(config: DrkBootstrapConfig) -> ResultWallet<Self> {
         install_panic_hook_once();
@@ -676,13 +694,14 @@ impl DarkfiWalletHandle {
         crate::sync::clear_detection_key_cache();
         validate_bootstrap(&config)?;
 
-        // Tor routing (fail-closed): start the in-process arti SOCKS proxy and
-        // install it as the process-wide route for ALL remote lightwalletd
-        // traffic (sync, broadcast, clue lookups, bootstrap probes). The SOCKS
-        // listener only binds after the Tor circuit is bootstrapped, so remote
-        // connections either go through Tor or fail — they never silently
-        // downgrade to a direct connection.
-        if config.use_tor {
+        // Arti refuses to start until this directory exists. Set it before the proxy.
+        crate::tor::set_arti_storage_dir(std::path::PathBuf::from(&config.cache_path));
+
+        // Tor routing (fail-closed) for remote lightwalletd only. Loopback stays
+        // direct, so a local server must not block wallet open on Tor bootstrap.
+        let remote_lwd =
+            config.use_tor && !lightwallet_url_is_loopback(&config.lightwallet_server_url);
+        if remote_lwd {
             let port = if config.tor_socks_port == 0 {
                 9050
             } else {
@@ -712,16 +731,18 @@ impl DarkfiWalletHandle {
         ));
         sync_engine.set_strict_omr_only(config.strict_omr_only);
         sync_engine.set_data_dir(std::path::PathBuf::from(&config.cache_path));
-        let cache_key = blake3::derive_key("nighthawk compact-block-cache v1", config.wallet_pass.as_bytes());
+        let cache_key = blake3::derive_key(
+            "nighthawk compact-block-cache v1",
+            config.wallet_pass.as_bytes(),
+        );
         crate::sync::set_payment_meta_key(cache_key);
-        crate::tor::set_arti_storage_dir(std::path::PathBuf::from(&config.cache_path));
         if config.birthday_height > 0 {
             if let Ok(height) = u32::try_from(config.birthday_height) {
                 sync_engine.set_birthday_height(height);
             }
         }
         crate::zkas_cache::set_disk_cache_dir(std::path::PathBuf::from(&config.cache_path));
-        sync::start_background_sync(drk.clone(), ex, sync_engine.clone());
+        let sync_thread = sync::start_background_sync(drk.clone(), ex, sync_engine.clone());
         crate::mesh::set_lwd_splice(Some(std::sync::Arc::new({
             let sync_engine = sync_engine.clone();
             move |method: &str, body: &[u8]| {
@@ -733,7 +754,7 @@ impl DarkfiWalletHandle {
         config.zeroize_secrets();
         Ok(Self {
             drk,
-            _sync_started: true,
+            sync_thread: std::sync::Mutex::new(Some(sync_thread)),
             sync_engine,
             cache_path: config.cache_path.clone(),
             cache_key,
@@ -1009,8 +1030,7 @@ impl DarkfiWalletHandle {
         let tls_pin = self.sync_engine.tls_pin();
         block_on(async move {
             let drk = drk.write().await;
-            dao::vote_on_proposal(&drk, &proposal_bulla_b58, vote_yes, Some(&lw_url), tls_pin)
-                .await
+            dao::vote_on_proposal(&drk, &proposal_bulla_b58, vote_yes, Some(&lw_url), tls_pin).await
         })
         .map_err(DarkfiWalletNativeError::native)
     }
@@ -1113,12 +1133,27 @@ impl DarkfiWalletHandle {
     /// garbage collection for deterministic cleanup. It stops background
     /// sync tasks and flushes any pending database writes.
     pub fn close(&self) -> ResultWallet<()> {
-        // Deterministic cleanup: drop the sync engine and gRPC resources.
-        // The `_sync_started` flag is a plain bool set at construction time.
-        // The actual cleanup happens when `DarkfiWalletHandle` is dropped (via Arc).
-        tracing::info!("DarkfiWalletHandle::close() called — resources will be released on drop");
+        // Signal first. `Drop` joins the thread so the Fjall lock is gone
+        // before UniFFI returns the destroyed handle to Kotlin.
+        tracing::info!("DarkfiWalletHandle::close() called — stopping background sync");
+        self.sync_engine.request_stop();
         crate::mesh::set_lwd_splice(None);
         Ok(())
+    }
+}
+
+impl Drop for DarkfiWalletHandle {
+    fn drop(&mut self) {
+        self.sync_engine.request_stop();
+        crate::mesh::set_lwd_splice(None);
+        let handle = self
+            .sync_thread
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .take();
+        if let Some(handle) = handle {
+            let _ = handle.join();
+        }
     }
 }
 
@@ -1162,7 +1197,6 @@ pub fn decode_chat_entropy(phrase: Vec<String>) -> Option<Vec<u8>> {
         None
     }
 }
-
 
 /// ChaChaBox DM keypair (base58-encoded secret + public keys).
 #[derive(Debug, Clone)]
@@ -1253,7 +1287,7 @@ mod tests {
             use_tor: false,
             tor_socks_port: 9050,
             darkfid_rpc_url: None,
-            strict_omr_only: false,
+            strict_omr_only: true,
         }
     }
 
@@ -1448,10 +1482,7 @@ mod tests {
         let seed = mnemonic::derivation_seed_from_mnemonic(&words);
         let hd0 = mnemonic::secret_key_from_seed_index(&seed, 0).unwrap();
         let hd1 = mnemonic::secret_key_from_seed_index(&seed, 1).unwrap();
-        assert_eq!(
-            mnemonic::secret_key_from_seed_index(&seed, 1).unwrap(),
-            hd1
-        );
+        assert_eq!(mnemonic::secret_key_from_seed_index(&seed, 1).unwrap(), hd1);
         assert_ne!(hd0, hd1);
         assert_eq!(key1, key2, "Same mnemonic must produce same key");
     }

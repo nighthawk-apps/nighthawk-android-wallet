@@ -40,6 +40,6 @@ dependencies {
     implementation(libs.detekt.gradle.plugin)
     implementation(libs.kotlin.gradle.plugin)
     implementation(libs.kotlinx.kover.gradle.plugin)
-    val kotlinVersion = project.findProperty("KOTLIN_VERSION")?.toString() ?: "2.2.10"
+    val kotlinVersion = project.findProperty("KOTLIN_VERSION")?.toString() ?: "2.2.21"
     implementation("org.jetbrains.kotlin:compose-compiler-gradle-plugin:$kotlinVersion")
 }

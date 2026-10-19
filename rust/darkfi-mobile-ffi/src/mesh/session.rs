@@ -360,11 +360,10 @@ impl SessionTable {
     ) -> Result<HsOutcome, SessionError> {
         let (their_eph, our_eph) = match self.map.remove(&from) {
             Some(Session {
-                state: SessState::WaitHs3 {
-                    their_eph,
-                    our_eph,
-                    ..
-                },
+                state:
+                    SessState::WaitHs3 {
+                        their_eph, our_eph, ..
+                    },
             }) => (their_eph, our_eph),
             other => {
                 if let Some(s) = other {
@@ -472,7 +471,11 @@ fn box_seal_hs(their_pk: &[u8; 32], our_sk: &[u8; 32], pt: &[u8]) -> Result<Vec<
     Ok(out)
 }
 
-fn box_open_hs(their_pk: &[u8; 32], our_sk: &[u8; 32], payload: &[u8]) -> Result<Vec<u8>, SessionError> {
+fn box_open_hs(
+    their_pk: &[u8; 32],
+    our_sk: &[u8; 32],
+    payload: &[u8],
+) -> Result<Vec<u8>, SessionError> {
     if payload.len() < 24 {
         return Err(SessionError::Truncated);
     }

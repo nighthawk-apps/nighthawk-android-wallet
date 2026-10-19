@@ -23,7 +23,7 @@ easy-parallel = "3.3.1"
 # Cargo package `darkirc`, Rust lib name `irc2`
 darkirc = { path = "../../third_party/darkfi/bin/darkirc", optional = true }
 semver = "1.0.28"
-kvdb-overlay = { git = "https://git.dark.fi/darkrenaissance/kvdb-overlay", version = "0.1.0" }
+kvdb-overlay = { git = "https://git.dark.fi/darkrenaissance/kvdb-overlay", rev = "accd2689f42e17d8db05294fbe9c3dac1ef307f4", version = "0.1.0" }
 tracing = "0.1.44"
 arti-client = { version = "0.45.0", default-features = false, features = ["async-std", "compression", "error_detail", "rustls", "onion-service-client"] }
 tor-rtcompat = { version = "0.45.0", features = ["async-std", "rustls"] }
@@ -31,10 +31,10 @@ darkfi-serial = { path = "../../third_party/darkfi/src/serial" }
 darkfi_money_contract = { path = "../../third_party/darkfi/src/contract/money", features = ["no-entrypoint", "client"] }
 darkfi_dao_contract = { path = "../../third_party/darkfi/src/contract/dao", features = ["no-entrypoint", "client"] }
 bip39 = "2.2.2"
-blake3 = "1.8.6"
+blake3 = "1.8.7"
 bs58 = "0.5.1"
 crypto_box = { version = "0.9.1", features = ["chacha20"] }
-futures = "0.3.32"
+futures = "0.3.34"
 hmac = "0.12.1"
 num-bigint = { version = "0.4.6", features = ["rand"] }
 num-traits = "0.2"

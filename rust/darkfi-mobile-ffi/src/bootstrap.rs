@@ -54,9 +54,7 @@ pub async fn bootstrap_drk(
 
     ensure_default_money_key(&drk, &config.mnemonic, &mut output).await?;
 
-    let (last_scanned, _) = drk
-        .get_last_scanned_block()
-        .map_err(|e| e.to_string())?;
+    let (last_scanned, _) = drk.get_last_scanned_block().map_err(|e| e.to_string())?;
 
     if config.birthday_height > 0 {
         let birthday = u32::try_from(config.birthday_height)
@@ -115,10 +113,8 @@ pub async fn bootstrap_drk(
                 target: "wallet-bootstrap",
                 "Existing wallet at height {last_scanned} is missing genesis Merkle leaves; rebuilding"
             );
-            let client = LightwalletClient::from_endpoint_and_pin(
-                &config.lightwallet_server_url,
-                pin,
-            );
+            let client =
+                LightwalletClient::from_endpoint_and_pin(&config.lightwallet_server_url, pin);
             if let Err(e) =
                 crate::sync::rebuild_money_tree_to_height(&drk, &client, last_scanned).await
             {

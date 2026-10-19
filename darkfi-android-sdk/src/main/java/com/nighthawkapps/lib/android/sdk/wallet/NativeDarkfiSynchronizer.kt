@@ -389,7 +389,7 @@ class NativeDarkfiSynchronizer internal constructor(
         runBlocking {
             withTimeoutOrNull(1_000) { syncJob?.join() }
         }
-        handle.close()
+        DarkfiMobileFfiApi.releaseWallet(handle)
     }
 
     private companion object {

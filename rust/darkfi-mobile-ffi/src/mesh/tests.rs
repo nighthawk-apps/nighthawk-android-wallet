@@ -65,7 +65,10 @@ fn gcs_roundtrip_membership() {
         .collect();
     let (p, m, data) = crate::mesh::gcs::encode_gcs(&ids);
     for id in &ids {
-        assert!(crate::mesh::gcs::gcs_contains(p, m, &data, id), "false negative");
+        assert!(
+            crate::mesh::gcs::gcs_contains(p, m, &data, id),
+            "false negative"
+        );
     }
     let mut missing = [0u8; 16];
     missing[0] = 0xFF;
@@ -235,7 +238,10 @@ fn plaintext_dag_event_is_ignored() {
     let pkt = MeshPacket::new(PacketType::DagEvent, [5u8; 8], b"#dev\nnick\nhi".to_vec());
     let bytes = encode(&pkt).unwrap();
     e.ingest_bytes(&bytes).unwrap();
-    assert!(!e.pop_events().iter().any(|ev| matches!(ev, EngineEvent::EventPut { .. })));
+    assert!(!e
+        .pop_events()
+        .iter()
+        .any(|ev| matches!(ev, EngineEvent::EventPut { .. })));
 }
 
 #[test]
@@ -354,7 +360,13 @@ fn plaintext_bulk_on_ble_is_ignored() {
     let pkt = MeshPacket::new(PacketType::BulkOffer, [3u8; 8], b"ssid=leak".to_vec());
     let bytes = encode(&pkt).unwrap();
     e.ingest_bytes(&bytes).unwrap();
-    assert!(e.pop_events().is_empty() || !e.pop_events().iter().any(|ev| matches!(ev, EngineEvent::EventPut { .. })));
+    assert!(
+        e.pop_events().is_empty()
+            || !e
+                .pop_events()
+                .iter()
+                .any(|ev| matches!(ev, EngineEvent::EventPut { .. }))
+    );
 }
 
 #[test]
@@ -420,7 +432,9 @@ fn replayed_noise_enc_is_dropped() {
         let _ = b.ingest_bytes(f);
     }
     let first = b.pop_events();
-    assert!(first.iter().any(|e| matches!(e, EngineEvent::EventPut { .. })));
+    assert!(first
+        .iter()
+        .any(|e| matches!(e, EngineEvent::EventPut { .. })));
     for f in &frames {
         let _ = b.ingest_bytes(f);
     }
@@ -431,12 +445,7 @@ fn replayed_noise_enc_is_dropped() {
 }
 
 /// Star topology: A and G only talk through relay R.
-fn hop_star(
-    a: &mut MeshEngine,
-    relay: &mut MeshEngine,
-    g: &mut MeshEngine,
-    rounds: usize,
-) {
+fn hop_star(a: &mut MeshEngine, relay: &mut MeshEngine, g: &mut MeshEngine, rounds: usize) {
     for _ in 0..rounds {
         for f in a.pop_outbound() {
             let _ = relay.ingest_bytes(&f);
@@ -505,13 +514,15 @@ fn three_device_connect_handshake() {
 fn three_device_chat_via_relay() {
     let (mut a, mut relay, mut g) = arm_three();
     handshake_star(&mut a, &mut relay, &mut g);
-    a.publish_event([10u8; 16], b"event-from-a".to_vec()).unwrap();
+    a.publish_event([10u8; 16], b"event-from-a".to_vec())
+        .unwrap();
     hop_star(&mut a, &mut relay, &mut g, 16);
     assert!(g.pop_events().iter().any(|e| matches!(
         e,
         EngineEvent::EventPut { payload, .. } if payload == b"event-from-a"
     )));
-    g.publish_event([11u8; 16], b"event-from-g".to_vec()).unwrap();
+    g.publish_event([11u8; 16], b"event-from-g".to_vec())
+        .unwrap();
     hop_star(&mut a, &mut relay, &mut g, 16);
     assert!(a.pop_events().iter().any(|e| matches!(
         e,
@@ -523,7 +534,8 @@ fn three_device_chat_via_relay() {
 fn three_device_relay_reseals_not_forwards_ciphertext() {
     let (mut a, mut relay, mut g) = arm_three();
     handshake_star(&mut a, &mut relay, &mut g);
-    a.publish_event([12u8; 16], b"unique-payload-xyz".to_vec()).unwrap();
+    a.publish_event([12u8; 16], b"unique-payload-xyz".to_vec())
+        .unwrap();
     let a_frames = a.pop_outbound();
     assert!(!a_frames.is_empty());
     for f in &a_frames {
@@ -533,7 +545,10 @@ fn three_device_relay_reseals_not_forwards_ciphertext() {
     assert!(!relay_out.is_empty());
     for f in &a_frames {
         for r in &relay_out {
-            assert_ne!(f, r, "relay must not forward initiator ciphertext unchanged");
+            assert_ne!(
+                f, r,
+                "relay must not forward initiator ciphertext unchanged"
+            );
         }
     }
     for f in relay_out {
@@ -549,7 +564,8 @@ fn three_device_relay_reseals_not_forwards_ciphertext() {
 fn three_device_periodic_dag_sync() {
     let (mut a, mut relay, mut g) = arm_three();
     handshake_star(&mut a, &mut relay, &mut g);
-    a.publish_event([20u8; 16], b"chat-round-1".to_vec()).unwrap();
+    a.publish_event([20u8; 16], b"chat-round-1".to_vec())
+        .unwrap();
     hop_star(&mut a, &mut relay, &mut g, 16);
     assert!(g.pop_events().iter().any(|e| matches!(
         e,
@@ -567,7 +583,8 @@ fn three_device_periodic_dag_sync() {
 fn three_device_link_lost_and_reconnect() {
     let (mut a, mut relay, mut g) = arm_three();
     handshake_star(&mut a, &mut relay, &mut g);
-    a.publish_event([21u8; 16], b"before-loss".to_vec()).unwrap();
+    a.publish_event([21u8; 16], b"before-loss".to_vec())
+        .unwrap();
     hop_star(&mut a, &mut relay, &mut g, 16);
     assert!(g.pop_events().iter().any(|e| matches!(
         e,
@@ -575,7 +592,8 @@ fn three_device_link_lost_and_reconnect() {
     )));
 
     relay.set_mesh_on(false);
-    a.publish_event([22u8; 16], b"during-loss".to_vec()).unwrap();
+    a.publish_event([22u8; 16], b"during-loss".to_vec())
+        .unwrap();
     hop_star(&mut a, &mut relay, &mut g, 8);
     assert!(!g.pop_events().iter().any(|e| matches!(
         e,

@@ -19,7 +19,7 @@ buildscript {
 }
 
 plugins {
-    id("com.github.ben-manes.versions")
+    id("io.github.ben-manes.versions")
     id("stealth.detekt-conventions")
     id("stealth.ktlint-conventions")
     id("stealth.rosetta-conventions")

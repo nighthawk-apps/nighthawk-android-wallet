@@ -27,8 +27,8 @@ pub use packet::{decode, encode, CodecError};
 pub use splice::{set_lwd_splice, LwdSpliceFn};
 pub use types::{
     MeshPacket, PacketType, BLE_ALLOWED_LWD, BLE_FORBIDDEN_LWD, DAG_SYNC_REPLY_MAX, DEFAULT_TTL,
-    FRAGMENT_CHUNK, LOCAL_TTL, LWD_CTRL_MAX, MAX_PAYLOAD, NH_ANNOUNCE, NH_DAG_EVENT, NH_DAG_SYNC,
-    NH_LWD_CTRL, SENDER_LEN, EVENT_INNER_MAX,
+    EVENT_INNER_MAX, FRAGMENT_CHUNK, LOCAL_TTL, LWD_CTRL_MAX, MAX_PAYLOAD, NH_ANNOUNCE,
+    NH_DAG_EVENT, NH_DAG_SYNC, NH_LWD_CTRL, SENDER_LEN,
 };
 
 use std::collections::VecDeque;
@@ -245,7 +245,10 @@ pub fn mesh_neighbor_down(dest: [u8; SENDER_LEN]) -> Result<(), String> {
 }
 
 pub fn mesh_peek_inbound_event_len() -> Option<usize> {
-    engine().lock().ok().and_then(|g| g.peek_inbound_event_len())
+    engine()
+        .lock()
+        .ok()
+        .and_then(|g| g.peek_inbound_event_len())
 }
 
 pub fn mesh_pop_inbound_event() -> Option<([u8; 16], Vec<u8>)> {
