@@ -42,7 +42,6 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -349,7 +348,7 @@ fun WalletView(
         if (transactionSnapshot.isNotEmpty()) {
             BodyMedium(
                 text = stringResource(id = R.string.ns_recent_activity),
-                color = colorResource(id = com.nighthawkapps.lib.android.ui.design.R.color.ns_parmaviolet)
+                color = WalletTheme.colors.secondaryTitleText
             )
             Spacer(modifier = Modifier.height(4.dp))
             transactionSnapshot.take(2).toImmutableList().forEach { transactionOverview ->
@@ -530,14 +529,14 @@ fun BalanceView(
                 BodySmall(
                     text = msg,
                     textAlign = TextAlign.Center,
-                    color = colorResource(id = com.nighthawkapps.lib.android.ui.design.R.color.ns_parmaviolet)
+                    color = WalletTheme.colors.secondaryTitleText
                 )
             }
             if (balanceDisplayValues.balanceType.isNotBlank()) {
                 BodySmall(
                     text = balanceDisplayValues.balanceType,
                     textAlign = TextAlign.Center,
-                    color = colorResource(id = com.nighthawkapps.lib.android.ui.design.R.color.ns_parmaviolet)
+                    color = WalletTheme.colors.secondaryTitleText
                 )
             }
         }

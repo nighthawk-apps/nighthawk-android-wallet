@@ -1,0 +1,1 @@
+Paper is the theme when the phone is in light mode, and it now covers the whole wallet. Stealth stays the theme for a dark system setting, and an explicit choice in Advanced still wins.

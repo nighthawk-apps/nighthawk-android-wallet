@@ -578,10 +578,12 @@
     <string name="retro">Retro</string>
     <string name="delete_wallet">Delete Wallet</string>
     <string name="theme_section_title">Appearance</string>
-    <string name="theme_variant_stealth">Default (Stealth)</string>
+    <string name="theme_variant_stealth">Stealth</string>
     <string name="theme_variant_stealth_detail">Moonlit neutrals with slate accent — standard Nighthawk dark theme.</string>
     <string name="theme_variant_light">Light</string>
     <string name="theme_variant_light_detail">Mist neutrals for bright environments.</string>
+    <string name="theme_variant_paper">Paper</string>
+    <string name="theme_variant_paper_detail">White background with a text serif. Built for long reading.</string>
     <string name="theme_variant_midnight">Midnight</string>
     <string name="theme_variant_midnight_detail">Deeper base with violet accent.</string>
     <string name="ns_host">Host</string>

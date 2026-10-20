@@ -19,6 +19,8 @@ import com.nighthawkapps.lib.android.ui.preference.EncryptedPreferenceKeys
 import com.nighthawkapps.lib.android.ui.preference.EncryptedPreferenceSingleton
 import com.nighthawkapps.lib.android.ui.preference.StandardPreferenceKeys
 import com.nighthawkapps.lib.android.ui.preference.StandardPreferenceSingleton
+import com.nighthawkapps.lib.android.ui.theme.isSystemInNightMode
+import com.nighthawkapps.lib.android.ui.theme.systemNightMode
 import com.nighthawkapps.lib.android.ui.screen.fiatcurrency.model.FiatCurrency
 import com.nighthawkapps.lib.android.ui.screen.fiatcurrency.model.FiatCurrencyUiState
 import com.nighthawkapps.lib.android.ui.screen.home.model.WalletSnapshot
@@ -67,15 +69,20 @@ class HomeViewModel(
             emitAll(
                 combine(
                     StandardPreferenceKeys.APP_THEME_VARIANT.observe(prefs),
-                    StandardPreferenceKeys.IS_DARK_THEME_ENABLED.observe(prefs),
-                ) { stored, legacyDark ->
-                    AppThemeVariant.resolve(stored, legacyDark)
+                    prefs.observe(StandardPreferenceKeys.IS_DARK_THEME_ENABLED.key),
+                    application.systemNightMode(),
+                ) { stored, legacyDarkStored, systemDark ->
+                    AppThemeVariant.resolve(stored, legacyDarkStored, systemDark)
                 },
             )
         }.stateIn(
             viewModelScope,
             SharingStarted.WhileSubscribed(ANDROID_STATE_FLOW_TIMEOUT.inWholeMilliseconds),
-            AppThemeVariant.STEALTH_DEFAULT,
+            if (application.isSystemInNightMode()) {
+                AppThemeVariant.STEALTH_DEFAULT
+            } else {
+                AppThemeVariant.PAPER
+            },
         )
 
     var intentDataUriForDeepLink: Uri? = null

@@ -162,7 +162,7 @@ fun TransactionDetails(
                 text = stringResource(id = R.string.ns_transaction_details_error_msg),
                 textAlign = TextAlign.Center,
                 modifier = Modifier.align(Alignment.CenterHorizontally),
-                color = WalletTheme.colors.surfaceEnd
+                color = WalletTheme.colors.secondaryTitleText
             )
         } else {
             Icon(
@@ -470,7 +470,7 @@ fun TransactionDetails(
                 ) {
                     BodyMedium(
                         text = stringResource(id = R.string.ns_network_fee),
-                        color = WalletTheme.colors.surfaceEnd
+                        color = WalletTheme.colors.secondaryTitleText
                     )
                     Spacer(modifier = Modifier.width(50.dp))
                     BodyMedium(
@@ -493,7 +493,7 @@ fun TransactionDetails(
                 ) {
                     BodyMedium(
                         text = stringResource(id = R.string.ns_sync_method),
-                        color = WalletTheme.colors.surfaceEnd
+                        color = WalletTheme.colors.secondaryTitleText
                     )
                     Spacer(modifier = Modifier.width(50.dp))
                     BodyMedium(

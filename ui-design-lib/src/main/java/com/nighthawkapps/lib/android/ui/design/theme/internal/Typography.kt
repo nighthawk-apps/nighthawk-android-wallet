@@ -4,12 +4,13 @@ package com.nighthawkapps.lib.android.ui.design.theme.internal
 
 import androidx.compose.material3.Typography
 import androidx.compose.runtime.Immutable
-import androidx.compose.runtime.staticCompositionLocalOf
+import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.ui.text.ExperimentalTextApi
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontStyle
+import androidx.compose.ui.text.font.FontVariation
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.googlefonts.Font
 import androidx.compose.ui.text.googlefonts.GoogleFont
@@ -70,13 +71,59 @@ private val ShareTechMonoFontFamily =
         Font(googleFont = ShareTechMonoFont, fontProvider = provider, weight = FontWeight.Bold) // W700
     )
 
+private fun variableFamily(resId: Int): FontFamily {
+    fun face(weight: FontWeight, axis: Int) =
+        Font(
+            resId = resId,
+            weight = weight,
+            variationSettings = FontVariation.Settings(FontVariation.weight(axis)),
+        )
+    return FontFamily(
+        face(FontWeight.Normal, 400),
+        face(FontWeight.Medium, 500),
+        face(FontWeight.SemiBold, 600),
+        face(FontWeight.Bold, 700),
+    )
+}
+
+private fun serifFamily(resId: Int): FontFamily {
+    fun face(weight: FontWeight, axis: Int) =
+        Font(
+            resId = resId,
+            weight = weight,
+            variationSettings =
+                FontVariation.Settings(
+                    FontVariation.weight(axis),
+                    FontVariation.Setting("opsz", 18f),
+                ),
+        )
+    return FontFamily(
+        face(FontWeight.Normal, 400),
+        face(FontWeight.Medium, 500),
+        face(FontWeight.SemiBold, 600),
+        face(FontWeight.Bold, 700),
+    )
+}
+
+/** Stealth and Midnight headings. Outfit is geometric but readable at title sizes. */
+private val OutfitFamily = variableFamily(R.font.outfit)
+
+/** Body for every theme. Source Sans 3 is a text face; Share Tech Mono stays for raw keys. */
+private val SourceSansFamily = variableFamily(R.font.source_sans_3)
+
+/** Paper headings. Source Serif 4 is a text serif, not a display face. */
+private val SourceSerifFamily = serifFamily(R.font.source_serif_4)
+
+private val IbmPlexMonoFamily =
+    FontFamily(Font(R.font.ibm_plex_mono, FontWeight.Normal))
+
 // If you change this definition of our Typography, don't forget to check if you use only
 // the defined font weights above, otherwise the closest one will be used.
 internal val Typography =
     Typography(
         headlineLarge =
             TextStyle(
-                fontFamily = PulpDisplay,
+                fontFamily = OutfitFamily,
                 fontWeight = FontWeight.SemiBold,
                 fontSize = 30.sp,
                 letterSpacing = TextUnit(value = 0.3f, TextUnitType.Sp),
@@ -84,7 +131,7 @@ internal val Typography =
             ),
         headlineMedium =
             TextStyle(
-                fontFamily = PulpDisplay,
+                fontFamily = OutfitFamily,
                 fontWeight = FontWeight.Normal,
                 fontSize = 28.sp,
                 letterSpacing = TextUnit(value = 0.3f, TextUnitType.Sp),
@@ -92,7 +139,7 @@ internal val Typography =
             ),
         bodyLarge =
             TextStyle(
-                fontFamily = ShareTechMonoFontFamily,
+                fontFamily = SourceSansFamily,
                 fontWeight = FontWeight.Normal,
                 fontSize = 16.sp,
                 letterSpacing = TextUnit(value = 0.3f, TextUnitType.Sp),
@@ -100,7 +147,7 @@ internal val Typography =
             ),
         bodyMedium =
             TextStyle(
-                fontFamily = ShareTechMonoFontFamily,
+                fontFamily = SourceSansFamily,
                 fontWeight = FontWeight.Normal,
                 fontSize = 14.sp,
                 letterSpacing = TextUnit(value = 0.3f, TextUnitType.Sp),
@@ -108,7 +155,7 @@ internal val Typography =
             ),
         bodySmall =
             TextStyle(
-                fontFamily = ShareTechMonoFontFamily,
+                fontFamily = SourceSansFamily,
                 fontWeight = FontWeight.Normal,
                 fontSize = 12.sp,
                 letterSpacing = TextUnit(value = 0.3f, TextUnitType.Sp),
@@ -116,29 +163,64 @@ internal val Typography =
             ),
         labelLarge =
             TextStyle(
-                fontFamily = ShareTechMonoFontFamily,
+                fontFamily = SourceSansFamily,
                 fontWeight = FontWeight.Normal,
                 fontSize = 16.sp
             ),
         titleLarge =
             TextStyle(
-                fontFamily = PulpDisplay,
+                fontFamily = OutfitFamily,
                 fontWeight = FontWeight.Normal,
                 fontSize = 21.sp
             ),
         titleMedium =
             TextStyle(
-                fontFamily = PulpDisplay,
+                fontFamily = OutfitFamily,
                 fontWeight = FontWeight.Normal,
                 fontSize = 16.sp
             ),
         titleSmall =
             TextStyle(
-                fontFamily = PulpDisplay,
+                fontFamily = OutfitFamily,
                 fontWeight = FontWeight.Normal,
                 fontSize = 12.sp
             )
     )
+
+internal fun paperTypography(): Typography {
+    fun TextStyle.asSerif() = copy(fontFamily = SourceSerifFamily, letterSpacing = 0.sp)
+    fun TextStyle.asText() = copy(fontFamily = SourceSansFamily, letterSpacing = 0.sp)
+    return Typography.copy(
+        headlineLarge = Typography.headlineLarge.asSerif(),
+        headlineMedium = Typography.headlineMedium.asSerif(),
+        titleLarge = Typography.titleLarge.asSerif(),
+        titleMedium = Typography.titleMedium.asSerif(),
+        titleSmall = Typography.titleSmall.asSerif(),
+        bodyLarge = Typography.bodyLarge.asText(),
+        bodyMedium = Typography.bodyMedium.asText(),
+        bodySmall = Typography.bodySmall.asText(),
+        labelLarge = Typography.labelLarge.asText(),
+    )
+}
+
+internal fun extendedTypography(paper: Boolean): ExtendedTypography {
+    val body = if (paper) paperTypography().bodyLarge else Typography.bodyLarge
+    return ExtendedTypography(
+        chipIndex =
+            body.copy(
+                fontSize = 10.sp,
+                baselineShift = BaselineShift.Superscript,
+                fontWeight = FontWeight.Bold,
+            ),
+        listItem = body.copy(fontSize = 24.sp),
+        drkBalance =
+            TextStyle(
+                fontFamily = if (paper) SourceSerifFamily else OutfitFamily,
+                fontWeight = FontWeight.Normal,
+                fontSize = 30.sp,
+            ),
+    )
+}
 
 @Immutable
 data class ExtendedTypography(
@@ -149,7 +231,7 @@ data class ExtendedTypography(
 
 @Suppress("CompositionLocalAllowlist")
 val LocalExtendedTypography =
-    staticCompositionLocalOf {
+    compositionLocalOf {
         ExtendedTypography(
             chipIndex =
                 Typography.bodyLarge.copy(
@@ -163,7 +245,7 @@ val LocalExtendedTypography =
                 ),
             drkBalance =
                 TextStyle(
-                    fontFamily = PulpDisplay,
+                    fontFamily = OutfitFamily,
                     fontWeight = FontWeight.Normal,
                     fontSize = 30.sp
                 )

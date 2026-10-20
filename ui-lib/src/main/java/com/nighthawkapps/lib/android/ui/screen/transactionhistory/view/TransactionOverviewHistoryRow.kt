@@ -16,7 +16,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.style.TextAlign
@@ -114,7 +113,7 @@ fun TransactionOverviewHistoryRow(
                 val transactionText =
                     (if (isBalancePrivateMode) "---" else balanceValuesModel.balance) +
                         " ${balanceValuesModel.balanceUnit}"
-                Body(text = transactionText, color = colorResource(id = com.nighthawkapps.lib.android.ui.design.R.color.ns_parmaviolet))
+                Body(text = transactionText, color = WalletTheme.colors.secondaryTitleText)
                 if (fiatCurrencyUiState.fiatCurrency != FiatCurrency.OFF) {
                     Spacer(modifier = Modifier.height(4.dp))
                     val fiatCurrencyText =

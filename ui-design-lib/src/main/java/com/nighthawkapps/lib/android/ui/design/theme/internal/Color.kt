@@ -4,7 +4,7 @@ package com.nighthawkapps.lib.android.ui.design.theme.internal
 
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
-import androidx.compose.runtime.staticCompositionLocalOf
+import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.ui.graphics.Color
 import com.nighthawkapps.lib.android.ui.design.theme.ExtendedColors
 
@@ -312,6 +312,121 @@ internal val MidnightExtendedColorPalette =
         addressHighlightPublic = Color(0xFF9B87F5),
     )
 
+private object PaperTokens {
+    val paper = Color(0xFFFFFFFF)
+    val paperEnd = Color(0xFFF4F6F8)
+    val surface = Color(0xFFFFFFFF)
+    val surfaceVariant = Color(0xFFF2F4F7)
+    val outline = Color(0xFFD0D7DE)
+    val outlineVariant = Color(0xFFE6EBEF)
+    val accent = Color(0xFF0E6A80)
+    val accentPressed = Color(0xFF0B5668)
+    val accentDeep = Color(0xFF084454)
+    val ink = Color(0xFF12171C)
+    val inkBody = Color(0xFF1B242C)
+    val inkMuted = Color(0xFF5E6A74)
+    val secondaryFill = Color(0xFFE7EEF2)
+    val secondaryFillHighlight = Color(0xFFD7E2E8)
+    val calloutFill = Color(0xFFE7F3F6)
+}
+
+internal object Paper {
+    val backgroundStart = PaperTokens.paper
+    val backgroundEnd = PaperTokens.paperEnd
+    val surface = PaperTokens.surface
+    val surfaceVariant = PaperTokens.surfaceVariant
+    val outline = PaperTokens.outline
+    val outlineVariant = PaperTokens.outlineVariant
+    val textHeaderOnBackground = PaperTokens.ink
+    val textBodyOnBackground = PaperTokens.inkBody
+    val textPrimaryButton = Color(0xFFFFFFFF)
+    val textSecondaryButton = PaperTokens.ink
+    val textTertiaryButton = PaperTokens.accent
+    val textCaption = PaperTokens.inkMuted
+    val textChipIndex = PaperTokens.accentDeep
+    val primaryButton = PaperTokens.accent
+    val primaryButtonPressed = PaperTokens.accentPressed
+    val primaryContainer = Color(0xFFD7EEF3)
+    val onPrimaryContainer = PaperTokens.ink
+    val secondaryButton = PaperTokens.secondaryFill
+    val secondaryButtonPressed = PaperTokens.secondaryFillHighlight
+    val secondaryContainer = PaperTokens.secondaryFillHighlight
+    val onSecondaryContainer = PaperTokens.ink
+    val tertiaryButton = PaperTokens.secondaryFill
+    val tertiaryButtonPressed = PaperTokens.secondaryFillHighlight
+    val navigationIcon = PaperTokens.inkMuted
+    val progressStart = PaperTokens.accent
+    val progressEnd = PaperTokens.accentDeep
+    val progressBackground = PaperTokens.outlineVariant
+    val callout = PaperTokens.calloutFill
+    val onCallout = PaperTokens.inkBody
+    val overlay = Color(0x33000000)
+    val highlight = PaperTokens.accent.copy(alpha = 0.12f)
+    val addressHighlightBorder = PaperTokens.outline
+    val addressHighlightUnified = PaperTokens.ink
+    val addressHighlightConfidential = PaperTokens.inkMuted
+    val addressHighlightPublic = PaperTokens.accent
+    val dangerous = Color(0xFFB42318)
+    val onDangerous = Color(0xFFFFFFFF)
+    val reference = PaperTokens.accent
+    val divider = PaperTokens.outline
+    val navigationContainer = PaperTokens.paper
+    val selectedPageIndicator = PaperTokens.accent
+    val secondaryTitleText = PaperTokens.inkMuted
+}
+
+internal val PaperColorPalette =
+    lightColorScheme(
+        primary = Paper.primaryButton,
+        onPrimary = Paper.textPrimaryButton,
+        primaryContainer = Paper.primaryContainer,
+        onPrimaryContainer = Paper.onPrimaryContainer,
+        secondary = Paper.secondaryButton,
+        onSecondary = Paper.textSecondaryButton,
+        secondaryContainer = Paper.secondaryContainer,
+        onSecondaryContainer = Paper.onSecondaryContainer,
+        tertiary = Paper.tertiaryButton,
+        onTertiary = Paper.textTertiaryButton,
+        background = Paper.backgroundStart,
+        onBackground = Paper.textBodyOnBackground,
+        surface = Paper.surface,
+        onSurface = Paper.textBodyOnBackground,
+        surfaceVariant = Paper.surfaceVariant,
+        onSurfaceVariant = Paper.textCaption,
+        outline = Paper.outline,
+        outlineVariant = Paper.outlineVariant,
+        error = Paper.dangerous,
+        onError = Paper.onDangerous,
+    )
+
+internal val PaperExtendedColorPalette =
+    ExtendedColors(
+        surfaceEnd = Paper.backgroundEnd,
+        onBackgroundHeader = Paper.textHeaderOnBackground,
+        tertiary = Paper.tertiaryButton,
+        onTertiary = Paper.textTertiaryButton,
+        callout = Paper.callout,
+        onCallout = Paper.onCallout,
+        progressStart = Paper.progressStart,
+        progressEnd = Paper.progressEnd,
+        progressBackground = Paper.progressBackground,
+        chipIndex = Paper.textChipIndex,
+        overlay = Paper.overlay,
+        highlight = Paper.highlight,
+        addressHighlightBorder = Paper.addressHighlightBorder,
+        addressHighlightUnified = Paper.addressHighlightUnified,
+        addressHighlightConfidential = Paper.addressHighlightConfidential,
+        addressHighlightPublic = Paper.addressHighlightPublic,
+        dangerous = Paper.dangerous,
+        onDangerous = Paper.onDangerous,
+        reference = Paper.reference,
+        divider = Paper.divider,
+        navigationIcon = Paper.navigationIcon,
+        navigationContainer = Paper.navigationContainer,
+        selectedPageIndicator = Paper.selectedPageIndicator,
+        secondaryTitleText = Paper.secondaryTitleText,
+    )
+
 internal val LightExtendedColorPalette =
     ExtendedColors(
         surfaceEnd = Light.backgroundEnd,
@@ -342,7 +457,7 @@ internal val LightExtendedColorPalette =
 
 @Suppress("CompositionLocalAllowlist")
 internal val LocalExtendedColors =
-    staticCompositionLocalOf {
+    compositionLocalOf {
         ExtendedColors(
             surfaceEnd = Color.Unspecified,
             onBackgroundHeader = Color.Unspecified,

@@ -15,7 +15,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
@@ -94,7 +93,7 @@ fun SyncNotification(
         Spacer(modifier = Modifier.height(16.dp))
         TitleMedium(
             text = stringResource(id = R.string.ns_sync_notifications),
-            color = colorResource(id = com.nighthawkapps.lib.android.ui.design.R.color.ns_parmaviolet)
+            color = WalletTheme.colors.secondaryTitleText
         )
         Spacer(modifier = Modifier.height(16.dp))
         BodyMedium(text = stringResource(id = R.string.ns_sync_notifications_body))

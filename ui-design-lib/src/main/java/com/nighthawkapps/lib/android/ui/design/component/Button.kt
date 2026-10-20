@@ -28,15 +28,12 @@ import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.nighthawkapps.lib.android.spackle.Twig
-import com.nighthawkapps.lib.android.ui.design.R
 import com.nighthawkapps.lib.android.ui.design.theme.WalletTheme
-import com.nighthawkapps.lib.android.ui.design.theme.internal.Typography
 
 @Preview
 @Composable
@@ -76,13 +73,13 @@ fun PrimaryButton(
             buttonColors(
                 containerColor = MaterialTheme.colorScheme.primary,
                 contentColor = MaterialTheme.colorScheme.onPrimary,
-                disabledContainerColor = colorResource(id = R.color.ns_stealth_disabled_fill),
-                disabledContentColor = colorResource(id = R.color.ns_parmaviolet),
+                disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                disabledContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
             ),
         shape = RoundedCornerShape(8.dp),
     ) {
         Text(
-            style = Typography.bodyMedium,
+            style = MaterialTheme.typography.bodyMedium,
             text = text,
         )
     }
@@ -165,7 +162,7 @@ fun TertiaryButton(
         shape = RoundedCornerShape(8.dp)
     ) {
         Text(
-            style = Typography.bodyMedium,
+            style = MaterialTheme.typography.bodyMedium,
             text = text,
             color = WalletTheme.colors.onTertiary
         )
@@ -185,7 +182,7 @@ fun OutlinedPrimaryButton(
         shape = RoundedCornerShape(8.dp),
         border = borderStroke
     ) {
-        Text(text = text, style = Typography.bodyMedium, color = MaterialTheme.colorScheme.primary)
+        Text(text = text, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.primary)
     }
 }
 

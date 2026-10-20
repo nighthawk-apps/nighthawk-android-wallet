@@ -27,7 +27,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -123,7 +122,7 @@ fun SeedBackupContent(
             Spacer(modifier = Modifier.height(dimensionResource(id = R.dimen.screen_standard_margin)))
             BodyMedium(
                 text = stringResource(id = R.string.ns_create_wallet_title),
-                color = colorResource(id = com.nighthawkapps.lib.android.ui.design.R.color.ns_parmaviolet),
+                color = WalletTheme.colors.secondaryTitleText,
             )
             Spacer(modifier = Modifier.height(11.dp))
             BodySmall(text = stringResource(id = R.string.ns_create_wallet_text))
@@ -243,7 +242,7 @@ internal fun SeedItem(
     Row(modifier = modifier) {
         BodyMedium(
             text = "$seedIndex.",
-            color = colorResource(id = com.nighthawkapps.lib.android.ui.design.R.color.ns_parmaviolet),
+            color = WalletTheme.colors.secondaryTitleText,
         )
         BodyMedium(text = " $seedWord")
     }

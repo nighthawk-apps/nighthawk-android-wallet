@@ -27,7 +27,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
@@ -126,7 +125,7 @@ fun ChangeServer(
         Spacer(modifier = Modifier.height(dimensionResource(id = R.dimen.offset)))
         TitleMedium(
             text = stringResource(id = R.string.ns_change_server),
-            color = colorResource(id = com.nighthawkapps.lib.android.ui.design.R.color.ns_parmaviolet),
+            color = WalletTheme.colors.secondaryTitleText,
         )
         Spacer(modifier = Modifier.height(dimensionResource(id = R.dimen.screen_standard_margin)))
         BodyMedium(text = stringResource(id = R.string.ns_change_server_body))

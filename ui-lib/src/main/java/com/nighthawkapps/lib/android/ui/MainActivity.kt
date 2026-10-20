@@ -1,6 +1,7 @@
 package com.nighthawkapps.lib.android.ui
 
 import android.annotation.SuppressLint
+import android.graphics.Color as AndroidColor
 import android.os.Build
 import android.os.Bundle
 import android.os.SystemClock
@@ -10,6 +11,7 @@ import android.view.ViewGroup
 import android.widget.FrameLayout
 import android.widget.TextView
 import android.window.SplashScreenView
+import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
@@ -23,10 +25,12 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -61,6 +65,7 @@ import com.nighthawkapps.lib.android.ui.design.component.Body
 import com.nighthawkapps.lib.android.ui.design.component.BodySmall
 import com.nighthawkapps.lib.android.ui.design.component.ConfigurationOverride
 import com.nighthawkapps.lib.android.ui.design.component.Override
+import com.nighthawkapps.lib.android.ui.design.theme.AppThemeVariant
 import com.nighthawkapps.lib.android.ui.design.theme.WalletTheme
 import com.nighthawkapps.lib.android.ui.screen.home.viewmodel.HomeViewModel
 import com.nighthawkapps.lib.android.ui.screen.home.viewmodel.SecretState
@@ -394,12 +399,33 @@ class MainActivity : FragmentActivity() {
     private fun setupUiContent() {
         setContent {
             Override(configurationOverrideFlow) {
-                WalletTheme(themeVariant = homeViewModel.appThemeVariant.collectAsStateWithLifecycle().value) {
+                val themeVariant = homeViewModel.appThemeVariant.collectAsStateWithLifecycle().value
+                val lightChrome =
+                    themeVariant == AppThemeVariant.PAPER || themeVariant == AppThemeVariant.LIGHT
+                SideEffect {
+                    enableEdgeToEdge(
+                        statusBarStyle =
+                            if (lightChrome) {
+                                SystemBarStyle.light(AndroidColor.TRANSPARENT, AndroidColor.TRANSPARENT)
+                            } else {
+                                SystemBarStyle.dark(AndroidColor.TRANSPARENT)
+                            },
+                        navigationBarStyle =
+                            if (lightChrome) {
+                                SystemBarStyle.light(AndroidColor.TRANSPARENT, AndroidColor.TRANSPARENT)
+                            } else {
+                                SystemBarStyle.dark(AndroidColor.TRANSPARENT)
+                            },
+                    )
+                }
+                WalletTheme(themeVariant = themeVariant) {
                     Surface(
-                        Modifier
-                            .fillMaxWidth()
-                            .fillMaxHeight()
-                            .safeDrawingPadding()
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .fillMaxHeight()
+                                .safeDrawingPadding(),
+                        color = MaterialTheme.colorScheme.background,
                     ) {
                         BindCompLocalProvider {
                             val isEnoughSpace by storageCheckViewModel.isEnoughSpace.collectAsStateWithLifecycle()

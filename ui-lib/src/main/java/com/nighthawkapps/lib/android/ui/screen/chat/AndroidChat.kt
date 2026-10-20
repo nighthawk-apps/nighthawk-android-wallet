@@ -65,6 +65,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.nighthawkapps.lib.android.global.DeepLinkUtil
+import com.nighthawkapps.lib.android.ui.design.theme.WalletTheme
 import com.nighthawkapps.lib.android.sdk.chat.ChatChannelMessage
 import com.nighthawkapps.lib.android.sdk.chat.DarkfiChatConnectionState
 import com.nighthawkapps.lib.android.sdk.chat.DarkfiChatController
@@ -949,11 +950,18 @@ private fun ChatMessageLine(
     // Trust FFI isOutgoing only — nick string compare is spoofable (Fable 5.1 Fix 3).
     val isOwn = line.isOutgoing
     val nickColor = Color(ChatChrome.nickArgb(line.nick, myNick))
-    val bodyColor = Color(ChatChrome.bodyArgb(isOwn))
+    val bodyColor =
+        if (isOwn) {
+            MaterialTheme.colorScheme.primary
+        } else {
+            MaterialTheme.colorScheme.onBackground
+        }
+    val linkColor = MaterialTheme.colorScheme.primary
+    val mutedColor = WalletTheme.colors.secondaryTitleText
     val time = ChatTimeline.gutterTime(line.timestampMs)
     val spans = remember(line.text) { ChatMessageLexer.lex(line.text) }
     val annotated =
-        remember(line.nick, line.text, spans, nickColor, bodyColor) {
+        remember(line.nick, line.text, spans, nickColor, bodyColor, linkColor, mutedColor) {
             buildAnnotatedString {
                 val nickStart = length
                 append("${line.nick}: ")
@@ -974,7 +982,7 @@ private fun ChatMessageLine(
                                     span.url,
                                     TextLinkStyles(
                                         SpanStyle(
-                                            color = Color(ChatChrome.LINK),
+                                            color = linkColor,
                                             textDecoration = TextDecoration.Underline,
                                         ),
                                     ),
@@ -988,7 +996,7 @@ private fun ChatMessageLine(
                             val start = length
                             append(span.uri)
                             addStyle(
-                                SpanStyle(color = Color(ChatChrome.FUD)),
+                                SpanStyle(color = mutedColor),
                                 start,
                                 length,
                             )
@@ -1002,7 +1010,13 @@ private fun ChatMessageLine(
             Modifier
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(8.dp))
-                .background(Color(ChatChrome.bubbleArgb(isOwn)))
+                .background(
+                    if (isOwn) {
+                        MaterialTheme.colorScheme.primaryContainer
+                    } else {
+                        MaterialTheme.colorScheme.surfaceVariant
+                    },
+                )
                 .padding(horizontal = 8.dp, vertical = 6.dp)
                 .combinedClickable(
                     onClick = {},
@@ -1032,7 +1046,7 @@ private fun ChatMessageLine(
                     Text(
                         text = stringResource(R.string.ns_chat_fud_tap_to_queue),
                         style = MaterialTheme.typography.labelSmall,
-                        color = Color(ChatChrome.FUD),
+                        color = mutedColor,
                         modifier = Modifier.clickable { onFudTap(uri) },
                     )
                 }
@@ -1041,7 +1055,7 @@ private fun ChatMessageLine(
         Text(
             text = time,
             style = MaterialTheme.typography.labelSmall,
-            color = Color(ChatChrome.TIMESTAMP),
+            color = mutedColor,
         )
     }
 }

@@ -12,20 +12,27 @@ import com.nighthawkapps.lib.android.ui.design.theme.internal.LocalExtendedColor
 import com.nighthawkapps.lib.android.ui.design.theme.internal.LocalExtendedTypography
 import com.nighthawkapps.lib.android.ui.design.theme.internal.MidnightColorPalette
 import com.nighthawkapps.lib.android.ui.design.theme.internal.MidnightExtendedColorPalette
+import com.nighthawkapps.lib.android.ui.design.theme.internal.PaperColorPalette
+import com.nighthawkapps.lib.android.ui.design.theme.internal.PaperExtendedColorPalette
 import com.nighthawkapps.lib.android.ui.design.theme.internal.Typography
+import com.nighthawkapps.lib.android.ui.design.theme.internal.extendedTypography
+import com.nighthawkapps.lib.android.ui.design.theme.internal.paperTypography
 
 /**
  * Root Compose theme: **Stealth** (dark, default) uses moonlit neutrals + cool slate accent;
- * light mode uses the same accent family on mist neutrals; **Midnight** uses a deeper base with violet accent.
+ * light mode uses the same accent family on mist neutrals; **Paper** is white with a text serif;
+ * **Midnight** uses a deeper base with violet accent.
  */
 @Composable
 fun WalletTheme(
     themeVariant: AppThemeVariant = AppThemeVariant.STEALTH_DEFAULT,
     content: @Composable () -> Unit
 ) {
+    val paper = themeVariant == AppThemeVariant.PAPER
     val baseColors =
         when (themeVariant) {
             AppThemeVariant.LIGHT -> LightColorPalette
+            AppThemeVariant.PAPER -> PaperColorPalette
             AppThemeVariant.STEALTH_DEFAULT -> DarkColorPalette
             AppThemeVariant.MIDNIGHT -> MidnightColorPalette
         }
@@ -33,15 +40,19 @@ fun WalletTheme(
     val extendedColors =
         when (themeVariant) {
             AppThemeVariant.LIGHT -> LightExtendedColorPalette
+            AppThemeVariant.PAPER -> PaperExtendedColorPalette
             AppThemeVariant.STEALTH_DEFAULT -> DarkExtendedColorPalette
             AppThemeVariant.MIDNIGHT -> MidnightExtendedColorPalette
         }
 
-    CompositionLocalProvider(LocalExtendedColors provides extendedColors) {
+    CompositionLocalProvider(
+        LocalExtendedColors provides extendedColors,
+        LocalExtendedTypography provides extendedTypography(paper),
+    ) {
         ProvideDimens {
             MaterialTheme(
                 colorScheme = baseColors,
-                typography = Typography,
+                typography = if (paper) paperTypography() else Typography,
                 content = content
             )
         }

@@ -21,7 +21,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -87,7 +86,7 @@ fun Security(
         Spacer(modifier = Modifier.height(dimensionResource(id = R.dimen.offset)))
         TitleMedium(
             text = stringResource(id = R.string.ns_security_text),
-            color = colorResource(id = com.nighthawkapps.lib.android.ui.design.R.color.ns_parmaviolet)
+            color = WalletTheme.colors.secondaryTitleText
         )
         Spacer(modifier = Modifier.height(24.dp))
         Row(
@@ -113,7 +112,7 @@ fun Security(
             )
         }
         Spacer(modifier = Modifier.height(10.dp))
-        HorizontalDivider(thickness = 1.dp, color = WalletTheme.colors.surfaceEnd)
+        HorizontalDivider(thickness = 1.dp, color = WalletTheme.colors.divider)
         Spacer(modifier = Modifier.height(10.dp))
         Row(
             modifier =

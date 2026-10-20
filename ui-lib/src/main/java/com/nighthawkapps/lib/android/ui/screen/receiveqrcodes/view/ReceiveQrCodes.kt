@@ -38,7 +38,6 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -202,7 +201,7 @@ fun QrAddressCardUi(
         Spacer(modifier = Modifier.height(18.dp))
         BodyMedium(
             text = qrAddressPagerItem.title,
-            color = colorResource(id = com.nighthawkapps.lib.android.ui.design.R.color.ns_parmaviolet)
+            color = WalletTheme.colors.secondaryTitleText
         )
         Spacer(modifier = Modifier.height(10.dp))
         BodySmall(text = qrAddressPagerItem.body)

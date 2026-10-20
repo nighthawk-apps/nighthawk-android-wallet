@@ -15,7 +15,6 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import com.nighthawkapps.lib.android.ui.design.R
 import com.nighthawkapps.lib.android.ui.design.theme.WalletTheme
-import com.nighthawkapps.lib.android.ui.design.theme.internal.Typography
 
 @Composable
 fun Header(
@@ -28,7 +27,7 @@ fun Header(
         text = text,
         color = color,
         textAlign = textAlign,
-        style = Typography.headlineLarge,
+        style = MaterialTheme.typography.headlineLarge,
         modifier = modifier
     )
 }
@@ -47,7 +46,7 @@ fun Body(
         textAlign = textAlign,
         maxLines = maxLines,
         overflow = overflow,
-        style = Typography.bodyLarge,
+        style = MaterialTheme.typography.bodyLarge,
         color = color,
         modifier = modifier
     )
@@ -63,7 +62,7 @@ fun BodyMedium(
 ) {
     Text(
         text = text,
-        style = Typography.bodyMedium,
+        style = MaterialTheme.typography.bodyMedium,
         color = color,
         modifier = modifier,
         textAlign = textAlign,
@@ -79,7 +78,7 @@ fun BodyMedium(
 ) {
     Text(
         text = text,
-        style = Typography.bodyMedium,
+        style = MaterialTheme.typography.bodyMedium,
         modifier = modifier,
         textAlign = textAlign
     )
@@ -94,7 +93,7 @@ fun BodySmall(
 ) {
     Text(
         text = text,
-        style = Typography.bodySmall,
+        style = MaterialTheme.typography.bodySmall,
         color = color,
         modifier = modifier,
         textAlign = textAlign
@@ -110,7 +109,7 @@ fun BalanceText(
 ) {
     Text(
         text = text,
-        style = Typography.headlineMedium,
+        style = MaterialTheme.typography.headlineMedium,
         color = color,
         modifier = modifier,
         textAlign = textAlign
@@ -126,7 +125,7 @@ fun TitleMedium(
 ) {
     Text(
         text = text,
-        style = Typography.titleMedium,
+        style = MaterialTheme.typography.titleMedium,
         color = color,
         modifier = modifier,
         textAlign = textAlign
@@ -142,7 +141,7 @@ fun TitleLarge(
 ) {
     Text(
         text = text,
-        style = Typography.titleLarge,
+        style = MaterialTheme.typography.titleLarge,
         color = color,
         modifier = modifier,
         textAlign = textAlign

@@ -29,7 +29,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.res.vectorResource
@@ -106,17 +105,13 @@ fun AdvanceSetting(
         TitleMedium(
             text = stringResource(id = R.string.advanced),
             color =
-                colorResource(
-                    id = com.nighthawkapps.lib.android.ui.design.R.color.ns_parmaviolet
-                )
+                WalletTheme.colors.secondaryTitleText
         )
         Spacer(modifier = Modifier.height(24.dp))
         TitleMedium(
             text = stringResource(id = R.string.keep_screen_on),
             color =
-                colorResource(
-                    id = com.nighthawkapps.lib.android.ui.design.R.color.ns_parmaviolet
-                )
+                WalletTheme.colors.secondaryTitleText
         )
         Spacer(modifier = Modifier.height(24.dp))
         Row(
@@ -142,9 +137,7 @@ fun AdvanceSetting(
         TitleMedium(
             text = stringResource(id = R.string.strict_omr_only),
             color =
-                colorResource(
-                    id = com.nighthawkapps.lib.android.ui.design.R.color.ns_parmaviolet
-                )
+                WalletTheme.colors.secondaryTitleText
         )
         Spacer(modifier = Modifier.height(24.dp))
         Row(
@@ -171,9 +164,7 @@ fun AdvanceSetting(
             TitleMedium(
                 text = stringResource(id = R.string.app_icon),
                 color =
-                    colorResource(
-                        id = com.nighthawkapps.lib.android.ui.design.R.color.ns_parmaviolet
-                    )
+                    WalletTheme.colors.secondaryTitleText
             )
 
             allAvailableLogo.forEach { logo ->
@@ -207,9 +198,7 @@ fun AdvanceSetting(
         TitleMedium(
             text = stringResource(id = R.string.theme_section_title),
             color =
-                colorResource(
-                    id = com.nighthawkapps.lib.android.ui.design.R.color.ns_parmaviolet
-                )
+                WalletTheme.colors.secondaryTitleText
         )
         Spacer(modifier = Modifier.height(12.dp))
         ThemeVariantRow(
@@ -225,6 +214,12 @@ fun AdvanceSetting(
             onClick = { onThemeVariantChanged(AppThemeVariant.LIGHT) },
         )
         ThemeVariantRow(
+            label = stringResource(id = R.string.theme_variant_paper),
+            detail = stringResource(id = R.string.theme_variant_paper_detail),
+            selected = themeVariant == AppThemeVariant.PAPER,
+            onClick = { onThemeVariantChanged(AppThemeVariant.PAPER) },
+        )
+        ThemeVariantRow(
             label = stringResource(id = R.string.theme_variant_midnight),
             detail = stringResource(id = R.string.theme_variant_midnight_detail),
             selected = themeVariant == AppThemeVariant.MIDNIGHT,
@@ -235,9 +230,7 @@ fun AdvanceSetting(
         TitleMedium(
             text = stringResource(id = R.string.delete_wallet),
             color =
-                colorResource(
-                    id = com.nighthawkapps.lib.android.ui.design.R.color.ns_parmaviolet
-                )
+                WalletTheme.colors.secondaryTitleText
         )
         Spacer(modifier = Modifier.height(12.dp))
         BodyMedium(

@@ -13,6 +13,8 @@ import com.nighthawkapps.lib.android.ui.common.ANDROID_STATE_FLOW_TIMEOUT
 import com.nighthawkapps.lib.android.ui.design.theme.AppThemeVariant
 import com.nighthawkapps.lib.android.ui.preference.StandardPreferenceKeys
 import com.nighthawkapps.lib.android.ui.preference.StandardPreferenceSingleton
+import com.nighthawkapps.lib.android.ui.theme.isSystemInNightMode
+import com.nighthawkapps.lib.android.ui.theme.systemNightMode
 import com.nighthawkapps.lib.android.ui.screen.advancesetting.model.AvailableLogo
 import com.nighthawkapps.lib.android.ui.screen.advancesetting.model.OneLauncherAlias
 import com.nighthawkapps.lib.android.ui.screen.advancesetting.model.TwoLauncherAlias
@@ -80,15 +82,20 @@ class SettingsViewModel(
             emitAll(
                 combine(
                     StandardPreferenceKeys.APP_THEME_VARIANT.observe(prefs),
-                    StandardPreferenceKeys.IS_DARK_THEME_ENABLED.observe(prefs),
-                ) { stored, legacyDark ->
-                    AppThemeVariant.resolve(stored, legacyDark)
+                    prefs.observe(StandardPreferenceKeys.IS_DARK_THEME_ENABLED.key),
+                    getApplication<Application>().systemNightMode(),
+                ) { stored, legacyDarkStored, systemDark ->
+                    AppThemeVariant.resolve(stored, legacyDarkStored, systemDark)
                 },
             )
         }.stateIn(
             viewModelScope,
             SharingStarted.WhileSubscribed(ANDROID_STATE_FLOW_TIMEOUT.inWholeMilliseconds),
-            AppThemeVariant.STEALTH_DEFAULT,
+            if (getApplication<Application>().isSystemInNightMode()) {
+                AppThemeVariant.STEALTH_DEFAULT
+            } else {
+                AppThemeVariant.PAPER
+            },
         )
 
     private fun booleanStateFlow(default: BooleanPreferenceDefault): StateFlow<Boolean?> =
@@ -122,10 +129,19 @@ class SettingsViewModel(
     }
 
     fun setBanditStatus(enabled: Boolean) {
-        setBooleanPreference(StandardPreferenceKeys.IS_BANDIT_AVAILABLE, enabled)
-        if (enabled.not()) { // reset logo; restore default stealth theme
-            setPreferredLogo(availableLogo = AvailableLogo.DEFAULT)
-            setAppThemeVariant(AppThemeVariant.STEALTH_DEFAULT)
+        viewModelScope.launch {
+            val prefs = StandardPreferenceSingleton.getInstance(getApplication())
+            val wasEnabled = mutex.withLock {
+                StandardPreferenceKeys.IS_BANDIT_AVAILABLE.getValue(prefs)
+            }
+            // Wallet opens call this with the current flag. Only a real
+            // Bandit -> off transition should snap the theme back to Stealth.
+            if (wasEnabled == enabled) return@launch
+            setBooleanPreference(StandardPreferenceKeys.IS_BANDIT_AVAILABLE, enabled)
+            if (wasEnabled && !enabled) {
+                setPreferredLogo(availableLogo = AvailableLogo.DEFAULT)
+                setAppThemeVariant(AppThemeVariant.STEALTH_DEFAULT)
+            }
         }
     }
 
@@ -134,7 +150,10 @@ class SettingsViewModel(
             val prefs = StandardPreferenceSingleton.getInstance(getApplication())
             mutex.withLock {
                 StandardPreferenceKeys.APP_THEME_VARIANT.putValue(prefs, AppThemeVariant.storageValue(variant))
-                StandardPreferenceKeys.IS_DARK_THEME_ENABLED.putValue(prefs, variant != AppThemeVariant.LIGHT)
+                StandardPreferenceKeys.IS_DARK_THEME_ENABLED.putValue(
+                    prefs,
+                    variant != AppThemeVariant.LIGHT && variant != AppThemeVariant.PAPER,
+                )
             }
         }
     }

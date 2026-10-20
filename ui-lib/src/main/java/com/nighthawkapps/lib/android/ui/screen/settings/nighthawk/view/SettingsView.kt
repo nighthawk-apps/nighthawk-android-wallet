@@ -130,7 +130,7 @@ private fun SettingsHubChatSection(
     Column {
         BodyMedium(
             text = stringResource(id = R.string.ns_chat_settings_section_title),
-            color = WalletTheme.colors.surfaceEnd,
+            color = WalletTheme.colors.secondaryTitleText,
         )
         Spacer(modifier = Modifier.height(13.dp))
         SettingsListItem(

@@ -36,7 +36,21 @@ srclib SHA edit.
 
 Tagging alone does **not** run this repo’s GitHub `Deploy` workflow (that is branch/`workflow_dispatch` + Play secrets). F-Droid’s scanner is separate.
 
-## 3.00.018 (this release)
+## 3.00.019 (this release)
+
+| Field | Value |
+|-------|--------|
+| `WALLET_VERSION_NAME` | `3.00.019` |
+| `WALLET_VERSION_CODE` | `30001819` |
+| Suggested git tag | `v3.00.019` |
+| Fastlane changelog | `fastlane/metadata/android/en-US/changelogs/30001819.txt` |
+
+What's new for testers:
+
+- Paper is the theme on a light system setting. Stealth remains the theme on a dark system setting. An explicit choice in Advanced still wins.
+- Paper colors and type now apply across the wallet, not only Settings and Chat.
+
+## 3.00.018
 
 | Field | Value |
 |-------|--------|

@@ -1,5 +1,6 @@
 package com.nighthawkapps.lib.android.ui
 
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -72,6 +73,8 @@ internal fun MainActivity.NavigationMainContent() {
     val navController = rememberNavController()
     CompositionLocalProvider(LocalDarkfiChatController provides chatController) {
         Scaffold(
+            containerColor = MaterialTheme.colorScheme.background,
+            contentColor = MaterialTheme.colorScheme.onBackground,
             bottomBar = {
                 BottomNavigation(navController = navController)
             },

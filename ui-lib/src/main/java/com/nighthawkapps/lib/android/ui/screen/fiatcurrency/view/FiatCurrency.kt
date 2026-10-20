@@ -14,7 +14,6 @@ import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
@@ -63,7 +62,7 @@ fun FiatCurrency(
         Spacer(modifier = Modifier.height(dimensionResource(id = R.dimen.offset)))
         TitleMedium(
             text = stringResource(id = R.string.ns_fiat_currency),
-            color = colorResource(id = com.nighthawkapps.lib.android.ui.design.R.color.ns_parmaviolet)
+            color = WalletTheme.colors.secondaryTitleText
         )
         Spacer(modifier = Modifier.height(24.dp))
         BodyMedium(text = stringResource(id = R.string.ns_fiat_currency_body))
