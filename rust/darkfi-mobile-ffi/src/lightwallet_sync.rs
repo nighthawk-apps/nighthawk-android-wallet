@@ -170,9 +170,12 @@ impl LightSyncState {
             }
             LightSyncStatus::Synced => format!("Synced · Block {}", self.chain_tip),
             LightSyncStatus::Retrying => "Connection lost, retrying…".to_string(),
-            LightSyncStatus::Degraded => {
-                "Synced (UnifOMR unavailable — using trial decryption. Prefer Nighthawk or Moonshine for fastest private sync)".to_string()
-            }
+            LightSyncStatus::Degraded => match self.sync_type {
+                LightSyncType::Omr | LightSyncType::Idle => {
+                    "Synced (UnifOMR unavailable — retrying OMR)".to_string()
+                }
+                _ => "Synced (UnifOMR unavailable — using trial decryption. Prefer Nighthawk or Moonshine for fastest private sync)".to_string(),
+            },
             LightSyncStatus::Error => "Sync error".to_string(),
         };
 
@@ -408,6 +411,15 @@ impl SyncEngine {
     pub fn strict_omr_only(&self) -> bool {
         self.strict_omr_only
             .load(std::sync::atomic::Ordering::Relaxed)
+    }
+
+    /// Strict mode refuses to sync: OMR is unavailable or failed past the limit.
+    pub fn strict_halted(&self) -> bool {
+        if !self.strict_omr_only() {
+            return false;
+        }
+        let state = self.state.lock().unwrap();
+        !state.omr_available || state.omr_failure_count >= self.max_omr_failures
     }
 
     /// Enable or disable strict OMR-only mode.
@@ -910,6 +922,19 @@ mod tests {
         let engine = SyncEngine::new("x".to_string());
         engine.set_status(LightSyncStatus::Degraded);
         assert!(engine.snapshot().status_message.contains("OMR unavailable"));
+    }
+
+    #[test]
+    fn test_status_degraded_message_strict_omr() {
+        let engine = SyncEngine::new("x".to_string());
+        engine.set_strict_omr_only(true);
+        engine.set_omr_available(true);
+        assert!(!engine.strict_halted());
+        engine.record_omr_failure();
+        let msg = engine.snapshot().status_message;
+        assert!(!msg.contains("trial decryption"), "{msg}");
+        engine.set_omr_available(false);
+        assert!(engine.strict_halted());
     }
 
     #[test]

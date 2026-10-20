@@ -445,9 +445,11 @@ pub fn derive_clue_seed(wallet_secret: &[u8], network: u8) -> Result<[u8; 32], S
     if wallet_secret.len() < 32 {
         return Err("wallet secret too short".into());
     }
-    let master: [u8; 32] = wallet_secret[..32]
-        .try_into()
-        .map_err(|_| "bad wallet secret")?;
+    let master: zeroize::Zeroizing<[u8; 32]> = zeroize::Zeroizing::new(
+        wallet_secret[..32]
+            .try_into()
+            .map_err(|_| "bad wallet secret")?,
+    );
     let mut h = blake3::Hasher::new_keyed(&master);
     h.update(UNIFOMR_CLUE_DOMAIN);
     h.update(b"-KeyGen");
@@ -460,9 +462,11 @@ pub fn derive_det_seed(wallet_secret: &[u8], network: u8) -> Result<[u8; 32], St
     if wallet_secret.len() < 32 {
         return Err("wallet secret too short".into());
     }
-    let master: [u8; 32] = wallet_secret[..32]
-        .try_into()
-        .map_err(|_| "bad wallet secret")?;
+    let master: zeroize::Zeroizing<[u8; 32]> = zeroize::Zeroizing::new(
+        wallet_secret[..32]
+            .try_into()
+            .map_err(|_| "bad wallet secret")?,
+    );
     let mut h = blake3::Hasher::new_keyed(&master);
     h.update(UNIFOMR_DET_DOMAIN);
     h.update(b"-KeyGen");
@@ -526,10 +530,10 @@ pub fn clue_keypair_from_wallet(
     wallet_secret: &[u8],
     network: u8,
 ) -> Result<(RlweSecretKey, RlwePublicKey), String> {
-    let seed = derive_clue_seed(wallet_secret, network)?;
-    let sk = RlweSecretKey::from_seed(seed);
+    let seed = zeroize::Zeroizing::new(derive_clue_seed(wallet_secret, network)?);
+    let sk = RlweSecretKey::from_seed(*seed);
     let mut h = blake3::Hasher::new();
-    h.update(&seed);
+    h.update(&*seed);
     h.update(b"-pk-rand");
     let pk_seed = *h.finalize().as_bytes();
     let mut r2 = StdRng::from_seed(pk_seed);
@@ -551,8 +555,8 @@ pub struct UnifOmrClient {
 impl UnifOmrClient {
     pub fn from_wallet(wallet_secret: &[u8], network: u8) -> Result<Self, String> {
         let (clue_sk, _) = clue_keypair_from_wallet(wallet_secret, network)?;
-        let det_seed = derive_det_seed(wallet_secret, network)?;
-        let mut r = StdRng::from_seed(det_seed);
+        let det_seed = zeroize::Zeroizing::new(derive_det_seed(wallet_secret, network)?);
+        let mut r = StdRng::from_seed(*det_seed);
         let params = bfv_params()?;
         let det_sk = SecretKey::random(&params, &mut r);
         let det_pk = PublicKey::new(&det_sk, &mut r);
@@ -625,6 +629,14 @@ impl UnifOmrClient {
         let mut off = 5usize;
         let degree = self.params.degree();
         let t = self.params.plaintext();
+        if chunk_count > MAX_OMR_MESSAGES.div_ceil(degree) {
+            return Err(format!(
+                "digest chunk_count {chunk_count} exceeds DoS bound"
+            ));
+        }
+        if chunk_count.saturating_mul(CLUE_PLAINTEXT_BITS * 4) > digest.len() - off {
+            return Err(format!("digest chunk_count {chunk_count} exceeds payload"));
+        }
 
         let in_range = |raw: u64| -> bool {
             let centered = if raw > t / 2 {
@@ -681,9 +693,21 @@ impl UnifOmrClient {
     /// Slot index `i` maps to `slot_heights[i]`; slots beyond
     /// `slot_heights.len()` are trailing padding and ignored. The result is
     /// sorted and de-duplicated (a height with several pertinent clues yields
-    /// one entry).
+    /// one entry). Fails if the digest chunk count disagrees with `slot_heights`.
     pub fn range_check_matches(slots: &[u64], slot_heights: &[u32]) -> Result<Vec<u32>, OmrError> {
-        let t = bfv_params()?.plaintext();
+        let params = bfv_params()?;
+        let t = params.plaintext();
+        let degree = params.degree();
+        if !slot_heights.is_empty()
+            && slots.len() != slot_heights.len().div_ceil(degree).saturating_mul(degree)
+        {
+            return Err(format!(
+                "digest has {} slots; slot_heights ({}) needs {} chunks",
+                slots.len(),
+                slot_heights.len(),
+                slot_heights.len().div_ceil(degree)
+            ));
+        }
         let mut out = Vec::new();
         for (i, &height) in slot_heights.iter().enumerate() {
             let Some(&raw) = slots.get(i) else { break };
@@ -1015,6 +1039,32 @@ pub fn unpack_slot_heights(bytes: &[u8]) -> Result<Vec<u32>, String> {
         .chunks_exact(4)
         .map(|c| u32::from_le_bytes(c.try_into().unwrap()))
         .collect())
+}
+
+/// Reject a `slot_heights` map that is unsorted or outside the requested
+/// `[padded_start, padded_end]` window.
+pub fn validate_slot_heights(
+    slot_heights: &[u32],
+    padded_start: u32,
+    padded_end: u32,
+) -> Result<(), String> {
+    if slot_heights.len() > MAX_OMR_MESSAGES {
+        return Err(format!(
+            "slot_heights length {} exceeds DoS bound",
+            slot_heights.len()
+        ));
+    }
+    if slot_heights.windows(2).any(|w| w[1] < w[0]) {
+        return Err("slot_heights not non-decreasing".into());
+    }
+    if let (Some(&lo), Some(&hi)) = (slot_heights.first(), slot_heights.last()) {
+        if lo < padded_start || hi > padded_end {
+            return Err(format!(
+                "slot_heights [{lo}, {hi}] outside requested [{padded_start}, {padded_end}]"
+            ));
+        }
+    }
+    Ok(())
 }
 
 /// Domain-separated message prefix for clue-PK ownership proofs (v2:
@@ -1382,5 +1432,41 @@ mod tests {
         let mut h2 = vec![7u32];
         assert!(!cap_messages_to_whole_heights(&mut m2, &mut h2));
         assert_eq!(h2, vec![7]);
+    }
+
+    #[test]
+    fn test_digest_rejects_huge_chunk_count() {
+        let client = UnifOmrClient::from_wallet(&[0x11u8; 32], 0x01).unwrap();
+        let mut digest = vec![DIGEST_FORMAT_VERSION];
+        digest.extend_from_slice(&u32::MAX.to_le_bytes());
+        let err = client.decrypt_digest_slots(&digest).unwrap_err();
+        assert!(err.contains("chunk_count"), "{err}");
+
+        let mut digest = vec![DIGEST_FORMAT_VERSION];
+        digest.extend_from_slice(&2u32.to_le_bytes());
+        digest.extend_from_slice(&[0u8; 8]);
+        let err = client.decrypt_digest_slots(&digest).unwrap_err();
+        assert!(err.contains("exceeds payload"), "{err}");
+    }
+
+    #[test]
+    fn test_range_check_rejects_mismatched_slot_heights() {
+        let degree = packing_degree().unwrap();
+        let slots = vec![0u64; degree];
+        assert!(UnifOmrClient::range_check_matches(&slots, &[5, 6]).is_ok());
+        let two_chunks = vec![7u32; degree + 1];
+        assert!(UnifOmrClient::range_check_matches(&slots, &two_chunks).is_err());
+        let slots2 = vec![0u64; 2 * degree];
+        assert!(UnifOmrClient::range_check_matches(&slots2, &[5, 6]).is_err());
+        assert!(UnifOmrClient::range_check_matches(&[], &[5]).is_err());
+    }
+
+    #[test]
+    fn test_validate_slot_heights() {
+        assert!(validate_slot_heights(&[], 10, 20).is_ok());
+        assert!(validate_slot_heights(&[10, 10, 15, 20], 10, 20).is_ok());
+        assert!(validate_slot_heights(&[12, 11], 10, 20).is_err());
+        assert!(validate_slot_heights(&[9, 12], 10, 20).is_err());
+        assert!(validate_slot_heights(&[12, 21], 10, 20).is_err());
     }
 }

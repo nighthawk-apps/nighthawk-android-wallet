@@ -78,7 +78,8 @@ const MAX_CONSECUTIVE_FAILURES: u32 = 15;
 /// Maximum time (seconds) for a single sync cycle before it's considered stalled.
 /// If a `try_lightwallet_sync` call takes longer than this, we abort and retry.
 /// Adopted from the pattern in zcash/lightwalletd's streaming timeout fix.
-const MAX_SYNC_CYCLE_SECS: u64 = 600;
+/// Must exceed the 1800s UniFOMR digest RPC timeout.
+const MAX_SYNC_CYCLE_SECS: u64 = 2100;
 
 /// Number of startup health probes before entering the sync loop.
 /// The wallet retries server connectivity up to this many times before
@@ -229,6 +230,11 @@ pub fn start_background_sync(
                     }
 
                     match cycle_result {
+                        Ok(()) if sync_engine.strict_halted() => {
+                            sync_engine.set_status(LightSyncStatus::Error);
+                            let next_secs = jittered_sleep_secs(LIGHTWALLET_IDLE_BASE_SECS);
+                            sleep_or_stop(&sync_engine, next_secs).await;
+                        }
                         Ok(()) => {
                             consecutive_failures = 0;
                             sync_engine.set_status(LightSyncStatus::Synced);
@@ -265,7 +271,11 @@ pub fn start_background_sync(
                                 redact_sync_error(&e),
                             );
 
-                            sync_engine.set_status(LightSyncStatus::Retrying);
+                            sync_engine.set_status(if sync_engine.strict_halted() {
+                                LightSyncStatus::Error
+                            } else {
+                                LightSyncStatus::Retrying
+                            });
 
                             let backoff_base = std::cmp::min(
                                 RETRY_BASE_SECS * (1u64 << consecutive_failures.min(5)),
@@ -687,7 +697,7 @@ async fn try_omr_sync(
         .map_err(|e| format!("Failed to get wallet secret: {e}"))?;
 
     // Convert SecretKey (pallas::Scalar) to bytes for OMR key derivation
-    let secret_bytes: [u8; 32] = secret.inner().to_repr();
+    let secret_bytes = zeroize::Zeroizing::new(secret.inner().to_repr());
 
     // S17: cover all wallet pubkeys (sub-addresses), not only the default.
     let mut recipient_pubkeys: Vec<[u8; 32]> = Vec::new();
@@ -765,7 +775,7 @@ async fn try_omr_sync(
     // secondary addresses. Each registration is Schnorr-signed under the payment key.
     if scheme.contains("unifomr") {
         if let Ok((_sk, pk)) =
-            crate::unifomr::clue_keypair_from_wallet(&secret_bytes, omr_network.to_byte())
+            crate::unifomr::clue_keypair_from_wallet(&secret_bytes[..], omr_network.to_byte())
         {
             let clue_pk = crate::unifomr::serialize_public_key(&pk);
             let key_version = crate::unifomr::clue_key_version_now();
@@ -834,79 +844,43 @@ async fn try_omr_sync(
     // Unsupported schemes fail closed — only UnifOMR is supported.
     let matching_heights: Vec<u32> = if scheme.contains("unifomr") {
         sync_engine.set_status_message("UnifOMR scanning 1/2…");
-        const MAX_DETECTION_KEYS: usize = 16;
-        // Server-side cap on the sum of detection_keys lengths per request
-        // (lightwalletd MAX_DETECTION_KEYS_TOTAL_BYTES). One Param2 det-key is
-        // ~120 MiB; GetUnifOmrDigest streams ~1 MiB chunks. Multi-address wallets
-        // still chunk keys into separate RPCs so each request stays under the
-        // 160 MiB total budget (practical cap: one full Param2 key per request).
-        const SERVER_DETECTION_KEYS_TOTAL_BUDGET: usize = 160 * 1024 * 1024;
-        let money_secrets = drk
-            .get_money_secrets()
-            .await
-            .map_err(|e| format!("Failed to load wallet secrets for UnifOMR: {e}"))?;
-        let mut clients = Vec::new();
-        let mut detection_keys = Vec::new();
-        for sk in money_secrets.iter().take(MAX_DETECTION_KEYS) {
-            let sk_bytes: [u8; 32] = sk.inner().to_repr();
-            let client_crypto =
-                crate::unifomr::UnifOmrClient::from_wallet(&sk_bytes, omr_network.to_byte())?;
-            let det_key =
-                cached_or_build_detection_key(&client_crypto, &sk_bytes, omr_network.to_byte())?;
-            detection_keys.push(det_key);
-            clients.push(client_crypto);
-        }
-        if detection_keys.is_empty() {
-            // Fall back to default secret already loaded above.
-            let client_crypto =
-                crate::unifomr::UnifOmrClient::from_wallet(&secret_bytes, omr_network.to_byte())?;
-            let det_key = cached_or_build_detection_key(
-                &client_crypto,
-                &secret_bytes,
-                omr_network.to_byte(),
-            )?;
-            detection_keys.push(det_key);
-            clients.push(client_crypto);
-        }
-        // Partition (client, key) pairs into chunks under the server budget.
-        let mut heights: Vec<u32> = Vec::new();
-        let mut chunk_keys: Vec<Vec<u8>> = Vec::new();
-        let mut chunk_clients: Vec<crate::unifomr::UnifOmrClient> = Vec::new();
-        let mut chunk_bytes = 0usize;
-        let mut pairs = clients.into_iter().zip(detection_keys).peekable();
-        while let Some((client_crypto, det_key)) = pairs.next() {
-            chunk_bytes += det_key.len();
-            chunk_keys.push(det_key);
-            chunk_clients.push(client_crypto);
-            let flush = match pairs.peek() {
-                Some((_, next_key)) => {
-                    chunk_bytes + next_key.len() > SERVER_DETECTION_KEYS_TOTAL_BUDGET
+        // Only the default secret's clue PK is registered above, so a single
+        // detection key (~120 MiB) built from that secret covers every address.
+        let client_crypto =
+            crate::unifomr::UnifOmrClient::from_wallet(&secret_bytes[..], omr_network.to_byte())?;
+        let det_key =
+            cached_or_build_detection_key(&client_crypto, &secret_bytes, omr_network.to_byte())?;
+        let (digest_bytes, slot_heights_bytes, complete) = client
+            .get_unif_omr_digest(vec![det_key], padded_start, padded_end)
+            .await?;
+        let slot_heights = crate::unifomr::unpack_slot_heights(&slot_heights_bytes)?;
+        crate::unifomr::validate_slot_heights(&slot_heights, padded_start, padded_end)?;
+        // complete=false ⇒ server only evaluated heights below the first one it
+        // could not fit (DoS cap). Clamp the persisted scan cursor to the covered
+        // end so the dropped tail is re-requested next cycle rather than skipped.
+        if !complete {
+            match clamp_omr_truncated_tip(
+                scan_start,
+                window_tip,
+                slot_heights.iter().max().copied(),
+            )? {
+                Some(covered) => window_tip = covered,
+                None => {
+                    tracing::warn!(
+                        target: "wallet-sync",
+                        "UnifOMR digest incomplete with no covered heights; \
+                         retrying window [{scan_start}, {window_tip}] next cycle"
+                    );
+                    sync_engine.set_status_message("UnifOMR server busy; retrying…");
+                    return Ok(());
                 }
-                None => true,
-            };
-            if flush {
-                let (digest_bytes, slot_heights_bytes, complete) = client
-                    .get_unif_omr_digest(std::mem::take(&mut chunk_keys), padded_start, padded_end)
-                    .await?;
-                let slot_heights = crate::unifomr::unpack_slot_heights(&slot_heights_bytes)?;
-                // complete=false ⇒ server truncated at a whole-height boundary
-                // (DoS cap). Clamp the persisted scan cursor to the covered end so
-                // the dropped tail heights are re-requested next cycle rather than
-                // skipped. All chunks share this range, so take the min covered end.
-                if !complete {
-                    window_tip = clamp_omr_truncated_tip(
-                        scan_start,
-                        window_tip,
-                        slot_heights.iter().max().copied(),
-                    )?;
-                }
-                let chunk_heights =
-                    decrypt_unif_omr_heights(&chunk_clients, &digest_bytes, &slot_heights)?;
-                heights.extend(chunk_heights);
-                chunk_clients.clear();
-                chunk_bytes = 0;
             }
         }
+        let mut heights = decrypt_unif_omr_heights(
+            std::slice::from_ref(&client_crypto),
+            &digest_bytes,
+            &slot_heights,
+        )?;
         heights.sort_unstable();
         heights.dedup();
         heights
@@ -1780,6 +1754,8 @@ pub(crate) async fn rewind_wallet_after_reorg(
         }
     }
 
+    // get_last_scanned_block reads the highest key, so drop the stale tail first.
+    remove_scanned_blocks_above(&drk.cache.scanned_blocks, scan_height)?;
     persist_scanned_height(drk, scan_height)?;
     crate::transactions::invalidate_transactions_above(drk, rollback_height).await
 }
@@ -1897,6 +1873,26 @@ pub(crate) async fn rebuild_spendable_money_tree(
     rebuild_money_tree_to_height(drk, &client, tip).await?;
     tracing::info!(target: "wallet-tx", "Money Merkle tree rebuild complete");
     Ok(())
+}
+
+/// Remove every scanned-block record above `height` (keys are BE `u32`).
+pub(crate) fn remove_scanned_blocks_above(
+    tree: &kvdb_overlay::Tree,
+    height: u32,
+) -> Result<usize, String> {
+    let Some(first) = height.checked_add(1) else {
+        return Ok(0);
+    };
+    let keys = tree
+        .range(first.to_be_bytes()..)
+        .map(|r| r.map(|(k, _)| k))
+        .collect::<Result<Vec<_>, _>>()
+        .map_err(|e| format!("Failed to scan scanned blocks: {e}"))?;
+    for key in &keys {
+        tree.remove(key)
+            .map_err(|e| format!("Failed to remove scanned block: {e}"))?;
+    }
+    Ok(keys.len())
 }
 
 pub(crate) fn persist_scanned_height(drk: &drk::Drk, height: u32) -> Result<(), String> {
@@ -2311,15 +2307,16 @@ pub fn redact_sync_error(error: &str) -> String {
 }
 
 /// Clamp a truncated UnifOMR digest so the scan cursor never rewinds.
+///
+/// `Ok(None)` ⇒ nothing was covered (empty `slot_heights`): no progress this
+/// cycle, leave the cursor where it is.
 pub(crate) fn clamp_omr_truncated_tip(
     scan_start: u32,
     window_tip: u32,
     covered_end: Option<u32>,
-) -> Result<u32, String> {
+) -> Result<Option<u32>, String> {
     let Some(covered_end) = covered_end else {
-        return Err("UnifOMR digest truncated with empty slot_heights; \
-             refusing to skip the uncovered tail"
-            .into());
+        return Ok(None);
     };
     if covered_end < scan_start {
         return Err("UnifOMR digest truncated below scan cursor; retry with smaller window".into());
@@ -2331,9 +2328,9 @@ pub(crate) fn clamp_omr_truncated_tip(
              height {covered_end} (< window_tip {window_tip}); \
              clamping scan cursor"
         );
-        Ok(covered_end)
+        Ok(Some(covered_end))
     } else {
-        Ok(window_tip)
+        Ok(Some(window_tip))
     }
 }
 
@@ -2535,8 +2532,12 @@ mod tests {
             "Cycle timeout too short — normal syncs take minutes"
         );
         assert!(
-            MAX_SYNC_CYCLE_SECS <= 1800,
-            "Cycle timeout too long — 30min+ stalls are unacceptable"
+            MAX_SYNC_CYCLE_SECS > 1800,
+            "Cycle timeout must outlast the 1800s UnifOMR digest RPC timeout"
+        );
+        assert!(
+            MAX_SYNC_CYCLE_SECS <= 3600,
+            "Cycle timeout too long — 1h+ stalls are unacceptable"
         );
     }
 
@@ -2611,21 +2612,44 @@ mod tests {
     }
 
     #[test]
+    fn remove_scanned_blocks_above_rewinds_last() {
+        let (db, _dir) = kvdb_overlay::Database::open_temp().unwrap();
+        let tree = db.open_tree_default("_scanned_blocks").unwrap();
+        for h in [5u32, 100, 255, 256, 1_000, 70_000] {
+            tree.insert(&h.to_be_bytes(), b"-").unwrap();
+        }
+        assert_eq!(remove_scanned_blocks_above(&tree, 255).unwrap(), 3);
+        let (last, _) = tree.last().unwrap().unwrap();
+        assert_eq!(last, 255u32.to_be_bytes().to_vec());
+        tree.insert(&200u32.to_be_bytes(), b"-").unwrap();
+        assert_eq!(remove_scanned_blocks_above(&tree, 200).unwrap(), 1);
+        let (last, _) = tree.last().unwrap().unwrap();
+        assert_eq!(last, 200u32.to_be_bytes().to_vec());
+        assert_eq!(remove_scanned_blocks_above(&tree, u32::MAX).unwrap(), 0);
+        assert_eq!(tree.len().unwrap(), 3);
+    }
+
+    #[test]
     fn clamp_omr_truncated_tip_errors_below_scan_start() {
         let err = clamp_omr_truncated_tip(100, 200, Some(50)).unwrap_err();
         assert!(err.contains("truncated below scan cursor"));
     }
 
     #[test]
-    fn clamp_omr_truncated_tip_errors_on_empty_slots() {
-        let err = clamp_omr_truncated_tip(100, 200, None).unwrap_err();
-        assert!(err.contains("empty slot_heights"));
+    fn clamp_omr_truncated_tip_no_progress_on_empty_slots() {
+        assert_eq!(clamp_omr_truncated_tip(100, 200, None).unwrap(), None);
     }
 
     #[test]
     fn clamp_omr_truncated_tip_clamps_within_window() {
-        assert_eq!(clamp_omr_truncated_tip(100, 200, Some(150)).unwrap(), 150);
-        assert_eq!(clamp_omr_truncated_tip(100, 200, Some(200)).unwrap(), 200);
+        assert_eq!(
+            clamp_omr_truncated_tip(100, 200, Some(150)).unwrap(),
+            Some(150)
+        );
+        assert_eq!(
+            clamp_omr_truncated_tip(100, 200, Some(200)).unwrap(),
+            Some(200)
+        );
     }
 
     #[test]

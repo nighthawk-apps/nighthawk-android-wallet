@@ -1789,9 +1789,9 @@ const MIN_ENCRYPTED_NOTE_LEN: usize = 48;
 /// Returns `Ok(())` if the block passes all checks, `Err(description)` if
 /// any field has an invalid length or value.
 pub fn validate_compact_block(block: &LightCompactBlock) -> Result<(), String> {
-    if block.height == 0 {
-        return Err("Block height is 0 (genesis blocks should not appear in sync stream)".into());
-    }
+    // DarkFi lightwalletd stores genesis and returns it for ranges that start
+    // at 0. Localnet scans pad to a 1024-block bucket, so that range includes
+    // height 0. Genesis is checked like any other block below.
     if block.hash.len() != 32 {
         return Err(format!(
             "Block {}: hash is {} bytes (expected 32)",

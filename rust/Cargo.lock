@@ -1940,7 +1940,7 @@ dependencies = [
 
 [[package]]
 name = "darkfi-mobile-ffi"
-version = "0.2.2"
+version = "0.2.3"
 dependencies = [
  "android_logger",
  "arti-client",

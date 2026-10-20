@@ -1,0 +1,1 @@
+UniFOMR private block fetch now returns real blocks. A partial digest no longer stalls sync, and a chain reorg rewinds the scan cursor.

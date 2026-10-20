@@ -13,6 +13,7 @@ syntax: glob
 .settings
 *.iml
 bin/
+!rust/darkfi-mobile-ffi/src/bin/
 build/
 gen/
 local.properties

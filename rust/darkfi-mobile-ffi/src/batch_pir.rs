@@ -17,8 +17,11 @@ use crate::unifomr::{bfv_params, SCHEME_UNIFOMR};
 /// Domain separation for Round-2 PIR key material.
 pub const UNIFOMR_PIR_DOMAIN: &[u8] = b"DarkFi-UnifOMR-PirKey-v1";
 
-/// Hard cap on limbs fetched per height (32 KiB payloads).
+/// Hard cap on limbs fetched per height (8 KiB payloads).
 pub const MAX_PIR_LIMBS: usize = 4096;
+
+/// Payload bytes per data limb; must stay below the BFV plaintext modulus.
+pub const PIR_LIMB_BYTES: usize = 2;
 
 /// Max stripes (must match server `MAX_PIR_STRIPES`).
 pub const MAX_PIR_STRIPES: usize = 8;
@@ -35,9 +38,11 @@ pub fn derive_pir_seed(wallet_secret: &[u8], network: u8) -> Result<[u8; 32], St
     if wallet_secret.len() < 32 {
         return Err("wallet secret too short".into());
     }
-    let master: [u8; 32] = wallet_secret[..32]
-        .try_into()
-        .map_err(|_| "bad wallet secret")?;
+    let master: zeroize::Zeroizing<[u8; 32]> = zeroize::Zeroizing::new(
+        wallet_secret[..32]
+            .try_into()
+            .map_err(|_| "bad wallet secret")?,
+    );
     let mut h = blake3::Hasher::new_keyed(&master);
     h.update(UNIFOMR_PIR_DOMAIN);
     h.update(b"-KeyGen");
@@ -55,7 +60,7 @@ pub fn sealpir_stripe_count(window_size: usize, degree: usize) -> usize {
 }
 
 /// Max compact-block bytes reassemblable via PIR (`MAX_PIR_LIMBS` includes length limb).
-pub const MAX_PIR_PAYLOAD_BYTES: usize = (MAX_PIR_LIMBS.saturating_sub(1)) * 8;
+pub const MAX_PIR_PAYLOAD_BYTES: usize = (MAX_PIR_LIMBS.saturating_sub(1)) * PIR_LIMB_BYTES;
 
 /// Total limb columns required for a length-prefixed payload (`length` = first limb).
 pub fn pir_payload_limb_count(length_limb: u64) -> Option<usize> {
@@ -63,10 +68,10 @@ pub fn pir_payload_limb_count(length_limb: u64) -> Option<usize> {
     if len == 0 || len > MAX_PIR_PAYLOAD_BYTES {
         return None;
     }
-    Some(1 + len.div_ceil(8))
+    Some(1 + len.div_ceil(PIR_LIMB_BYTES))
 }
 
-/// Decode length-prefixed PIR limbs: `limbs[0] = byte_len`, then LE u64 data limbs.
+/// Decode length-prefixed PIR limbs: `limbs[0] = byte_len`, then LE u16 data limbs.
 pub fn decode_length_prefixed_limbs(limbs: &[u64]) -> Vec<u8> {
     let Some(need) = limbs.first().copied().and_then(pir_payload_limb_count) else {
         return Vec::new();
@@ -80,7 +85,7 @@ pub fn decode_length_prefixed_limbs(limbs: &[u64]) -> Vec<u8> {
 
 /// Reconstruct per-index payloads from limb columns.
 ///
-/// Wire format (per height): limb0 = original byte length, then packed LE u64 limbs.
+/// Wire format (per height): limb0 = original byte length, then one LE u16 per limb.
 /// `limb_cols[limb_i][idx]` is the decrypted limb for height-index `idx`.
 pub fn assemble_payloads(indices: &[usize], limb_cols: &[Vec<u64>]) -> Vec<Vec<u8>> {
     indices
@@ -184,7 +189,8 @@ impl BatchPirClient {
     }
 
     pub fn from_wallet(wallet_secret: &[u8], network: u8) -> Result<Self, String> {
-        Self::from_seed(derive_pir_seed(wallet_secret, network)?)
+        let seed = zeroize::Zeroizing::new(derive_pir_seed(wallet_secret, network)?);
+        Self::from_seed(*seed)
     }
 
     fn encrypt_selection(&self, selection: &[u64]) -> Result<Vec<u8>, String> {
@@ -302,22 +308,23 @@ impl BatchPirClient {
 /// Pack compact-block bytes into length-prefixed u64 limbs for PIR columns.
 ///
 /// Limb 0 is `data.len()` so Round-2 reassembly preserves trailing zero bytes
-/// and exact protobuf length (not `limbs×8`).
+/// and exact protobuf length. Data limbs carry `PIR_LIMB_BYTES` (LE u16) each so
+/// every limb fits under the BFV plaintext modulus.
 pub fn bytes_to_limbs(data: &[u8]) -> Vec<u64> {
-    let mut out = Vec::with_capacity(1 + data.len().div_ceil(8));
+    let mut out = Vec::with_capacity(1 + data.len().div_ceil(PIR_LIMB_BYTES));
     out.push(data.len() as u64);
-    for chunk in data.chunks(8) {
-        let mut buf = [0u8; 8];
+    for chunk in data.chunks(PIR_LIMB_BYTES) {
+        let mut buf = [0u8; PIR_LIMB_BYTES];
         buf[..chunk.len()].copy_from_slice(chunk);
-        out.push(u64::from_le_bytes(buf));
+        out.push(u16::from_le_bytes(buf) as u64);
     }
     out
 }
 
 pub fn limbs_to_bytes(limbs: &[u64], len: usize) -> Vec<u8> {
-    let mut out = Vec::with_capacity(len);
+    let mut out = Vec::with_capacity(limbs.len() * PIR_LIMB_BYTES);
     for limb in limbs {
-        out.extend_from_slice(&limb.to_le_bytes());
+        out.extend_from_slice(&(*limb as u16).to_le_bytes());
     }
     out.truncate(len);
     out
@@ -390,5 +397,49 @@ mod tests {
         let cols: Vec<Vec<u64>> = (0..limbs.len()).map(|i| vec![limbs[i]]).collect();
         let got = assemble_payloads(&[0], &cols);
         assert_eq!(got[0], data);
+    }
+
+    #[test]
+    fn test_limbs_below_plaintext_modulus() {
+        use rand09::RngCore;
+        let mut data = vec![0u8; 8192];
+        rng().fill_bytes(&mut data);
+        data[..64].fill(0xFF);
+        let limbs = bytes_to_limbs(&data);
+        assert_eq!(limbs.len(), 1 + data.len().div_ceil(PIR_LIMB_BYTES));
+        assert!(limbs.iter().all(|&l| l < crate::unifomr::CLUE_Q));
+        assert_eq!(limbs_to_bytes(&limbs[1..], data.len()), data);
+    }
+
+    #[test]
+    fn test_payload_limit() {
+        assert_eq!(MAX_PIR_PAYLOAD_BYTES, 8190);
+        assert_eq!(pir_payload_limb_count(0), None);
+        assert_eq!(pir_payload_limb_count(1), Some(2));
+        assert_eq!(pir_payload_limb_count(3), Some(3));
+        assert_eq!(pir_payload_limb_count(8190), Some(MAX_PIR_LIMBS));
+        assert_eq!(pir_payload_limb_count(8191), None);
+    }
+
+    #[test]
+    fn test_bfv_payload_roundtrip() {
+        let client = BatchPirClient::from_seed([5u8; 32]).unwrap();
+        let server = BatchPirServer::with_unifomr_params().unwrap();
+        let mut target = vec![0xFFu8; 3001];
+        for (i, b) in target.iter_mut().enumerate().skip(1000) {
+            *b = (i * 131 % 256) as u8;
+        }
+        let payloads = vec![vec![0xAAu8; 500], target.clone(), b"x".to_vec()];
+        let window = payloads.len();
+        let n_limbs = bytes_to_limbs(&target).len();
+        let qs = client.generate_sealpir_queries(&[1], window).unwrap();
+        let mut limb_cols = Vec::with_capacity(n_limbs);
+        for limb_i in 0..n_limbs {
+            let db = limb_column(&payloads, limb_i);
+            let resp = server.evaluate_sealpir_stripes(&qs, &db, window).unwrap();
+            limb_cols.push(client.decrypt_sealpir_stripes(&resp, window).unwrap());
+        }
+        let got = assemble_payloads(&[1], &limb_cols);
+        assert_eq!(got[0], target);
     }
 }

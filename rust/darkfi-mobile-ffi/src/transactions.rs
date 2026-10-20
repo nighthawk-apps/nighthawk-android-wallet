@@ -202,7 +202,7 @@ pub async fn build_transfer(
         .default_secret()
         .await
         .map_err(|e| format!("Failed to get wallet secret for OMR clue: {e}"))?;
-    let secret_bytes: [u8; 32] = secret.inner().to_repr();
+    let secret_bytes = zeroize::Zeroizing::new(secret.inner().to_repr());
     let recipient_pk_bytes: [u8; 32] = recipient.public_key().to_bytes();
 
     let network_byte = match drk.network {

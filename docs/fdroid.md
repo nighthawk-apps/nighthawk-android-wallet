@@ -36,7 +36,22 @@ srclib SHA edit.
 
 Tagging alone does **not** run this repo’s GitHub `Deploy` workflow (that is branch/`workflow_dispatch` + Play secrets). F-Droid’s scanner is separate.
 
-## 3.00.019 (this release)
+## 3.00.020 (this release)
+
+| Field | Value |
+|-------|--------|
+| `WALLET_VERSION_NAME` | `3.00.020` |
+| `WALLET_VERSION_CODE` | `30001820` |
+| Suggested git tag | `v3.00.020` |
+| Fastlane changelog | `fastlane/metadata/android/en-US/changelogs/30001820.txt` |
+
+What's new for testers:
+
+- UniFOMR private block fetch now round-trips real blocks. Limbs are 2 bytes so they fit the encryption plaintext.
+- A partial digest no longer stalls sync, and a reorg rewinds the scan cursor.
+- Strict mode stays strict: one detection key, and a halt is not shown as synced.
+
+## 3.00.019
 
 | Field | Value |
 |-------|--------|

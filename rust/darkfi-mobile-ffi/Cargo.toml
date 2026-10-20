@@ -1,6 +1,6 @@
 [package]
 name = "darkfi-mobile-ffi"
-version = "0.2.2"
+version = "0.2.3"
 edition = "2021"
 description = "UniFFI cdylib for DarkFi-backed Android APIs (incremental rollout)."
 license = "MIT OR Apache-2.0"
@@ -9,10 +9,16 @@ publish = false
 [features]
 default = ["darkirc"]
 darkirc = ["dep:darkirc"]
+localnet = []
 
 [lib]
 name = "darkfi_mobile_ffi"
 crate-type = ["lib", "cdylib"]
+
+[[bin]]
+name = "localnet_tx"
+path = "src/bin/localnet_tx.rs"
+required-features = ["localnet"]
 
 [dependencies]
 drk = { path = "../../third_party/darkfi/bin/drk" }
