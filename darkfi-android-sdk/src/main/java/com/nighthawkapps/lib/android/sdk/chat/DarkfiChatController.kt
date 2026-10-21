@@ -13,8 +13,11 @@ import com.nighthawkapps.lib.android.sdk.chat.dm.DmConversationStore
 import com.nighthawkapps.lib.android.sdk.chat.hud.OutboundPeerSlot
 import com.nighthawkapps.lib.android.sdk.chat.hud.OutboundPeerSlots
 import com.nighthawkapps.lib.android.sdk.daemon.DarkfiChatStatusRegistry
+import com.nighthawkapps.lib.android.sdk.net.PrivacyNetwork
+import com.nighthawkapps.lib.android.sdk.nym.AppNymCoordinator
 import com.nighthawkapps.lib.android.spackle.Twig
 import com.nighthawkapps.lib.uniffi.darkfi_mobile_ffi.DarkircEventCallback
+import com.nighthawkapps.lib.uniffi.darkfi_mobile_ffi.DarkircTransport
 import com.nighthawkapps.lib.uniffi.darkfi_mobile_ffi.darkircConnectionPhase
 import com.nighthawkapps.lib.uniffi.darkfi_mobile_ffi.darkircStatus
 import com.nighthawkapps.lib.uniffi.darkfi_mobile_ffi.sendChatMessage
@@ -100,6 +103,10 @@ class DarkfiChatController(
     private var connectJob: Job? = null
     private var readJob: Job? = null
 
+    /** Transport the running daemon was started with, so the connected state reports it honestly. */
+    @Volatile
+    private var activeTransport: DarkircTransport? = null
+
     val defaultChannels: List<String> get() = DarkfiChatDefaults.DEFAULT_PUBLIC_CHANNELS
 
     init {
@@ -126,13 +133,12 @@ class DarkfiChatController(
         // Compose screen still showed Disconnected after process reuse).
         val status = darkircStatus()
         if (status == "running" || status == "starting") {
-            val useTor = preferences.useTorForChat
-            val connectedState =
-                if (useTor) DarkfiChatConnectionState.ConnectedViaTor else DarkfiChatConnectionState.ConnectedDirect
+            val transport = activeTransport ?: chatTransportFor(preferences.privacyNetwork)
+            val connectedState = connectedStateFor(transport)
             if (preferences.runEmbeddedDarkirc) {
                 DarkircDaemonService.start(app)
             }
-            applyDarkircPhaseToUi(connectedState, useTor)
+            applyDarkircPhaseToUi(connectedState, transport)
             if (readJob?.isActive != true) {
                 readJob =
                     scope.launch(Dispatchers.IO) {
@@ -145,7 +151,7 @@ class DarkfiChatController(
                                 }
 
                                 "running", "starting" -> {
-                                    applyDarkircPhaseToUi(connectedState, useTor)
+                                    applyDarkircPhaseToUi(connectedState, transport)
                                 }
 
                                 "stopping", "not_running" -> {
@@ -191,18 +197,25 @@ class DarkfiChatController(
             val sledDb = File(root, "darkirc_db")
             sledDb.mkdirs()
 
-            // Resolve the Tor transport. When the user enabled Tor for chat we
-            // route the native EventGraph P2P through the same SOCKS5 proxy the
-            // wallet uses (in-process Arti when embedded, else an external
-            // SOCKS). We must have a reachable SOCKS port before starting the
-            // daemon; otherwise we fail loudly rather than silently leaking
-            // over clearnet.
-            val useTor = preferences.useTorForChat
-            val torSocksPort: Int? = if (useTor) resolveTorSocksPortOrNull() else null
-            if (useTor && torSocksPort == null) {
+            // Chat P2P follows the app network. Nym and Tor need their SOCKS proxy carrying
+            // traffic before the daemon starts; otherwise fail loudly rather than silently
+            // leaking over clearnet.
+            val transport = chatTransportFor(preferences.privacyNetwork)
+            val socksPort: Int? =
+                when (transport) {
+                    DarkircTransport.NYM -> resolveNymSocksPortOrNull()
+                    DarkircTransport.TOR -> resolveTorSocksPortOrNull()
+                    DarkircTransport.DIRECT -> 0
+                }
+            if (socksPort == null) {
                 _embeddedNodeStatus.value = EmbeddedDarkircNodeStatus.Failed
                 setConnectionState(DarkfiChatConnectionState.Error)
-                _diagnosticDetail.value = "Tor is enabled for chat but no SOCKS proxy is reachable"
+                _diagnosticDetail.value =
+                    if (transport == DarkircTransport.NYM) {
+                        "Nym is the app network but the mixnet tunnel is not up"
+                    } else {
+                        "Tor is the app network but no SOCKS proxy is reachable"
+                    }
                 return
             }
 
@@ -231,10 +244,11 @@ class DarkfiChatController(
 
             startDarkirc(
                 datastorePath = sledDb.absolutePath,
-                useTor = useTor,
-                torSocksPort = (torSocksPort ?: 0).toUShort(),
+                transport = transport,
+                socksPort = socksPort.toUShort(),
                 callback = callback,
             )
+            activeTransport = transport
             // Raise FGS while chat is active so Android does not suspend P2P sockets.
             if (preferences.runEmbeddedDarkirc) {
                 DarkircDaemonService.start(app)
@@ -242,9 +256,8 @@ class DarkfiChatController(
             _embeddedNodeStatus.value = EmbeddedDarkircNodeStatus.Starting
 
             // The connected posture must reflect the transport actually in use
-            // so the UI's Tor indicator is honest.
-            val connectedState =
-                if (useTor) DarkfiChatConnectionState.ConnectedViaTor else DarkfiChatConnectionState.ConnectedDirect
+            // so the UI's network indicator is honest.
+            val connectedState = connectedStateFor(transport)
 
             // Poll fine-grained phase so UI stays on Connecting until peers + DAG sync.
             readJob =
@@ -258,13 +271,9 @@ class DarkfiChatController(
                             }
 
                             "running", "starting" -> {
-                                val wasConnected =
-                                    _connectionState.value == DarkfiChatConnectionState.ConnectedDirect ||
-                                        _connectionState.value == DarkfiChatConnectionState.ConnectedViaTor
-                                applyDarkircPhaseToUi(connectedState, useTor)
-                                val nowConnected =
-                                    _connectionState.value == DarkfiChatConnectionState.ConnectedDirect ||
-                                        _connectionState.value == DarkfiChatConnectionState.ConnectedViaTor
+                                val wasConnected = _connectionState.value.isConnected
+                                applyDarkircPhaseToUi(connectedState, transport)
+                                val nowConnected = _connectionState.value.isConnected
                                 if (!wasConnected && nowConnected) {
                                     drainOutgoingQueue()
                                 }
@@ -292,6 +301,18 @@ class DarkfiChatController(
      * is available. Uses the same [AppTorCoordinator] path as wallet routing so
      * we wait for Arti to finish bootstrapping (not only TCP bind).
      */
+    private suspend fun resolveNymSocksPortOrNull(): Int? {
+        _diagnosticDetail.value = "Waiting for the Nym mixnet..."
+        return AppNymCoordinator.ensureReady(app)
+    }
+
+    private fun connectedStateFor(transport: DarkircTransport): DarkfiChatConnectionState =
+        when (transport) {
+            DarkircTransport.NYM -> DarkfiChatConnectionState.ConnectedViaNym
+            DarkircTransport.TOR -> DarkfiChatConnectionState.ConnectedViaTor
+            DarkircTransport.DIRECT -> DarkfiChatConnectionState.ConnectedDirect
+        }
+
     private suspend fun resolveTorSocksPortOrNull(): Int? {
         _diagnosticDetail.value = "Waiting for Tor SOCKS proxy..."
         return com.nighthawkapps.lib.android.sdk.tor.AppTorCoordinator
@@ -304,17 +325,17 @@ class DarkfiChatController(
      */
     private fun applyDarkircPhaseToUi(
         connectedState: DarkfiChatConnectionState,
-        useTor: Boolean,
+        transport: DarkircTransport,
     ) {
         val phase =
             runCatching { darkircConnectionPhase() }.getOrDefault("starting")
         _diagnosticDetail.value =
             when (phase) {
                 "connected" -> {
-                    if (useTor) {
-                        "Native FFI EventGraph Connected (Tor)"
-                    } else {
-                        "Native FFI EventGraph Connected (direct)"
+                    when (transport) {
+                        DarkircTransport.NYM -> "Native FFI EventGraph Connected (Nym)"
+                        DarkircTransport.TOR -> "Native FFI EventGraph Connected (Tor)"
+                        DarkircTransport.DIRECT -> "Native FFI EventGraph Connected (direct)"
                     }
                 }
 
@@ -387,16 +408,27 @@ class DarkfiChatController(
     }
 
     /**
-     * Persist tcp/tor for chat and restart the EventGraph so the HUD switch is real.
-     * SOCKS still comes from Settings → Tor.
+     * Persist Tor on/off as the app network and restart the EventGraph so the HUD switch is real.
+     * SOCKS still comes from Settings → Network privacy.
      */
     fun applyChatTransport(useTor: Boolean) {
-        if (preferences.useTorForChat == useTor && darkircStatus() in setOf("running", "starting")) {
-            _useTorForChat.value = useTor
+        preferences.useTorForChat = useTor
+        restartIfNetworkChanged()
+    }
+
+    /**
+     * Reconnect entry point: restarts the daemon when the app network no longer matches the
+     * transport it runs on, otherwise behaves like [connectOrRetry].
+     */
+    fun restartIfNetworkChanged() {
+        _useTorForChat.value = preferences.useTorForChat
+        val wanted = chatTransportFor(preferences.privacyNetwork)
+        val running = darkircStatus() in setOf("running", "starting")
+        if (!running || activeTransport == null || activeTransport == wanted) {
+            connectOrRetry()
             return
         }
-        preferences.useTorForChat = useTor
-        _useTorForChat.value = useTor
+        Twig.info { "DarkIRC: app network changed ($activeTransport -> $wanted), restarting daemon" }
         scope.launch(Dispatchers.IO) {
             stopAndAwait()
             connectOrRetry()
@@ -813,3 +845,10 @@ class DarkfiChatController(
         private const val SEEN_EVENT_IDS_MAX = 10_000
     }
 }
+
+internal fun chatTransportFor(network: PrivacyNetwork): DarkircTransport =
+    when (network) {
+        PrivacyNetwork.Nym -> DarkircTransport.NYM
+        PrivacyNetwork.Tor -> DarkircTransport.TOR
+        PrivacyNetwork.Direct -> DarkircTransport.DIRECT
+    }

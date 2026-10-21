@@ -207,6 +207,7 @@ private fun ChatScreen(
         when (connectionState) {
             DarkfiChatConnectionState.ConnectedDirect,
             DarkfiChatConnectionState.ConnectedViaTor,
+            DarkfiChatConnectionState.ConnectedViaNym,
             -> {
                 // Native embedded node syncs history automatically
             }
@@ -526,7 +527,9 @@ private fun ChatScreen(
                                 when (
                                     FudTransferPolicy.decide(
                                         enabled = chatPrefs.allowFudTransfers,
-                                        torReady = connectionState == DarkfiChatConnectionState.ConnectedViaTor,
+                                        torReady =
+                                            connectionState == DarkfiChatConnectionState.ConnectedViaTor ||
+                                                connectionState == DarkfiChatConnectionState.ConnectedViaNym,
                                         meshOn = meshOn,
                                         uri = uri,
                                     )
@@ -1189,6 +1192,7 @@ private fun ircStatusShortLine(state: DarkfiChatConnectionState): String =
         DarkfiChatConnectionState.Connecting -> "IRC: connecting"
         DarkfiChatConnectionState.ConnectedDirect -> "IRC: connected"
         DarkfiChatConnectionState.ConnectedViaTor -> "IRC: connected (Tor)"
+        DarkfiChatConnectionState.ConnectedViaNym -> "IRC: connected (Nym)"
         DarkfiChatConnectionState.Degraded -> "IRC: degraded"
         DarkfiChatConnectionState.Error -> "IRC: error"
     }
@@ -1206,10 +1210,10 @@ private fun torRoutingLabel(): String {
     val context = LocalContext.current.applicationContext
     val prefs = remember { DarkfiChatPreferences(context) }
     return stringResource(
-        if (prefs.routeOutboundThroughTor) {
-            R.string.ns_chat_transport_tor
-        } else {
-            R.string.ns_chat_transport_direct
+        when (prefs.privacyNetwork) {
+            com.nighthawkapps.lib.android.sdk.net.PrivacyNetwork.Nym -> R.string.ns_chat_transport_nym
+            com.nighthawkapps.lib.android.sdk.net.PrivacyNetwork.Tor -> R.string.ns_chat_transport_tor
+            com.nighthawkapps.lib.android.sdk.net.PrivacyNetwork.Direct -> R.string.ns_chat_transport_direct
         },
     )
 }
@@ -1222,6 +1226,7 @@ private fun chatConnectionLabel(state: DarkfiChatConnectionState): String =
             DarkfiChatConnectionState.Connecting -> R.string.ns_chat_state_connecting
             DarkfiChatConnectionState.ConnectedDirect -> R.string.ns_chat_state_connected_direct
             DarkfiChatConnectionState.ConnectedViaTor -> R.string.ns_chat_state_connected_tor
+            DarkfiChatConnectionState.ConnectedViaNym -> R.string.ns_chat_state_connected_nym
             DarkfiChatConnectionState.Degraded -> R.string.ns_chat_state_degraded
             DarkfiChatConnectionState.Error -> R.string.ns_chat_state_error
         },

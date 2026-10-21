@@ -1,8 +1,10 @@
 package com.nighthawkapps.lib.android.sdk.uniffi
 
-import com.nighthawkapps.lib.android.sdk.net.LightwalletTlsPin
-import com.nighthawkapps.lib.android.sdk.net.TorDarkfidEndpoint
 import com.nighthawkapps.lib.android.sdk.chat.DarkfiChatPreferences
+import com.nighthawkapps.lib.android.sdk.net.LightwalletTlsPin
+import com.nighthawkapps.lib.android.sdk.net.PrivacyNetwork
+import com.nighthawkapps.lib.android.sdk.net.TorDarkfidEndpoint
+import com.nighthawkapps.lib.android.sdk.nym.PlatformTls
 import com.nighthawkapps.lib.android.sdk.wallet.DarkfiNetwork
 import com.nighthawkapps.lib.android.sdk.wallet.DrkWalletPassStore
 import com.nighthawkapps.lib.android.sdk.wallet.DrkWalletPaths
@@ -75,7 +77,7 @@ object DarkfiMobileFfiApi {
     ): DrkBootstrapConfig {
         DrkWalletPaths.ensureDirectories(context)
         val prefs = DarkfiChatPreferences(context.applicationContext)
-        val useTor = prefs.routeOutboundThroughTor
+        val network = prefs.privacyNetwork
         return DrkBootstrapConfig(
             network =
                 when (wallet.network) {
@@ -90,8 +92,10 @@ object DarkfiMobileFfiApi {
             birthdayHeight = wallet.birthdayHeight ?: -1L, // null → full history; 0 → tip seed
 
             lightwalletTlsPinSha256 = LightwalletTlsPin.pinBytesOrNull(context),
-            useTor = useTor,
+            useTor = network == PrivacyNetwork.Tor,
             torSocksPort = prefs.socksPort.toUShort(),
+            useNym = network == PrivacyNetwork.Nym,
+            nymSocksPort = prefs.nymSocksPort.toUShort(),
             darkfidRpcUrl = null, // LWD-only; never hardcode a darkfid testnet port
             strictOmrOnly = prefs.strictOmrOnly,
         )
@@ -122,7 +126,11 @@ object DarkfiMobileFfiApi {
             var last: DarkfiWalletNativeException.NativeDrkUnavailable? = null
             repeat(3) { attempt ->
                 try {
-                    val handle = DarkfiWalletHandle(buildBootstrapConfig(app, wallet))
+                    val config = buildBootstrapConfig(app, wallet)
+                    if (config.useNym) {
+                        PlatformTls.ensureInitialized(app)
+                    }
+                    val handle = DarkfiWalletHandle(config)
                     liveHandle = handle
                     liveUsers = 1
                     return handle

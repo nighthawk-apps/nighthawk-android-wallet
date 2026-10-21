@@ -60,6 +60,7 @@ fun chatIrcStatusColor(state: DarkfiChatConnectionState): Color =
     when (state) {
         DarkfiChatConnectionState.ConnectedDirect,
         DarkfiChatConnectionState.ConnectedViaTor,
+        DarkfiChatConnectionState.ConnectedViaNym,
         -> Color(0xFF2E7D32)
 
         DarkfiChatConnectionState.Connecting,
@@ -90,6 +91,7 @@ private fun chatIrcStatusContentDescriptionRes(state: DarkfiChatConnectionState)
         DarkfiChatConnectionState.Connecting -> R.string.ns_chat_status_irc_connecting
         DarkfiChatConnectionState.ConnectedDirect -> R.string.ns_chat_status_irc_connected_direct
         DarkfiChatConnectionState.ConnectedViaTor -> R.string.ns_chat_status_irc_connected_tor
+        DarkfiChatConnectionState.ConnectedViaNym -> R.string.ns_chat_status_irc_connected_nym
         DarkfiChatConnectionState.Degraded -> R.string.ns_chat_status_irc_degraded
         DarkfiChatConnectionState.Error -> R.string.ns_chat_status_irc_error
     }

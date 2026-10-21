@@ -1,0 +1,1 @@
+Nym is the default network for the wallet, chat, and the node. Startup shows mixnet progress, and Continue without Nym switches to a direct connection. Share Nighthawk sends the app to another Android device.

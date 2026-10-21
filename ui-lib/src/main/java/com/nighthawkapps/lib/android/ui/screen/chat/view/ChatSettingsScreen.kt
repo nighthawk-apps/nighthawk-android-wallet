@@ -37,12 +37,11 @@ import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
-import com.nighthawkapps.lib.android.global.AppWalletCoordinator
 import com.nighthawkapps.lib.android.sdk.chat.DarkfiChatController
 import com.nighthawkapps.lib.android.sdk.chat.DarkfiChatDefaults
 import com.nighthawkapps.lib.android.sdk.chat.DarkfiChatIdentity
 import com.nighthawkapps.lib.android.sdk.chat.DarkfiChatPreferences
-import com.nighthawkapps.lib.android.sdk.tor.AppTorCoordinator
+import com.nighthawkapps.lib.android.sdk.net.PrivacyNetwork
 import com.nighthawkapps.lib.android.ui.R
 import com.nighthawkapps.lib.android.ui.common.AlertDialog
 import com.nighthawkapps.lib.android.ui.common.SecureScreen
@@ -66,7 +65,6 @@ internal fun ChatSettingsScreen(
     val clipboard = LocalClipboard.current
     val scope = rememberCoroutineScope()
     val chatPrefs = remember { DarkfiChatPreferences(context.applicationContext) }
-    var torRoute by remember { mutableStateOf(chatPrefs.routeOutboundThroughTor) }
     var embeddedDarkirc by remember { mutableStateOf(chatPrefs.runEmbeddedDarkirc) }
     var dagsCountText by remember { mutableStateOf(chatPrefs.darkircDagsCount.toString()) }
     var darkircFastMode by remember { mutableStateOf(chatPrefs.darkircFastMode) }
@@ -251,26 +249,17 @@ internal fun ChatSettingsScreen(
         TitleMedium(text = stringResource(R.string.ns_chat_transport_section_title))
 
         Spacer(modifier = Modifier.height(8.dp))
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(
-                text = stringResource(R.string.ns_chat_tor_toggle),
-                modifier = Modifier.weight(1f),
-            )
-            Switch(
-                checked = torRoute,
-                onCheckedChange = { enabled ->
-                    torRoute = enabled
-                    scope.launch {
-                        AppTorCoordinator.applyTorRoutingEnabledWithWalletReload(
-                            context.applicationContext,
-                            enabled,
-                            AppWalletCoordinator.get(context),
-                        )
-                        controller.connectOrRetry()
-                    }
-                },
-            )
-        }
+        Text(
+            text =
+                stringResource(
+                    when (chatPrefs.privacyNetwork) {
+                        PrivacyNetwork.Nym -> R.string.ns_chat_transport_nym
+                        PrivacyNetwork.Tor -> R.string.ns_chat_transport_tor
+                        PrivacyNetwork.Direct -> R.string.ns_chat_transport_direct
+                    },
+                ),
+            style = MaterialTheme.typography.bodyMedium,
+        )
         Text(
             text = stringResource(R.string.ns_chat_tor_toggle_desc),
             style = MaterialTheme.typography.bodySmall,

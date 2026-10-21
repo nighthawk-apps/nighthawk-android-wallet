@@ -70,6 +70,32 @@ internal object DarkfidEmbeddedConfigGenerator {
                 """.trimIndent()
             }
 
+            is DarkfidP2pTransport.NymViaSocks5 -> {
+                // Nym exits reach clearnet only: dial the tcp+tls seeds through the Nym SOCKS proxy
+                // and mix discovered tcp+tls peers through it as well.
+                val proxyHostPort = "${p2pTransport.socksHost}:${p2pTransport.socksPort}"
+                val seeds =
+                    DarkfidChainDefaults.clearnetP2pSeeds(network).joinToString(",\n ") { seed ->
+                        "\"socks5+tls://$proxyHostPort/${seed.removePrefix("tcp+tls://")}\""
+                    }
+                """
+                [network_config."$networkLabel".net]
+                magic_bytes = [$magic]
+                p2p_datastore = "$p2pRoot"
+                hostlist = "$p2pRoot/p2p_hostlist.tsv"
+                outbound_connections = 8
+                localnet = false
+                active_profiles = ["socks5+tls"]
+                mixed_profiles = ["tcp+tls"]
+                nym_socks5_proxy = "socks5://$proxyHostPort"
+
+                [network_config."$networkLabel".net.profiles."socks5+tls"]
+                seeds = [
+                $seeds
+                ]
+                """.trimIndent()
+            }
+
             is DarkfidP2pTransport.TorViaSocks5 -> {
                 val proxy = "socks5://${p2pTransport.socksHost}:${p2pTransport.socksPort}"
                 val socksHost = p2pTransport.socksHost

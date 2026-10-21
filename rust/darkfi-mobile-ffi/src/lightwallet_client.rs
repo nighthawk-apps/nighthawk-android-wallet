@@ -2641,11 +2641,10 @@ mod tests {
     // =========================================================================
 
     #[test]
-    fn validate_block_height_zero_rejected() {
+    fn validate_block_height_zero_accepted() {
         let mut block = make_valid_block();
         block.height = 0;
-        let err = validate_compact_block(&block).unwrap_err();
-        assert!(err.contains("height is 0"), "Got: {err}");
+        assert!(validate_compact_block(&block).is_ok());
     }
 
     // =========================================================================

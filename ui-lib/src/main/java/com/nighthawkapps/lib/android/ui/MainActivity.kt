@@ -17,6 +17,10 @@ import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
 import androidx.annotation.VisibleForTesting
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.runtime.mutableLongStateOf
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -54,6 +58,11 @@ import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.navigation.NavHostController
 import com.nighthawkapps.lib.android.sdk.mesh.MeshCoordinator
+import kotlinx.coroutines.delay
+import com.nighthawkapps.lib.android.global.AppWalletCoordinator
+import com.nighthawkapps.lib.android.ui.splash.NymSplashProgress
+import com.nighthawkapps.lib.android.sdk.net.PrivacyNetwork
+import com.nighthawkapps.lib.android.sdk.nym.AppNymCoordinator
 import com.nighthawkapps.lib.android.sdk.tor.AppTorCoordinator
 import com.nighthawkapps.lib.android.sdk.tor.TorBootstrapUiState
 import com.nighthawkapps.lib.android.spackle.Twig
@@ -257,19 +266,8 @@ class MainActivity : FragmentActivity() {
                     splashHost.addView(this, lp)
                 }
 
-            fun applyState(state: TorBootstrapUiState) {
-                val label =
-                    when (state) {
-                        TorBootstrapUiState.Bootstrapping,
-                        TorBootstrapUiState.Idle,
-                        -> getString(R.string.splash_tor_bootstrapping)
-
-                        TorBootstrapUiState.Ready -> getString(R.string.splash_tor_ready)
-
-                        TorBootstrapUiState.Failed -> getString(R.string.splash_tor_failed)
-
-                        TorBootstrapUiState.Disabled -> null
-                    }
+            fun applyState(splash: SplashNetworkState) {
+                val label = splashLabelRes(splash)?.let(::getString)
                 if (label == null) {
                     statusView.visibility = View.GONE
                 } else {
@@ -277,9 +275,18 @@ class MainActivity : FragmentActivity() {
                     statusView.text = label
                 }
             }
-            applyState(AppTorCoordinator.bootstrapState.value)
+            applyState(
+                SplashNetworkState.of(
+                    AppNymCoordinator.bootstrapState.value,
+                    AppTorCoordinator.bootstrapState.value,
+                ),
+            )
             lifecycleScope.launch {
-                AppTorCoordinator.bootstrapState.collectLatest { applyState(it) }
+                combine(
+                    AppNymCoordinator.bootstrapState,
+                    AppTorCoordinator.bootstrapState,
+                    SplashNetworkState::of,
+                ).collectLatest { applyState(it) }
             }
         }
     }
@@ -305,25 +312,64 @@ class MainActivity : FragmentActivity() {
         )
     }
 
+    /** Bootstrap state of the network the splash waits on: Nym when it carries the wallet, else Tor. */
+    private data class SplashNetworkState(
+        val state: TorBootstrapUiState,
+        val isNym: Boolean,
+    ) {
+        val isPending: Boolean
+            get() =
+                state == TorBootstrapUiState.Bootstrapping ||
+                    state == TorBootstrapUiState.Idle ||
+                    state == TorBootstrapUiState.Failed
+
+        companion object {
+            fun of(
+                nym: TorBootstrapUiState,
+                tor: TorBootstrapUiState,
+            ): SplashNetworkState =
+                if (nym != TorBootstrapUiState.Disabled) {
+                    SplashNetworkState(nym, isNym = true)
+                } else {
+                    SplashNetworkState(tor, isNym = false)
+                }
+        }
+    }
+
+    private fun splashLabelRes(splash: SplashNetworkState): Int? =
+        when (splash.state) {
+            TorBootstrapUiState.Bootstrapping,
+            TorBootstrapUiState.Idle,
+            -> if (splash.isNym) R.string.splash_nym_bootstrapping else R.string.splash_tor_bootstrapping
+
+            TorBootstrapUiState.Ready -> if (splash.isNym) R.string.splash_nym_ready else R.string.splash_tor_ready
+
+            TorBootstrapUiState.Failed -> if (splash.isNym) R.string.splash_nym_failed else R.string.splash_tor_failed
+
+            TorBootstrapUiState.Disabled -> null
+        }
+
     @Composable
-    private fun SplashConnectingScreen(torState: TorBootstrapUiState) {
+    private fun SplashConnectingScreen(splash: SplashNetworkState) {
         val context = LocalContext.current
-        val label =
-            when (torState) {
-                TorBootstrapUiState.Bootstrapping,
-                TorBootstrapUiState.Idle,
-                -> stringResource(R.string.splash_tor_bootstrapping)
-
-                TorBootstrapUiState.Ready -> stringResource(R.string.splash_tor_ready)
-
-                TorBootstrapUiState.Failed -> stringResource(R.string.splash_tor_failed)
-
-                TorBootstrapUiState.Disabled -> null
+        val label = splashLabelRes(splash)?.let { stringResource(it) }
+        val nymStartedAt by AppNymCoordinator.bootstrapStartedAtMs.collectAsStateWithLifecycle()
+        var nowMs by remember { mutableLongStateOf(System.currentTimeMillis()) }
+        LaunchedEffect(splash.isNym, splash.state) {
+            while (splash.isNym && splash.state == TorBootstrapUiState.Bootstrapping) {
+                nowMs = System.currentTimeMillis()
+                delay(SPLASH_TICK_MS)
             }
+        }
+        val elapsedSec = NymSplashProgress.elapsedSeconds(nymStartedAt, nowMs)
+        val failed = splash.state == TorBootstrapUiState.Failed
+        val nymStuck = splash.isNym && !failed && NymSplashProgress.isStuck(elapsedSec * 1_000L)
         val showDisable =
-            torState == TorBootstrapUiState.Bootstrapping ||
-                torState == TorBootstrapUiState.Idle ||
-                torState == TorBootstrapUiState.Failed
+            if (splash.isNym) {
+                splash.isPending && NymSplashProgress.showContinueWithout(elapsedSec * 1_000L, failed)
+            } else {
+                splash.isPending
+            }
         Box(modifier = Modifier.fillMaxSize()) {
             Column(
                 modifier =
@@ -346,9 +392,41 @@ class MainActivity : FragmentActivity() {
                         modifier = Modifier.padding(top = 12.dp),
                     )
                 }
-                if (torState == TorBootstrapUiState.Failed) {
+                if (splash.isNym && splash.state != TorBootstrapUiState.Disabled && !failed) {
+                    val ready = splash.state == TorBootstrapUiState.Ready
+                    LinearProgressIndicator(
+                        progress = { NymSplashProgress.fraction(elapsedSec * 1_000L, ready) },
+                        modifier =
+                            Modifier
+                                .padding(top = 12.dp)
+                                .width(220.dp),
+                    )
+                    if (!ready) {
+                        BodySmall(
+                            text = stringResource(R.string.splash_nym_elapsed, elapsedSec),
+                            textAlign = TextAlign.Center,
+                            color = colorResource(R.color.splash_tagline_text),
+                            modifier = Modifier.padding(top = 6.dp),
+                        )
+                    }
+                    if (nymStuck) {
+                        BodySmall(
+                            text = stringResource(R.string.splash_nym_slow),
+                            textAlign = TextAlign.Center,
+                            color = colorResource(R.color.splash_tagline_text),
+                            modifier = Modifier.padding(top = 8.dp),
+                        )
+                    }
+                }
+                if (splash.state == TorBootstrapUiState.Failed) {
                     TextButton(
-                        onClick = { AppTorCoordinator.warmStartIfEnabled(context) },
+                        onClick = {
+                            if (splash.isNym) {
+                                AppNymCoordinator.warmStartIfEnabled(context)
+                            } else {
+                                AppTorCoordinator.warmStartIfEnabled(context)
+                            }
+                        },
                     ) {
                         Text(stringResource(R.string.splash_tor_retry))
                     }
@@ -365,12 +443,40 @@ class MainActivity : FragmentActivity() {
             ) {
                 if (showDisable) {
                     TextButton(
-                        onClick = { AppTorCoordinator.disableTorFromSplash(context) },
+                        onClick = {
+                            if (splash.isNym) {
+                                AppNymCoordinator.disableFromSplash(context)
+                                lifecycleScope.launch {
+                                    AppNymCoordinator.applyPrivacyNetwork(
+                                        context,
+                                        PrivacyNetwork.Direct,
+                                        AppWalletCoordinator.get(context),
+                                    )
+                                }
+                            } else {
+                                AppTorCoordinator.disableTorFromSplash(context)
+                            }
+                        },
                     ) {
-                        Text(stringResource(R.string.splash_tor_continue_without))
+                        Text(
+                            stringResource(
+                                if (splash.isNym) {
+                                    R.string.splash_nym_continue_without
+                                } else {
+                                    R.string.splash_tor_continue_without
+                                },
+                            ),
+                        )
                     }
                     Text(
-                        text = stringResource(R.string.splash_tor_continue_without_hint),
+                        text =
+                            stringResource(
+                                if (splash.isNym) {
+                                    R.string.splash_nym_continue_without_hint
+                                } else {
+                                    R.string.splash_tor_continue_without_hint
+                                },
+                            ),
                         color = colorResource(R.color.splash_tagline_text),
                         fontSize = 11.sp,
                         textAlign = TextAlign.Center,
@@ -451,6 +557,8 @@ class MainActivity : FragmentActivity() {
         val secretState = walletViewModel.secretState.collectAsStateWithLifecycle().value
 
         val torState by AppTorCoordinator.bootstrapState.collectAsStateWithLifecycle()
+        val nymState by AppNymCoordinator.bootstrapState.collectAsStateWithLifecycle()
+        val splash = SplashNetworkState.of(nymState, torState)
         val onboardingPrefs = remember {
             getSharedPreferences("nighthawk_onboarding", MODE_PRIVATE)
         }
@@ -468,11 +576,7 @@ class MainActivity : FragmentActivity() {
                 secretState == SecretState.None ||
                     (secretState is SecretState.Ready && onboardingDone)
             ) &&
-                (
-                    torState == TorBootstrapUiState.Bootstrapping ||
-                        torState == TorBootstrapUiState.Idle ||
-                        torState == TorBootstrapUiState.Failed
-                )
+                splash.isPending
         if (waitingOnWallet) {
             Box(
                 modifier = Modifier.fillMaxSize(),
@@ -483,7 +587,7 @@ class MainActivity : FragmentActivity() {
                 }
             }
         } else if (holdForTor) {
-            SplashConnectingScreen(torState)
+            SplashConnectingScreen(splash)
         } else {
             // Note that the deeply nested child views will probably receive arguments derived from
             // the configuration.  The CompositionLocalProvider is helpful for passing the configuration
@@ -571,5 +675,7 @@ class MainActivity : FragmentActivity() {
     companion object {
         @VisibleForTesting
         internal val SPLASH_SCREEN_DELAY = 0.seconds
+
+        private const val SPLASH_TICK_MS = 500L
     }
 }

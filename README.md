@@ -6,7 +6,7 @@
 
 Privacy-preserving wallet (work-in-progress) by [Nighthawk Apps](https://nighthawkapps.com). This tree ships as a **new Android application id** on the DarkFi network (DRK). The app integrates a native DarkFi wallet API via **UniFFI** (`rust/darkfi-mobile-ffi` → generated Kotlin + `DarkfiMobileFfiApi`) for chain sync, broadcast, and chat.
 
-**3.00.020** (`WALLET_VERSION_CODE=30001820`) toolchain: Gradle **9.8.1**, AGP **9.4.1**, Kotlin **2.2.21**, Compose UI **1.12.1**, Material3 **1.4.0**, Material icons **1.7.8**, AndroidX Lifecycle **2.11.0**, Navigation Compose **2.10.1**, JNA **5.19.1**, UniFFI **0.32**, NDK **26.1.10909125**, minSdk **27**, compile SDK **37.2**, target SDK **37** (Android 17). DarkFi pin `e4e624179` (public `scan_block`, darkfid sync hardening). Native sent-tx session cache is FIFO-capped (10,000). Reorg “transactions affected” is counted from `drk.get_txs_history()` (`block_height > rewind`), not from CLI log lines.
+**3.00.021** (`WALLET_VERSION_CODE=30001821`). Nym is the default network for the wallet, DarkIRC, and the embedded node. The splash shows mixnet progress and **Continue without Nym** after 20 seconds or a failed bootstrap. Settings → **Share Nighthawk** sends the APK to another Android device (zipped for Bluetooth, raw APK for other share targets). Toolchain: Gradle **9.8.1**, AGP **9.4.1**, Kotlin **2.2.21**, Compose UI **1.12.1**, Material3 **1.4.0**, Material icons **1.7.8**, AndroidX Lifecycle **2.11.0**, Navigation Compose **2.10.1**, JNA **5.19.1**, UniFFI **0.32**, NDK **26.1.10909125**, minSdk **27**, compile SDK **37.2**, target SDK **37** (Android 17). DarkFi pin `e4e624179` (public `scan_block`, darkfid sync hardening). Native sent-tx session cache is FIFO-capped (10,000). Reorg “transactions affected” is counted from `drk.get_txs_history()` (`block_height > rewind`), not from CLI log lines.
 
 ## Contents
 
@@ -29,7 +29,7 @@ Privacy-preserving wallet (work-in-progress) by [Nighthawk Apps](https://nightha
 
 Store listings are **not finalized** for `com.nighthawkwallet.android`. Placeholder targets until publishing completes:
 
-- **F-Droid:** DarkFi **testnet** package `com.nighthawkwallet.android.testnet` / flavor `darkfitestnet` (see [docs/fdroid.md](docs/fdroid.md); listing pending fdroiddata merge). **3.00.020** (`WALLET_VERSION_CODE=30001820`) — Fastlane changelog `fastlane/metadata/android/en-US/changelogs/30001820.txt`, tag `v3.00.020`. Local unsigned APK: `bundle exec fastlane fdroid`.
+- **F-Droid:** DarkFi **testnet** package `com.nighthawkwallet.android.testnet` / flavor `darkfitestnet` (see [docs/fdroid.md](docs/fdroid.md); listing pending fdroiddata merge). **3.00.021** (`WALLET_VERSION_CODE=30001821`) — Fastlane changelog `fastlane/metadata/android/en-US/changelogs/30001821.txt`, tag `v3.00.021`. Local unsigned APK: `bundle exec fastlane fdroid`.
 - **Google Play:** `https://PLACEHOLDER_PLAY_STORE_LISTING_URL`
 
 Replace these URLs when production listings exist—do not invent live links prematurely.
@@ -189,14 +189,13 @@ In-app **Chat** uses a **native in-process DarkIRC daemon** over UniFFI (`start_
 
 | Capability | Behavior |
 |------------|----------|
-| Transport | EventGraph P2P via `libdarkfi_mobile_ffi.so` (clearnet `tcp+tls` seeds by default) |
+| Transport | Same app network as the wallet. **Nym** (default) dials clearnet `tcp+tls` seeds through the mixnet. **Tor** uses onion seeds. **Direct** is clearnet |
 | Nearby hop | Optional BLE **Nighthawk Mesh** — encrypted EventGraph only (no share-internet this pass) |
-| Tor | Chat settings → P2P via in-process **Arti** SOCKS5; UI **Connected (Tor)** only after a real handshake |
+| Status | `darkirc_status()` → `ConnectedDirect`, `ConnectedViaTor`, or `ConnectedViaNym` |
 | Public channels | `#dev`, `#random`, `#lunardao`, `#hackers` |
 | E2E DMs | ChaCha via `chacha_encrypt_dm` / `chacha_decrypt_dm`; daemon refuses plaintext DMs |
-| Status | `darkirc_status()` → `ConnectedDirect` or `ConnectedViaTor` |
 | DAG history | First P2P connect can take several minutes |
-| Settings | **Settings → Chat** — identity, Tor/SOCKS, DAG hours |
+| Settings | **Settings → Network privacy** chooses Nym, Tor, or Direct for the whole app. Chat settings show that choice |
 
 ```bash
 ./scripts/build-darkfi-mobile-ffi-android.sh
@@ -216,7 +215,7 @@ Optional nearby BLE hop for **encrypted DarkIRC DAG** frames (Noise per GATT nei
 
 - **UI:** `ui-lib` Compose — onboarding, backup, restore, send, receive, settings, chat. Bottom nav: **Chat → Wallet → Transfer → Settings** (opens on Chat).
 - **Themes:** Stealth (default), Light, Midnight (`APP_THEME_VARIANT`).
-- **Settings:** identity (IRC nickname / chat public ID / gated secret), Tor, chat, server, security, about.
+- **Settings:** identity (IRC nickname / chat public ID / gated secret), Network privacy (Nym / Tor / Direct), Share Nighthawk, chat, server, security, about.
 - **Wallet SDK:** `darkfi-android-sdk` — `PersistableDarkfiWallet`, `DarkfiMnemonic` (22-word), `DarkfiWalletCoordinator`, `DarkfiSynchronizer`.
 - **Balance:** single confirmed/spendable DRK tally (no transparent/shielded split).
 - **RPC presets:** `DarkfiEndpoint` defaults to lightwalletd **`tcp://127.0.0.1:9067`** (both networks). Network identity is enforced via `GetLightInfo.chain_name`.
@@ -253,9 +252,13 @@ openssl x509 -in lightwalletd.crt -outform DER | openssl dgst -sha256 -hex
 - Runtime override: SharedPreferences `darkfi_lightwallet_security` / `lightwallet_tls_pin_sha256`
 - Loopback `http://127.0.0.1:9067` may omit the pin; remote `https://` / `tcp+tls://` **fail closed** without it
 
-### Tor (SOCKS5)
+### Nym and Tor
 
-Enable Tor in settings. The SDK rewrites the lightwallet URL to `socks5://proxy/dest`; Rust dials via SOCKS5. Remote cleartext is only allowed through SOCKS; remote HTTPS still needs a TLS pin.
+**Network privacy** defaults to an in-process Nym mixnet SOCKS proxy (`127.0.0.1:1080`). Wallet lightwalletd traffic, clearnet HTTP, DarkIRC, and embedded darkfid P2P all use that choice. Tor uses in-process Arti (or an external SOCKS proxy). Direct uses the device network.
+
+Nym's Android TLS verifier is initialized with the app context before the first directory request. Certificate revocation lists are fetched over cleartext HTTP; the host allowlist lives in `app/src/main/res/xml/network_security_config.xml` (from rustls-platform-verifier 0.7.1). Release builds write native network logs to logcat tag `darkfi-net` because DarkFi compiles out the `log` crate.
+
+The SDK rewrites a remote lightwallet URL to `socks5://proxy/dest`. Loopback stays direct. Remote HTTPS still needs a TLS pin.
 
 ### Sync & network
 
@@ -368,6 +371,8 @@ Notes:
 2. Gradle may warn about mixed AGP detection for composite builds—safe when versions match under `build-conventions-*`.
 3. `IS_ANDROID_INSTRUMENTATION_TEST_COVERAGE_ENABLED` prevents interactive debugging of the debug APK (CI-only).
 4. Compose + Jacoco coverage remains limited upstream.
+5. DarkIRC over Nym dials the public clearnet seeds through the mixnet. Those port-9600 handshakes can stall; switch to Tor, or use **Continue without Nym**, if chat stays on "waiting for peers".
+6. Rebuild `libdarkfi_mobile_ffi.so` for **arm64-v8a** before a phone install. The x86_64 emulator library is the one exercised with the 3.00.021 bindings.
 
 ### Install & shortcuts
 

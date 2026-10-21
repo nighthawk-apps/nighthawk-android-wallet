@@ -30,6 +30,7 @@ import com.nighthawkapps.lib.android.ui.design.theme.WalletTheme
 import com.nighthawkapps.lib.android.ui.fixture.VersionInfoFixture
 import com.nighthawkapps.lib.android.ui.screen.settings.nighthawk.model.NighthawkSettingsNavigationCallbacks
 import com.nighthawkapps.lib.android.ui.screen.settings.nighthawk.model.ReScanType
+import com.nighthawkapps.lib.android.ui.screen.settings.nighthawk.share.ShareAppDialog
 
 @Preview
 @Composable
@@ -67,6 +68,7 @@ fun SettingsView(
 ) {
     var showSeedBackUpDialog by remember { mutableStateOf(false) }
     var showReScanDialog by remember { mutableStateOf(false) }
+    var showShareAppDialog by remember { mutableStateOf(false) }
 
     Column(
         modifier =
@@ -86,7 +88,14 @@ fun SettingsView(
             onBackupTap = { showSeedBackUpDialog = true },
             onRescanTap = { showReScanDialog = true },
         )
-        SettingsHubWalletRowsLower(versionInfo = versionInfo, navigation = navigation)
+        SettingsHubWalletRowsLower(
+            versionInfo = versionInfo,
+            navigation = navigation,
+            onShareAppTap = { showShareAppDialog = true },
+        )
+        if (showShareAppDialog) {
+            ShareAppDialog(onDismiss = { showShareAppDialog = false })
+        }
         if (showSeedBackUpDialog) {
             AlertDialog(
                 title = stringResource(id = R.string.ns_back_up_seed_dialog_title),
@@ -265,8 +274,19 @@ private fun SettingsHubWalletRowsUpper(
 private fun SettingsHubWalletRowsLower(
     versionInfo: VersionInfo,
     navigation: NighthawkSettingsNavigationCallbacks,
+    onShareAppTap: () -> Unit,
 ) {
     Column {
+        Spacer(modifier = Modifier.height(10.dp))
+        SettingsListItem(
+            iconRes = R.drawable.ic_icon_transfer,
+            title = stringResource(id = R.string.ns_share_app_row_title),
+            desc = stringResource(id = R.string.ns_share_app_row_desc),
+            modifier =
+                Modifier
+                    .heightIn(min = dimensionResource(id = R.dimen.setting_list_item_min_height))
+                    .clickable { onShareAppTap() },
+        )
         Spacer(modifier = Modifier.height(10.dp))
         SettingsListItem(
             iconRes = R.drawable.ic_icon_settings,

@@ -109,7 +109,7 @@ class HomeViewModel(
                     return@launch
                 }
                 if (TorOutboundSocks.proxyForClearnetHttp(getApplication()) == null) {
-                    Twig.info { "Fiat quote skipped: Tor is off (no clearnet CoinGecko)" }
+                    Twig.info { "Fiat quote skipped: wallet network is Direct (no clearnet CoinGecko)" }
                     return@launch
                 }
                 CoinMetricsRepositoryImpl(RetrofitHelper.getCoinMetricsApiService(getApplication()))

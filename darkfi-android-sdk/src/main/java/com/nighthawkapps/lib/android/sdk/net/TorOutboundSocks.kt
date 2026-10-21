@@ -7,8 +7,8 @@ import java.net.InetSocketAddress
 import java.net.Proxy
 
 /**
- * SOCKS policy aligned with IRC + wallet JSON-RPC:
- * — clearnet HTTP uses SOCKS whenever [DarkfiChatPreferences.routeOutboundThroughTor] is true;
+ * SOCKS policy for wallet traffic, following [DarkfiChatPreferences.privacyNetwork]:
+ * — clearnet HTTP uses the Nym or Tor SOCKS proxy unless the network is [PrivacyNetwork.Direct];
  * — outbound TCP skips SOCKS for loopback (adb reverse / local darkfid).
  */
 object TorOutboundSocks {
@@ -25,41 +25,44 @@ object TorOutboundSocks {
     }
 
     /**
-     * OkHttp / Retrofit: when Tor outbound is enabled, all clearnet HTTP(S) uses the configured SOCKS proxy.
+     * OkHttp / Retrofit: all clearnet HTTP(S) uses the wallet network's SOCKS proxy.
      */
     fun proxyForClearnetHttp(appContext: Context): Proxy? =
-        torSocksProxyForDestination(appContext.applicationContext, tcpDestinationHost = null)
+        socksProxyForDestination(appContext.applicationContext, tcpDestinationHost = null)
 
     /**
-     * Raw TCP (e.g. darkfid JSON-RPC): SOCKS only for non-loopback endpoints when Tor is on.
+     * Raw TCP (e.g. darkfid JSON-RPC): SOCKS only for non-loopback endpoints.
      */
     fun proxyForOutboundTcpDestination(
         appContext: Context,
         destinationHost: String,
-    ): Proxy? = torSocksProxyForDestination(appContext.applicationContext, destinationHost)
+    ): Proxy? = socksProxyForDestination(appContext.applicationContext, destinationHost)
+
+    /** SOCKS `(host, port)` for the wallet network, or null for [PrivacyNetwork.Direct]. */
+    fun walletSocksEndpoint(prefs: DarkfiChatPreferences): InetSocketAddress? =
+        when (prefs.privacyNetwork) {
+            PrivacyNetwork.Nym ->
+                InetSocketAddress(PrivacyNetwork.NYM_SOCKS_HOST, prefs.nymSocksPort)
+            PrivacyNetwork.Tor ->
+                InetSocketAddress(
+                    prefs.socksHost.trim().ifBlank { TorIntegrationHelper.DEFAULT_SOCKS_HOST },
+                    prefs.socksPort,
+                )
+            PrivacyNetwork.Direct -> null
+        }
 
     /**
-     * @param tcpDestinationHost When non-null **and** loopback, Tor may be on but the socket stays direct (adb /
-     * local daemon). When **null** (HTTP client), SOCKS applies whenever Tor outbound is enabled.
+     * @param tcpDestinationHost When non-null **and** loopback, the socket stays direct (adb /
+     * local daemon). When **null** (HTTP client), SOCKS applies whenever a privacy network is on.
      */
-    private fun torSocksProxyForDestination(
+    private fun socksProxyForDestination(
         appContext: Context,
         tcpDestinationHost: String?,
     ): Proxy? {
-        val prefs = DarkfiChatPreferences(appContext)
-        val bypassSocks =
-            !prefs.routeOutboundThroughTor ||
-                (tcpDestinationHost != null && isLocalLoopbackHost(tcpDestinationHost))
-        return if (bypassSocks) {
-            null
-        } else {
-            Proxy(Proxy.Type.SOCKS, socksInetSocketAddress(prefs))
+        if (tcpDestinationHost != null && isLocalLoopbackHost(tcpDestinationHost)) {
+            return null
         }
-    }
-
-    private fun socksInetSocketAddress(prefs: DarkfiChatPreferences): InetSocketAddress {
-        val socksHost =
-            prefs.socksHost.trim().ifBlank { TorIntegrationHelper.DEFAULT_SOCKS_HOST }
-        return InetSocketAddress(socksHost, prefs.socksPort)
+        val endpoint = walletSocksEndpoint(DarkfiChatPreferences(appContext)) ?: return null
+        return Proxy(Proxy.Type.SOCKS, endpoint)
     }
 }

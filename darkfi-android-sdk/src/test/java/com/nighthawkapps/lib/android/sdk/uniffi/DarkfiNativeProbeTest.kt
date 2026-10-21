@@ -1,11 +1,14 @@
 package com.nighthawkapps.lib.android.sdk.uniffi
 
 import android.app.Application
+import com.nighthawkapps.lib.android.sdk.chat.DarkfiChatPreferences
+import com.nighthawkapps.lib.android.sdk.net.PrivacyNetwork
 import com.nighthawkapps.lib.android.sdk.wallet.DarkfiEndpoint
 import com.nighthawkapps.lib.android.sdk.wallet.DarkfiNetwork
 import com.nighthawkapps.lib.android.sdk.wallet.DrkWalletPaths
 import com.nighthawkapps.lib.android.sdk.wallet.PersistableDarkfiWallet
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -78,6 +81,22 @@ class DarkfiMobileFfiBootstrapConfigTest {
         assertTrue(config.walletDbPath.contains("wallet.db"))
         assertTrue(config.cachePath.endsWith("cache"))
         assertTrue(config.walletPass.isNotEmpty())
+    }
+
+    @Test
+    fun buildBootstrapConfig_routesWalletOverNymByDefault() {
+        val config = DarkfiMobileFfiApi.buildBootstrapConfig(context, wallet)
+        assertTrue(config.useNym)
+        assertFalse(config.useTor)
+        assertEquals(PrivacyNetwork.DEFAULT_NYM_SOCKS_PORT, config.nymSocksPort.toInt())
+    }
+
+    @Test
+    fun buildBootstrapConfig_torNetwork_disablesNym() {
+        DarkfiChatPreferences(context).privacyNetwork = PrivacyNetwork.Tor
+        val config = DarkfiMobileFfiApi.buildBootstrapConfig(context, wallet)
+        assertTrue(config.useTor)
+        assertFalse(config.useNym)
     }
 
     @Test

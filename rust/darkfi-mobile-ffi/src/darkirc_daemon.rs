@@ -374,13 +374,35 @@ impl std::io::Write for LogcatWriter {
         let line = String::from_utf8_lossy(buf);
         let trimmed = line.trim_end();
         if !trimmed.is_empty() {
-            log::info!(target: "darkfi-net", "{trimmed}");
+            write_logcat(trimmed);
         }
         Ok(buf.len())
     }
     fn flush(&mut self) -> std::io::Result<()> {
         Ok(())
     }
+}
+
+/// `log` macros are compiled out of release builds (darkfi's drk enables
+/// `log/release_max_level_off`), so write to liblog directly on Android.
+#[cfg(target_os = "android")]
+fn write_logcat(line: &str) {
+    let Ok(text) = std::ffi::CString::new(line.replace('\0', " ")) else {
+        return;
+    };
+    // SAFETY: both pointers are valid NUL-terminated strings for the duration of the call.
+    unsafe {
+        android_log_sys::__android_log_write(
+            android_log_sys::LogPriority::INFO as std::os::raw::c_int,
+            c"darkfi-net".as_ptr(),
+            text.as_ptr(),
+        );
+    }
+}
+
+#[cfg(not(target_os = "android"))]
+fn write_logcat(line: &str) {
+    log::info!(target: "darkfi-net", "{line}");
 }
 
 impl<'a> tracing_subscriber::fmt::MakeWriter<'a> for LogcatWriter {
@@ -392,7 +414,7 @@ impl<'a> tracing_subscriber::fmt::MakeWriter<'a> for LogcatWriter {
 
 static LOGGING_INIT: std::sync::Once = std::sync::Once::new();
 
-fn init_logging() {
+pub(crate) fn init_logging() {
     LOGGING_INIT.call_once(|| {
         // `log` backend (rustls/kvdb use it).
         // Release: WARN+ only to prevent P2P metadata leaking to logcat.
@@ -420,7 +442,8 @@ fn init_logging() {
 
         // `tracing` backend (darkfi net/event_graph).
         // Release: WARN+ only. Debug: INFO for P2P/DAG diagnostics.
-        let level = if cfg!(debug_assertions) { "info" } else { "warn" };
+        // Nym lifecycle lines carry no peer metadata, so keep them in release too.
+        let level = if cfg!(debug_assertions) { "info" } else { "warn,darkfi_mobile_ffi::nym=info" };
         let filter = tracing_subscriber::EnvFilter::new(level);
         let _ = tracing_subscriber::fmt()
             .with_env_filter(filter)
@@ -474,32 +497,31 @@ pub fn darkirc_connection_phase() -> String {
 
 /// Start the darkirc daemon on a background thread.
 ///
-/// When `use_tor` is set, all P2P traffic is routed over Tor via the in-process
-/// Arti SOCKS5 proxy listening on `127.0.0.1:tor_socks_port`: the
-/// daemon dials the `socks5://…/<onion>:9601` darkirc seeds, so every
-/// connection (seed + discovered peers) stays inside Tor. When false the daemon
-/// connects over clearnet `tcp+tls` seeds. This mirrors the wallet's
-/// `DarkfidP2pTransport.TorViaSocks5` and keeps the "Connected (Tor)" indicator
-/// honest — it is only reached after a real onion handshake + DAG sync.
+/// `transport` follows the app's network choice:
+/// - `Nym`: clearnet `tcp+tls` seeds and discovered peers are dialled through
+///   the in-process Nym SOCKS5 proxy on `127.0.0.1:socks_port` (`socks5+tls`
+///   mixing). Onion-only peers are unreachable over Nym and are skipped.
+/// - `Tor`: the onion seeds through the in-process Arti SOCKS5 proxy, with
+///   `tor` peers mixed through it, so every connection stays inside Tor.
+/// - `Direct`: clearnet `tcp+tls` seeds; `socks_port` is ignored.
 ///
-/// `tor_socks_port` is ignored when `use_tor` is false. The embedded Tor SOCKS
-/// listener must already be reachable (the Kotlin layer waits on it via
-/// `TorSocksReadiness`) before this is called with `use_tor = true`.
+/// For `Nym`/`Tor` the proxy must already carry traffic (the app layer waits
+/// on it) before this is called.
 pub fn start_darkirc(
     datastore_path: String,
-    use_tor: bool,
-    tor_socks_port: u16,
+    transport: crate::DarkircTransport,
+    socks_port: u16,
     callback: Option<Box<dyn DarkircEventCallback>>,
 ) -> Result<(), DarkfiWalletNativeError> {
     crate::panic_fence::catch_wallet("start_darkirc", || {
-        start_darkirc_inner(datastore_path, use_tor, tor_socks_port, callback)
+        start_darkirc_inner(datastore_path, transport, socks_port, callback)
     })
 }
 
 fn start_darkirc_inner(
     datastore_path: String,
-    use_tor: bool,
-    tor_socks_port: u16,
+    transport: crate::DarkircTransport,
+    socks_port: u16,
     callback: Option<Box<dyn DarkircEventCallback>>,
 ) -> Result<(), DarkfiWalletNativeError> {
     let mut current = DAEMON_STATUS.load(Ordering::SeqCst);
@@ -570,8 +592,8 @@ fn start_darkirc_inner(
                             smol::block_on(async {
                                 let result = run_darkirc_daemon(
                                     db_path,
-                                    use_tor,
-                                    tor_socks_port,
+                                    transport,
+                                    socks_port,
                                     ex.clone(),
                                     cb,
                                     daemon_stop_rx,
@@ -811,11 +833,68 @@ fn tor_socks5_seeds(tor_socks_port: u16) -> Vec<url::Url> {
         .collect()
 }
 
+/// Clearnet darkirc seeds (upstream `bin/darkirc/darkirc_config.toml`).
+const DARKIRC_CLEARNET_SEEDS: [&str; 2] = ["lilith0.dark.fi:9600", "lilith1.dark.fi:9600"];
+
+/// Seeds, active profile, and transport mixing for one [`crate::DarkircTransport`].
+struct TransportPlan {
+    profile_name: &'static str,
+    seeds: Vec<url::Url>,
+    mixed_profiles: Vec<String>,
+    tor_socks5_proxy: Option<url::Url>,
+    nym_socks5_proxy: Option<url::Url>,
+    /// Proxied links (Tor circuits, mixnet hops) need the longer timeouts.
+    slow_links: bool,
+}
+
+fn transport_plan(transport: crate::DarkircTransport, socks_port: u16) -> TransportPlan {
+    let proxy = || url::Url::parse(&format!("socks5://127.0.0.1:{socks_port}")).unwrap();
+    match transport {
+        crate::DarkircTransport::Direct => TransportPlan {
+            profile_name: "tcp+tls",
+            seeds: DARKIRC_CLEARNET_SEEDS
+                .iter()
+                .map(|seed| url::Url::parse(&format!("tcp+tls://{seed}")).unwrap())
+                .collect(),
+            mixed_profiles: vec![],
+            tor_socks5_proxy: None,
+            nym_socks5_proxy: None,
+            slow_links: false,
+        },
+        // Peers advertise `tor://…onion` addresses. Without mixing those hosts
+        // are darklisted (socks5 != tor), `is_connected()` never becomes true,
+        // and DAG sync never starts.
+        crate::DarkircTransport::Tor => TransportPlan {
+            profile_name: "socks5",
+            seeds: tor_socks5_seeds(socks_port),
+            mixed_profiles: vec!["tor".to_string()],
+            tor_socks5_proxy: Some(proxy()),
+            nym_socks5_proxy: None,
+            slow_links: true,
+        },
+        // Nym exits reach clearnet only, so dial the clearnet seeds through the
+        // Nym SOCKS proxy and mix discovered `tcp+tls` peers through it as well.
+        crate::DarkircTransport::Nym => TransportPlan {
+            profile_name: "socks5+tls",
+            seeds: DARKIRC_CLEARNET_SEEDS
+                .iter()
+                .map(|seed| {
+                    url::Url::parse(&format!("socks5+tls://127.0.0.1:{socks_port}/{seed}")).unwrap()
+                })
+                .collect(),
+            mixed_profiles: vec!["tcp+tls".to_string()],
+            tor_socks5_proxy: None,
+            nym_socks5_proxy: Some(proxy()),
+            slow_links: true,
+        },
+    }
+}
+
 /// The actual darkirc daemon loop. Runs until stopped or error.
 async fn run_darkirc_daemon(
     datastore_path: PathBuf,
-    use_tor: bool,
-    tor_socks_port: u16,
+    transport: crate::DarkircTransport,
+    socks_port: u16,
     ex: Arc<Executor<'static>>,
     callback: Option<Arc<dyn DarkircEventCallback>>,
     stop_rx: smol::channel::Receiver<()>,
@@ -846,7 +925,7 @@ async fn run_darkirc_daemon(
     }
     let kvdb = kvdb_result.map_err(|e| format!("open kvdb: {e}"))?;
 
-    // Seeds and the outbound transport profile are chosen by `use_tor`. Both
+    // Seeds and the outbound transport profile are chosen by `transport`. Both
     // sets come straight from upstream `bin/darkirc/darkirc_config.toml` at
     // tip 57397a9e0 (network moved from :25551/:25552 to :9600/:9601 with new
     // onion addresses in July 2026):
@@ -858,17 +937,9 @@ async fn run_darkirc_daemon(
     // disconnect); real outbound connections are then opened to discovered
     // peers over the same active profile, so with the `socks5` profile every
     // connection stays inside Tor.
-    let (profile_name, seeds): (&str, Vec<Url>) = if use_tor {
-        ("socks5", tor_socks5_seeds(tor_socks_port))
-    } else {
-        (
-            "tcp+tls",
-            vec![
-                Url::parse("tcp+tls://lilith0.dark.fi:9600").unwrap(),
-                Url::parse("tcp+tls://lilith1.dark.fi:9600").unwrap(),
-            ],
-        )
-    };
+    let plan = transport_plan(transport, socks_port);
+    let profile_name = plan.profile_name;
+    let seeds = plan.seeds.clone();
 
     let mut p2p_settings = Settings {
         app_name: "darkirc".to_string(),
@@ -893,7 +964,7 @@ async fn run_darkirc_daemon(
 
     // Tor circuits are slow to build, so use the longer upstream tor timeouts
     // for the SOCKS profile; clearnet keeps the snappier values.
-    let mut profile = if use_tor {
+    let mut profile = if plan.slow_links {
         NetworkProfile::tor_default()
     } else {
         NetworkProfile {
@@ -902,8 +973,8 @@ async fn run_darkirc_daemon(
             ..Default::default()
         }
     };
-    if use_tor {
-        // Onion handshakes (circuit build + version exchange) can exceed the
+    if plan.slow_links {
+        // Onion and mixnet handshakes (circuit build + version exchange) can exceed the
         // 65s tor default on mobile networks; give them headroom.
         profile.outbound_connect_timeout = 90;
         profile.channel_handshake_timeout = 75;
@@ -917,13 +988,9 @@ async fn run_darkirc_daemon(
     // those hosts are darklisted (socks5 != tor) and `is_connected()` never
     // becomes true, so DAG sync never starts. Enable transport mixing through
     // the local SOCKS5 proxy (matches upstream darkirc socks5+tor mixing).
-    if use_tor {
-        p2p_settings.mixed_profiles = vec!["tor".to_string()];
-        p2p_settings.tor_socks5_proxy = Some(
-            Url::parse(&format!("socks5://127.0.0.1:{tor_socks_port}"))
-                .map_err(|e| format!("tor socks5 proxy url: {e}"))?,
-        );
-    }
+    p2p_settings.mixed_profiles = plan.mixed_profiles;
+    p2p_settings.tor_socks5_proxy = plan.tor_socks5_proxy;
+    p2p_settings.nym_socks5_proxy = plan.nym_socks5_proxy;
 
     let p2p = P2p::new(p2p_settings, ex.clone())
         .await
@@ -977,8 +1044,9 @@ async fn run_darkirc_daemon(
     DAEMON_STATUS.store(STATUS_RUNNING, Ordering::Relaxed);
     set_phase(PHASE_WAITING_FOR_PEERS);
     log::info!(
-        "darkirc daemon started over {} transport, syncing DAG...",
-        if use_tor { "tor (socks5)" } else { "tcp+tls" }
+        "darkirc daemon started over {:?} ({}) transport, syncing DAG...",
+        transport,
+        profile_name
     );
 
     let dags_count = DARKIRC_MAX_DAGS;
@@ -1288,6 +1356,62 @@ mod tests {
     fn tor_socks5_seeds_honor_custom_proxy_port() {
         let seeds = tor_socks5_seeds(9150);
         assert!(seeds.iter().all(|s| s.port() == Some(9150)));
+    }
+
+    #[test]
+    fn nym_plan_proxies_clearnet_seeds_and_peers_through_nym() {
+        let plan = transport_plan(crate::DarkircTransport::Nym, 1080);
+        assert_eq!(plan.profile_name, "socks5+tls");
+        assert_eq!(plan.seeds.len(), DARKIRC_CLEARNET_SEEDS.len());
+        for seed in &plan.seeds {
+            assert_eq!(seed.scheme(), "socks5+tls");
+            assert_eq!(seed.host_str(), Some("127.0.0.1"));
+            assert_eq!(seed.port(), Some(1080));
+            assert!(seed.path().ends_with(".dark.fi:9600"), "{seed}");
+        }
+        assert_eq!(plan.mixed_profiles, vec!["tcp+tls".to_string()]);
+        let proxy = plan.nym_socks5_proxy.unwrap();
+        assert_eq!((proxy.scheme(), proxy.host_str(), proxy.port()), ("socks5", Some("127.0.0.1"), Some(1080)));
+        assert!(plan.tor_socks5_proxy.is_none());
+        assert!(plan.slow_links);
+    }
+
+    #[test]
+    fn nym_plan_mixes_discovered_tcp_tls_peers_via_nym_proxy() {
+        let plan = transport_plan(crate::DarkircTransport::Nym, 1080);
+        let peer = url::Url::parse("tcp+tls://203.0.113.7:9600").unwrap();
+        let routes = darkfi::net::hosts::HostContainer::mix_host(
+            &peer,
+            &[plan.profile_name.to_string()],
+            &plan.mixed_profiles,
+            &plan.tor_socks5_proxy,
+            &plan.nym_socks5_proxy,
+        );
+        assert_eq!(routes.len(), 1);
+        assert_eq!(routes[0].scheme(), "socks5+tls");
+        assert_eq!(routes[0].port(), Some(1080));
+        assert_eq!(routes[0].path(), "/203.0.113.7:9600");
+        let onion = url::Url::parse("tor://abcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefab.onion:9601").unwrap();
+        assert!(darkfi::net::hosts::HostContainer::mix_host(
+            &onion,
+            &[plan.profile_name.to_string()],
+            &plan.mixed_profiles,
+            &plan.tor_socks5_proxy,
+            &plan.nym_socks5_proxy,
+        )
+        .is_empty());
+    }
+
+    #[test]
+    fn tor_and_direct_plans_are_unchanged() {
+        let tor = transport_plan(crate::DarkircTransport::Tor, 9050);
+        assert_eq!(tor.profile_name, "socks5");
+        assert_eq!(tor.mixed_profiles, vec!["tor".to_string()]);
+        assert!(tor.nym_socks5_proxy.is_none());
+        let direct = transport_plan(crate::DarkircTransport::Direct, 0);
+        assert_eq!(direct.profile_name, "tcp+tls");
+        assert!(direct.seeds.iter().all(|s| s.scheme() == "tcp+tls"));
+        assert!(direct.mixed_profiles.is_empty() && !direct.slow_links);
     }
 
     #[test]

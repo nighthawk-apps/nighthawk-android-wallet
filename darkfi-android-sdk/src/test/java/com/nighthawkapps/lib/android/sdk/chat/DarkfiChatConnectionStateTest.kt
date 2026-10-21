@@ -14,5 +14,6 @@ class DarkfiChatConnectionStateTest {
         assertFalse(DarkfiChatConnectionState.Connecting.needsIrcReconnectNudge())
         assertFalse(DarkfiChatConnectionState.ConnectedDirect.needsIrcReconnectNudge())
         assertFalse(DarkfiChatConnectionState.ConnectedViaTor.needsIrcReconnectNudge())
+        assertFalse(DarkfiChatConnectionState.ConnectedViaNym.needsIrcReconnectNudge())
     }
 }

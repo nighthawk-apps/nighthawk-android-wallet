@@ -53,6 +53,7 @@ object DarkfiDaemonStatusMapping {
 
                 DarkfiChatConnectionState.ConnectedDirect,
                 DarkfiChatConnectionState.ConnectedViaTor,
+                DarkfiChatConnectionState.ConnectedViaNym,
                 -> DarkfiDaemonStatus.Connected
 
                 DarkfiChatConnectionState.Error -> DarkfiDaemonStatus.Error

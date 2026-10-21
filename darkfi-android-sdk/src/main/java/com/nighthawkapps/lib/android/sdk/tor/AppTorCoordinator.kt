@@ -8,12 +8,15 @@ import com.nighthawkapps.lib.android.sdk.chat.TorSocksReadiness
 import com.nighthawkapps.lib.android.sdk.chat.darkirc.DarkircDaemonService
 import com.nighthawkapps.lib.android.sdk.chat.darkirc.DarkircP2pTransport
 import com.nighthawkapps.lib.android.sdk.daemon.DarkfiDaemonPreferences
+import com.nighthawkapps.lib.android.sdk.net.PrivacyNetwork
 import com.nighthawkapps.lib.android.sdk.wallet.DarkfiWalletCoordinator
+import com.nighthawkapps.lib.android.sdk.wallet.DrkWalletPaths
 import com.nighthawkapps.lib.android.sdk.wallet.darkfid.DarkfidDaemonBootstrap
 import com.nighthawkapps.lib.android.sdk.wallet.darkfid.DarkfidEmbeddedRunner
 import com.nighthawkapps.lib.android.sdk.wallet.darkfid.DarkfidP2pTransport
 import com.nighthawkapps.lib.android.spackle.Twig
 import com.nighthawkapps.lib.uniffi.darkfi_mobile_ffi.isArtiRunning
+import com.nighthawkapps.lib.uniffi.darkfi_mobile_ffi.setNetworkStorageDir
 import com.nighthawkapps.lib.uniffi.darkfi_mobile_ffi.startArtiProxy
 import com.nighthawkapps.lib.uniffi.darkfi_mobile_ffi.stopArtiProxy
 import kotlinx.coroutines.CoroutineScope
@@ -75,6 +78,12 @@ object AppTorCoordinator {
         Twig.info { "AppTor: disabled from splash — using clearnet" }
     }
 
+    /** Stop the in-process Arti proxy when Tor is no longer the app network. */
+    fun stopEmbeddedTor() {
+        runCatching { stopArtiProxy() }
+        _bootstrapState.value = TorBootstrapUiState.Disabled
+    }
+
     /** Non-blocking: start embedded Tor when prefs demand it (Application / daemon coordinator). */
     fun warmStartIfEnabled(context: Context) {
         val prefs = DarkfiChatPreferences(context.applicationContext)
@@ -107,6 +116,7 @@ object AppTorCoordinator {
                         _bootstrapState.value = TorBootstrapUiState.Bootstrapping
                     }
                     Twig.info { "AppTor: starting in-process Arti proxy on port ${prefs.socksPort}..." }
+                    setNetworkStorageDir(DrkWalletPaths.cacheDir(app).apply { mkdirs() }.absolutePath)
                     val started = startArtiProxy(prefs.socksPort.toString())
                     if (started) {
                         // Arti boots asynchronously via UniFFI thread; wait briefly before nudging SOCKS
@@ -219,27 +229,31 @@ object AppTorCoordinator {
 
     fun resolveDarkircP2pTransport(context: Context): DarkircP2pTransport {
         val prefs = DarkfiChatPreferences(context.applicationContext)
-        return if (prefs.routeOutboundThroughTor) {
-            DarkircP2pTransport.TorViaSocks5(
-                socksHost =
-                    prefs.socksHost.trim().ifBlank { TorIntegrationHelper.DEFAULT_SOCKS_HOST },
-                socksPort = prefs.socksPort,
-            )
-        } else {
-            DarkircP2pTransport.Clearnet
+        return when (prefs.privacyNetwork) {
+            PrivacyNetwork.Nym ->
+                DarkircP2pTransport.NymViaSocks5(PrivacyNetwork.NYM_SOCKS_HOST, prefs.nymSocksPort)
+            PrivacyNetwork.Tor ->
+                DarkircP2pTransport.TorViaSocks5(
+                    socksHost =
+                        prefs.socksHost.trim().ifBlank { TorIntegrationHelper.DEFAULT_SOCKS_HOST },
+                    socksPort = prefs.socksPort,
+                )
+            PrivacyNetwork.Direct -> DarkircP2pTransport.Clearnet
         }
     }
 
     fun resolveDarkfidP2pTransport(context: Context): DarkfidP2pTransport {
         val prefs = DarkfiChatPreferences(context.applicationContext)
-        return if (prefs.routeOutboundThroughTor) {
-            DarkfidP2pTransport.TorViaSocks5(
-                socksHost =
-                    prefs.socksHost.trim().ifBlank { TorIntegrationHelper.DEFAULT_SOCKS_HOST },
-                socksPort = prefs.socksPort,
-            )
-        } else {
-            DarkfidP2pTransport.Clearnet
+        return when (prefs.privacyNetwork) {
+            PrivacyNetwork.Nym ->
+                DarkfidP2pTransport.NymViaSocks5(PrivacyNetwork.NYM_SOCKS_HOST, prefs.nymSocksPort)
+            PrivacyNetwork.Tor ->
+                DarkfidP2pTransport.TorViaSocks5(
+                    socksHost =
+                        prefs.socksHost.trim().ifBlank { TorIntegrationHelper.DEFAULT_SOCKS_HOST },
+                    socksPort = prefs.socksPort,
+                )
+            PrivacyNetwork.Direct -> DarkfidP2pTransport.Clearnet
         }
     }
 

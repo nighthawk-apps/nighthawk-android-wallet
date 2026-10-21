@@ -36,16 +36,26 @@ class TorOutboundSocksTest {
     }
 
     @Test
-    fun proxyForClearnetHttp_whenTorDisabled_isNull() {
+    fun privacyNetwork_defaultsToNym_andHttpUsesNymSocks() {
         val prefs = DarkfiChatPreferences(application)
-        prefs.routeOutboundThroughTor = false
+        assertEquals(PrivacyNetwork.Nym, prefs.privacyNetwork)
+        val proxy = TorOutboundSocks.proxyForClearnetHttp(application)!!
+        assertEquals(
+            InetSocketAddress(PrivacyNetwork.NYM_SOCKS_HOST, PrivacyNetwork.DEFAULT_NYM_SOCKS_PORT),
+            proxy.address(),
+        )
+    }
+
+    @Test
+    fun proxyForClearnetHttp_whenDirect_isNull() {
+        DarkfiChatPreferences(application).privacyNetwork = PrivacyNetwork.Direct
         assertNull(TorOutboundSocks.proxyForClearnetHttp(application))
     }
 
     @Test
-    fun proxyForClearnetHttp_whenTorEnabled_usesSocksInetAddressFromPrefs() {
+    fun proxyForClearnetHttp_whenTor_usesSocksInetAddressFromPrefs() {
         val prefs = DarkfiChatPreferences(application)
-        prefs.routeOutboundThroughTor = true
+        prefs.privacyNetwork = PrivacyNetwork.Tor
         prefs.socksHost = ""
         prefs.socksPort = 9150
 
@@ -59,16 +69,27 @@ class TorOutboundSocksTest {
     }
 
     @Test
-    fun proxyForOutboundTcp_whenTorDisabled_isNull_evenForRemoteHosts() {
+    fun walletProxy_ignoresChatTorToggle() {
         val prefs = DarkfiChatPreferences(application)
+        prefs.privacyNetwork = PrivacyNetwork.Nym
         prefs.routeOutboundThroughTor = false
+        prefs.nymSocksPort = 1090
+        assertEquals(
+            InetSocketAddress(PrivacyNetwork.NYM_SOCKS_HOST, 1090),
+            TorOutboundSocks.proxyForOutboundTcpDestination(application, "relay.example")!!.address(),
+        )
+    }
+
+    @Test
+    fun proxyForOutboundTcp_whenDirect_isNull_evenForRemoteHosts() {
+        DarkfiChatPreferences(application).privacyNetwork = PrivacyNetwork.Direct
         assertNull(TorOutboundSocks.proxyForOutboundTcpDestination(application, "relay.example"))
     }
 
     @Test
-    fun proxyForOutboundTcp_whenTorEnabled_loopbackBypassesSocksButHttpStillProxied() {
+    fun proxyForOutboundTcp_loopbackBypassesSocksButHttpStillProxied() {
         val prefs = DarkfiChatPreferences(application)
-        prefs.routeOutboundThroughTor = true
+        prefs.privacyNetwork = PrivacyNetwork.Tor
         prefs.socksHost = TorIntegrationHelper.DEFAULT_SOCKS_HOST
         prefs.socksPort = TorIntegrationHelper.DEFAULT_SOCKS_PORT
 
@@ -79,12 +100,12 @@ class TorOutboundSocksTest {
     }
 
     /**
-     * When Tor outbound is enabled, IRC policy and JSON-RPC callers must converge on SOCKS for
-     * [.onion] names (often treated as opaque strings, not IPv4 literals).
+     * JSON-RPC callers must converge on SOCKS for [.onion] names (often treated as opaque strings,
+     * not IPv4 literals).
      */
     @Test
-    fun proxyForOutboundTcp_torOn_returnsSocksProxyForOnionHost() {
-        DarkfiChatPreferences(application).routeOutboundThroughTor = true
+    fun proxyForOutboundTcp_tor_returnsSocksProxyForOnionHost() {
+        DarkfiChatPreferences(application).privacyNetwork = PrivacyNetwork.Tor
         assertNotNull(
             TorOutboundSocks.proxyForOutboundTcpDestination(
                 application,

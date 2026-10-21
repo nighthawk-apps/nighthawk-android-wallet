@@ -32,6 +32,13 @@
     <string name="splash_tor_retry" translatable="false">Retry</string>
     <string name="splash_tor_continue_without" translatable="false">Continue without Tor</string>
     <string name="splash_tor_continue_without_hint" translatable="false">Uses your regular network. You can re-enable Tor in Settings.</string>
+    <string name="splash_nym_bootstrapping" translatable="false">Connecting to the Nym mixnet…</string>
+    <string name="splash_nym_ready" translatable="false">Nym mixnet ready</string>
+    <string name="splash_nym_failed" translatable="false">Nym mixnet connection failed</string>
+    <string name="splash_nym_continue_without" translatable="false">Continue without Nym</string>
+    <string name="splash_nym_continue_without_hint" translatable="false">Wallet and chat use your regular network. You can switch back to Nym in Settings → Network privacy.</string>
+    <string name="splash_nym_elapsed" translatable="false">%1$d s</string>
+    <string name="splash_nym_slow" translatable="false">Taking longer than usual. Keep waiting, or continue without Nym.</string>
     <string name="ns_get_started">Get Started</string>
     <string name="ns_landing_text">If it\'s your first time using Nighthawk, you\'ll need to create a wallet. If you are returning to Nighthawk, you can try to restore your previous wallet.</string>
     <string name="ns_landing_footer">This app is free software. Use is covered only by its license.</string>
@@ -222,7 +229,7 @@
     <string name="ns_wallet_assets_title">Assets</string>
     <string name="ns_wallet_tokens_empty">DRK  0</string>
     <string name="ns_chat_tor_toggle">Route through Tor (SOCKS)</string>
-    <string name="ns_chat_tor_toggle_desc">Off = clearnet (normal mobile data/Wi‑Fi). On = wallet HTTP and embedded DarkIRC P2P use SOCKS. Full SOCKS settings: Settings → Tor network.</string>
+    <string name="ns_chat_tor_toggle_desc">Chat uses the same network as the wallet. Change it in Settings → Network privacy.</string>
     <string name="ns_chat_retry">Retry connection</string>
     <string name="ns_chat_status_param">Status: %1$s</string>
     <string name="ns_chat_transport_direct">Direct (TCP+TLS seeds)</string>
@@ -232,6 +239,8 @@
     <string name="ns_chat_state_connecting">Connecting</string>
     <string name="ns_chat_state_connected_direct">Connected (direct)</string>
     <string name="ns_chat_state_connected_tor">Connected (Tor)</string>
+    <string name="ns_chat_state_connected_nym">Connected (Nym)</string>
+    <string name="ns_chat_transport_nym">Nym mixnet (clearnet peers)</string>
     <string name="ns_chat_state_degraded">Degraded</string>
     <string name="ns_chat_state_error">Error</string>
     <string name="ns_chat_channels_header">Channels</string>
@@ -326,6 +335,7 @@
     <string name="ns_chat_status_irc_connecting">IRC connecting</string>
     <string name="ns_chat_status_irc_connected_direct">IRC connected direct</string>
     <string name="ns_chat_status_irc_connected_tor">IRC connected via Tor</string>
+    <string name="ns_chat_status_irc_connected_nym">IRC connected via Nym</string>
     <string name="ns_chat_status_irc_degraded">IRC degraded</string>
     <string name="ns_chat_status_irc_error">IRC error</string>
 
@@ -386,13 +396,21 @@
     <string name="ns_chat_dm_requires_embedded">Enable embedded DarkIRC in chat settings to use encrypted direct messages.</string>
     <string name="ns_chat_dm_last_preview">%1$s</string>
 
-    <string name="ns_tor_network_settings_row_title">Tor network (privacy)</string>
-    <string name="ns_tor_network_settings_row_desc">Route wallet HTTP via Tor SOCKS; chat uses the same relay</string>
-    <string name="ns_tor_network_screen_title">Tor network</string>
-    <string name="ns_tor_network_screen_body">Tor is off by default — the app uses your normal mobile network (clearnet). Turn on app-wide Tor routing only if you want wallet HTTP and DarkIRC P2P to use SOCKS (default loopback 127.0.0.1:9050). Built-in Tor is in-process Arti; you can also use an external SOCKS proxy.</string>
-    <string name="ns_tor_network_section_routing">App-wide Tor routing</string>
-    <string name="ns_tor_network_section_routing_desc">Routes wallet HTTPS, embedded darkfid/darkirc P2P (onion seeds), and remote IRC hosts through SOCKS. Loopback embedded DarkIRC IRC stays direct.</string>
-    <string name="ns_tor_network_wallet_toggle">Route wallet + chat P2P through Tor SOCKS</string>
+    <string name="ns_tor_network_settings_row_title">Network privacy</string>
+    <string name="ns_tor_network_settings_row_desc">Wallet, chat, and node traffic. Nym mixnet by default.</string>
+    <string name="ns_tor_network_screen_title">Network privacy</string>
+    <string name="ns_tor_network_screen_body">Wallet, chat, and node traffic go through the Nym mixnet by default, so servers never see your IP address. Chat reaches the public DarkIRC seeds through that same tunnel. Onion-only peers need Tor. First connect usually takes a few seconds and can take up to a minute.</string>
+    <string name="ns_privacy_network_section_wallet">App network</string>
+    <string name="ns_privacy_network_section_wallet_desc">Applies to the wallet, chat, and the embedded node. Changing it reconnects them.</string>
+    <string name="ns_privacy_network_nym">Nym mixnet (recommended)</string>
+    <string name="ns_privacy_network_nym_desc">Built-in Nym client. Packets are mixed across five hops with cover traffic. Chat uses the clearnet seeds through the mixnet. Cannot reach .onion addresses.</string>
+    <string name="ns_privacy_network_tor">Tor</string>
+    <string name="ns_privacy_network_tor_desc">Built-in Arti, or the external SOCKS proxy configured below. Required for .onion lightwalletd servers.</string>
+    <string name="ns_privacy_network_direct">Direct</string>
+    <string name="ns_privacy_network_direct_desc">No proxy. The server sees your IP address.</string>
+    <string name="ns_tor_network_section_routing">Chat P2P over Tor</string>
+    <string name="ns_tor_network_section_routing_desc">Routes embedded darkfid/darkirc P2P (onion seeds) and remote IRC hosts through Tor SOCKS. Loopback embedded DarkIRC IRC stays direct.</string>
+    <string name="ns_tor_network_wallet_toggle">Route chat P2P through Tor SOCKS</string>
     <string name="ns_tor_network_section_builtin">Built-in Tor (Arti)</string>
     <string name="ns_tor_network_section_builtin_desc">Runs in-process Arti inside the app and exposes a loopback SOCKS listener. This is separate from an external Tor/SOCKS app you configure below.</string>
     <string name="ns_tor_network_embedded_tor">Use built-in Arti</string>
@@ -589,4 +607,17 @@
     <string name="ns_host">Host</string>
     <string name="ns_port">Port</string>
     <string name="tex_address_support_error">Invalid Address, Tex Address is not supported</string>
+    <string name="ns_share_app_row_title">Share Nighthawk</string>
+    <string name="ns_share_app_row_desc">Send this app to a nearby Android phone over Bluetooth</string>
+    <string name="ns_share_app_title">Share Nighthawk</string>
+    <string name="ns_share_app_body">Send the copy of Nighthawk installed on this phone to another Android device, with no internet or app store needed.</string>
+    <string name="ns_share_app_details">Version %1$s · %2$s · CPU: %3$s</string>
+    <string name="ns_share_app_receiver_hint">Bluetooth sends a .zip because Android only accepts certain file types over Bluetooth. On the other phone, open the zip in Files, tap the Nighthawk .apk inside and allow installs from that app. Large APKs can take several minutes over Bluetooth.</string>
+    <string name="ns_share_app_split_warning">This copy was installed from an app store as several split APKs. The receiver needs a split-APK installer such as SAI to install them.</string>
+    <string name="ns_share_app_preparing">Preparing the APK…</string>
+    <string name="ns_share_app_bluetooth">Send via Bluetooth</string>
+    <string name="ns_share_app_other">Share another way</string>
+    <string name="ns_share_app_chooser_title">Share Nighthawk APK</string>
+    <string name="ns_share_app_no_bluetooth">Bluetooth sharing isn\'t available here, so pick another app.</string>
+    <string name="ns_share_app_failed">Couldn\'t prepare the APK for sharing.</string>
 </resources>

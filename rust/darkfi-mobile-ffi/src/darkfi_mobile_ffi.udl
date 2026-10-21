@@ -30,7 +30,7 @@ namespace darkfi_mobile_ffi {
     // seeds); when false, clearnet tcp+tls seeds are used. `tor_socks_port` is
     // ignored when `use_tor` is false.
     [Throws=DarkfiWalletNativeError]
-    void start_darkirc(string datastore_path, boolean use_tor, u16 tor_socks_port, DarkircEventCallback? callback);
+    void start_darkirc(string datastore_path, DarkircTransport transport, u16 socks_port, DarkircEventCallback? callback);
 
     [Throws=DarkfiWalletNativeError]
     void stop_darkirc();
@@ -40,9 +40,19 @@ namespace darkfi_mobile_ffi {
 
     // `use_tor` routes all P2P traffic over darkfi's in-process arti Tor
     // the embedded arti transport needs no external SOCKS5 proxy.
+    // Arti state/cache root. Wallet open sets it too; call before a pre-open proxy start.
+    void set_network_storage_dir(string path);
     [Throws=DarkfiWalletNativeError] boolean start_arti_proxy(string socks_listen);
     void stop_arti_proxy();
     boolean is_arti_running();
+
+    // In-process Nym mixnet SOCKS5 proxy (nym-smolmix tunnel, DNS over the
+    // mixnet). Reaches clearnet hosts only; `.onion` targets are refused.
+    [Throws=DarkfiWalletNativeError] boolean start_nym_proxy(string socks_listen);
+    void stop_nym_proxy();
+    boolean is_nym_running();
+    // stopped | bootstrapping | connected | reconnecting | failed
+    string nym_status();
 };
 
 callback interface DarkircEventCallback {
@@ -66,6 +76,10 @@ dictionary DrkBootstrapConfig {
     sequence<u8>? lightwallet_tls_pin_sha256;
     boolean use_tor;
     u16 tor_socks_port;
+    /// Route remote lightwalletd through the in-process Nym mixnet proxy.
+    /// Takes precedence over `use_tor`.
+    boolean use_nym = true;
+    u16 nym_socks_port = 1080;
     /// Optional darkfid JSON-RPC URL for broadcast fallback only.
     /// Leave unset/empty for lightwalletd-only (recommended). Never hardcode a testnet port.
     string? darkfid_rpc_url;
@@ -76,6 +90,14 @@ dictionary DrkBootstrapConfig {
 dictionary DrkSyncSnapshot {
     i64 scanned_blocks;
     i64 chain_tip;
+};
+
+// DarkIRC P2P transport: Nym (clearnet peers via the Nym SOCKS proxy), Tor
+// (onion seeds via Arti), or Direct clearnet.
+enum DarkircTransport {
+    "Direct",
+    "Tor",
+    "Nym",
 };
 
 enum SyncMethod {

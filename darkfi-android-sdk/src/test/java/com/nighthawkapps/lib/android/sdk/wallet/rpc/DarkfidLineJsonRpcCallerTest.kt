@@ -1,6 +1,7 @@
 package com.nighthawkapps.lib.android.sdk.wallet.rpc
 
 import com.nighthawkapps.lib.android.sdk.chat.DarkfiChatPreferences
+import com.nighthawkapps.lib.android.sdk.net.PrivacyNetwork
 import com.nighthawkapps.lib.android.sdk.wallet.DarkfiEndpoint
 import com.nighthawkapps.lib.android.sdk.wallet.DarkfiNetwork
 import com.nighthawkapps.lib.android.sdk.wallet.PersistableDarkfiWallet
@@ -29,7 +30,7 @@ class DarkfidLineJsonRpcCallerTest {
     @Test
     fun invoke_writesCrlframedLine_readsOneJsonRpcResponseLine(): Unit =
         runBlocking {
-            DarkfiChatPreferences(application).routeOutboundThroughTor = false
+            DarkfiChatPreferences(application).privacyNetwork = PrivacyNetwork.Direct
             ServerSocket(0).use { ss ->
                 val port = ss.localPort
                 val serverDone =
@@ -66,7 +67,7 @@ class DarkfidLineJsonRpcCallerTest {
     @Test
     fun invoke_tlsConfigured_throwsBeforeOpeningSocket(): Unit =
         runBlocking {
-            DarkfiChatPreferences(application).routeOutboundThroughTor = false
+            DarkfiChatPreferences(application).privacyNetwork = PrivacyNetwork.Direct
             assertFailsWith<DarkfidRpcException> {
                 DarkfidLineJsonRpcCaller(
                     application,

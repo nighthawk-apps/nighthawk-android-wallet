@@ -741,15 +741,25 @@ internal object IntegrityCheckingUniffiLib {
     ): Int
     external fun uniffi_darkfi_mobile_ffi_checksum_func_is_arti_running(
     ): Int
+    external fun uniffi_darkfi_mobile_ffi_checksum_func_is_nym_running(
+    ): Int
+    external fun uniffi_darkfi_mobile_ffi_checksum_func_nym_status(
+    ): Int
     external fun uniffi_darkfi_mobile_ffi_checksum_func_send_chat_message(
+    ): Int
+    external fun uniffi_darkfi_mobile_ffi_checksum_func_set_network_storage_dir(
     ): Int
     external fun uniffi_darkfi_mobile_ffi_checksum_func_start_arti_proxy(
     ): Int
     external fun uniffi_darkfi_mobile_ffi_checksum_func_start_darkirc(
     ): Int
+    external fun uniffi_darkfi_mobile_ffi_checksum_func_start_nym_proxy(
+    ): Int
     external fun uniffi_darkfi_mobile_ffi_checksum_func_stop_arti_proxy(
     ): Int
     external fun uniffi_darkfi_mobile_ffi_checksum_func_stop_darkirc(
+    ): Int
+    external fun uniffi_darkfi_mobile_ffi_checksum_func_stop_nym_proxy(
     ): Int
     external fun uniffi_darkfi_mobile_ffi_checksum_func_validate_darkfi_mnemonic(
     ): Int
@@ -905,15 +915,25 @@ internal object UniffiLib {
     ): RustBuffer.ByValue
     external fun uniffi_darkfi_mobile_ffi_fn_func_is_arti_running(uniffi_out_err: UniffiRustCallStatus, 
     ): Byte
+    external fun uniffi_darkfi_mobile_ffi_fn_func_is_nym_running(uniffi_out_err: UniffiRustCallStatus, 
+    ): Byte
+    external fun uniffi_darkfi_mobile_ffi_fn_func_nym_status(uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
     external fun uniffi_darkfi_mobile_ffi_fn_func_send_chat_message(`channel`: RustBuffer.ByValue,`nick`: RustBuffer.ByValue,`message`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    ): Unit
+    external fun uniffi_darkfi_mobile_ffi_fn_func_set_network_storage_dir(`path`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
     ): Unit
     external fun uniffi_darkfi_mobile_ffi_fn_func_start_arti_proxy(`socksListen`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
     ): Byte
-    external fun uniffi_darkfi_mobile_ffi_fn_func_start_darkirc(`datastorePath`: RustBuffer.ByValue,`useTor`: Byte,`torSocksPort`: Short,`callback`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    external fun uniffi_darkfi_mobile_ffi_fn_func_start_darkirc(`datastorePath`: RustBuffer.ByValue,`transport`: RustBuffer.ByValue,`socksPort`: Short,`callback`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
     ): Unit
+    external fun uniffi_darkfi_mobile_ffi_fn_func_start_nym_proxy(`socksListen`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    ): Byte
     external fun uniffi_darkfi_mobile_ffi_fn_func_stop_arti_proxy(uniffi_out_err: UniffiRustCallStatus, 
     ): Unit
     external fun uniffi_darkfi_mobile_ffi_fn_func_stop_darkirc(uniffi_out_err: UniffiRustCallStatus, 
+    ): Unit
+    external fun uniffi_darkfi_mobile_ffi_fn_func_stop_nym_proxy(uniffi_out_err: UniffiRustCallStatus, 
     ): Unit
     external fun uniffi_darkfi_mobile_ffi_fn_func_validate_darkfi_mnemonic(`phrase`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
     ): Byte
@@ -1072,19 +1092,34 @@ private fun uniffiCheckApiChecksums(lib: IntegrityCheckingUniffiLib) {
     if (lib.uniffi_darkfi_mobile_ffi_checksum_func_is_arti_running() != 33624) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
+    if (lib.uniffi_darkfi_mobile_ffi_checksum_func_is_nym_running() != 15495) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_darkfi_mobile_ffi_checksum_func_nym_status() != 41601) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
     if (lib.uniffi_darkfi_mobile_ffi_checksum_func_send_chat_message() != 4769) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_darkfi_mobile_ffi_checksum_func_set_network_storage_dir() != 64557) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if (lib.uniffi_darkfi_mobile_ffi_checksum_func_start_arti_proxy() != 48169) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_darkfi_mobile_ffi_checksum_func_start_darkirc() != 62586) {
+    if (lib.uniffi_darkfi_mobile_ffi_checksum_func_start_darkirc() != 798) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_darkfi_mobile_ffi_checksum_func_start_nym_proxy() != 34512) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if (lib.uniffi_darkfi_mobile_ffi_checksum_func_stop_arti_proxy() != 38081) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if (lib.uniffi_darkfi_mobile_ffi_checksum_func_stop_darkirc() != 44306) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_darkfi_mobile_ffi_checksum_func_stop_nym_proxy() != 27552) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if (lib.uniffi_darkfi_mobile_ffi_checksum_func_validate_darkfi_mnemonic() != 33875) {
@@ -2313,6 +2348,14 @@ data class DrkBootstrapConfig (
     var `torSocksPort`: kotlin.UShort
     , 
     /**
+     * Route remote lightwalletd through the in-process Nym mixnet proxy.
+     * Takes precedence over `use_tor`.
+     */
+    var `useNym`: kotlin.Boolean = true 
+    , 
+    var `nymSocksPort`: kotlin.UShort = 1080u 
+    , 
+    /**
      * Optional darkfid JSON-RPC URL for broadcast fallback only.
      * Leave unset/empty for lightwalletd-only (recommended). Never hardcode a testnet port.
      */
@@ -2348,6 +2391,8 @@ public object FfiConverterTypeDrkBootstrapConfig: FfiConverterRustBuffer<DrkBoot
             FfiConverterOptionalSequenceUByte.read(buf),
             FfiConverterBoolean.read(buf),
             FfiConverterUShort.read(buf),
+            FfiConverterBoolean.read(buf),
+            FfiConverterUShort.read(buf),
             FfiConverterOptionalString.read(buf),
             FfiConverterBoolean.read(buf),
         )
@@ -2364,6 +2409,8 @@ public object FfiConverterTypeDrkBootstrapConfig: FfiConverterRustBuffer<DrkBoot
             FfiConverterOptionalSequenceUByte.allocationSize(value.`lightwalletTlsPinSha256`) +
             FfiConverterBoolean.allocationSize(value.`useTor`) +
             FfiConverterUShort.allocationSize(value.`torSocksPort`) +
+            FfiConverterBoolean.allocationSize(value.`useNym`) +
+            FfiConverterUShort.allocationSize(value.`nymSocksPort`) +
             FfiConverterOptionalString.allocationSize(value.`darkfidRpcUrl`) +
             FfiConverterBoolean.allocationSize(value.`strictOmrOnly`)
     )
@@ -2379,6 +2426,8 @@ public object FfiConverterTypeDrkBootstrapConfig: FfiConverterRustBuffer<DrkBoot
             FfiConverterOptionalSequenceUByte.write(value.`lightwalletTlsPinSha256`, buf)
             FfiConverterBoolean.write(value.`useTor`, buf)
             FfiConverterUShort.write(value.`torSocksPort`, buf)
+            FfiConverterBoolean.write(value.`useNym`, buf)
+            FfiConverterUShort.write(value.`nymSocksPort`, buf)
             FfiConverterOptionalString.write(value.`darkfidRpcUrl`, buf)
             FfiConverterBoolean.write(value.`strictOmrOnly`, buf)
     }
@@ -3071,6 +3120,41 @@ public object FfiConverterTypeDarkfiWalletNativeError : FfiConverterRustBuffer<D
 
 
 
+enum class DarkircTransport {
+    
+    DIRECT,
+    TOR,
+    NYM;
+
+    
+
+
+    companion object
+}
+
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeDarkircTransport: FfiConverterRustBuffer<DarkircTransport> {
+    override fun read(buf: ByteBuffer) = try {
+        DarkircTransport.values()[buf.getInt() - 1]
+    } catch (e: IndexOutOfBoundsException) {
+        throw RuntimeException("invalid enum value, something is very wrong!!", e)
+    }
+
+    override fun allocationSize(value: DarkircTransport) = 4UL
+
+    override fun write(value: DarkircTransport, buf: ByteBuffer) {
+        buf.putInt(value.ordinal + 1)
+    }
+}
+
+
+
+
+
+
 enum class SyncFallbackReason {
     
     NONE,
@@ -3565,7 +3649,9 @@ public object FfiConverterSequenceTypeDrkTransactionRecord: FfiConverterRustBuff
             FfiConverterTypeDrkTransactionRecord.write(it, buf)
         }
     }
-} fun `bridgePing`(): kotlin.String {
+}
+
+fun `bridgePing`(): kotlin.String {
             return FfiConverterString.lift(
     uniffiRustCall() { _status ->
     UniffiLib.uniffi_darkfi_mobile_ffi_fn_func_bridge_ping(
@@ -3694,6 +3780,26 @@ public object FfiConverterSequenceTypeDrkTransactionRecord: FfiConverterRustBuff
     )
     }
     
+ fun `isNymRunning`(): kotlin.Boolean {
+            return FfiConverterBoolean.lift(
+    uniffiRustCall() { _status ->
+    UniffiLib.uniffi_darkfi_mobile_ffi_fn_func_is_nym_running(
+    
+        _status)
+}
+    )
+    }
+    
+ fun `nymStatus`(): kotlin.String {
+            return FfiConverterString.lift(
+    uniffiRustCall() { _status ->
+    UniffiLib.uniffi_darkfi_mobile_ffi_fn_func_nym_status(
+    
+        _status)
+}
+    )
+    }
+    
 
     @Throws(DarkfiWalletNativeException::class) fun `sendChatMessage`(`channel`: kotlin.String, `nick`: kotlin.String, `message`: kotlin.String)
         = 
@@ -3704,6 +3810,16 @@ public object FfiConverterSequenceTypeDrkTransactionRecord: FfiConverterRustBuff
         FfiConverterString.lower(`channel`),
         FfiConverterString.lower(`nick`),
         FfiConverterString.lower(`message`),_status)
+}
+    
+    
+ fun `setNetworkStorageDir`(`path`: kotlin.String)
+        = 
+    uniffiRustCall() { _status ->
+    UniffiLib.uniffi_darkfi_mobile_ffi_fn_func_set_network_storage_dir(
+    
+        
+        FfiConverterString.lower(`path`),_status)
 }
     
     
@@ -3720,18 +3836,30 @@ public object FfiConverterSequenceTypeDrkTransactionRecord: FfiConverterRustBuff
     }
     
 
-    @Throws(DarkfiWalletNativeException::class) fun `startDarkirc`(`datastorePath`: kotlin.String, `useTor`: kotlin.Boolean, `torSocksPort`: kotlin.UShort, `callback`: DarkircEventCallback?)
+    @Throws(DarkfiWalletNativeException::class) fun `startDarkirc`(`datastorePath`: kotlin.String, `transport`: DarkircTransport, `socksPort`: kotlin.UShort, `callback`: DarkircEventCallback?)
         = 
     uniffiRustCallWithError(DarkfiWalletNativeException) { _status ->
     UniffiLib.uniffi_darkfi_mobile_ffi_fn_func_start_darkirc(
     
         
         FfiConverterString.lower(`datastorePath`),
-        FfiConverterBoolean.lower(`useTor`),
-        FfiConverterUShort.lower(`torSocksPort`),
+        FfiConverterTypeDarkircTransport.lower(`transport`),
+        FfiConverterUShort.lower(`socksPort`),
         FfiConverterOptionalTypeDarkircEventCallback.lower(`callback`),_status)
 }
     
+    
+
+    @Throws(DarkfiWalletNativeException::class) fun `startNymProxy`(`socksListen`: kotlin.String): kotlin.Boolean {
+            return FfiConverterBoolean.lift(
+    uniffiRustCallWithError(DarkfiWalletNativeException) { _status ->
+    UniffiLib.uniffi_darkfi_mobile_ffi_fn_func_start_nym_proxy(
+    
+        
+        FfiConverterString.lower(`socksListen`),_status)
+}
+    )
+    }
     
  fun `stopArtiProxy`()
         = 
@@ -3747,6 +3875,15 @@ public object FfiConverterSequenceTypeDrkTransactionRecord: FfiConverterRustBuff
         = 
     uniffiRustCallWithError(DarkfiWalletNativeException) { _status ->
     UniffiLib.uniffi_darkfi_mobile_ffi_fn_func_stop_darkirc(
+    
+        _status)
+}
+    
+    
+ fun `stopNymProxy`()
+        = 
+    uniffiRustCall() { _status ->
+    UniffiLib.uniffi_darkfi_mobile_ffi_fn_func_stop_nym_proxy(
     
         _status)
 }

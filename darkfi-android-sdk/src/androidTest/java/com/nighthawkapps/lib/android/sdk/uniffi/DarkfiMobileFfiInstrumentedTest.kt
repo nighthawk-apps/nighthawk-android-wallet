@@ -4,6 +4,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.nighthawkapps.lib.uniffi.darkfi_mobile_ffi.DarkfiWalletNativeException
 import com.nighthawkapps.lib.uniffi.darkfi_mobile_ffi.DarkircEventCallback
+import com.nighthawkapps.lib.uniffi.darkfi_mobile_ffi.DarkircTransport
 import com.nighthawkapps.lib.uniffi.darkfi_mobile_ffi.bridgePing
 import com.nighthawkapps.lib.uniffi.darkfi_mobile_ffi.bridgeVersion
 import com.nighthawkapps.lib.uniffi.darkfi_mobile_ffi.darkircStatus
@@ -77,7 +78,7 @@ class DarkfiMobileFfiInstrumentedTest {
 
         // Start daemon
         val zeroUShort: UShort = 0u
-        startDarkirc(dbDir.absolutePath, false, zeroUShort, callback)
+        startDarkirc(dbDir.absolutePath, DarkircTransport.DIRECT, zeroUShort, callback)
         
         val status = darkircStatus()
         assertTrue(status == "starting" || status == "running")
@@ -85,7 +86,7 @@ class DarkfiMobileFfiInstrumentedTest {
         // Starting twice should throw
         assertFailsWith<DarkfiWalletNativeException.NativeDrkUnavailable> {
             val zeroUShort: UShort = 0u
-            startDarkirc(dbDir.absolutePath, false, zeroUShort, callback)
+            startDarkirc(dbDir.absolutePath, DarkircTransport.DIRECT, zeroUShort, callback)
         }
 
         // Stop daemon
@@ -141,7 +142,7 @@ class DarkfiMobileFfiInstrumentedTest {
         dbDir.mkdirs()
 
         val zeroUShort: UShort = 0u
-        startDarkirc(dbDir.absolutePath, false, zeroUShort, callback)
+        startDarkirc(dbDir.absolutePath, DarkircTransport.DIRECT, zeroUShort, callback)
         try {
             assertTrue(awaitDaemonRunning(), "daemon never reached running state")
 

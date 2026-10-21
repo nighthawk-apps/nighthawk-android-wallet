@@ -2,6 +2,7 @@ package com.nighthawkapps.lib.android.sdk.chat
 
 import android.content.Context
 import com.nighthawkapps.lib.android.sdk.chat.darkirc.DarkircRuntimeSettings
+import com.nighthawkapps.lib.android.sdk.net.PrivacyNetwork
 
 /**
  * Outbound transport: Tor SOCKS for wallet HTTP clients (e.g. price APIs) and for DarkIRC when
@@ -17,13 +18,35 @@ class DarkfiChatPreferences(
     private val sp = app.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
 
     /**
-     * When true, clearnet HTTP(S) clients in the Android app (OkHttp/Retrofit) use SOCKS
-     * ([socksHost]:[socksPort], default loopback). Also gates DarkIRC SOCKS for non-loopback hosts.
+     * Whether Tor is the app network. Derived from [privacyNetwork]: enabling selects Tor, and
+     * disabling while Tor is selected falls back to [PrivacyNetwork.Direct].
      */
     var routeOutboundThroughTor: Boolean
-        get() = sp.getBoolean(KEY_TOR, true)
+        get() = privacyNetwork == PrivacyNetwork.Tor
         set(value) {
-            sp.edit().putBoolean(KEY_TOR, value).apply()
+            if (value) {
+                privacyNetwork = PrivacyNetwork.Tor
+            } else if (privacyNetwork == PrivacyNetwork.Tor) {
+                privacyNetwork = PrivacyNetwork.Direct
+            }
+        }
+
+    /**
+     * Network for the whole app: wallet (lightwalletd, darkfid JSON-RPC, clearnet HTTP), DarkIRC
+     * chat P2P, and embedded darkfid P2P. Nym by default.
+     */
+    var privacyNetwork: PrivacyNetwork
+        get() = PrivacyNetwork.fromPref(sp.getString(KEY_PRIVACY_NETWORK, null))
+        set(value) {
+            sp.edit().putString(KEY_PRIVACY_NETWORK, value.prefValue).apply()
+        }
+
+    var nymSocksPort: Int
+        get() =
+            sp.getInt(KEY_NYM_SOCKS_PORT, PrivacyNetwork.DEFAULT_NYM_SOCKS_PORT).takeIf { it in 1..65535 }
+                ?: PrivacyNetwork.DEFAULT_NYM_SOCKS_PORT
+        set(value) {
+            sp.edit().putInt(KEY_NYM_SOCKS_PORT, value.coerceIn(1, 65535)).apply()
         }
 
     /**
@@ -183,7 +206,8 @@ class DarkfiChatPreferences(
 
     companion object {
         private const val PREFS_NAME = "darkfi_chat_transport"
-        private const val KEY_TOR = "prefer_tor_like_use_tor_txt"
+        private const val KEY_PRIVACY_NETWORK = "darkfi_wallet_privacy_network"
+        private const val KEY_NYM_SOCKS_PORT = "darkfi_nym_socks_port"
         private const val KEY_STRICT_OMR_ONLY = "darkfi_strict_omr_only"
         private const val KEY_IRC_HOST = "darkfi_irc_host"
         private const val KEY_IRC_PORT = "darkfi_irc_port"

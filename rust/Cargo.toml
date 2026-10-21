@@ -9,6 +9,12 @@ fjall = { path = "vendor/fjall" }
 halo2_proofs = { git = "https://github.com/parazyd/halo2", branch = "v050" }
 halo2_gadgets = { git = "https://github.com/parazyd/halo2", branch = "v050" }
 url = { git = "https://github.com/darkrenaissance/rust-url", branch = "v258" }
+# Keep one form_urlencoded: the url fork's copy, so serde_urlencoded (reqwest,
+# pulled in by nym) agrees with url::form_urlencoded.
+form_urlencoded = { git = "https://github.com/darkrenaissance/rust-url", branch = "v258" }
+# nym pins sqlx ^0.8.6, whose libsqlite3-sys cannot coexist with rusqlite 0.37.
+# nymtech/nym#7164 moves it to 0.9; same revision zkool2 pins.
+nym-smolmix = { git = "https://github.com/nymtech/nym.git", rev = "88f21f017710f5e832b1489fcb273bd81e1e0786" }
 
 [profile.release]
 opt-level = 3

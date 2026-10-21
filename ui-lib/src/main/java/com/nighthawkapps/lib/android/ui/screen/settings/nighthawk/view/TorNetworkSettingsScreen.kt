@@ -9,11 +9,14 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -27,10 +30,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.nighthawkapps.lib.android.global.AppWalletCoordinator
 import com.nighthawkapps.lib.android.sdk.chat.DarkfiChatPreferences
+import com.nighthawkapps.lib.android.sdk.net.PrivacyNetwork
+import com.nighthawkapps.lib.android.sdk.nym.AppNymCoordinator
 import com.nighthawkapps.lib.android.sdk.tor.AppTorCoordinator
 import com.nighthawkapps.lib.android.ui.R
 import com.nighthawkapps.lib.android.ui.design.component.BodyMedium
@@ -47,7 +53,7 @@ internal fun TorNetworkSettingsScreen(onBack: () -> Unit) {
     val prefs = remember { DarkfiChatPreferences(context) }
     val scope = rememberCoroutineScope()
 
-    var torRoute by remember { mutableStateOf(prefs.routeOutboundThroughTor) }
+    var privacyNetwork by remember { mutableStateOf(prefs.privacyNetwork) }
     var useEmbeddedTor by remember { mutableStateOf(prefs.useEmbeddedTor) }
     var socksHost by remember { mutableStateOf(prefs.socksHost) }
     var socksPortText by remember { mutableStateOf(prefs.socksPort.toString()) }
@@ -68,27 +74,30 @@ internal fun TorNetworkSettingsScreen(onBack: () -> Unit) {
     ) {
         TorNetworkSettingsTopBar(onBack)
         TorNetworkSettingsIntro()
-        TorSectionHeading(stringResource(R.string.ns_tor_network_section_routing))
+        TorSectionHeading(stringResource(R.string.ns_privacy_network_section_wallet))
         BodyMedium(
-            text = stringResource(R.string.ns_tor_network_section_routing_desc),
+            text = stringResource(R.string.ns_privacy_network_section_wallet_desc),
             color = WalletTheme.colors.secondaryTitleText,
         )
         Spacer(modifier = Modifier.height(8.dp))
-        TorWalletRoutingSwitchRow(
-            checked = torRoute,
-            onCheckedChange = { enabled ->
-                torRoute = enabled
-                scope.launch {
-                    AppTorCoordinator.applyTorRoutingEnabledWithWalletReload(
-                        context,
-                        enabled,
-                        AppWalletCoordinator.get(context),
-                    )
+        PrivacyNetworkPicker(
+            selected = privacyNetwork,
+            onSelect = { network ->
+                if (network != privacyNetwork) {
+                    privacyNetwork = network
+                    scope.launch {
+                        AppNymCoordinator.applyPrivacyNetwork(
+                            context,
+                            network,
+                            AppWalletCoordinator.get(context),
+                        )
+                    }
                 }
             },
         )
-        TorSectionDivider()
-        TorSectionHeading(stringResource(R.string.ns_tor_network_section_builtin))
+        if (privacyNetwork == PrivacyNetwork.Tor) {
+            TorSectionDivider()
+            TorSectionHeading(stringResource(R.string.ns_tor_network_section_builtin))
         BodyMedium(
             text = stringResource(R.string.ns_tor_network_section_builtin_desc),
             color = WalletTheme.colors.secondaryTitleText,
@@ -96,7 +105,7 @@ internal fun TorNetworkSettingsScreen(onBack: () -> Unit) {
         Spacer(modifier = Modifier.height(8.dp))
         TorEmbeddedBuiltinSwitchRow(
             checked = useEmbeddedTor,
-            enabled = torRoute,
+            enabled = true,
             onCheckedChange = { enabled ->
                 useEmbeddedTor = enabled
                 prefs.useEmbeddedTor = enabled
@@ -108,7 +117,7 @@ internal fun TorNetworkSettingsScreen(onBack: () -> Unit) {
         BodyMedium(
             text =
                 stringResource(
-                    if (useEmbeddedTor && torRoute) {
+                    if (useEmbeddedTor) {
                         R.string.ns_tor_network_section_socks_desc_embedded
                     } else {
                         R.string.ns_tor_network_section_socks_desc_external
@@ -118,7 +127,7 @@ internal fun TorNetworkSettingsScreen(onBack: () -> Unit) {
         )
         Spacer(modifier = Modifier.height(8.dp))
         TorSocksHostField(
-            enabled = torRoute,
+            enabled = true,
             socksHost = socksHost,
             onSocksHostChange = {
                 socksHost = it
@@ -128,7 +137,7 @@ internal fun TorNetworkSettingsScreen(onBack: () -> Unit) {
         )
         Spacer(modifier = Modifier.height(8.dp))
         TorSocksPortField(
-            enabled = torRoute,
+            enabled = true,
             socksPortText = socksPortText,
             onSocksPortTextChange = { raw ->
                 if (raw.all { it.isDigit() } && raw.length <= 5) {
@@ -140,6 +149,7 @@ internal fun TorNetworkSettingsScreen(onBack: () -> Unit) {
                 }
             },
         )
+        }
         TorNetworkSettingsFooter(onBack = onBack)
     }
 }
@@ -186,19 +196,52 @@ private fun TorSectionDivider() {
 }
 
 @Composable
-private fun TorWalletRoutingSwitchRow(
-    checked: Boolean,
-    onCheckedChange: (Boolean) -> Unit,
+private fun PrivacyNetworkPicker(
+    selected: PrivacyNetwork,
+    onSelect: (PrivacyNetwork) -> Unit,
 ) {
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        Text(
-            text = stringResource(R.string.ns_tor_network_wallet_toggle),
-            modifier = Modifier.weight(1f),
+    Column(modifier = Modifier.selectableGroup()) {
+        PrivacyNetworkOption(
+            title = stringResource(R.string.ns_privacy_network_nym),
+            description = stringResource(R.string.ns_privacy_network_nym_desc),
+            selected = selected == PrivacyNetwork.Nym,
+            onClick = { onSelect(PrivacyNetwork.Nym) },
         )
-        Switch(
-            checked = checked,
-            onCheckedChange = onCheckedChange,
+        PrivacyNetworkOption(
+            title = stringResource(R.string.ns_privacy_network_tor),
+            description = stringResource(R.string.ns_privacy_network_tor_desc),
+            selected = selected == PrivacyNetwork.Tor,
+            onClick = { onSelect(PrivacyNetwork.Tor) },
         )
+        PrivacyNetworkOption(
+            title = stringResource(R.string.ns_privacy_network_direct),
+            description = stringResource(R.string.ns_privacy_network_direct_desc),
+            selected = selected == PrivacyNetwork.Direct,
+            onClick = { onSelect(PrivacyNetwork.Direct) },
+        )
+    }
+}
+
+@Composable
+private fun PrivacyNetworkOption(
+    title: String,
+    description: String,
+    selected: Boolean,
+    onClick: () -> Unit,
+) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .selectable(selected = selected, onClick = onClick, role = Role.RadioButton)
+                .padding(vertical = 6.dp),
+    ) {
+        RadioButton(selected = selected, onClick = null)
+        Column(modifier = Modifier.padding(start = 12.dp)) {
+            Text(text = title)
+            BodyMedium(text = description, color = WalletTheme.colors.secondaryTitleText)
+        }
     }
 }
 

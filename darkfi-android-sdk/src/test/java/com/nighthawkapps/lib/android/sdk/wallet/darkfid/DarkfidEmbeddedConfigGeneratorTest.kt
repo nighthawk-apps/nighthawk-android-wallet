@@ -42,6 +42,25 @@ class DarkfidEmbeddedConfigGeneratorTest {
     }
 
     @Test
+    fun nymProfileProxiesClearnetSeeds() {
+        val root =
+            File.createTempFile("darkfid-nym", null).apply {
+                delete()
+                mkdirs()
+            }
+        val toml =
+            DarkfidEmbeddedConfigGenerator.buildToml(
+                root,
+                DarkfiNetwork.Testnet,
+                DarkfidP2pTransport.NymViaSocks5("127.0.0.1", 1080),
+            )
+        assertTrue(toml.contains("active_profiles = [\"socks5+tls\"]"))
+        assertTrue(toml.contains("mixed_profiles = [\"tcp+tls\"]"))
+        assertTrue(toml.contains("nym_socks5_proxy = \"socks5://127.0.0.1:1080\""))
+        assertTrue(toml.contains("socks5+tls://127.0.0.1:1080/lilith0.dark.fi:18340"))
+    }
+
+    @Test
     fun mainnetToml_usesElevenBlockThreshold() {
         val root =
             File.createTempFile("darkfid-mainnet", null).apply {

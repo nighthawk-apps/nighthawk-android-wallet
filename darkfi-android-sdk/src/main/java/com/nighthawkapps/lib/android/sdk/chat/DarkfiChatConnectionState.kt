@@ -11,9 +11,13 @@ enum class DarkfiChatConnectionState {
     Connecting,
     ConnectedDirect,
     ConnectedViaTor,
+    ConnectedViaNym,
     Degraded,
     Error,
     ;
+
+    val isConnected: Boolean
+        get() = this == ConnectedDirect || this == ConnectedViaTor || this == ConnectedViaNym
 
     /** Whether periodic daemon maintenance should invoke [DarkfiChatController.connectOrRetry]. */
     fun needsIrcReconnectNudge(): Boolean =
@@ -26,6 +30,7 @@ enum class DarkfiChatConnectionState {
             Connecting,
             ConnectedDirect,
             ConnectedViaTor,
+            ConnectedViaNym,
             -> false
         }
 }

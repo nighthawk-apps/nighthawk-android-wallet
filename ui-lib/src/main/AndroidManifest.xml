@@ -7,6 +7,14 @@
 
     <uses-feature android:name="android.hardware.camera.any" android:required="false" />
 
+    <queries>
+        <!-- Lets the APK share dialog find the system Bluetooth share target. -->
+        <intent>
+            <action android:name="android.intent.action.SEND" />
+            <data android:mimeType="application/zip" />
+        </intent>
+    </queries>
+
     <application
         android:icon="@mipmap/ic_launcher"
         android:roundIcon="@mipmap/ic_launcher_round"

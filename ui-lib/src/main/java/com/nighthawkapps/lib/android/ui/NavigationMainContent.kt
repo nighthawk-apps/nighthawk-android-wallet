@@ -26,7 +26,7 @@ internal fun MainActivity.NavigationMainContent() {
     val chatController = remember(appContext) { DarkfiChatController.getOrCreate(appContext) }
 
     DisposableEffect(chatController) {
-        DarkfiChatConnectionBridge.attach { chatController.connectOrRetry() }
+        DarkfiChatConnectionBridge.attach { chatController.restartIfNetworkChanged() }
         onDispose {
             DarkfiChatConnectionBridge.detach()
         }
@@ -48,9 +48,7 @@ internal fun MainActivity.NavigationMainContent() {
                         val ffiStatus =
                             com.nighthawkapps.lib.uniffi.darkfi_mobile_ffi
                                 .darkircStatus()
-                        if (state != DarkfiChatConnectionState.ConnectedDirect &&
-                            state != DarkfiChatConnectionState.ConnectedViaTor
-                        ) {
+                        if (!state.isConnected) {
                             chatController.connectOrRetry()
                         } else if (ffiStatus == "not_running" || ffiStatus == "failed") {
                             chatController.connectOrRetry()

@@ -1,6 +1,7 @@
 package com.nighthawkwallet.android
 
 import com.nighthawkapps.lib.android.global.AppDaemonCoordinator
+import com.nighthawkapps.lib.android.sdk.nym.AppNymCoordinator
 import com.nighthawkapps.lib.android.sdk.tor.AppTorCoordinator
 import com.nighthawkapps.lib.android.spackle.StrictModeCompat
 import com.nighthawkapps.lib.android.spackle.Twig
@@ -14,6 +15,7 @@ class NighthawkWalletApplication : CoroutineApplication() {
 
         configureStrictMode()
 
+        AppNymCoordinator.warmStartIfEnabled(this)
         AppTorCoordinator.warmStartIfEnabled(this)
         com.nighthawkapps.lib.android.sdk.wallet.darkfid.DarkfidDaemonBootstrap
             .maybeStart(this)

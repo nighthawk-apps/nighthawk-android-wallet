@@ -24,3 +24,8 @@
 # Legacy placeholder paths (harmless if absent).
 -keep class org.darkfi.wallet.android.sdk.api.** { *; }
 -keep class org.darkfi.wallet.android.sdk.native.** { *; }
+
+# rustls-platform-verifier: Rust calls these over JNI by name (nym TLS on Android).
+-keep class org.rustls.platformverifier.CertificateVerifier { *; }
+-keep class org.rustls.platformverifier.StatusCode { *; }
+-keep class org.rustls.platformverifier.VerificationResult { *; }
