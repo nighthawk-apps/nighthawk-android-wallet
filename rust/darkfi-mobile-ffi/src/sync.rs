@@ -119,15 +119,28 @@ fn jittered_sleep_secs(base_secs: u64) -> u64 {
 /// All sync traffic goes through the lightwalletd server.
 pub async fn sync_once_via_lightwallet(drk: DrkPtr, url: &str) -> Result<(), String> {
     let engine = Arc::new(crate::lightwallet_sync::SyncEngine::new(url.to_string()));
+    let force_trial = std::env::var("E2E_FORCE_TRIAL").ok().as_deref() == Some("1");
+    if force_trial {
+        // SyncEngine::new defaults to strict OMR. Forcing OMR off while that
+        // flag is set is classified as a downgrade attack and the cycle
+        // returns Idle, so the scan cursor never moves and own change — which
+        // is not covered by the recipient clue — is never decrypted.
+        engine.set_strict_omr_only(false);
+    }
     if let Ok(info) = engine
         .lightwallet_client()
         .probe_health(1, std::time::Duration::from_secs(1))
         .await
     {
-        engine.set_omr_available(info.omr_supported);
+        if !force_trial {
+            engine.set_omr_available(info.omr_supported);
+        }
         if info.chain_tip_height > 0 {
             engine.set_chain_tip(info.chain_tip_height);
         }
+    }
+    if force_trial {
+        engine.set_omr_available(false);
     }
     try_lightwallet_sync(&drk, &engine)
         .await
@@ -427,6 +440,10 @@ async fn try_lightwallet_sync(drk: &DrkPtr, sync_engine: &SyncEngine) -> Result<
     sync_engine.ensure_server_chain_identity(&server_info.chain_name)?;
 
     sync_engine.set_omr_available(server_info.omr_supported);
+    if std::env::var("E2E_FORCE_TRIAL").ok().as_deref() == Some("1") {
+        sync_engine.set_strict_omr_only(false);
+        sync_engine.set_omr_available(false);
+    }
     if server_info.proto_version_mismatch {
         tracing::warn!(
             target: "wallet-sync",
@@ -970,9 +987,9 @@ async fn trial_decrypt_range(
     start: u32,
     end: u32,
     tip: u32,
-) -> Result<(), String> {
+) -> Result<Option<u32>, String> {
     if start > end {
-        return Ok(());
+        return Ok(None);
     }
     tracing::debug!(
         target: "wallet-sync",
@@ -981,17 +998,27 @@ async fn trial_decrypt_range(
     );
 
     // Process in batches to avoid OOM on large ranges.
+    // Returns the last contiguous height actually present, starting at `start`.
+    // A hole stops the scan so the caller does not mark missing blocks as done.
     const BATCH_SIZE: u32 = 500;
+    let mut next = start;
     let mut batch_start = start;
     while batch_start <= end {
         let batch_end = (batch_start + BATCH_SIZE - 1).min(end);
-        let blocks = client
+        let mut blocks = client
             .get_compact_block_range(batch_start, batch_end, tip)
             .await
             .map_err(|e| format!("trial_decrypt_range: get_compact_block_range({batch_start}..={batch_end}): {e}"))?;
+        blocks.sort_by_key(|b| b.height);
         crate::lightwallet_client::validate_compact_block_batch(&blocks)?;
         let mut prev: Option<(u32, Vec<u8>)> = None;
         for block in &blocks {
+            if block.height < next {
+                continue;
+            }
+            if block.height > next {
+                return Ok(if next == start { None } else { Some(next - 1) });
+            }
             if let Some((h, hash)) = &prev {
                 crate::lightwallet_client::validate_block_follows_parent(block, *h, hash)?;
             }
@@ -1003,10 +1030,14 @@ async fn trial_decrypt_range(
                     block.height
                 );
             }
+            next = next.saturating_add(1);
+        }
+        if next <= batch_end {
+            return Ok(if next == start { None } else { Some(next - 1) });
         }
         batch_start = batch_end + 1;
     }
-    Ok(())
+    Ok(if next == start { None } else { Some(next - 1) })
 }
 
 /// Sparse OMR window: commitments + nullifiers for `[start, tip]`, then
@@ -1428,18 +1459,28 @@ async fn try_trial_decryption_sync(
     ));
 
     if td_start <= window_end {
-        trial_decrypt_range(drk, client, td_start, window_end, tip).await?;
+        // Advance only through heights the server actually returned. Persisting
+        // `window_end` when the stream has a hole skips the block that holds
+        // our own change and never trial-decrypts it.
+        let reached = trial_decrypt_range(drk, client, td_start, window_end, tip).await?;
         if td_start == 0 {
             set_merkle_from_genesis(drk, true)?;
         }
-    }
-
-    persist_scanned_height(drk, window_end)?;
-    sync_engine.set_scanned_height(window_end);
-    if window_end >= tip {
-        sync_engine.set_status(LightSyncStatus::Synced);
+        if let Some(last) = reached {
+            persist_scanned_height(drk, last)?;
+            sync_engine.set_scanned_height(last);
+            if last >= tip {
+                sync_engine.set_status(LightSyncStatus::Synced);
+            } else {
+                sync_engine.set_status(LightSyncStatus::Syncing);
+            }
+        } else {
+            sync_engine.set_status(LightSyncStatus::Syncing);
+        }
     } else {
-        sync_engine.set_status(LightSyncStatus::Syncing);
+        persist_scanned_height(drk, window_end)?;
+        sync_engine.set_scanned_height(window_end);
+        sync_engine.set_status(LightSyncStatus::Synced);
     }
 
     Ok(())
@@ -1760,7 +1801,7 @@ pub(crate) async fn rewind_wallet_after_reorg(
     crate::transactions::invalidate_transactions_above(drk, rollback_height).await
 }
 
-pub(crate) async fn rebuild_money_tree_to_height(
+pub async fn rebuild_money_tree_to_height(
     drk: &drk::Drk,
     client: &crate::lightwallet_client::LightwalletClient,
     rollback_height: u32,
@@ -1876,7 +1917,7 @@ pub(crate) async fn rebuild_spendable_money_tree(
 }
 
 /// Remove every scanned-block record above `height` (keys are BE `u32`).
-pub(crate) fn remove_scanned_blocks_above(
+pub fn remove_scanned_blocks_above(
     tree: &kvdb_overlay::Tree,
     height: u32,
 ) -> Result<usize, String> {
@@ -1904,6 +1945,73 @@ pub(crate) fn persist_scanned_height(drk: &drk::Drk, height: u32) -> Result<(), 
         .insert(&height.to_be_bytes(), &value)
         .map_err(|e| format!("Failed to persist scanned height: {e}"))?;
     let _ = drk.cache.kvdb.flush_default_mode();
+    Ok(())
+}
+
+/// Record a note we already decrypted. Leaf position is a placeholder;
+/// [`rebuild_money_tree_to_height`] rewrites it from the chain commitments.
+pub async fn remember_own_output(
+    drk: &drk::Drk,
+    height: u32,
+    coin: &darkfi_money_contract::model::Coin,
+    note: &darkfi_money_contract::client::MoneyNote,
+    secret: &darkfi_sdk::crypto::SecretKey,
+) -> Result<(), String> {
+    use darkfi_serial::serialize;
+    use drk::money::{
+        MONEY_COINS_COL_COIN, MONEY_COINS_COL_COIN_BLIND, MONEY_COINS_COL_CREATION_HEIGHT,
+        MONEY_COINS_COL_IS_SPENT, MONEY_COINS_COL_LEAF_POSITION, MONEY_COINS_COL_MEMO,
+        MONEY_COINS_COL_SECRET, MONEY_COINS_COL_SPEND_HOOK, MONEY_COINS_COL_SPENT_HEIGHT,
+        MONEY_COINS_COL_TOKEN_BLIND, MONEY_COINS_COL_TOKEN_ID, MONEY_COINS_COL_USER_DATA,
+        MONEY_COINS_COL_VALUE, MONEY_COINS_COL_VALUE_BLIND, MONEY_COINS_TABLE,
+    };
+
+    let leaf_position = {
+        let mut placeholder = empty_money_tree();
+        placeholder
+            .mark()
+            .ok_or_else(|| "placeholder merkle mark failed".to_string())?
+    };
+    let query = format!(
+        "INSERT OR IGNORE INTO {} ({}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}) \
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14);",
+        *MONEY_COINS_TABLE,
+        MONEY_COINS_COL_COIN,
+        MONEY_COINS_COL_VALUE,
+        MONEY_COINS_COL_TOKEN_ID,
+        MONEY_COINS_COL_SPEND_HOOK,
+        MONEY_COINS_COL_USER_DATA,
+        MONEY_COINS_COL_COIN_BLIND,
+        MONEY_COINS_COL_VALUE_BLIND,
+        MONEY_COINS_COL_TOKEN_BLIND,
+        MONEY_COINS_COL_SECRET,
+        MONEY_COINS_COL_LEAF_POSITION,
+        MONEY_COINS_COL_MEMO,
+        MONEY_COINS_COL_CREATION_HEIGHT,
+        MONEY_COINS_COL_IS_SPENT,
+        MONEY_COINS_COL_SPENT_HEIGHT,
+    );
+    let spent_height: Option<i64> = None;
+    let params = vec![
+        drk::walletdb::Value::from(coin.to_bytes().to_vec()),
+        drk::walletdb::Value::from(serialize(&note.value)),
+        drk::walletdb::Value::from(serialize(&note.token_id)),
+        drk::walletdb::Value::from(serialize(&note.spend_hook)),
+        drk::walletdb::Value::from(serialize(&note.user_data)),
+        drk::walletdb::Value::from(serialize(&note.coin_blind)),
+        drk::walletdb::Value::from(serialize(&note.value_blind)),
+        drk::walletdb::Value::from(serialize(&note.token_blind)),
+        drk::walletdb::Value::from(serialize(secret)),
+        drk::walletdb::Value::from(serialize(&leaf_position)),
+        drk::walletdb::Value::from(serialize(&note.memo)),
+        drk::walletdb::Value::from(i64::from(height)),
+        drk::walletdb::Value::from(0i64),
+        drk::walletdb::Value::from(spent_height),
+    ];
+    drk.wallet
+        .exec_sql(&query, params)
+        .await
+        .map_err(|e| format!("remember_own_output: {e}"))?;
     Ok(())
 }
 

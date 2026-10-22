@@ -1,0 +1,1 @@
+Trial sync keeps moving when strict OMR is on, so own change is decrypted. A gap in the compact-block range no longer marks the missing blocks as scanned.

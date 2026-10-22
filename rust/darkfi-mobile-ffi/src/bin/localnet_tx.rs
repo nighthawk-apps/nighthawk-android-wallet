@@ -59,6 +59,133 @@ async fn balance_atomic(drk: &Drk) -> Result<u64, String> {
     Ok(balances.values().copied().sum())
 }
 
+/// Print own notes in the recent compact-block window. `recover` rewinds the
+/// scan cursor to just before the first note that is not in the wallet and
+/// trial-decrypts forward so own change is credited.
+async fn probe_or_recover(wallet: &DrkWalletPtr, recover: bool) -> Result<(), String> {
+    use std::collections::HashSet;
+    use std::io::Cursor;
+
+    use darkfi_sdk::crypto::note::AeadEncryptedNote;
+    use darkfi_serial::Decodable;
+    use darkfi_money_contract::client::MoneyNote;
+
+    let (secrets, known, scanned_keys, balance) = {
+        let drk = wallet.read().await;
+        let secrets = drk.get_money_secrets().await.map_err(|e| e.to_string())?;
+        let coins = drk.get_coins(true).await.map_err(|e| e.to_string())?;
+        let mut known = HashSet::new();
+        let mut spent_null_height = 0u32;
+        let mut unspent_values = Vec::new();
+        for (own, _created, is_spent, spent_height, _) in &coins {
+            known.insert(own.coin.to_bytes().to_vec());
+            if *is_spent && spent_height.is_none() {
+                spent_null_height += 1;
+            }
+            if !is_spent {
+                unspent_values.push(own.note.value);
+            }
+        }
+        unspent_values.sort_unstable();
+        println!(
+            "COINS total={} unspent={} optimistic_spent={}",
+            coins.len(),
+            unspent_values.len(),
+            spent_null_height
+        );
+        for v in &unspent_values {
+            println!("UNSPENT value={v}");
+        }
+        let mut keys = Vec::new();
+        let range = drk
+            .cache
+            .scanned_blocks
+            .range(0u32.to_be_bytes()..)
+            .map(|r| r.map(|(k, _)| k))
+            .collect::<Result<Vec<_>, _>>()
+            .map_err(|e| format!("scanned keys: {e}"))?;
+        for k in range {
+            if k.len() == 4 {
+                let mut b = [0u8; 4];
+                b.copy_from_slice(&k);
+                keys.push(u32::from_be_bytes(b));
+            }
+        }
+        keys.sort_unstable();
+        let show = keys.len().saturating_sub(8);
+        println!(
+            "SCAN_KEYS n={} tail={:?}",
+            keys.len(),
+            &keys[show..]
+        );
+        let bal = balance_atomic(&drk).await?;
+        (secrets, known, keys, bal)
+    };
+    println!("BALANCE={balance}");
+
+    let client = darkfi_mobile_ffi::lightwallet_client::LightwalletClient::from_endpoint_and_pin(
+        &lwd(),
+        None,
+    );
+    let info = client.get_light_info().await?;
+    let tip = info.chain_tip_height;
+    println!("TIP={tip}");
+    let start = tip.saturating_sub(3600);
+    let blocks = client.get_compact_block_range(start, tip, tip).await?;
+    println!("BLOCKS fetched={} range={start}..={tip}", blocks.len());
+
+    let mut missed = 0u32;
+    for block in &blocks {
+        for tx in &block.txs {
+            for output in &tx.outputs {
+                if output.coin.len() != 32
+                    || output.encrypted_note.len() < 48
+                    || known.contains(&output.coin)
+                {
+                    continue;
+                }
+                let mut cursor = Cursor::new(output.encrypted_note.as_slice());
+                let Ok(enc) = AeadEncryptedNote::decode(&mut cursor) else {
+                    continue;
+                };
+                for secret in &secrets {
+                    let Ok(note) = enc.decrypt::<MoneyNote>(secret) else {
+                        continue;
+                    };
+                    missed += 1;
+                    println!("MISSED height={} value={}", block.height, note.value);
+                    if recover {
+                        use darkfi_sdk::pasta::group::ff::PrimeField;
+                        let mut repr = [0u8; 32];
+                        repr.copy_from_slice(&output.coin);
+                        let Some(base) = Option::<darkfi_sdk::pasta::pallas::Base>::from(
+                            darkfi_sdk::pasta::pallas::Base::from_repr(repr),
+                        ) else {
+                            println!("MISSED coin is not canonical");
+                            break;
+                        };
+                        let coin = darkfi_money_contract::model::Coin::from(base);
+                        let drk = wallet.read().await;
+                        sync::remember_own_output(&drk, block.height, &coin, &note, secret).await?;
+                        println!("REMEMBERED value={}", note.value);
+                    }
+                    break;
+                }
+            }
+        }
+    }
+    println!("MISSED={missed}");
+    if !recover || missed == 0 {
+        return Ok(());
+    }
+    let drk = wallet.read().await;
+    println!("REBUILD tree to {tip}");
+    sync::rebuild_money_tree_to_height(&drk, &client, tip).await?;
+    let bal = balance_atomic(&drk).await?;
+    println!("BALANCE_AFTER_REBUILD={bal}");
+    Ok(())
+}
+
 async fn default_address(drk: &Drk) -> Result<String, String> {
     use darkfi_sdk::crypto::keypair::{Address, Network, StandardAddress};
     let pubkey = drk.default_address().await.map_err(|e| e.to_string())?;
@@ -122,6 +249,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             println!("ADDRESS={addr}");
             println!("BALANCE={bal}");
             return Ok(());
+        }
+
+        if cmd == "probe" || cmd == "recover" {
+            return probe_or_recover(&wallet, cmd == "recover").await;
         }
 
         if cmd == "send" {
