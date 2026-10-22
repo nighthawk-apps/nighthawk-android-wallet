@@ -53,6 +53,7 @@ enum SessState {
         their_static: [u8; 32],
         send_seq: u64,
         recv_seq: u64,
+        ready_since_ms: u64,
     },
 }
 
@@ -84,6 +85,27 @@ impl SessionTable {
             .filter_map(|(k, s)| match &s.state {
                 SessState::InitSent { started_ms, .. } | SessState::WaitHs3 { started_ms, .. }
                     if now_ms.saturating_sub(*started_ms) > timeout_ms =>
+                {
+                    Some(*k)
+                }
+                _ => None,
+            })
+            .collect();
+        let n = stale.len();
+        for k in stale {
+            self.drop_peer(&k);
+        }
+        n
+    }
+
+    /// Drop Ready sessions older than `max_age_ms`. The next send starts a new handshake.
+    pub fn expire_aged(&mut self, now_ms: u64, max_age_ms: u64) -> usize {
+        let stale: Vec<[u8; SENDER_LEN]> = self
+            .map
+            .iter()
+            .filter_map(|(k, s)| match &s.state {
+                SessState::Ready { ready_since_ms, .. }
+                    if now_ms.saturating_sub(*ready_since_ms) > max_age_ms =>
                 {
                     Some(*k)
                 }
@@ -342,6 +364,7 @@ impl SessionTable {
                     their_static,
                     send_seq: 0,
                     recv_seq: 0,
+                    ready_since_ms: super::types::unix_ms(),
                 },
             },
         );
@@ -386,6 +409,7 @@ impl SessionTable {
                     their_static,
                     send_seq: 0,
                     recv_seq: 0,
+                    ready_since_ms: super::types::unix_ms(),
                 },
             },
         );

@@ -14,9 +14,10 @@ use super::lwd_ctrl::{
 use super::packet::{decode, encode, CodecError};
 use super::session::{HsOutcome, SessionError, SessionTable};
 use super::types::{
-    unix_ms, MeshPacket, PacketType, DAG_CACHE_MAX_BYTES, DAG_CACHE_MAX_EVENTS, DAG_SYNC_REPLY_MAX,
-    DEDUP_CAP, DEDUP_TTL_MS, EVENT_INNER_MAX, FRAGMENT_CHUNK, HANDSHAKE_TIMEOUT_MS,
-    INBOUND_RATE_MAX, INBOUND_RATE_WINDOW_MS, SENDER_LEN,
+    timestamp_in_window, unix_ms, MeshPacket, PacketType, DAG_CACHE_MAX_BYTES,
+    DAG_CACHE_MAX_EVENTS, DAG_SYNC_REPLY_MAX, DEDUP_CAP, DEDUP_TTL_MS, EVENT_INNER_MAX,
+    FRAGMENT_CHUNK, HANDSHAKE_TIMEOUT_MS, INBOUND_RATE_MAX, INBOUND_RATE_WINDOW_MS, SENDER_LEN,
+    SESSION_MAX_AGE_MS,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -43,6 +44,7 @@ pub enum IngestError {
     Lwd(LwdCtrlError),
     Session(SessionError),
     DroppedDuplicate,
+    Timestamp,
     PlaintextCtrl,
     NotDirected,
     NotForeground,
@@ -402,6 +404,10 @@ impl MeshEngine {
         let now = unix_ms();
         self.sessions.expire_handshakes(now, HANDSHAKE_TIMEOUT_MS);
         let pkt = decode(bytes)?;
+        if !timestamp_in_window(pkt.timestamp_ms, now) {
+            return Err(IngestError::Timestamp);
+        }
+        self.sessions.expire_aged(now, SESSION_MAX_AGE_MS);
         self.maybe_rotate(now);
         if self.is_duplicate(&pkt, now) {
             return Err(IngestError::DroppedDuplicate);
@@ -422,6 +428,7 @@ impl MeshEngine {
         dest: [u8; SENDER_LEN],
         inner: Vec<u8>,
     ) -> Result<(), IngestError> {
+        self.sessions.expire_aged(unix_ms(), SESSION_MAX_AGE_MS);
         if self.sessions.is_ready(&dest) {
             let sealed = self.sessions.seal(&self.identity, &dest, &inner)?;
             let pkt = MeshPacket::directed(PacketType::NoiseEnc, self.peer_id(), dest, sealed);

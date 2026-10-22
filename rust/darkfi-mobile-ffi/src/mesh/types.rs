@@ -14,9 +14,20 @@ pub const LOCAL_TTL: u8 = 0;
 
 pub const MAX_PAYLOAD: usize = 1024 * 1024;
 pub const FRAGMENT_CHUNK: usize = 469;
+pub const FRAGMENT_HEADER: usize = 13;
+pub const FRAGMENT_PAYLOAD_MAX: usize = FRAGMENT_HEADER + FRAGMENT_CHUNK;
 pub const MAX_IN_FLIGHT_ASSEMBLIES: usize = 128;
 pub const FRAGMENT_TTL_SECS: u64 = 30;
 pub const MAX_FRAGMENTS: u16 = 256;
+/// Ping and pong bodies. The engine only answers with an empty pong.
+pub const CONTROL_FRAME_MAX: usize = 64;
+pub const HANDSHAKE_FRAME_MAX: usize = 256;
+pub const NOISE_ENC_OVERHEAD: usize = 256;
+pub const BULK_OFFER_MAX: usize = 4096;
+/// Accept frames in `[now - skew, now + skew]`. A later timestamp must not bypass dedup.
+pub const TIMESTAMP_SKEW_MS: u64 = 120_000;
+/// Drop a Ready session after this age so the next send handshakes again.
+pub const SESSION_MAX_AGE_MS: u64 = 24 * 60 * 60 * 1000;
 
 pub const DEDUP_CAP: usize = 1000;
 pub const DEDUP_TTL_MS: u64 = 5 * 60 * 1000;
@@ -127,6 +138,24 @@ impl PacketType {
                 | Self::Announce
         )
     }
+
+    /// Outer payload cap for this opcode. `MAX_PAYLOAD` is only the absolute ceiling.
+    pub fn payload_limit(self) -> usize {
+        match self {
+            Self::Ping | Self::Pong => CONTROL_FRAME_MAX,
+            Self::NoiseHs | Self::Announce | Self::BulkJoin => HANDSHAKE_FRAME_MAX,
+            Self::Fragment => FRAGMENT_PAYLOAD_MAX,
+            Self::NoiseEnc | Self::DagEvent | Self::DagSync => EVENT_INNER_MAX + NOISE_ENC_OVERHEAD,
+            Self::LwdCtrl => LWD_CTRL_MAX,
+            Self::BulkOffer => BULK_OFFER_MAX,
+        }
+    }
+}
+
+/// True when `timestamp_ms` is within [`TIMESTAMP_SKEW_MS`] of `now_ms`.
+pub fn timestamp_in_window(timestamp_ms: u64, now_ms: u64) -> bool {
+    timestamp_ms >= now_ms.saturating_sub(TIMESTAMP_SKEW_MS)
+        && timestamp_ms <= now_ms.saturating_add(TIMESTAMP_SKEW_MS)
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -176,7 +205,6 @@ impl MeshPacket {
         let mut h = blake3::Hasher::new();
         h.update(&[self.typ.as_u8()]);
         h.update(&self.sender);
-        h.update(&self.timestamp_ms.to_be_bytes());
         h.update(&self.payload);
         let full = h.finalize();
         let mut id = [0u8; 16];

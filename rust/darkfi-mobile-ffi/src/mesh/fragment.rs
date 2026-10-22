@@ -6,6 +6,7 @@ use super::types::{
 };
 
 const FRAG_HDR: usize = 8 + 2 + 2 + 1;
+const _: () = assert!(FRAG_HDR == super::types::FRAGMENT_HEADER);
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum FragError {
@@ -21,7 +22,7 @@ pub fn split(original: &MeshPacket, chunk: usize) -> Result<Vec<MeshPacket>, Fra
     if encoded_payload.is_empty() {
         return Err(FragError::Empty);
     }
-    if encoded_payload.len() > MAX_PAYLOAD {
+    if encoded_payload.len() > original.typ.payload_limit() || encoded_payload.len() > MAX_PAYLOAD {
         return Err(FragError::TooLarge);
     }
     let size = chunk.max(1).min(FRAGMENT_CHUNK);
@@ -85,6 +86,9 @@ impl FragmentAssembler {
         if total == 0 || index >= total || total > MAX_FRAGMENTS {
             return Err(FragError::BadHeader);
         }
+        if pkt.payload.len() - FRAG_HDR > FRAGMENT_CHUNK {
+            return Err(FragError::TooLarge);
+        }
         if self.inflight.len() >= MAX_IN_FLIGHT_ASSEMBLIES && !self.inflight.contains_key(&stream) {
             return Err(FragError::TooManyFragments);
         }
@@ -106,11 +110,17 @@ impl FragmentAssembler {
         for c in entry.chunks.iter().flatten() {
             body.extend_from_slice(c);
         }
-        if body.len() > MAX_PAYLOAD {
+        let typ = match PacketType::from_u8(original) {
+            Some(t) => t,
+            None => {
+                self.inflight.remove(&stream);
+                return Err(FragError::BadHeader);
+            }
+        };
+        if body.len() > typ.payload_limit() || body.len() > MAX_PAYLOAD {
             self.inflight.remove(&stream);
             return Err(FragError::TooLarge);
         }
-        let typ = PacketType::from_u8(original).ok_or(FragError::BadHeader)?;
         let rebuilt = MeshPacket {
             typ,
             ttl: pkt.ttl,

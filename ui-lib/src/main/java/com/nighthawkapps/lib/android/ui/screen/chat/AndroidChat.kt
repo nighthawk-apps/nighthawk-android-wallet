@@ -155,11 +155,30 @@ private fun ChatScreen(
     val dmConversations by controller.dmConversations.collectAsStateWithLifecycle()
 
     var draft by remember { mutableStateOf("") }
+    val drafts = remember { mutableMapOf<String, String>() }
     var inboxMode by remember { mutableStateOf(ChatInboxMode.Channels) }
     var selectedChannel by remember {
         mutableStateOf(controller.defaultChannels.firstOrNull() ?: "#dev")
     }
     var selectedDmLabel by remember { mutableStateOf<String?>(null) }
+    fun roomKey(mode: ChatInboxMode, channel: String, dm: String?): String =
+        ChatDrafts.key(mode == ChatInboxMode.Direct, channel, dm)
+    fun openRoom(update: () -> Unit) {
+        val previous = roomKey(inboxMode, selectedChannel, selectedDmLabel)
+        val current = draft
+        update()
+        draft =
+            ChatDrafts.switch(
+                drafts,
+                previous,
+                roomKey(inboxMode, selectedChannel, selectedDmLabel),
+                current,
+            )
+    }
+    fun clearDraft() {
+        ChatDrafts.clear(drafts, roomKey(inboxMode, selectedChannel, selectedDmLabel))
+        draft = ""
+    }
     var showNewDm by remember { mutableStateOf(false) }
     var newDmInitialPubkey by remember { mutableStateOf<String?>(null) }
     var messageMenuTarget by remember { mutableStateOf<ChatChannelMessage?>(null) }
@@ -374,15 +393,17 @@ private fun ChatScreen(
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             FilterChip(
                 selected = inboxMode == ChatInboxMode.Channels,
-                onClick = { inboxMode = ChatInboxMode.Channels },
+                onClick = { openRoom { inboxMode = ChatInboxMode.Channels } },
                 label = { Text(stringResource(R.string.ns_chat_mode_channels)) },
             )
             FilterChip(
                 selected = inboxMode == ChatInboxMode.Direct,
                 onClick = {
-                    inboxMode = ChatInboxMode.Direct
-                    if (selectedDmLabel == null) {
-                        selectedDmLabel = dmLabels.firstOrNull()
+                    openRoom {
+                        inboxMode = ChatInboxMode.Direct
+                        if (selectedDmLabel == null) {
+                            selectedDmLabel = dmLabels.firstOrNull()
+                        }
                     }
                 },
                 label = { Text(stringResource(R.string.ns_chat_mode_direct)) },
@@ -401,7 +422,7 @@ private fun ChatScreen(
                     items(items = publicChannels, key = { it }) { ch ->
                         FilterChip(
                             selected = ch == selectedChannel,
-                            onClick = { selectedChannel = ch },
+                            onClick = { openRoom { selectedChannel = ch } },
                             label = { Text(text = ch) },
                         )
                     }
@@ -424,7 +445,7 @@ private fun ChatScreen(
                             val meta = dmConversations.find { it.contactLabel == label }
                             FilterChip(
                                 selected = label == selectedDmLabel,
-                                onClick = { selectedDmLabel = label },
+                                onClick = { openRoom { selectedDmLabel = label } },
                                 label = {
                                     Column {
                                         Text(text = ChatThreadDisplayNames.display(threadDisplayNames, label))
@@ -619,7 +640,7 @@ private fun ChatScreen(
                             val text = draft.trim()
                             if (text.isNotEmpty() && activeThreadKey.isNotBlank()) {
                                 controller.sendToChannel(activeThreadKey, text)
-                                draft = ""
+                                clearDraft()
                             }
                         }
                     ),
@@ -631,7 +652,7 @@ private fun ChatScreen(
                     val text = draft.trim()
                     if (text.isNotEmpty() && activeThreadKey.isNotBlank()) {
                         controller.sendToChannel(activeThreadKey, text)
-                        draft = ""
+                        clearDraft()
                     }
                 },
                 modifier = Modifier.heightIn(min = 48.dp),
@@ -687,8 +708,10 @@ private fun ChatScreen(
             initialPeerPublicKey = newDmInitialPubkey,
             onDismiss = { showNewDm = false },
             onStarted = { label ->
-                inboxMode = ChatInboxMode.Direct
-                selectedDmLabel = label
+                openRoom {
+                    inboxMode = ChatInboxMode.Direct
+                    selectedDmLabel = label
+                }
             },
         )
     }
@@ -758,7 +781,9 @@ private fun ChatScreen(
                                         Toast.LENGTH_SHORT,
                                     ).show()
                                 if (selectedDmLabel == label) {
-                                    selectedDmLabel = dmLabels.firstOrNull { it != label }
+                                    openRoom {
+                                        selectedDmLabel = dmLabels.firstOrNull { it != label }
+                                    }
                                 }
                             }
                         }

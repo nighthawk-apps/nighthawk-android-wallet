@@ -18,9 +18,9 @@ A decrypted neighbor is an EventGraph peer (same observer model as DarkIRC p2p).
 | Neighbor crypto | Per-GATT-neighbor `crypto_box` XX-*shape* (not claimed as Noise XX). Simultaneous open: lexicographically **smaller** id stays initiator |
 | After Ready | Inner kinds `EventPut` (`0x20`) and GCS `DagSync` (`0x21`) |
 | Relays | Decrypt, cache, **re-seal** to other Ready neighbors (do not TTL-flood ciphertext) |
-| Replay | Sequence in envelope **and** inside AEAD plaintext; drop if `seq <= recv_seq` |
-| Payload cap | 64 KiB inner; cache 256 events / 256 KiB; DagSync replies max 32 per request, paginated via per-peer `sync_sent` |
-| Handshake | Lexicographic initiator; `HANDSHAKE_TIMEOUT_MS = 8_000` drops stuck sessions |
+| Replay | Sequence in envelope **and** inside AEAD plaintext; drop if `seq <= recv_seq`. Dedup hashes type, sender, and payload (not the timestamp). Frames outside ±120s are dropped before dedup |
+| Payload cap | Per-type outer caps (ping/pong 64, handshake/announce/bulk-join 256, fragment 482, sealed event and DAG `EVENT_INNER_MAX + 256`, LWD ctrl 32 KiB, bulk offer 4 KiB). Inner event cap 64 KiB; cache 256 events / 256 KiB; DagSync replies max 32 per request, paginated via per-peer `sync_sent` |
+| Handshake | Lexicographic initiator; `HANDSHAKE_TIMEOUT_MS = 8_000` drops stuck sessions. A Ready session older than 24h is dropped so the next send handshakes again |
 | Fragments | `FRAGMENT_CHUNK=469`, `MAX_FRAGMENTS=256`, `FRAGMENT_TTL_SECS=30`; assembler drops stale / oversized |
 | GCS | Over **event ids** (16-byte), not mesh `packet_id` |
 | Forbidden on BLE | Plaintext DAG/sync, LWD ctrl, bulk SSID/PSK, announce caps |

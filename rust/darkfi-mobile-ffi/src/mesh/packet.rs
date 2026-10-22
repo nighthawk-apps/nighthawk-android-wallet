@@ -22,13 +22,13 @@ impl std::fmt::Display for CodecError {
             Self::UnsupportedVersion => write!(f, "unsupported mesh version"),
             Self::UnknownType => write!(f, "unknown mesh packet type"),
             Self::LengthMismatch => write!(f, "mesh payload length mismatch"),
-            Self::PayloadTooLarge => write!(f, "mesh payload exceeds 1 MiB cap"),
+            Self::PayloadTooLarge => write!(f, "mesh payload exceeds type cap"),
         }
     }
 }
 
 pub fn encode(pkt: &MeshPacket) -> Result<Vec<u8>, CodecError> {
-    if pkt.payload.len() > MAX_PAYLOAD {
+    if pkt.payload.len() > pkt.typ.payload_limit() || pkt.payload.len() > MAX_PAYLOAD {
         return Err(CodecError::PayloadTooLarge);
     }
     let has_rx = pkt.recipient.is_some();
@@ -87,7 +87,7 @@ pub fn decode(bytes: &[u8]) -> Result<MeshPacket, CodecError> {
     }
     let plen = u32::from_be_bytes(bytes[off..off + 4].try_into().unwrap()) as usize;
     off += 4;
-    if plen > MAX_PAYLOAD {
+    if plen > typ.payload_limit() || plen > MAX_PAYLOAD {
         return Err(CodecError::PayloadTooLarge);
     }
     if bytes.len() != off + plen {
