@@ -77,18 +77,43 @@ impl CheckpointData {
     }
 }
 
+/// Height passed to `GetCheckpointSnapshot`.
+///
+/// Birthday `0` requests the latest snapshot (`preferred_height = 0`).
+/// Any other birthday requests the greatest snapshot at or below that height.
+pub fn checkpoint_preferred_height(birthday: u32) -> u32 {
+    if birthday > 0 {
+        birthday
+    } else {
+        0
+    }
+}
+
+/// Accept a snapshot when the request was "latest" (`requested == 0`), or
+/// when the returned height is at or below the birthday that was requested.
+///
+/// A non-zero birthday must not install a tree above that birthday: the
+/// server is not supposed to return one, and appending the scan window on
+/// top of it would double-count leaves.
+pub fn checkpoint_height_acceptable(requested: u32, returned: u32) -> bool {
+    requested == 0 || returned <= requested
+}
+
 /// Download and apply a checkpoint snapshot for instant restore.
 ///
-/// 1. Calls `GetCheckpointSnapshot` with `preferred_height = birthday`.
-/// 2. Verifies `blake3(height || tree_data || nullifier_index) == snapshot_hash`.
-/// 3. Deserializes and installs the Money Merkle tree.
-/// 4. Seeds the scan cursor at `min(scan_cursor, birthday-1)` so later OMR
-///    still discovers notes from the birthday onward.
-/// 5. Returns the checkpoint height on success.
+/// 1. Calls `GetCheckpointSnapshot(birthday)` when `birthday > 0`, else
+///    `GetCheckpointSnapshot(0)` (latest).
+/// 2. Accepts the returned height when [`checkpoint_height_acceptable`].
+/// 3. Verifies `blake3(height || tree_data || nullifier_index) == snapshot_hash`.
+/// 4. Installs `tree_data` and records that height as the tree position.
+///    The scan cursor is that tree position only. Note discovery still
+///    starts at `max(snapshot + 1, birthday)` via `clamp_scan_start`.
+/// 5. Sets `merkle_from_genesis`. A snapshot below the birthday does not
+///    replay `0..=birthday`; `ensure_merkle_caught_up` appends only the
+///    open suffix `(snapshot, birthday)`.
 ///
-/// Rejects a tip-level snapshot when `birthday > 0` and `height > birthday`:
-/// applying a full-tip tree then scanning from birthday would double-append
-/// post-birthday leaves. Callers fall through to commitment backfill.
+/// `NOT_FOUND` and other RPC errors propagate so the caller keeps the full
+/// `GetNoteCommitments` replay.
 pub async fn download_and_apply_checkpoint(
     drk: &drk::Drk,
     client: &LightwalletClient,
@@ -101,7 +126,8 @@ pub async fn download_and_apply_checkpoint(
         ));
     }
 
-    let snapshot = client.get_checkpoint_snapshot(birthday).await?;
+    let requested = checkpoint_preferred_height(birthday);
+    let snapshot = client.get_checkpoint_snapshot(requested).await?;
 
     let checkpoint = CheckpointData {
         height: snapshot.height,
@@ -113,10 +139,10 @@ pub async fn download_and_apply_checkpoint(
         snapshot_hash: snapshot.snapshot_hash,
     };
 
-    if birthday > 0 && checkpoint.height > birthday {
+    if !checkpoint_height_acceptable(requested, checkpoint.height) {
         return Err(format!(
-            "Checkpoint height {} is above wallet birthday {}; refusing tip snapshot",
-            checkpoint.height, birthday
+            "Checkpoint height {} is above requested height {requested}",
+            checkpoint.height
         ));
     }
 
@@ -165,14 +191,13 @@ pub async fn download_and_apply_checkpoint(
         .insert_merkle_trees(&[(drk::money::KVDB_MERKLE_TREES_MONEY, &tree)])
         .map_err(|e| format!("Failed to persist checkpoint tree: {e}"))?;
 
-    // Step 4: Seed scan cursor — never past birthday-1 on a restore.
-    let cursor = if birthday > 0 {
-        checkpoint.scan_cursor.min(birthday.saturating_sub(1))
-    } else {
-        checkpoint.scan_cursor
-    };
+    // Step 4: The scan cursor is the tree position only. Note discovery
+    // uses clamp_scan_start(cursor, birthday), which is the first height
+    // after this tree (or the birthday, when that is later).
+    let cursor = checkpoint.height;
     crate::sync::persist_scanned_height(drk, cursor)?;
     crate::sync::set_merkle_from_genesis(drk, true)?;
+    crate::sync::set_merkle_tree_height(drk, checkpoint.height)?;
 
     tracing::info!(
         target: "wallet-checkpoint",
@@ -279,5 +304,27 @@ mod tests {
     #[test]
     fn assemble_checkpoint_chunks_empty_fails() {
         assert!(assemble_checkpoint_chunks(Vec::<CheckpointSnapshotDto>::new()).is_err());
+    }
+
+    #[test]
+    fn checkpoint_request_is_birthday_or_latest() {
+        assert_eq!(checkpoint_preferred_height(0), 0);
+        assert_eq!(checkpoint_preferred_height(1), 1);
+        assert_eq!(checkpoint_preferred_height(5000), 5000);
+    }
+
+    #[test]
+    fn checkpoint_accepts_snapshot_at_or_below_birthday() {
+        assert!(checkpoint_height_acceptable(5000, 4096));
+        assert!(checkpoint_height_acceptable(5000, 5000));
+        assert!(!checkpoint_height_acceptable(5000, 5001));
+        assert!(!checkpoint_height_acceptable(1, 2));
+    }
+
+    #[test]
+    fn checkpoint_latest_request_accepts_any_height() {
+        assert!(checkpoint_height_acceptable(0, 0));
+        assert!(checkpoint_height_acceptable(0, 1));
+        assert!(checkpoint_height_acceptable(0, 50_000));
     }
 }

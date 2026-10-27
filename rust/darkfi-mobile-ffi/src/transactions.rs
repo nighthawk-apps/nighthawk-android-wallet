@@ -398,8 +398,23 @@ pub async fn broadcast_transfer(
         }
     }
 
+    let secret = drk
+        .default_secret()
+        .await
+        .map_err(|e| format!("wallet secret for change clues: {e}"))?;
+    let secret_bytes = secret.inner().to_repr();
+    let network_byte = match drk.network {
+        darkfi_sdk::crypto::keypair::Network::Mainnet => 0x00u8,
+        darkfi_sdk::crypto::keypair::Network::Testnet => 0x01u8,
+    };
     let send_result = client
-        .send_transaction(raw_tx.to_vec(), unifomr_clue.clone(), omr_metadata_enc)
+        .send_transaction_with_wallet_clues(
+            raw_tx.to_vec(),
+            unifomr_clue.clone(),
+            omr_metadata_enc,
+            &secret_bytes,
+            network_byte,
+        )
         .await;
 
     match send_result {
@@ -434,6 +449,13 @@ pub async fn broadcast_transfer(
     drk.mark_tx_spend(&tx, &mut output)
         .await
         .map_err(|e| format!("mark_tx_spend after broadcast: {e}"))?;
+
+    if let Err(e) = crate::sync::remember_own_outputs_from_tx(drk, &tx).await {
+        tracing::warn!(
+            target: "wallet-tx",
+            "own change/fee notes not recorded yet: {e}"
+        );
+    }
 
     if let Some(scheme) = sent_scheme {
         if let Ok(mut cache) = SENT_SYNC_SCHEMES.write() {

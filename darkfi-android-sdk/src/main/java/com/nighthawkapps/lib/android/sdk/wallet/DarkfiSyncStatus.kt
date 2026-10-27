@@ -4,6 +4,9 @@ enum class DarkfiSyncStatus {
     DISCONNECTED,
     CONNECTING,
     SYNCING,
+
+    /** Notes may update. Send stays disabled until [SYNCED]. */
+    SCANNING,
     SYNCED,
     RETRYING,
     DEGRADED,

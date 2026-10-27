@@ -359,3 +359,23 @@ fn normalize_text(seed: &str) -> String {
         .collect();
     seed
 }
+
+#[cfg(test)]
+mod hd_tests {
+    use super::{derivation_seed_from_mnemonic, secret_key_from_seed_index};
+
+    #[test]
+    fn hd_index_keys_are_stable_and_distinct() {
+        let words = ["abandon".to_string(), "ability".to_string()];
+        let seed = derivation_seed_from_mnemonic(&words);
+        assert_eq!(seed, derivation_seed_from_mnemonic(&words));
+        let first = secret_key_from_seed_index(&seed, 1).expect("index 1");
+        let second = secret_key_from_seed_index(&seed, 2).expect("index 2");
+        assert_ne!(first, second);
+        assert_eq!(
+            first,
+            secret_key_from_seed_index(&seed, 1).expect("index 1 again")
+        );
+        assert_ne!(seed, derivation_seed_from_mnemonic(&["other".to_string()]));
+    }
+}

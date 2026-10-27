@@ -622,8 +622,9 @@ pub fn nym_status() -> String {
     "stopped".to_string()
 }
 
-/// Start the Nym proxy and block until the mixnet tunnel is up. Returns the
-/// SOCKS port to route through.
+/// Start the Nym proxy and return the SOCKS port to route through. Mixnet
+/// bootstrap can take over a minute on mobile networks; the sync thread waits on
+/// [`sync::RouteGate::Nym`] so the local wallet does not block on it.
 #[cfg(feature = "nym")]
 fn start_nym_route(requested_port: u16) -> ResultWallet<u16> {
     let port = if requested_port == 0 {
@@ -632,9 +633,6 @@ fn start_nym_route(requested_port: u16) -> ResultWallet<u16> {
         requested_port
     };
     crate::nym::start_nym_proxy(port)?;
-    // Mixnet bootstrap (topology fetch + gateway handshake + IPR connect) can
-    // take over a minute on mobile networks.
-    crate::nym::wait_until_running(std::time::Duration::from_secs(120))?;
     Ok(port)
 }
 
@@ -793,6 +791,13 @@ impl DarkfiWalletHandle {
         // stays direct, so a local server must not block wallet open on bootstrap.
         // Nym wins when both are requested.
         let remote_lwd = !lightwallet_url_is_loopback(&config.lightwallet_server_url);
+        let route = if remote_lwd && config.use_nym {
+            sync::RouteGate::Nym
+        } else if remote_lwd && config.use_tor {
+            sync::RouteGate::Tor
+        } else {
+            sync::RouteGate::Direct
+        };
         if remote_lwd && config.use_nym {
             let port = start_nym_route(config.nym_socks_port)?;
             crate::lightwallet_client::set_default_socks5_proxy(Some((
@@ -810,9 +815,8 @@ impl DarkfiWalletHandle {
                 config.tor_socks_port
             };
             crate::tor::start_arti_proxy(port)?;
-            // Bind happens quickly; circuit bootstrap can take up to ~2 minutes
-            // on first launch. Do not dial lightwalletd until SOCKS CONNECT works.
-            crate::tor::wait_until_running(std::time::Duration::from_secs(120))?;
+            // Circuit bootstrap can take ~2 minutes on first launch. The sync
+            // thread waits on `RouteGate::Tor` before its first dial.
             crate::lightwallet_client::set_default_socks5_proxy(Some((
                 "127.0.0.1".to_string(),
                 port,
@@ -825,8 +829,19 @@ impl DarkfiWalletHandle {
         }
 
         let ex = shared_executor();
-        let drk = block_on(async { bootstrap::bootstrap_drk(&config, &ex).await })
-            .map_err(DarkfiWalletNativeError::native)?;
+        // Seeding dials lightwalletd. Before the tunnel is up it would only time
+        // out and leave a fresh wallet scanning from genesis, so the sync thread
+        // runs it after its route wait instead.
+        let (drk, deferred_seed) = block_on(async {
+            let (drk, plan) = bootstrap::open_local_drk(&config, &ex).await?;
+            if route.ready() {
+                bootstrap::seed_from_lightwalletd(&drk, &plan).await;
+                Ok::<_, String>((drk.into_ptr(), None))
+            } else {
+                Ok((drk.into_ptr(), Some(plan)))
+            }
+        })
+        .map_err(DarkfiWalletNativeError::native)?;
         let sync_engine = Arc::new(crate::lightwallet_sync::SyncEngine::with_tls_pins(
             config.lightwallet_server_url.clone(),
             crate::parse_tls_pins(config.lightwallet_tls_pin_sha256.as_deref()).unwrap_or_default(),
@@ -844,7 +859,13 @@ impl DarkfiWalletHandle {
             }
         }
         crate::zkas_cache::set_disk_cache_dir(std::path::PathBuf::from(&config.cache_path));
-        let sync_thread = sync::start_background_sync(drk.clone(), ex, sync_engine.clone());
+        let sync_thread = sync::start_background_sync(
+            drk.clone(),
+            ex,
+            sync_engine.clone(),
+            route,
+            deferred_seed,
+        );
         crate::mesh::set_lwd_splice(Some(std::sync::Arc::new({
             let sync_engine = sync_engine.clone();
             move |method: &str, body: &[u8]| {

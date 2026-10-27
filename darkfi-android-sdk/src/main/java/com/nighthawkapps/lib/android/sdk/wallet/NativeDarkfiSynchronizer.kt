@@ -333,13 +333,12 @@ class NativeDarkfiSynchronizer internal constructor(
             refreshTransactionsBestEffort()
             if (_lastReorg.value != null) {
                 _status.value = DarkfiSyncStatus.REORG_DETECTED
+            } else if (_walletErrors.value != null) {
+                _status.value = DarkfiSyncStatus.DISCONNECTED
             } else {
-                _status.value =
-                    if (_walletErrors.value != null) {
-                        DarkfiSyncStatus.DISCONNECTED
-                    } else {
-                        DarkfiSyncStatus.SYNCED
-                    }
+                // A local refresh says nothing about lightwalletd; take the
+                // status from the Rust sync engine instead of assuming SYNCED.
+                applySyncSnapshotBestEffort()
             }
         }
     }
@@ -375,7 +374,13 @@ class NativeDarkfiSynchronizer internal constructor(
             syncScope.launch {
                 while (isActive) {
                     applySyncSnapshotBestEffort()
-                    delay(SYNC_PROGRESS_POLL_MS)
+                    delay(
+                        if (_status.value == DarkfiSyncStatus.SYNCED) {
+                            SYNC_PROGRESS_POLL_MS
+                        } else {
+                            SYNC_PROGRESS_FAST_POLL_MS
+                        },
+                    )
                 }
             }
     }
@@ -394,6 +399,9 @@ class NativeDarkfiSynchronizer internal constructor(
 
     private companion object {
         const val SYNC_PROGRESS_POLL_MS = 15_000L
+
+        /** While connecting or catching up, so the indicator tracks the Rust state. */
+        const val SYNC_PROGRESS_FAST_POLL_MS = 3_000L
     }
 
     private fun applySyncSnapshotBestEffort() {
@@ -439,6 +447,7 @@ class NativeDarkfiSynchronizer internal constructor(
                         "Disconnected" -> DarkfiSyncStatus.DISCONNECTED
                         "Connecting" -> DarkfiSyncStatus.CONNECTING
                         "Syncing" -> DarkfiSyncStatus.SYNCING
+                        "Scanning" -> DarkfiSyncStatus.SCANNING
                         "Synced" -> DarkfiSyncStatus.SYNCED
                         "Retrying" -> DarkfiSyncStatus.RETRYING
                         "Degraded" -> DarkfiSyncStatus.DEGRADED

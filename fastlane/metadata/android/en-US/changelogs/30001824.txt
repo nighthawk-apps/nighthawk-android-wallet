@@ -1,0 +1,1 @@
+iOS addresses now derive from the recovery phrase. Sends record the sender's own change, and DAO votes go out through the light wallet when one is configured. Desktop Tor and chat startup match the wallet.

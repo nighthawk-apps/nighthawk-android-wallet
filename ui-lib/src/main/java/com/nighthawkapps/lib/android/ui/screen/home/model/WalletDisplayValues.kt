@@ -30,6 +30,7 @@ data class WalletDisplayValues(
 
             when (walletSnapshot.status) {
                 DarkfiSyncStatus.SYNCING,
+                DarkfiSyncStatus.SCANNING,
                 DarkfiSyncStatus.REORG_DETECTED,
                 DarkfiSyncStatus.CONNECTING -> {
                     val progressPercent = (walletSnapshot.progress.decimal * 100)

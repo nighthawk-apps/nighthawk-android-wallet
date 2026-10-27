@@ -6,7 +6,7 @@
 
 Privacy-preserving wallet (work-in-progress) by [Nighthawk Apps](https://nighthawkapps.com). This tree ships as a **new Android application id** on the DarkFi network (DRK). The app integrates a native DarkFi wallet API via **UniFFI** (`rust/darkfi-mobile-ffi` → generated Kotlin + `DarkfiMobileFfiApi`) for chain sync, broadcast, and chat.
 
-**3.00.022** (`WALLET_VERSION_CODE=30001822`). Nym is the default network for the wallet, DarkIRC, and the embedded node. The splash shows mixnet progress and **Continue without Nym** after 20 seconds or a failed bootstrap. Settings → **Share Nighthawk** sends the APK to another Android device (zipped for Bluetooth, raw APK for other share targets). Toolchain: Gradle **9.8.1**, AGP **9.4.1**, Kotlin **2.2.21**, Compose UI **1.12.1**, Material3 **1.4.0**, Material icons **1.7.8**, AndroidX Lifecycle **2.11.0**, Navigation Compose **2.10.1**, JNA **5.19.1**, UniFFI **0.32**, NDK **26.1.10909125**, minSdk **27**, compile SDK **37.2**, target SDK **37** (Android 17). DarkFi pin `e4e624179` (public `scan_block`, darkfid sync hardening). Native sent-tx session cache is FIFO-capped (10,000). Reorg “transactions affected” is counted from `drk.get_txs_history()` (`block_height > rewind`), not from CLI log lines.
+**3.00.025** (`WALLET_VERSION_CODE=30001825`). Sync uses lightwalletd proto 2.0.0 (lightwalletd **0.3.0** or later): snapshot checkpoints, padded commitment ranges, a pooled UnifOMR detection key, and a `SubscribeBlocks` ChainTip stream. The wallet opens without waiting for Nym or Tor; the sync thread dials lightwalletd only once the tunnel is up. Nym is the default network for the wallet, DarkIRC, and the embedded node. The splash shows mixnet progress and **Continue without Nym** after 20 seconds or a failed bootstrap. Settings → **Share Nighthawk** sends the APK to another Android device (zipped for Bluetooth, raw APK for other share targets). Toolchain: Gradle **9.8.1**, AGP **9.4.1**, Kotlin **2.2.21**, Compose UI **1.12.1**, Material3 **1.4.0**, Material icons **1.7.8**, AndroidX Lifecycle **2.11.0**, Navigation Compose **2.10.1**, JNA **5.19.1**, UniFFI **0.32**, NDK **26.1.10909125**, minSdk **27**, compile SDK **37.2**, target SDK **37** (Android 17). DarkFi pin `9934daaed` (Arti 0.47, public `scan_block`, darkfid sync hardening). Native sent-tx session cache is FIFO-capped (10,000). Reorg “transactions affected” is counted from `drk.get_txs_history()` (`block_height > rewind`), not from CLI log lines.
 
 ## Contents
 
@@ -29,7 +29,7 @@ Privacy-preserving wallet (work-in-progress) by [Nighthawk Apps](https://nightha
 
 Store listings are **not finalized** for `com.nighthawkwallet.android`. Placeholder targets until publishing completes:
 
-- **F-Droid:** DarkFi **testnet** package `com.nighthawkwallet.android.testnet` / flavor `darkfitestnet` (see [docs/fdroid.md](docs/fdroid.md); listing pending fdroiddata merge). **3.00.022** (`WALLET_VERSION_CODE=30001822`) — Fastlane changelog `fastlane/metadata/android/en-US/changelogs/30001822.txt`, tag `v3.00.022`. Local unsigned APK: `bundle exec fastlane fdroid`.
+- **F-Droid:** DarkFi **testnet** package `com.nighthawkwallet.android.testnet` / flavor `darkfitestnet` (see [docs/fdroid.md](docs/fdroid.md); listing pending fdroiddata merge). **3.00.025** (`WALLET_VERSION_CODE=30001825`) — Fastlane changelog `fastlane/metadata/android/en-US/changelogs/30001825.txt`, tag `v3.00.025`. Local unsigned APK: `bundle exec fastlane fdroid`.
 - **Google Play:** `https://PLACEHOLDER_PLAY_STORE_LISTING_URL`
 
 Replace these URLs when production listings exist—do not invent live links prematurely.
@@ -41,7 +41,11 @@ Replace these URLs when production listings exist—do not invent live links pre
 From the repository root (first-time or after vendored DarkFi / native code changes):
 
 ```bash
-# 1) Pin upstream DarkFi
+# 1) Pin upstream DarkFi (nighthawk24/darkfi — git.dark.fi returns HTTP 504
+#    and does not have this pin). Cargo then fetches:
+#    kvdb-overlay  https://gitlab.com/nighthawk24/kvdb-overlay  (accd2689)
+#    RandomX       https://codeberg.org/darkrenaissance/RandomX (0e31d5a)
+#    rust-url      https://github.com/darkrenaissance/rust-url  (branch v258)
 ./scripts/vendor-darkfi.sh
 
 # 2) Android SDK + NDK
@@ -207,7 +211,7 @@ In-app **Chat** uses a **native in-process DarkIRC daemon** over UniFFI (`start_
 
 ## Nighthawk Mesh (encrypted EventGraph hop)
 
-Optional nearby BLE hop for **encrypted DarkIRC DAG** frames (Noise per GATT neighbor). Chat still goes through EventGraph → `event_pub` → UI. Share-internet / SoftAP / BLE LWD are **off**. Rebuild with `SKIP_UNIFFI_BINDGEN=1` after mesh C ABI changes. Full write-up: [docs/nighthawk-mesh.md](docs/nighthawk-mesh.md).
+Optional nearby BLE hop for **encrypted DarkIRC DAG** frames (Noise per GATT neighbor). Chat still goes through EventGraph → `event_pub` → UI. Share-internet / SoftAP / BLE LWD are **off**. The 2026-10-21 wallet localnet did not exercise this hop. Rebuild with `SKIP_UNIFFI_BINDGEN=1` after mesh C ABI changes. Full write-up: [docs/nighthawk-mesh.md](docs/nighthawk-mesh.md).
 
 ---
 
@@ -280,7 +284,7 @@ The SDK rewrites a remote lightwallet URL to `socks5://proxy/dest`. Loopback sta
 | 14 | **ZKAS & Key Cache** | ✅ | In-memory LRU + disk cache for contract bincodes and proving keys |
 | 15 | **Proto Version Lockstep** | ✅ | Major-version semver check on `LightInfo.proto_version` |
 
-See [docs/instant-sync-strategy.md](docs/instant-sync-strategy.md) for full instant sync architecture and implementation details.
+See [docs/instant-sync-strategy.md](docs/instant-sync-strategy.md) for the original instant-sync layout. The follow-on catch-up plan (historical snapshots, padded ranges, detection-key pool, lightwalletd changes) is [docs/wallet-sync-speed-plan.md](docs/wallet-sync-speed-plan.md).
 
 ### Data-at-rest & logging
 
@@ -296,7 +300,8 @@ See [docs/instant-sync-strategy.md](docs/instant-sync-strategy.md) for full inst
 - Crypto parity: RLWE `n=1024`, signed AHE, `CLUE_ERROR_BOUND=2`, length-prefixed SealPIR limbs
 - Flow: RegisterCluePublicKey → GetClue → SendTransaction(omr_clue) → GetUnifOmrDigest → FetchPirBatch
 - Sync fail-closed if clue PK registration fails; send uses LWD `SendTransaction` only (24h clue hint)
-- **Trial-decrypt fallback (default on):** when UnifOMR returns no matches (or large gaps), the wallet supplemental trial-decrypts compact blocks so you can receive from non-UnifOMR wallets such as upstream `drk`. Toggle **Strict UnifOMR sync** under Advanced settings to disable this (UnifOMR-only, more private / faster when counterparties also use UnifOMR).
+- **Strict UnifOMR sync (default on):** `strictOmrOnly` defaults to true, so only payments that carry a UnifOMR clue are discovered. Turn it **off** under Advanced settings to trial-decrypt compact blocks and receive from non-UnifOMR wallets (upstream `drk`, Moonshine `tx send --no-omr`).
+- **Localnet (2026-10-21, not iOS):** 100/100 UnifOMR sends each way with Moonshine and with desktop. Eleven Moonshine `--no-omr` payments trial-decrypted; the balance stayed put across later syncs. Trial mode has to clear strict mode before it clears OMR, or the scan cursor goes idle and own change stays unscanned. A `GetBlockRange` hole stores only the last contiguous height actually returned. Rewinding a tree that already has those commitments duplicates leaves; rebuild it from `GetNoteCommitments`.
 - Default local endpoint: `http://127.0.0.1:9067`
 - Limits: [`doc/unifomr_mvp_limits.md`](doc/unifomr_mvp_limits.md)
 
@@ -373,6 +378,8 @@ Notes:
 4. Compose + Jacoco coverage remains limited upstream.
 5. DarkIRC over Nym dials the public clearnet seeds through the mixnet. Those port-9600 handshakes can stall; switch to Tor, or use **Continue without Nym**, if chat stays on "waiting for peers".
 6. Rebuild `libdarkfi_mobile_ffi.so` for **arm64-v8a** before a phone install. The x86_64 emulator library is the one exercised with the 3.00.021 bindings.
+7. Strict UnifOMR (the default) does not trial-decrypt own change or a Moonshine `--no-omr` payment. Turn strict mode off, or those notes stay unscanned. A compact-block hole must not mark the missing heights scanned. Rebuilding the money tree from `GetNoteCommitments` is required after a strict pass already appended commitments; a rewind that appends again duplicates leaves.
+8. `git.dark.fi` returns HTTP 504. `kvdb-overlay` is fetched from GitLab (`nighthawk24/kvdb-overlay` `accd2689`), RandomX from Codeberg (`0e31d5a`), and `rust-url` from GitHub (`v258`). The F-Droid RandomX path patch keys the Codeberg URL, which now matches `Cargo.toml`.
 
 ### Install & shortcuts
 

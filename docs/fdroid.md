@@ -36,7 +36,43 @@ srclib SHA edit.
 
 Tagging alone does **not** run this repo’s GitHub `Deploy` workflow (that is branch/`workflow_dispatch` + Play secrets). F-Droid’s scanner is separate.
 
-## 3.00.020 (this release)
+## 3.00.025 (this release)
+
+| Field | Value |
+|-------|--------|
+| `WALLET_VERSION_NAME` | `3.00.025` |
+| `WALLET_VERSION_CODE` | `30001825` |
+| Suggested git tag | `v3.00.025` |
+| Fastlane changelog | `fastlane/metadata/android/en-US/changelogs/30001825.txt` |
+| DarkFi pin | `9934daaede8ebbb1a5cd6bff2d3b40e93b48f23e` (`nighthawk-testnet`, Arti 0.47) |
+
+What's new for testers:
+
+- Sync speed: snapshot checkpoints, padded commitment and nullifier ranges, one pooled UnifOMR detection key per session, compact output bodies, and a `SubscribeBlocks` ChainTip stream instead of fixed polling. Needs lightwalletd 0.3.0 (proto 2.0.0).
+- The wallet opens without waiting for Nym or Tor. Birthday backfill and the fresh-wallet tip seed run once the tunnel is up, so nothing is dialed direct and a new wallet still starts at the tip.
+- The sync light is green only while lightwalletd is connected over UnifOMR; it is orange while connecting, disconnected, or on the trial-decrypt fallback.
+- DarkIRC shows the chat history stored on the device before peers connect.
+- Tor is Arti 0.47 in both the FFI and the DarkFi pin. 3.00.023 and 3.00.024 were local test builds and were not tagged.
+
+## 3.00.023
+
+What's new for testers:
+
+- Localnet UnifOMR sends with Moonshine and desktop completed (100/100 each way). Trial receive of clue-less payments stayed stable.
+- `kvdb-overlay`, RandomX, and `rust-url` are fetched from GitLab, Codeberg, and GitHub. `git.dark.fi` returns HTTP 504, so a build that still clones those three repos from there hangs.
+- Nearby mesh is unchanged: encrypted EventGraph hop only. Share-internet stays off.
+
+Cargo git sources (also what the F-Droid `insteadOf` lines were papering over):
+
+| Crate | Fetch |
+|-------|--------|
+| `kvdb-overlay` `accd2689f42e17d8db05294fbe9c3dac1ef307f4` | `https://gitlab.com/nighthawk24/kvdb-overlay` |
+| RandomX `0e31d5a23983164a171276dea7bea94dc58ca8ed` | `https://codeberg.org/darkrenaissance/RandomX` |
+| `rust-url` branch `v258` (`d1644eb`) | `https://github.com/darkrenaissance/rust-url` |
+
+The recipe's RandomX `[patch]` key is the Codeberg URL. That matches `third_party/darkfi/Cargo.toml`, so the vendored RandomX path replaces the git source. DarkFi itself was the `nighthawk24/darkfi` pin (`0e87090e9`), not git.dark.fi master.
+
+## 3.00.020
 
 | Field | Value |
 |-------|--------|
@@ -74,7 +110,7 @@ What's new for testers:
 | Suggested git tag | `v3.00.018` |
 | Fastlane changelog | `fastlane/metadata/android/en-US/changelogs/30001818.txt` |
 | Local F-Droid APK | `bundle exec fastlane fdroid` → `assembleDarkfitestnetRelease` (unsigned) |
-| DarkFi pin | `e4e624179305952c95af1360100d379a81272586` (`nighthawk-testnet`, Arti 0.45) |
+| DarkFi pin | `0e87090e9aa550d046c707b74ef5869269205f83` (`nighthawk-testnet`, Arti 0.45) |
 
 What's new for testers:
 

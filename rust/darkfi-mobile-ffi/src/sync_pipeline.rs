@@ -81,15 +81,85 @@ pub fn clamp_window(scan_start: u32, scan_end: u32, birthday_height: u32) -> Opt
     }
 }
 
+/// True when `height` is inside the inclusive scan window.
+///
+/// Padded `GetNoteCommitments` / `GetNullifiers` responses include a prefix
+/// and suffix outside this window. Those heights must be dropped before
+/// `tree.append` or a later cycle double-appends them.
+pub fn in_scan_window(height: u32, scan_start: u32, scan_end: u32) -> bool {
+    height >= scan_start && height <= scan_end
+}
+
+/// Drop commitment or nullifier rows whose height is outside
+/// `[scan_start, scan_end]`.
+pub fn filter_height_updates(
+    updates: Vec<(u32, Vec<Vec<u8>>)>,
+    scan_start: u32,
+    scan_end: u32,
+) -> Vec<(u32, Vec<Vec<u8>>)> {
+    updates
+        .into_iter()
+        .filter(|(height, _)| in_scan_window(*height, scan_start, scan_end))
+        .collect()
+}
+
+/// Padded note-commitment download. Heights outside `[start, end]` are dropped.
+pub async fn fetch_padded_note_commitments(
+    client: &crate::lightwallet_client::LightwalletClient,
+    start: u32,
+    end: u32,
+    tip: u32,
+) -> Result<Vec<(u32, Vec<Vec<u8>>)>, String> {
+    if start > end {
+        return Ok(Vec::new());
+    }
+    let (padded_start, padded_end) =
+        crate::lightwallet_client::pad_block_range(start, end, tip.max(end));
+    if padded_start > padded_end {
+        return Err(format!(
+            "padded note-commitment range {padded_start}..={padded_end} is empty"
+        ));
+    }
+    let updates = client
+        .get_note_commitments(padded_start, padded_end)
+        .await?;
+    Ok(filter_height_updates(updates, start, end))
+}
+
+/// Padded nullifier download. Heights outside `[start, end]` are dropped.
+pub async fn fetch_padded_nullifiers(
+    client: &crate::lightwallet_client::LightwalletClient,
+    start: u32,
+    end: u32,
+    tip: u32,
+) -> Result<Vec<(u32, Vec<Vec<u8>>)>, String> {
+    if start > end {
+        return Ok(Vec::new());
+    }
+    let (padded_start, padded_end) =
+        crate::lightwallet_client::pad_block_range(start, end, tip.max(end));
+    if padded_start > padded_end {
+        return Err(format!(
+            "padded nullifier range {padded_start}..={padded_end} is empty"
+        ));
+    }
+    let updates = client.get_nullifiers(padded_start, padded_end).await?;
+    Ok(filter_height_updates(updates, start, end))
+}
+
 /// Concurrent gRPC fetch of note commitments and nullifiers for one window.
+///
+/// The wire range is `pad_block_range`. Rows outside `[start, end]` are
+/// removed before the caller appends them.
 pub async fn fetch_commitments_and_nullifiers(
     client: &crate::lightwallet_client::LightwalletClient,
     start: u32,
     end: u32,
+    tip: u32,
 ) -> Result<(Vec<(u32, Vec<Vec<u8>>)>, Vec<(u32, Vec<Vec<u8>>)>), String> {
     let (commitments_result, nullifiers_result) = tokio::join!(
-        client.get_note_commitments(start, end),
-        client.get_nullifiers(start, end),
+        fetch_padded_note_commitments(client, start, end, tip),
+        fetch_padded_nullifiers(client, start, end, tip),
     );
     Ok((commitments_result?, nullifiers_result?))
 }
@@ -106,6 +176,7 @@ pub async fn prefetch_omr_window(
     scan_end: u32,
     matching_heights: &[u32],
     birthday_height: u32,
+    tip: u32,
 ) -> Result<OmrWindowResult, String> {
     let Some((clamped_start, clamped_end)) = clamp_window(scan_start, scan_end, birthday_height)
     else {
@@ -121,27 +192,24 @@ pub async fn prefetch_omr_window(
     };
 
     let (commitment_updates, nullifier_updates) =
-        fetch_commitments_and_nullifiers(client, clamped_start, clamped_end).await?;
+        fetch_commitments_and_nullifiers(client, clamped_start, clamped_end, tip).await?;
 
     let heights: Vec<u32> = matching_heights
         .iter()
         .copied()
-        .filter(|h| *h >= clamped_start && *h <= clamped_end)
+        .filter(|h| in_scan_window(*h, clamped_start, clamped_end))
         .collect();
 
-    let sparse_blocks = if !heights.is_empty() {
-        client.get_compact_blocks_at_heights(&heights).await?
-    } else {
-        vec![]
-    };
-
+    // Block payloads are not fetched by exact match height. That request
+    // would publish the UnifOMR result. The caller fills `sparse_blocks`
+    // from batch PIR or `GetCompactOutputBodies` on the padded window.
     Ok(OmrWindowResult {
         scan_start,
         scan_end,
         matching_heights: heights,
         commitment_updates,
         nullifier_updates,
-        sparse_blocks,
+        sparse_blocks: Vec::new(),
         omr_used: !matching_heights.is_empty(),
     })
 }
@@ -192,5 +260,41 @@ mod tests {
         assert_eq!(clamp_window(500, 1500, 1000), Some((1000, 1500)));
         assert_eq!(clamp_window(1000, 1500, 1000), Some((1000, 1500)));
         assert_eq!(clamp_window(0, 100, 0), Some((0, 100)));
+    }
+
+    #[test]
+    fn padded_heights_outside_scan_window_are_dropped() {
+        let (padded_start, padded_end) =
+            crate::lightwallet_client::pad_block_range(42000, 42500, u32::MAX);
+        assert!(padded_start < 42000);
+        assert!(padded_end > 42500);
+        let updates = vec![
+            (padded_start, vec![vec![1]]),
+            (42000, vec![vec![2]]),
+            (42500, vec![vec![3]]),
+            (padded_end, vec![vec![4]]),
+        ];
+        let kept = filter_height_updates(updates, 42000, 42500);
+        let heights: Vec<u32> = kept.iter().map(|(h, _)| *h).collect();
+        assert_eq!(heights, vec![42000, 42500]);
+        assert!(kept.iter().all(|(h, _)| in_scan_window(*h, 42000, 42500)));
+        assert!(!in_scan_window(padded_start, 42000, 42500));
+    }
+
+    #[test]
+    fn reorder_buffer_follows_shrunk_window_end() {
+        let mut buf = PipelineReorderBuffer::new(100);
+        // complete=false shrank the window from 299 to 150.
+        let ready = buf.insert(empty_window(100, 150));
+        assert_eq!(ready.len(), 1);
+        assert_eq!(buf.next_expected(), 151);
+        let ready = buf.insert(empty_window(200, 299));
+        assert!(ready.is_empty());
+        assert_eq!(buf.buffered_count(), 1);
+        let ready = buf.insert(empty_window(151, 199));
+        assert_eq!(ready.len(), 2);
+        assert_eq!(ready[0].scan_start, 151);
+        assert_eq!(ready[1].scan_start, 200);
+        assert_eq!(buf.next_expected(), 300);
     }
 }

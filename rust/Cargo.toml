@@ -12,9 +12,10 @@ url = { git = "https://github.com/darkrenaissance/rust-url", branch = "v258" }
 # Keep one form_urlencoded: the url fork's copy, so serde_urlencoded (reqwest,
 # pulled in by nym) agrees with url::form_urlencoded.
 form_urlencoded = { git = "https://github.com/darkrenaissance/rust-url", branch = "v258" }
-# nym pins sqlx ^0.8.6, whose libsqlite3-sys cannot coexist with rusqlite 0.37.
-# nymtech/nym#7164 moves it to 0.9; same revision zkool2 pins.
-nym-smolmix = { git = "https://github.com/nymtech/nym.git", rev = "88f21f017710f5e832b1489fcb273bd81e1e0786" }
+# crates.io nym-smolmix stops at 1.21.6. develop is nym-smolmix 2.0.0
+# (2026-10-23). The 1.22.2 mixnet tag depends on yanked tokio_with_wasm 0.10.1
+# and cannot be freshly resolved. sqlx 0.9 coexists with rusqlite 0.37.
+nym-smolmix = { git = "https://github.com/nymtech/nym.git", rev = "5f0dba82d7a4c3d32fb21f78a0e3ddb6320b4ae8" }
 
 [profile.release]
 opt-level = 3

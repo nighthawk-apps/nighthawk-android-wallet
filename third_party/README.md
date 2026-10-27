@@ -10,10 +10,15 @@ because that Nighthawk pin is not published on git.dark.fi.
 
 ## `RandomX/`
 
-Git submodule of [darkrenaissance/RandomX](https://github.com/darkrenaissance/RandomX).
-F-Droid cargo-patches DarkFi's Codeberg RandomX git dep onto this path
+Git submodule of [darkrenaissance/RandomX](https://codeberg.org/darkrenaissance/RandomX)
+at `0e31d5a23983164a171276dea7bea94dc58ca8ed`. DarkFi's `Cargo.toml` fetches that
+commit from Codeberg. F-Droid path-patches that Codeberg URL onto this checkout
 (Codeberg 429s on their builders) and copies `docs/upstream/RandomX.Cargo.lock`
 next to `Cargo.toml` so the scanner has a lockfile.
+
+`git.dark.fi` returns HTTP 504. The other two git deps are mirrored as well:
+`kvdb-overlay` `accd2689` from `https://gitlab.com/nighthawk24/kvdb-overlay`, and
+`rust-url` branch `v258` from `https://github.com/darkrenaissance/rust-url`.
 
 Init or refresh:
 

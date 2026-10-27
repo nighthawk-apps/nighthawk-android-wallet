@@ -1,0 +1,1 @@
+Localnet UnifOMR sends with Moonshine and desktop all landed. kvdb-overlay, RandomX, and rust-url now come from GitLab, Codeberg, and GitHub because git.dark.fi returns HTTP 504. Nearby mesh stays an encrypted EventGraph hop.

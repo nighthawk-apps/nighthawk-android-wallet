@@ -30,6 +30,7 @@ object DarkfiDaemonStatusMapping {
             DarkfiSyncStatus.DEGRADED -> return DarkfiDaemonStatus.Reconnecting
 
             DarkfiSyncStatus.SYNCING,
+            DarkfiSyncStatus.SCANNING,
             DarkfiSyncStatus.CONNECTING -> return DarkfiDaemonStatus.Connecting
 
             DarkfiSyncStatus.STOPPED -> return DarkfiDaemonStatus.Stopped

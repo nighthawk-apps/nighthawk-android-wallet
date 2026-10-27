@@ -277,7 +277,9 @@ fun WalletView(
                     .fillMaxWidth(),
             contentAlignment = Alignment.Center,
         ) {
-            if (walletSnapshot.status == DarkfiSyncStatus.SYNCED) {
+            if (walletSnapshot.status == DarkfiSyncStatus.SYNCED ||
+                walletSnapshot.status == DarkfiSyncStatus.SCANNING
+            ) {
                 val pages = remember { BalanceViewType.pages() }
                 val state = rememberPagerState(initialPage = 0) { pages.size }
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -570,9 +572,11 @@ fun BalanceAmountRow(
     }
 }
 
-fun isSyncing(status: DarkfiSyncStatus): Boolean = status == DarkfiSyncStatus.SYNCING
+fun isSyncing(status: DarkfiSyncStatus): Boolean =
+    status == DarkfiSyncStatus.SYNCING || status == DarkfiSyncStatus.SCANNING
 
 fun isSendDisabled(status: DarkfiSyncStatus): Boolean =
     status == DarkfiSyncStatus.ERROR ||
         status == DarkfiSyncStatus.STOPPED ||
-        status == DarkfiSyncStatus.PROTO_MISMATCH
+        status == DarkfiSyncStatus.PROTO_MISMATCH ||
+        status == DarkfiSyncStatus.SCANNING

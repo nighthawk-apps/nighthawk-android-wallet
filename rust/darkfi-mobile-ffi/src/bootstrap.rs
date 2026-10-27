@@ -16,6 +16,26 @@ pub async fn bootstrap_drk(
     config: &DrkBootstrapConfig,
     ex: &Arc<Executor<'static>>,
 ) -> Result<DrkPtr, String> {
+    let (drk, plan) = open_local_drk(config, ex).await?;
+    seed_from_lightwalletd(&drk, &plan).await;
+    Ok(drk.into_ptr())
+}
+
+/// The lightwalletd half of bootstrap. It holds no secrets, so it can outlive
+/// the zeroized config and run once the Nym or Tor route is up.
+#[derive(Clone, Debug)]
+pub struct LwdSeedPlan {
+    birthday_height: i64,
+    lightwallet_server_url: String,
+    tls_pin: Option<[u8; 32]>,
+    has_darkfid: bool,
+}
+
+/// Open the wallet and money keys without touching the network.
+pub async fn open_local_drk(
+    config: &DrkBootstrapConfig,
+    ex: &Arc<Executor<'static>>,
+) -> Result<(Drk, LwdSeedPlan), String> {
     // LWD-first: do not bind a hardcoded darkfid RPC. Broadcast falls back to
     // `drk.broadcast_tx` only when `rpc_client` is Some; leaving it None makes
     // that path fail closed so we never hit the wrong network (e.g. :18345).
@@ -54,23 +74,49 @@ pub async fn bootstrap_drk(
 
     ensure_default_money_key(&drk, &config.mnemonic, &mut output).await?;
 
-    let (last_scanned, _) = drk.get_last_scanned_block().map_err(|e| e.to_string())?;
-
     if config.birthday_height > 0 {
-        let birthday = u32::try_from(config.birthday_height)
+        u32::try_from(config.birthday_height)
             .map_err(|_| format!("birthday_height out of range: {}", config.birthday_height))?;
+    }
+    let plan = LwdSeedPlan {
+        birthday_height: config.birthday_height,
+        lightwallet_server_url: config.lightwallet_server_url.clone(),
+        tls_pin: pin_from_config(config),
+        has_darkfid,
+    };
+    Ok((drk, plan))
+}
+
+/// Birthday backfill, fresh-wallet tip seed, or genesis tree repair.
+///
+/// Every failure is non-fatal: the wallet stays usable and the sync loop
+/// rebuilds what is missing.
+pub async fn seed_from_lightwalletd(drk: &Drk, plan: &LwdSeedPlan) {
+    let last_scanned = match drk.get_last_scanned_block() {
+        Ok((height, _)) => height,
+        Err(e) => {
+            tracing::warn!(target: "wallet-bootstrap", "last scanned block unreadable: {e}");
+            return;
+        }
+    };
+    let has_darkfid = plan.has_darkfid;
+    let pin = plan.tls_pin;
+
+    if plan.birthday_height > 0 {
+        let Ok(birthday) = u32::try_from(plan.birthday_height) else {
+            return;
+        };
         // Backfill genesis..birthday-1 *before* seeding the scan cursor.
         // Seeding first left a truncated tree whenever LWD was unreachable,
         // and later sync only appended birthday..tip (invalid spend roots).
         // Skip tree rewrite when the wallet already scanned past genesis and
         // recorded a genesis-complete tree (every app open used to wipe
         // post-birthday leaves).
-        let pin = pin_from_config(config);
         if last_scanned == 0 {
             match backfill_money_tree_to_birthday(
-                &drk,
+                drk,
                 birthday,
-                &config.lightwallet_server_url,
+                &plan.lightwallet_server_url,
                 pin,
             )
             .await
@@ -94,10 +140,16 @@ pub async fn bootstrap_drk(
                     } else {
                         None
                     };
-                    if let Some(ref hash) = real_hash {
-                        seed_scan_cursor(&drk, cursor, Some(hash.as_str()))?;
+                    let seeded = if let Some(ref hash) = real_hash {
+                        seed_scan_cursor(drk, cursor, Some(hash.as_str()))
                     } else {
-                        seed_birthday_scan_cursor(&drk, birthday).await?;
+                        seed_birthday_scan_cursor(drk, birthday).await
+                    };
+                    if let Err(e) = seeded {
+                        tracing::warn!(
+                            target: "wallet-bootstrap",
+                            "Birthday scan cursor seed failed: {e}"
+                        );
                     }
                 }
                 Err(e) => {
@@ -108,15 +160,15 @@ pub async fn bootstrap_drk(
                     );
                 }
             }
-        } else if !crate::sync::merkle_from_genesis(&drk) {
+        } else if !crate::sync::merkle_from_genesis(drk) {
             tracing::warn!(
                 target: "wallet-bootstrap",
                 "Existing wallet at height {last_scanned} is missing genesis Merkle leaves; rebuilding"
             );
             let client =
-                LightwalletClient::from_endpoint_and_pin(&config.lightwallet_server_url, pin);
+                LightwalletClient::from_endpoint_and_pin(&plan.lightwallet_server_url, pin);
             if let Err(e) =
-                crate::sync::rebuild_money_tree_to_height(&drk, &client, last_scanned).await
+                crate::sync::rebuild_money_tree_to_height(drk, &client, last_scanned).await
             {
                 tracing::warn!(
                     target: "wallet-bootstrap",
@@ -124,14 +176,13 @@ pub async fn bootstrap_drk(
                 );
             }
         }
-    } else if config.birthday_height == 0 {
+    } else if plan.birthday_height == 0 {
         // Fresh create (birthday 0): jump scan cursor to LWD tip — new wallets
         // have no history; walking genesis → tip only causes trial-decrypt /
         // connection-lost noise.
         // Non-fatal: devices often default to 127.0.0.1:9067 which is unreachable
         // until a remote LWD is configured. Sync can seed the tip later.
-        let pin = pin_from_config(config);
-        if let Err(e) = seed_fresh_wallet_at_tip(&drk, &config.lightwallet_server_url, pin).await {
+        if let Err(e) = seed_fresh_wallet_at_tip(drk, &plan.lightwallet_server_url, pin).await {
             tracing::warn!(
                 target: "wallet-bootstrap",
                 "Fresh-wallet tip probe skipped (wallet still opens): {e}"
@@ -139,8 +190,6 @@ pub async fn bootstrap_drk(
         }
     }
     // birthday_height < 0 (e.g. -1): unknown restore birthday — full history scan.
-
-    Ok(drk.into_ptr())
 }
 
 fn pin_from_config(config: &DrkBootstrapConfig) -> Option<[u8; 32]> {

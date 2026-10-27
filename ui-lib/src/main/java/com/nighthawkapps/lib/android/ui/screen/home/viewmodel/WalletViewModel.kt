@@ -191,7 +191,8 @@ class WalletViewModel(
                 } else {
                     combine(sync.transactions, sync.status) { transactions, status ->
                         when (status) {
-                            DarkfiSyncStatus.SYNCING -> {
+                            DarkfiSyncStatus.SYNCING,
+                            DarkfiSyncStatus.SCANNING -> {
                                 TransactionHistorySyncState.Syncing(transactions.toPersistentList())
                             }
 

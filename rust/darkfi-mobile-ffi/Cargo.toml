@@ -30,10 +30,10 @@ easy-parallel = "3.3.1"
 # Cargo package `darkirc`, Rust lib name `irc2`
 darkirc = { path = "../../third_party/darkfi/bin/darkirc", optional = true }
 semver = "1.0.28"
-kvdb-overlay = { git = "https://git.dark.fi/darkrenaissance/kvdb-overlay", rev = "accd2689f42e17d8db05294fbe9c3dac1ef307f4", version = "0.1.0" }
+kvdb-overlay = { git = "https://gitlab.com/nighthawk24/kvdb-overlay", rev = "accd2689f42e17d8db05294fbe9c3dac1ef307f4", version = "0.1.0" }
 tracing = "0.1.44"
-arti-client = { version = "0.45.0", default-features = false, features = ["async-std", "compression", "error_detail", "rustls", "onion-service-client"] }
-tor-rtcompat = { version = "0.45.0", features = ["async-std", "rustls"] }
+arti-client = { version = "0.47.0", default-features = false, features = ["async-std", "compression", "error_detail", "rustls", "onion-service-client"] }
+tor-rtcompat = { version = "0.47.0", features = ["async-std", "rustls"] }
 darkfi-serial = { path = "../../third_party/darkfi/src/serial" }
 darkfi_money_contract = { path = "../../third_party/darkfi/src/contract/money", features = ["no-entrypoint", "client"] }
 darkfi_dao_contract = { path = "../../third_party/darkfi/src/contract/dao", features = ["no-entrypoint", "client"] }
@@ -53,7 +53,7 @@ unicode-normalization = "0.1.24"
 url = "2.5.8"
 zeroize = "1.9"
 x509-parser = "0.18"
-uniffi = { version = "0.32.0", features = ["scaffolding-ffi-buffer-fns", "cli"] }
+uniffi = { version = "0.32.2", features = ["scaffolding-ffi-buffer-fns", "cli"] }
 thiserror = "2"
 log = "0.4"
 tracing-subscriber = { version = "0.3", default-features = false, features = ["fmt", "env-filter"] }
@@ -70,6 +70,7 @@ rusqlite = { version = "0.37", features = ["bundled"] }
 chacha20poly1305 = "0.10"
 fhe = "0.1.1"
 fhe-traits = "0.1.1"
+rayon = "1.12.0"
 tokio = { version = "1", features = ["full"] }
 tower = { version = "0.5", features = ["util"] }
 rand09 = { package = "rand", version = "0.9" }
@@ -78,7 +79,7 @@ tokio-socks = "0.5"
 # Nym mixnet transport, as in zkool2: a nym-smolmix tunnel exits through an
 # IPR gateway and hostnames resolve over the mixnet (hickory-proto over the
 # tunnel's UDP socket).
-nym-smolmix = { version = "1.21.6", optional = true }
+nym-smolmix = { version = "2.0.0", optional = true }
 hickory-proto = { version = "0.26", optional = true }
 
 [target.'cfg(target_os = "android")'.dependencies]
@@ -91,5 +92,5 @@ jni = { version = "0.22", default-features = false, optional = true }
 rustls-platform-verifier = { version = "0.7", optional = true }
 
 [build-dependencies]
-uniffi = { version = "0.32.0", features = ["build", "scaffolding-ffi-buffer-fns"] }
+uniffi = { version = "0.32.2", features = ["build", "scaffolding-ffi-buffer-fns"] }
 tonic-build = "0.12"

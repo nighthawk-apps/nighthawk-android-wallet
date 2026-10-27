@@ -11,6 +11,7 @@ class WalletSendDisabledTest {
         assertTrue(isSendDisabled(DarkfiSyncStatus.ERROR))
         assertTrue(isSendDisabled(DarkfiSyncStatus.STOPPED))
         assertTrue(isSendDisabled(DarkfiSyncStatus.PROTO_MISMATCH))
+        assertTrue(isSendDisabled(DarkfiSyncStatus.SCANNING))
         assertFalse(isSendDisabled(DarkfiSyncStatus.SYNCED))
         assertFalse(isSendDisabled(DarkfiSyncStatus.SYNCING))
         assertFalse(isSendDisabled(DarkfiSyncStatus.CONNECTING))

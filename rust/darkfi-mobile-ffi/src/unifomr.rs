@@ -708,17 +708,37 @@ impl UnifOmrClient {
                 slot_heights.len().div_ceil(degree)
             ));
         }
+        // Pure range check. Slots are chunked across rayon; heights are
+        // merged and sorted on this thread before the caller filters them
+        // to the scan window.
+        let pairs: Vec<(u64, u32)> = slot_heights
+            .iter()
+            .enumerate()
+            .filter_map(|(i, &height)| slots.get(i).map(|&raw| (raw, height)))
+            .collect();
+        let parts: Vec<Vec<u32>> = {
+            use rayon::prelude::*;
+            pairs
+                .par_chunks(256)
+                .map(|chunk| {
+                    let mut local = Vec::new();
+                    for &(raw, height) in chunk {
+                        let centered = if raw > t / 2 {
+                            (t as i64) - (raw as i64)
+                        } else {
+                            raw as i64
+                        };
+                        if centered.unsigned_abs() <= R_PRIME {
+                            local.push(height);
+                        }
+                    }
+                    local
+                })
+                .collect()
+        };
         let mut out = Vec::new();
-        for (i, &height) in slot_heights.iter().enumerate() {
-            let Some(&raw) = slots.get(i) else { break };
-            let centered = if raw > t / 2 {
-                (t as i64) - (raw as i64)
-            } else {
-                raw as i64
-            };
-            if centered.unsigned_abs() <= R_PRIME {
-                out.push(height);
-            }
+        for part in parts {
+            out.extend(part);
         }
         out.sort_unstable();
         out.dedup();

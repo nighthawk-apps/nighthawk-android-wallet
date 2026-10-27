@@ -126,39 +126,10 @@ pub fn is_arti_running() -> bool {
     ARTI_STATE.load(Ordering::SeqCst) == ARTI_CONNECTED
 }
 
-/// Block until Arti has bootstrapped (or [timeout] elapses / bootstrap failed).
-///
-/// Callers that install the process-wide SOCKS route must wait here before the
-/// first remote dial, otherwise lightwalletd / darkirc hit a listening-but-idle
-/// socket and fail.
-pub fn wait_until_running(
-    timeout: std::time::Duration,
-) -> Result<(), crate::DarkfiWalletNativeError> {
-    let deadline = std::time::Instant::now() + timeout;
-    loop {
-        match ARTI_STATE.load(Ordering::SeqCst) {
-            ARTI_CONNECTED => return Ok(()),
-            ARTI_FAILED => {
-                return Err(crate::DarkfiWalletNativeError::NativeDrkUnavailable(
-                    "Arti Tor bootstrap failed".into(),
-                ));
-            }
-            ARTI_STOPPED => {
-                // start_arti_proxy not called, or already stopped.
-                return Err(crate::DarkfiWalletNativeError::NativeDrkUnavailable(
-                    "Arti Tor proxy is not running".into(),
-                ));
-            }
-            _ => {
-                if std::time::Instant::now() >= deadline {
-                    return Err(crate::DarkfiWalletNativeError::NativeDrkUnavailable(
-                        "Timed out waiting for Arti Tor bootstrap".into(),
-                    ));
-                }
-                std::thread::sleep(std::time::Duration::from_millis(250));
-            }
-        }
-    }
+/// Bootstrap failed or the proxy is not running; dials through the SOCKS route
+/// cannot succeed until it is restarted.
+pub fn arti_failed() -> bool {
+    matches!(ARTI_STATE.load(Ordering::SeqCst), ARTI_FAILED | ARTI_STOPPED)
 }
 
 /// Bootstrap the Tor client and serve SOCKS5 CONNECT requests until stopped.

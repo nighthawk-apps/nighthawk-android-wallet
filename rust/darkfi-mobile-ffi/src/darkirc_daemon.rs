@@ -28,6 +28,34 @@ fn dispatch_darkirc_message(
     }));
 }
 
+/// Deliver DAG history to the UI, skipping ids already sent by the live relay or
+/// an earlier replay.
+async fn replay_history(
+    history: Vec<darkfi::event_graph::Event>,
+    callback: &Option<Arc<dyn DarkircEventCallback>>,
+    seen: &smol::lock::Mutex<HashSet<String>>,
+) {
+    let Some(cb) = callback else { return };
+    let mut seen = seen.lock().await;
+    for ev in history {
+        let eid = ev.id().to_hex().to_string();
+        if !seen.insert(eid.clone()) {
+            continue;
+        }
+        if let Ok((privmsg, _)) = deserialize_async_partial::<Privmsg>(ev.content()).await {
+            dispatch_darkirc_message(
+                cb.as_ref(),
+                eid,
+                privmsg.channel,
+                privmsg.nick,
+                privmsg.msg,
+                ev.header.timestamp,
+                false,
+            );
+        }
+    }
+}
+
 /// Daemon lifecycle states exposed to Swift/Kotlin via UniFFI.
 const STATUS_NOT_RUNNING: u8 = 0;
 const STATUS_STARTING: u8 = 1;
@@ -1091,9 +1119,20 @@ async fn run_darkirc_daemon(
         }
     });
 
+    // Show the locally stored DAG right away; peer connect over Nym/Tor takes
+    // tens of seconds. The post-sync replay below skips these ids.
+    match event_graph.order_events().await {
+        Ok(cached) => {
+            log::info!("darkirc daemon replaying {} cached events before peer sync", cached.len());
+            replay_history(cached, &callback, &relayed_ids).await;
+        }
+        Err(e) => log::warn!("darkirc daemon cached history unavailable: {e}"),
+    }
+
     // Sync while connected; on peer loss, wait briefly and retry so background
     // suspensions that drop sockets can recover without a full daemon restart.
     // Failed sync steps always retry (do not park in the monitor loop).
+    let mut logged_waiting = false;
     loop {
         if DAEMON_STATUS.load(Ordering::Relaxed) == STATUS_STOPPING {
             break;
@@ -1101,18 +1140,24 @@ async fn run_darkirc_daemon(
 
         if !p2p.is_connected() {
             set_phase(PHASE_WAITING_FOR_PEERS);
-            log::info!("darkirc daemon waiting for P2P peers...");
+            if !logged_waiting {
+                log::info!("darkirc daemon waiting for P2P peers...");
+                logged_waiting = true;
+            }
+            // `is_connected` is a cheap local check; poll it often so sync
+            // starts as soon as the first channel is up.
             smol::future::race(
                 async {
                     let _ = stop_rx.recv().await;
                 },
                 async {
-                    smol::Timer::after(std::time::Duration::from_secs(comms_timeout)).await;
+                    smol::Timer::after(std::time::Duration::from_secs(1)).await;
                 },
             )
             .await;
             continue;
         }
+        logged_waiting = false;
 
         set_phase(PHASE_STATIC_SYNC);
         log::info!("darkirc daemon connected, waiting for static sync...");
@@ -1170,27 +1215,7 @@ async fn run_darkirc_daemon(
             }
         };
         log::info!("darkirc daemon fetched {} historical events", history.len());
-        if let Some(cb) = &callback {
-            let mut seen = relayed_ids.lock().await;
-            for ev in history {
-                let eid = ev.id().to_hex().to_string();
-                // Skip events already delivered by the live relay task (or a prior replay).
-                if !seen.insert(eid.clone()) {
-                    continue;
-                }
-                if let Ok((privmsg, _)) = deserialize_async_partial::<Privmsg>(ev.content()).await {
-                    dispatch_darkirc_message(
-                        cb.as_ref(),
-                        eid,
-                        privmsg.channel,
-                        privmsg.nick,
-                        privmsg.msg,
-                        ev.header.timestamp,
-                        false,
-                    );
-                }
-            }
-        }
+        replay_history(history, &callback, &relayed_ids).await;
         DAG_SYNCED.store(1, Ordering::Relaxed);
         set_phase(PHASE_CONNECTED);
         publish_outbound_slots();

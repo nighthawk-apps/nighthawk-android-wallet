@@ -351,6 +351,7 @@ private fun HomeMainContent(
 
 private fun isSyncing(status: DarkfiSyncStatus): Boolean =
     status == DarkfiSyncStatus.SYNCING ||
+        status == DarkfiSyncStatus.SCANNING ||
         status == DarkfiSyncStatus.CONNECTING ||
         status == DarkfiSyncStatus.RETRYING
 
@@ -496,11 +497,22 @@ private fun Status(
                 // stacking like "UnifOMR" twice.
                 val syncMethod = walletSnapshot.syncMethod
                 val syncTypeMsg = walletSnapshot.syncTypeMessage
+                // The method sticks from the last good cycle; only a live
+                // lightwalletd session earns green.
+                val lwdLive =
+                    walletSnapshot.status == DarkfiSyncStatus.SYNCED ||
+                        walletSnapshot.status == DarkfiSyncStatus.SYNCING ||
+                        walletSnapshot.status == DarkfiSyncStatus.SCANNING
+                val notLiveColor = Color(0xFFFF9800)
 
                 if (syncMethod != DarkfiSyncMethod.UNKNOWN) {
                     Spacer(modifier = Modifier.height(2.dp))
                     val phaseHint =
                         when {
+                            walletSnapshot.status == DarkfiSyncStatus.CONNECTING -> " · connecting"
+                            walletSnapshot.status == DarkfiSyncStatus.DEGRADED ->
+                                if (walletSnapshot.fallbackUserMessage.isNotBlank()) "" else " · fallback"
+                            !lwdLive -> " · not connected"
                             walletSnapshot.syncStatusMessage.contains("1/2") -> " · scanning"
                             walletSnapshot.syncStatusMessage.contains("2/2") -> " · fetching"
                             else -> ""
@@ -519,7 +531,9 @@ private fun Status(
                             },
                         style = MaterialTheme.typography.labelSmall,
                         color =
-                            if (syncMethod.isPrivateRetrieval) {
+                            if (!lwdLive) {
+                                notLiveColor
+                            } else if (syncMethod.isPrivateRetrieval) {
                                 Color(0xFF4CAF50) // Green — private oblivious retrieval
                             } else {
                                 MaterialTheme.colorScheme.primary.copy(alpha = 0.7f)
@@ -530,6 +544,10 @@ private fun Status(
                     Spacer(modifier = Modifier.height(2.dp))
                     val syncTypeColor =
                         when {
+                            !lwdLive -> {
+                                notLiveColor
+                            }
+
                             syncTypeMsg.startsWith("OMR") -> {
                                 Color(0xFF4CAF50)
                             }

@@ -1,8 +1,10 @@
-0e87090e9aa550d046c707b74ef5869269205f83
+9934daaede8ebbb1a5cd6bff2d3b40e93b48f23e
 # nighthawk24/darkfi branch nighthawk-testnet
 # Upstream is https://git.dark.fi/darkrenaissance/darkfi — do not clone the GitHub mirror.
 # This pin is not on git.dark.fi. It is dark.fi master (37a4c5b76) merged onto the
-# Arti 0.45 pin. Upstream master is still Arti 0.42; this branch keeps 0.45.
+# Nighthawk branch, with Tor on Arti 0.47. Upstream master is still Arti 0.42.
+# blake3 stays 1.8.3 for nym-crypto 2.0.0. kvdb-overlay, RandomX, and rust-url are
+# fetched from GitLab, Codeberg, and GitHub while git.dark.fi returns HTTP 504.
 # Also keeps the kvdb-overlay pin, EventGraph mesh ingest, public Drk::scan_block,
 # scan_blocks without progress_pub, and darkfid sync hardening.
 # Do not pin git.dark.fi master — that tree is Arti 0.42 without the overlay.

@@ -2362,7 +2362,7 @@ data class DrkBootstrapConfig (
     var `darkfidRpcUrl`: kotlin.String?
     , 
     /**
-     * When true, UnifOMR-only (no supplemental/gap trial decrypt). Nighthawk default false.
+     * When true, UnifOMR-only (no supplemental/gap trial decrypt). Default true.
      */
     var `strictOmrOnly`: kotlin.Boolean
     

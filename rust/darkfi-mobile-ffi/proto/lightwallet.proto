@@ -29,9 +29,11 @@ service DarkFiLightWallet {
   // Get the current chain tip height and hash.
   rpc GetChainTip(Empty) returns (ChainTip);
 
-  // Subscribe to new blocks as they are finalized.
-  // The server streams CompactBlock messages for each new block.
-  rpc SubscribeBlocks(Empty) returns (stream CompactBlock);
+  // Subscribe to chain-tip notices as blocks are finalized.
+  // The server streams ChainTip (not compact blocks). A slow client is not
+  // dropped; the next tip it reads is compared with the last applied height
+  // and any gap is filled by the normal padded sync.
+  rpc SubscribeBlocks(Empty) returns (stream ChainTip);
 
   // === Transactions ===
 
@@ -44,6 +46,14 @@ service DarkFiLightWallet {
   // for a 160 MiB single-message gRPC limit.
   // The first message MUST be a DetectionKeyChunk with header fields set.
   rpc GetUnifOmrDigest(stream DetectionKeyChunk) returns (OmrDigestResponse);
+
+  // Upload a detection key once per handle lifetime. The first chunk still
+  // carries num_keys. start_height / end_height on the chunks are ignored;
+  // the range belongs on PoolDigestRequest.
+  rpc RegisterDetectionKey(stream DetectionKeyChunk) returns (DetectionKeyHandle);
+
+  // Evaluate a previously registered detection key over a padded height window.
+  rpc GetUnifOmrDigestFromPool(PoolDigestRequest) returns (OmrDigestResponse);
   
   // Phase 2: Batch PIR Fetch (Non-Linear Payload Retrieval)
   rpc FetchPirBatch(BatchPirRequest) returns (BatchPirResponse);
@@ -58,10 +68,22 @@ service DarkFiLightWallet {
   // === Note / Commitment Sync ===
 
   // Get all note commitments (coins) added in a block range.
+  // The range must be a padded bucket from pad_block_range:
+  // span = end-start+1 is a power of two of at least 1024 and at most
+  // max_range_per_request, or a bucket cut short at a tip within 64 blocks
+  // of the server's. end <= tip.
+  // Clients drop heights outside the real scan window after receiving them.
   rpc GetNoteCommitments(BlockRange) returns (stream NoteCommitmentUpdate);
 
   // Get all nullifiers revealed in a block range.
+  // Same padding rule as GetNoteCommitments. Clients drop heights outside
+  // the real scan window before applying spends.
   rpc GetNullifiers(BlockRange) returns (stream NullifierUpdate);
+
+  // Stream per-output bodies for trial decrypt and the Money tree when PIR
+  // fails. Same padding rule as GetNoteCommitments. Does not include fees
+  // or value commitments; GetBlockRange remains for those.
+  rpc GetCompactOutputBodies(BlockRange) returns (stream CompactOutputBody);
 
   // Get the Merkle tree state snapshot at a given height.
   // Currently tip-only. Historical heights return FAILED_PRECONDITION
@@ -69,9 +91,10 @@ service DarkFiLightWallet {
   rpc GetTreeState(BlockHeight) returns (TreeState);
 
   // Get a checkpoint snapshot for instant wallet restore.
-  // Tip-only: preferred_height must be 0 or equal to the current tip.
-  // The server streams the snapshot (tree + cursor) so a new device can
-  // skip replaying [0, tip] when the client accepts a tip snapshot.
+  // preferred_height 0 asks for the latest snapshot. Any other value asks
+  // for the greatest snapshot whose height is <= preferred_height.
+  // The server streams the snapshot (tree + cursor) in 1 MiB chunks.
+  // scan_cursor is the tree position, not "notes decrypted".
   rpc GetCheckpointSnapshot(CheckpointRequest) returns (stream CheckpointSnapshot);
 
   // === Contract State ===
@@ -128,6 +151,9 @@ message ChainTip {
   bytes hash = 2;
   uint64 timestamp = 3;
   uint32 block_target = 4;
+  // 32-byte blake3 previous header hash. Lets a subscriber see a rewind
+  // without a second RPC.
+  bytes prev_hash = 5;
 }
 
 // A compact representation of a DarkFi block, stripped of ZK proofs and
@@ -232,6 +258,39 @@ message RawTransaction {
   // Recipient-encrypted OMR metadata (scheme + clue seed + user memo).
   // LWD stores opaquely and merges into CompactOutput.omr_metadata_enc on confirm.
   bytes omr_metadata_enc = 4;
+  // Clues for the sender's own outputs (transfer change, fee change).
+  // Index 0 stays on omr_clue above. One clue per output index.
+  repeated OutputOmrClue extra_omr_clues = 5;
+}
+
+// A UnifOMR clue bound to one compact-block output of the transaction.
+message OutputOmrClue {
+  uint32 output_index = 1;
+  bytes omr_clue = 2;
+}
+
+// Output fields trial decrypt and the Money tree need. One row per coin.
+message CompactOutputBody {
+  uint32 height = 1;
+  bytes hash = 2;
+  bytes prev_hash = 3;
+  bytes coin = 4;
+  bytes encrypted_note = 5;
+  bytes omr_clue = 6;
+  bytes omr_metadata_enc = 7;
+  bytes tx_hash = 8;
+}
+
+// Server-chosen handle for a pooled detection key. Do not log `handle`.
+message DetectionKeyHandle {
+  bytes handle = 1;
+  uint64 expires_unix = 2;
+}
+
+message PoolDigestRequest {
+  bytes handle = 1;
+  uint32 start_height = 2;
+  uint32 end_height = 3;
 }
 
 message OmrClueRegistration {

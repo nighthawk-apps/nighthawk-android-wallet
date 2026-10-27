@@ -25,7 +25,7 @@ use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
 /// Client proto version used for major-version lockstep with lightwalletd.
-pub const CLIENT_PROTO_VERSION: &str = "1.0.0";
+pub const CLIENT_PROTO_VERSION: &str = "2.0.0";
 
 /// True when both sides parse as semver and the major versions differ.
 /// Unparseable / empty server versions do not flag a mismatch (older servers).
@@ -263,7 +263,7 @@ pub struct LightServerInfo {
     pub backend_version: String,
     /// 32-byte directory attest public key for GetCluePublicKey proofs.
     pub directory_attest_pubkey: Vec<u8>,
-    /// Monotonic proto version string (e.g. "1.0.0").
+    /// Monotonic proto version string (e.g. "2.0.0").
     pub proto_version: String,
     /// Whether server proto version is incompatible with client.
     pub proto_version_mismatch: bool,
@@ -514,6 +514,107 @@ pub struct LightwalletClient {
     metrics: Arc<RpcMetrics>,
     omr_limiter: SlidingWindowLimiter,
     chain_tip_limiter: SlidingWindowLimiter,
+}
+
+/// One pooled UnifOMR detection key. The handle and key are never logged.
+struct PooledDetectionKey {
+    handle: Vec<u8>,
+    expires_unix: u64,
+}
+
+static DETECTION_KEY_POOL: Mutex<Option<PooledDetectionKey>> = Mutex::new(None);
+
+/// Drop the pooled detection-key handle. Called on server switch and when
+/// the server reports the handle missing or expired.
+pub fn clear_detection_key_pool() {
+    if let Ok(mut guard) = DETECTION_KEY_POOL.lock() {
+        if let Some(mut pooled) = guard.take() {
+            pooled.handle.fill(0);
+        }
+    }
+}
+
+pub(crate) fn unix_now() -> u64 {
+    std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_secs())
+        .unwrap_or(0)
+}
+
+/// Handle for a detection key that has not expired. `None` when this process
+/// has not registered one, or the server-advertised expiry has passed.
+pub(crate) fn fresh_detection_handle(now_unix: u64) -> Option<Vec<u8>> {
+    let guard = DETECTION_KEY_POOL.lock().ok()?;
+    let pooled = guard.as_ref()?;
+    if pooled.handle.is_empty() {
+        return None;
+    }
+    if pooled.expires_unix > 0 && pooled.expires_unix <= now_unix {
+        return None;
+    }
+    Some(pooled.handle.clone())
+}
+
+pub(crate) fn store_detection_handle(handle: Vec<u8>, expires_unix: u64) {
+    if handle.is_empty() {
+        return;
+    }
+    if let Ok(mut guard) = DETECTION_KEY_POOL.lock() {
+        *guard = Some(PooledDetectionKey {
+            handle,
+            expires_unix,
+        });
+    }
+}
+
+/// `GetUnifOmrDigestFromPool` missed the handle or the server expired it.
+pub(crate) fn pool_digest_needs_reregister(err: &str) -> bool {
+    let lower = err.to_ascii_lowercase();
+    lower.contains("not_found")
+        || lower.contains("not found")
+        || lower.contains("notfound")
+        || lower.contains("expired")
+}
+
+/// Output indexes that must carry the sender's clue, never the recipient clue.
+pub fn non_payment_output_indexes(output_count: u32, payment_index: u32) -> Vec<u32> {
+    (0..output_count).filter(|idx| *idx != payment_index).collect()
+}
+
+pub fn clues_for_indexes(
+    indexes: &[u32],
+    wallet_clue: &[u8],
+) -> Vec<lightwallet_proto::OutputOmrClue> {
+    indexes
+        .iter()
+        .copied()
+        .map(|output_index| lightwallet_proto::OutputOmrClue {
+            output_index,
+            omr_clue: wallet_clue.to_vec(),
+        })
+        .collect()
+}
+
+/// Chain tip notice from `GetChainTip` or `SubscribeBlocks`.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ChainTipNotice {
+    pub height: u32,
+    pub hash: Vec<u8>,
+    pub prev_hash: Vec<u8>,
+    pub timestamp: u64,
+}
+
+/// One `CompactOutputBody` row.
+#[derive(Debug, Clone)]
+pub struct CompactOutputBodyDto {
+    pub height: u32,
+    pub hash: Vec<u8>,
+    pub prev_hash: Vec<u8>,
+    pub coin: Vec<u8>,
+    pub encrypted_note: Vec<u8>,
+    pub omr_clue: Vec<u8>,
+    pub omr_metadata_enc: Vec<u8>,
+    pub tx_hash: Vec<u8>,
 }
 
 impl LightwalletClient {
@@ -882,8 +983,14 @@ impl LightwalletClient {
         max_retries: u32,
         retry_interval: Duration,
     ) -> Result<LightServerInfo, String> {
+        // The first probe usually lands while the proxy circuit is still warm-
+        // starting. Double from a short first wait instead of a fixed 30s gap.
+        const PROBE_MAX_WAIT: Duration = Duration::from_secs(30);
         let mut attempt = 0u32;
+        let mut wait = retry_interval;
         loop {
+            let retry_interval = wait;
+            wait = (wait * 2).min(PROBE_MAX_WAIT);
             match self.get_light_info().await {
                 Ok(info) => {
                     if info.chain_tip_height == 0 {
@@ -1311,6 +1418,43 @@ impl LightwalletClient {
         omr_clue: Vec<u8>,
         omr_metadata_enc: Vec<u8>,
     ) -> Result<Vec<u8>, String> {
+        self.send_transaction_inner(tx_data, omr_clue, 0, omr_metadata_enc, Vec::new())
+            .await
+    }
+
+    /// Broadcast `tx_data` and attach wallet clues on every output except the
+    /// payment output. The recipient clue stays on `omr_clue_output_index` 0.
+    pub async fn send_transaction_with_wallet_clues(
+        &self,
+        tx_data: Vec<u8>,
+        omr_clue: Vec<u8>,
+        omr_metadata_enc: Vec<u8>,
+        wallet_secret: &[u8],
+        network: u8,
+    ) -> Result<Vec<u8>, String> {
+        let extra = match self_change_omr_clues(&tx_data, wallet_secret, network, 0, &omr_clue).await
+        {
+            Ok(clues) => clues,
+            Err(e) => {
+                tracing::warn!(
+                    target: "lightwallet-client",
+                    "sender change clues not attached: {e}"
+                );
+                Vec::new()
+            }
+        };
+        self.send_transaction_inner(tx_data, omr_clue, 0, omr_metadata_enc, extra)
+            .await
+    }
+
+    async fn send_transaction_inner(
+        &self,
+        tx_data: Vec<u8>,
+        omr_clue: Vec<u8>,
+        omr_clue_output_index: u32,
+        omr_metadata_enc: Vec<u8>,
+        extra_omr_clues: Vec<lightwallet_proto::OutputOmrClue>,
+    ) -> Result<Vec<u8>, String> {
         let start = Instant::now();
         if tx_data.is_empty() {
             return Err("transaction data cannot be empty".into());
@@ -1323,8 +1467,9 @@ impl LightwalletClient {
                 .send_transaction(lightwallet_proto::RawTransaction {
                     data: tx_data,
                     omr_clue,
-                    omr_clue_output_index: 0, // payment output (not change)
+                    omr_clue_output_index,
                     omr_metadata_enc,
+                    extra_omr_clues,
                 })
                 .await
                 .map_err(|e| format!("SendTransaction RPC: {e}"))?;
@@ -1423,6 +1568,194 @@ impl LightwalletClient {
         result
     }
 
+    /// Upload one detection key. The returned handle is not logged.
+    pub async fn register_detection_key(
+        &self,
+        detection_key: Vec<u8>,
+    ) -> Result<(Vec<u8>, u64), String> {
+        if detection_key.is_empty() {
+            return Err("empty detection key not allowed".into());
+        }
+        self.omr_limiter.try_acquire()?;
+        let result = async_compat::Compat::new(async {
+            let channel = self.connect_channel().await?;
+            let mut client = lwd_client(channel);
+            let chunk_size = 1024 * 1024;
+            let stream = async_stream::stream! {
+                yield lightwallet_proto::DetectionKeyChunk {
+                    start_height: 0,
+                    end_height: 0,
+                    num_keys: 1,
+                    data: vec![],
+                    key_done: false,
+                };
+                let mut offset = 0;
+                while offset < detection_key.len() {
+                    let end_offset = (offset + chunk_size).min(detection_key.len());
+                    let chunk_data = detection_key[offset..end_offset].to_vec();
+                    offset = end_offset;
+                    yield lightwallet_proto::DetectionKeyChunk {
+                        start_height: 0,
+                        end_height: 0,
+                        num_keys: 0,
+                        data: chunk_data,
+                        key_done: offset == detection_key.len(),
+                    };
+                }
+            };
+            let resp = client
+                .register_detection_key(tonic::Request::new(stream))
+                .await
+                .map_err(|e| format!("RegisterDetectionKey RPC: {e}"))?;
+            let inner = resp.into_inner();
+            if inner.handle.len() != 32 {
+                return Err(format!(
+                    "RegisterDetectionKey handle is {} bytes (expected 32)",
+                    inner.handle.len()
+                ));
+            }
+            Ok((inner.handle, inner.expires_unix))
+        })
+        .await;
+        self.metrics.omr_requests.fetch_add(1, Ordering::Relaxed);
+        result
+    }
+
+    /// Digest for a previously registered detection key. The handle is not logged.
+    pub async fn get_unif_omr_digest_from_pool(
+        &self,
+        handle: &[u8],
+        start_height: u32,
+        end_height: u32,
+    ) -> Result<(Vec<u8>, Vec<u8>, bool), String> {
+        validate_block_range(start_height, end_height)?;
+        if handle.len() != 32 {
+            return Err(format!(
+                "detection handle is {} bytes (expected 32)",
+                handle.len()
+            ));
+        }
+        self.omr_limiter.try_acquire()?;
+        let handle = handle.to_vec();
+        let result = async_compat::Compat::new(async {
+            let channel = self.connect_channel().await?;
+            let mut client = lwd_client(channel);
+            let resp = client
+                .get_unif_omr_digest_from_pool(lightwallet_proto::PoolDigestRequest {
+                    handle,
+                    start_height,
+                    end_height,
+                })
+                .await
+                .map_err(|e| format!("GetUnifOmrDigestFromPool RPC: {e}"))?;
+            let inner = resp.into_inner();
+            Ok((inner.encrypted_digest, inner.slot_heights, inner.complete))
+        })
+        .await;
+        self.metrics.omr_requests.fetch_add(1, Ordering::Relaxed);
+        result
+    }
+
+    /// Compact output bodies for a padded window. Callers fall back to
+    /// `GetBlockRange` when this RPC fails.
+    pub async fn get_compact_output_bodies(
+        &self,
+        start_height: u32,
+        end_height: u32,
+    ) -> Result<Vec<CompactOutputBodyDto>, String> {
+        validate_block_range(start_height, end_height)?;
+        async_compat::Compat::new(async {
+            let channel = self.connect_channel().await?;
+            let mut client = lwd_client(channel);
+            let mut stream = client
+                .get_compact_output_bodies(lightwallet_proto::BlockRange {
+                    start_height,
+                    end_height,
+                })
+                .await
+                .map_err(|e| format!("GetCompactOutputBodies RPC: {e}"))?
+                .into_inner();
+            let mut out = Vec::new();
+            while let Some(body) = stream
+                .message()
+                .await
+                .map_err(|e| format!("GetCompactOutputBodies stream: {e}"))?
+            {
+                out.push(CompactOutputBodyDto {
+                    height: body.height,
+                    hash: body.hash,
+                    prev_hash: body.prev_hash,
+                    coin: body.coin,
+                    encrypted_note: body.encrypted_note,
+                    omr_clue: body.omr_clue,
+                    omr_metadata_enc: body.omr_metadata_enc,
+                    tx_hash: body.tx_hash,
+                });
+            }
+            Ok(out)
+        })
+        .await
+    }
+
+    pub async fn get_chain_tip(&self) -> Result<ChainTipNotice, String> {
+        self.chain_tip_limiter.try_acquire()?;
+        async_compat::Compat::new(async {
+            let channel = self.connect_channel().await?;
+            let mut client = lwd_client(channel);
+            let resp = client
+                .get_chain_tip(lightwallet_proto::Empty {})
+                .await
+                .map_err(|e| format!("GetChainTip RPC: {e}"))?;
+            Ok(chain_tip_notice(resp.into_inner()))
+        })
+        .await
+    }
+
+    /// Wait up to `wait` for a `SubscribeBlocks` tip that differs from
+    /// `last_height` / `last_hash`, or is lower than `last_height`.
+    ///
+    /// `Ok(None)` is a timeout. `Err` means the stream died; the caller falls
+    /// back to a jittered poll and one `GetChainTip`.
+    pub async fn await_tip_change(
+        &self,
+        wait: Duration,
+        last_height: u32,
+        last_hash: &[u8],
+    ) -> Result<Option<ChainTipNotice>, String> {
+        let last_hash = last_hash.to_vec();
+        async_compat::Compat::new(async move {
+            let channel = self.connect_channel().await?;
+            let mut client = lwd_client(channel);
+            let mut stream = client
+                .subscribe_blocks(lightwallet_proto::Empty {})
+                .await
+                .map_err(|e| format!("SubscribeBlocks RPC: {e}"))?
+                .into_inner();
+            let deadline = tokio::time::Instant::now() + wait;
+            loop {
+                let left = deadline.saturating_duration_since(tokio::time::Instant::now());
+                if left.is_zero() {
+                    return Ok(None);
+                }
+                match tokio::time::timeout(left, stream.message()).await {
+                    Ok(Ok(Some(tip))) => {
+                        let notice = chain_tip_notice(tip);
+                        let lower = notice.height < last_height;
+                        let changed = notice.height != last_height
+                            || notice.hash.as_slice() != last_hash.as_slice();
+                        if lower || changed {
+                            return Ok(Some(notice));
+                        }
+                    }
+                    Ok(Ok(None)) => return Err("SubscribeBlocks ended".into()),
+                    Ok(Err(e)) => return Err(format!("SubscribeBlocks stream: {e}")),
+                    Err(_) => return Ok(None),
+                }
+            }
+        })
+        .await
+    }
+
     pub async fn register_clue_public_key(
         &self,
         payment_pubkey: Vec<u8>,
@@ -1510,7 +1843,13 @@ impl LightwalletClient {
                 let tx = lightwallet_proto::RawTransaction::decode(body)
                     .map_err(|e| format!("SendTransaction decode: {e}"))?;
                 let hash = self
-                    .send_transaction(tx.data, tx.omr_clue, tx.omr_metadata_enc)
+                    .send_transaction_inner(
+                        tx.data,
+                        tx.omr_clue,
+                        tx.omr_clue_output_index,
+                        tx.omr_metadata_enc,
+                        tx.extra_omr_clues,
+                    )
                     .await?;
                 Ok(lightwallet_proto::SendResponse {
                     tx_hash: hash,
@@ -1571,10 +1910,10 @@ impl LightwalletClient {
                     self.metrics.pir_requests.fetch_add(1, Ordering::Relaxed);
                     return Ok(payloads);
                 }
-                Err(e) if pir_is_resource_exhausted(&e) && attempt + 1 < MAX_TRIES => {
+                Err(e) if attempt + 1 < MAX_TRIES => {
                     tracing::warn!(
                         target: "lightwallet-client",
-                        "FetchPirBatch ResourceExhausted (try {}/{MAX_TRIES}); backing off {delay_ms}ms",
+                        "FetchPirBatch failed (try {}/{MAX_TRIES}); backing off {delay_ms}ms",
                         attempt + 1
                     );
                     smol::Timer::after(std::time::Duration::from_millis(delay_ms)).await;
@@ -1983,9 +2322,127 @@ pub fn pad_block_range(start: u32, end: u32, tip: u32) -> (u32, u32) {
     (aligned_start, aligned_end)
 }
 
-fn pir_is_resource_exhausted(error: &str) -> bool {
-    let lower = error.to_ascii_lowercase();
-    lower.contains("resourceexhausted") || lower.contains("resource exhausted")
+fn chain_tip_notice(tip: lightwallet_proto::ChainTip) -> ChainTipNotice {
+    ChainTipNotice {
+        height: tip.height,
+        hash: tip.hash,
+        prev_hash: tip.prev_hash,
+        timestamp: tip.timestamp,
+    }
+}
+
+/// Group compact output bodies into blocks the trial-decrypt path already understands.
+pub fn compact_bodies_to_blocks(bodies: Vec<CompactOutputBodyDto>) -> Vec<LightCompactBlock> {
+    use std::collections::BTreeMap;
+
+    let mut by_height: BTreeMap<u32, (Vec<u8>, Vec<u8>, BTreeMap<Vec<u8>, Vec<LightCompactOutput>>)> =
+        BTreeMap::new();
+    for body in bodies {
+        let entry = by_height.entry(body.height).or_insert_with(|| {
+            (
+                body.hash.clone(),
+                body.prev_hash.clone(),
+                BTreeMap::new(),
+            )
+        });
+        entry.2.entry(body.tx_hash).or_default().push(LightCompactOutput {
+            coin: body.coin,
+            encrypted_note: body.encrypted_note,
+            value_commit: Vec::new(),
+            token_commit: Vec::new(),
+            omr_clue: body.omr_clue,
+            omr_metadata_enc: body.omr_metadata_enc,
+        });
+    }
+    by_height
+        .into_iter()
+        .map(|(height, (hash, prev_hash, txs))| LightCompactBlock {
+            height,
+            hash,
+            prev_hash,
+            timestamp: 0,
+            txs: txs
+                .into_iter()
+                .map(|(tx_hash, outputs)| LightCompactTx {
+                    tx_hash,
+                    outputs,
+                    nullifiers: Vec::new(),
+                    fee: 0,
+                })
+                .collect(),
+        })
+        .collect()
+}
+
+/// Wallet clues for every non-payment Money output. The recipient clue is
+/// not copied onto change or fee outputs.
+pub async fn self_change_omr_clues(
+    tx_data: &[u8],
+    wallet_secret: &[u8],
+    network: u8,
+    payment_index: u32,
+    payment_clue: &[u8],
+) -> Result<Vec<lightwallet_proto::OutputOmrClue>, String> {
+    if payment_clue.is_empty() {
+        return Ok(Vec::new());
+    }
+    let indexes = money_compact_output_indexes(tx_data).await?;
+    let (_sk, pk) = crate::unifomr::clue_keypair_from_wallet(wallet_secret, network)?;
+    let clue = crate::unifomr::build_omr_clue_from_pk(&pk);
+    Ok(clues_for_indexes(
+        &non_payment_output_indexes(indexes.len() as u32, payment_index),
+        &clue,
+    ))
+}
+
+/// Compact-block output indexes for non-`tx_local` Money outputs, in the
+/// same call order lightwalletd uses when it builds `CompactTx.outputs`.
+async fn money_compact_output_indexes(tx_data: &[u8]) -> Result<Vec<u32>, String> {
+    use darkfi_money_contract::{
+        model::{MoneyFeeParamsV1, MoneyTransferParamsV1},
+        MoneyFunction,
+    };
+    use darkfi_sdk::crypto::contract_id::MONEY_CONTRACT_ID;
+    use darkfi_serial::deserialize_async;
+
+    let tx: darkfi::tx::Transaction = deserialize_async(tx_data)
+        .await
+        .map_err(|e| format!("decode tx for change clues: {e}"))?;
+    let mut indexes = Vec::new();
+    let mut next = 0u32;
+    for call in &tx.calls {
+        if call.data.contract_id != *MONEY_CONTRACT_ID {
+            continue;
+        }
+        let data = &call.data.data;
+        if data.is_empty() {
+            continue;
+        }
+        let visible = match MoneyFunction::try_from(data[0]) {
+            Ok(MoneyFunction::TransferV1) => {
+                let params = deserialize_async::<MoneyTransferParamsV1>(&data[1..])
+                    .await
+                    .map_err(|e| format!("transfer params: {e}"))?;
+                params.outputs.iter().filter(|o| !o.tx_local).count()
+            }
+            Ok(MoneyFunction::FeeV1) => {
+                if data.len() < 10 {
+                    0
+                } else {
+                    let params = deserialize_async::<MoneyFeeParamsV1>(&data[9..])
+                        .await
+                        .map_err(|e| format!("fee params: {e}"))?;
+                    usize::from(!params.output.tx_local)
+                }
+            }
+            _ => 0,
+        };
+        for _ in 0..visible {
+            indexes.push(next);
+            next = next.saturating_add(1);
+        }
+    }
+    Ok(indexes)
 }
 
 // =============================================================================
@@ -2699,12 +3156,44 @@ mod tests {
     }
 
     #[test]
-    fn proto_major_mismatch_lockstep_1x() {
-        assert!(!proto_major_mismatch("1.0.0", CLIENT_PROTO_VERSION));
-        assert!(!proto_major_mismatch("1.2.3", CLIENT_PROTO_VERSION));
-        assert!(proto_major_mismatch("2.0.0", CLIENT_PROTO_VERSION));
+    fn proto_major_mismatch_lockstep_2x() {
+        assert!(!proto_major_mismatch("2.0.0", CLIENT_PROTO_VERSION));
+        assert!(!proto_major_mismatch("2.1.4", CLIENT_PROTO_VERSION));
+        assert!(proto_major_mismatch("1.0.0", CLIENT_PROTO_VERSION));
+        assert!(proto_major_mismatch("3.0.0", CLIENT_PROTO_VERSION));
         assert!(!proto_major_mismatch("", CLIENT_PROTO_VERSION));
         assert!(!proto_major_mismatch("not-semver", CLIENT_PROTO_VERSION));
+    }
+
+    #[test]
+    fn change_clue_indexes_skip_the_payment_output() {
+        assert!(non_payment_output_indexes(1, 0).is_empty());
+        assert_eq!(non_payment_output_indexes(3, 0), vec![1, 2]);
+        assert_eq!(non_payment_output_indexes(4, 2), vec![0, 1, 3]);
+    }
+
+    #[test]
+    fn wallet_change_clue_is_not_copied_from_the_recipient() {
+        let secret = [9u8; 32];
+        let (_sk, pk) = crate::unifomr::clue_keypair_from_wallet(&secret, 1).unwrap();
+        let wallet_clue = crate::unifomr::build_omr_clue_from_pk(&pk);
+        let recipient_clue = vec![0xab; wallet_clue.len().max(1)];
+        let clues = clues_for_indexes(&[1, 2], &wallet_clue);
+        assert_eq!(clues.len(), 2);
+        assert!(clues.iter().all(|c| c.output_index != 0));
+        assert!(clues.iter().all(|c| c.omr_clue == wallet_clue));
+        assert!(clues
+            .iter()
+            .all(|c| c.omr_clue.as_slice() != recipient_clue.as_slice()));
+    }
+
+    #[test]
+    fn pool_miss_detects_not_found_and_expiry() {
+        assert!(pool_digest_needs_reregister(
+            "GetUnifOmrDigestFromPool RPC: status: NotFound, message: \"handle expired\""
+        ));
+        assert!(pool_digest_needs_reregister("not found"));
+        assert!(!pool_digest_needs_reregister("transport error"));
     }
 
     #[test]

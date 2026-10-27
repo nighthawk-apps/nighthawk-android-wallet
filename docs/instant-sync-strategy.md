@@ -78,6 +78,7 @@ documents that direct `darkfid` sync is disabled in production behind
 
 ## See Also
 
+- [docs/wallet-sync-speed-plan.md](wallet-sync-speed-plan.md) — catch-up and steady-state plan (historical snapshots, padded ranges, detection-key pool). Replaces the tip-only checkpoint design below.
 - [docs/UPGRADE_OMR.md](UPGRADE_OMR.md) — UnifOMR Param2 upgrade details
 - [docs/security-threat-model.md](security-threat-model.md) — privacy model
 - [docs/Architecture.md](Architecture.md) — overall app architecture

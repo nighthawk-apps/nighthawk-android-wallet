@@ -114,6 +114,21 @@ object AppNymCoordinator {
     }
 
     /**
+     * Settings change that must outlive the screen. Choosing Nym shows the splash, which
+     * disposes the settings composition and would cancel a [rememberCoroutineScope] job
+     * before the tunnel is marked ready.
+     */
+    fun applyPrivacyNetworkAsync(
+        context: Context,
+        network: PrivacyNetwork,
+        walletCoordinator: DarkfiWalletCoordinator,
+    ) {
+        scope.launch {
+            applyPrivacyNetwork(context, network, walletCoordinator)
+        }
+    }
+
+    /**
      * Settings change: persist the app network, bring up the matching proxy (stopping the others),
      * move DarkIRC / darkfid P2P onto it, and reopen the wallet.
      */

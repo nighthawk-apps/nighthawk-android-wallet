@@ -29,7 +29,11 @@ pub enum LightSyncStatus {
     Connecting,
     /// Actively downloading and processing blocks
     Syncing,
-    /// Fully synced to chain tip
+    /// Notes may update while the Money tree or scan cursor is still behind
+    /// the tip. Send stays disabled until [`Self::Synced`].
+    Scanning,
+    /// Tree includes genesis (snapshot or replay) and the scan cursor is at the tip.
+    /// Not set when only the UnifOMR match set has been decrypted.
     Synced,
     /// Retrying after a transient failure
     Retrying,
@@ -45,6 +49,7 @@ impl fmt::Display for LightSyncStatus {
             Self::Disconnected => write!(f, "Disconnected"),
             Self::Connecting => write!(f, "Connecting"),
             Self::Syncing => write!(f, "Syncing"),
+            Self::Scanning => write!(f, "Scanning"),
             Self::Synced => write!(f, "Synced"),
             Self::Retrying => write!(f, "Retrying"),
             Self::Degraded => write!(f, "Degraded"),
@@ -166,6 +171,16 @@ impl LightSyncState {
                     )
                 } else {
                     "Syncing…".to_string()
+                }
+            }
+            LightSyncStatus::Scanning => {
+                if self.chain_tip > 0 {
+                    format!(
+                        "Scanning block {} of {} — send disabled until synced",
+                        self.scanned_height, self.chain_tip
+                    )
+                } else {
+                    "Scanning — send disabled until synced".to_string()
                 }
             }
             LightSyncStatus::Synced => format!("Synced · Block {}", self.chain_tip),
@@ -832,6 +847,7 @@ impl SyncEngine {
         *self.verified_chain_name.lock().unwrap() = None;
         self.clear_last_accepted_block();
         self.clear_chain_identity_file();
+        crate::lightwallet_client::clear_detection_key_pool();
 
         tracing::info!(
             target: "sync-engine",
@@ -949,6 +965,7 @@ mod tests {
         assert_eq!(LightSyncStatus::Disconnected.to_string(), "Disconnected");
         assert_eq!(LightSyncStatus::Connecting.to_string(), "Connecting");
         assert_eq!(LightSyncStatus::Syncing.to_string(), "Syncing");
+        assert_eq!(LightSyncStatus::Scanning.to_string(), "Scanning");
         assert_eq!(LightSyncStatus::Synced.to_string(), "Synced");
         assert_eq!(LightSyncStatus::Retrying.to_string(), "Retrying");
         assert_eq!(LightSyncStatus::Degraded.to_string(), "Degraded");

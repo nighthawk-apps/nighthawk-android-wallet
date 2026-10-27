@@ -172,6 +172,7 @@ pub fn nym_status() -> String {
 }
 
 /// Block until the Nym tunnel is up (or `timeout` elapses / bootstrap failed).
+#[cfg(test)]
 pub fn wait_until_running(timeout: Duration) -> Result<(), crate::DarkfiWalletNativeError> {
     let deadline = Instant::now() + timeout;
     loop {

@@ -38,6 +38,10 @@ pub struct ChainTip {
     pub timestamp: u64,
     #[prost(uint32, tag = "4")]
     pub block_target: u32,
+    /// 32-byte blake3 previous header hash. Lets a subscriber see a rewind
+    /// without a second RPC.
+    #[prost(bytes = "vec", tag = "5")]
+    pub prev_hash: ::prost::alloc::vec::Vec<u8>,
 }
 /// A compact representation of a DarkFi block, stripped of ZK proofs and
 /// signatures. Contains only the data needed for wallet sync:
@@ -178,6 +182,55 @@ pub struct RawTransaction {
     /// LWD stores opaquely and merges into CompactOutput.omr_metadata_enc on confirm.
     #[prost(bytes = "vec", tag = "4")]
     pub omr_metadata_enc: ::prost::alloc::vec::Vec<u8>,
+    /// Clues for the sender's own outputs (transfer change, fee change).
+    /// Index 0 stays on omr_clue above. One clue per output index.
+    #[prost(message, repeated, tag = "5")]
+    pub extra_omr_clues: ::prost::alloc::vec::Vec<OutputOmrClue>,
+}
+/// A UnifOMR clue bound to one compact-block output of the transaction.
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct OutputOmrClue {
+    #[prost(uint32, tag = "1")]
+    pub output_index: u32,
+    #[prost(bytes = "vec", tag = "2")]
+    pub omr_clue: ::prost::alloc::vec::Vec<u8>,
+}
+/// Output fields trial decrypt and the Money tree need. One row per coin.
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct CompactOutputBody {
+    #[prost(uint32, tag = "1")]
+    pub height: u32,
+    #[prost(bytes = "vec", tag = "2")]
+    pub hash: ::prost::alloc::vec::Vec<u8>,
+    #[prost(bytes = "vec", tag = "3")]
+    pub prev_hash: ::prost::alloc::vec::Vec<u8>,
+    #[prost(bytes = "vec", tag = "4")]
+    pub coin: ::prost::alloc::vec::Vec<u8>,
+    #[prost(bytes = "vec", tag = "5")]
+    pub encrypted_note: ::prost::alloc::vec::Vec<u8>,
+    #[prost(bytes = "vec", tag = "6")]
+    pub omr_clue: ::prost::alloc::vec::Vec<u8>,
+    #[prost(bytes = "vec", tag = "7")]
+    pub omr_metadata_enc: ::prost::alloc::vec::Vec<u8>,
+    #[prost(bytes = "vec", tag = "8")]
+    pub tx_hash: ::prost::alloc::vec::Vec<u8>,
+}
+/// Server-chosen handle for a pooled detection key. Do not log `handle`.
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct DetectionKeyHandle {
+    #[prost(bytes = "vec", tag = "1")]
+    pub handle: ::prost::alloc::vec::Vec<u8>,
+    #[prost(uint64, tag = "2")]
+    pub expires_unix: u64,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct PoolDigestRequest {
+    #[prost(bytes = "vec", tag = "1")]
+    pub handle: ::prost::alloc::vec::Vec<u8>,
+    #[prost(uint32, tag = "2")]
+    pub start_height: u32,
+    #[prost(uint32, tag = "3")]
+    pub end_height: u32,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct OmrClueRegistration {
@@ -591,13 +644,15 @@ pub mod dark_fi_light_wallet_client {
                 );
             self.inner.unary(req, path, codec).await
         }
-        /// Subscribe to new blocks as they are finalized.
-        /// The server streams CompactBlock messages for each new block.
+        /// Subscribe to chain-tip notices as blocks are finalized.
+        /// The server streams ChainTip (not compact blocks). A slow client is not
+        /// dropped; the next tip it reads is compared with the last applied height
+        /// and any gap is filled by the normal padded sync.
         pub async fn subscribe_blocks(
             &mut self,
             request: impl tonic::IntoRequest<super::Empty>,
         ) -> std::result::Result<
-            tonic::Response<tonic::codec::Streaming<super::CompactBlock>>,
+            tonic::Response<tonic::codec::Streaming<super::ChainTip>>,
             tonic::Status,
         > {
             self.inner
@@ -682,6 +737,68 @@ pub mod dark_fi_light_wallet_client {
                     ),
                 );
             self.inner.client_streaming(req, path, codec).await
+        }
+        /// Upload a detection key once per handle lifetime. The first chunk still
+        /// carries num_keys. start_height / end_height on the chunks are ignored;
+        /// the range belongs on PoolDigestRequest.
+        pub async fn register_detection_key(
+            &mut self,
+            request: impl tonic::IntoStreamingRequest<Message = super::DetectionKeyChunk>,
+        ) -> std::result::Result<
+            tonic::Response<super::DetectionKeyHandle>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic::codec::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/darkfi.lightwallet.DarkFiLightWallet/RegisterDetectionKey",
+            );
+            let mut req = request.into_streaming_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "darkfi.lightwallet.DarkFiLightWallet",
+                        "RegisterDetectionKey",
+                    ),
+                );
+            self.inner.client_streaming(req, path, codec).await
+        }
+        /// Evaluate a previously registered detection key over a padded height window.
+        pub async fn get_unif_omr_digest_from_pool(
+            &mut self,
+            request: impl tonic::IntoRequest<super::PoolDigestRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::OmrDigestResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic::codec::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/darkfi.lightwallet.DarkFiLightWallet/GetUnifOmrDigestFromPool",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "darkfi.lightwallet.DarkFiLightWallet",
+                        "GetUnifOmrDigestFromPool",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
         }
         /// Phase 2: Batch PIR Fetch (Non-Linear Payload Retrieval)
         pub async fn fetch_pir_batch(
@@ -769,6 +886,9 @@ pub mod dark_fi_light_wallet_client {
             self.inner.unary(req, path, codec).await
         }
         /// Get all note commitments (coins) added in a block range.
+        /// The range must be a power-of-two bucket (minimum 1024) ending at or
+        /// before the tip, the same rule as the client's pad_block_range.
+        /// Clients drop heights outside the real scan window after receiving them.
         pub async fn get_note_commitments(
             &mut self,
             request: impl tonic::IntoRequest<super::BlockRange>,
@@ -799,6 +919,8 @@ pub mod dark_fi_light_wallet_client {
             self.inner.server_streaming(req, path, codec).await
         }
         /// Get all nullifiers revealed in a block range.
+        /// Same padding rule as GetNoteCommitments. Clients drop heights outside
+        /// the real scan window before applying spends.
         pub async fn get_nullifiers(
             &mut self,
             request: impl tonic::IntoRequest<super::BlockRange>,
@@ -824,6 +946,38 @@ pub mod dark_fi_light_wallet_client {
                     GrpcMethod::new(
                         "darkfi.lightwallet.DarkFiLightWallet",
                         "GetNullifiers",
+                    ),
+                );
+            self.inner.server_streaming(req, path, codec).await
+        }
+        /// Stream per-output bodies for trial decrypt and the Money tree when PIR
+        /// fails. Same padding rule as GetNoteCommitments. Does not include fees
+        /// or value commitments; GetBlockRange remains for those.
+        pub async fn get_compact_output_bodies(
+            &mut self,
+            request: impl tonic::IntoRequest<super::BlockRange>,
+        ) -> std::result::Result<
+            tonic::Response<tonic::codec::Streaming<super::CompactOutputBody>>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic::codec::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/darkfi.lightwallet.DarkFiLightWallet/GetCompactOutputBodies",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "darkfi.lightwallet.DarkFiLightWallet",
+                        "GetCompactOutputBodies",
                     ),
                 );
             self.inner.server_streaming(req, path, codec).await
@@ -858,9 +1012,10 @@ pub mod dark_fi_light_wallet_client {
             self.inner.unary(req, path, codec).await
         }
         /// Get a checkpoint snapshot for instant wallet restore.
-        /// Tip-only: preferred_height must be 0 or equal to the current tip.
-        /// The server streams the snapshot (tree + cursor) so a new device can
-        /// skip replaying [0, tip] when the client accepts a tip snapshot.
+        /// preferred_height 0 asks for the latest snapshot. Any other value asks
+        /// for the greatest snapshot whose height is <= preferred_height.
+        /// The server streams the snapshot (tree + cursor) in 1 MiB chunks.
+        /// scan_cursor is the tree position, not "notes decrypted".
         pub async fn get_checkpoint_snapshot(
             &mut self,
             request: impl tonic::IntoRequest<super::CheckpointRequest>,

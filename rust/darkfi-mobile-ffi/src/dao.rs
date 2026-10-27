@@ -142,6 +142,40 @@ pub async fn list_proposals(
         .collect())
 }
 
+/// Broadcast a built transaction through lightwalletd when a URL is configured.
+/// Falls back to darkfid only when no lightwalletd URL was given.
+async fn broadcast_wallet_tx(
+    drk: &Drk,
+    tx: &darkfi::tx::Transaction,
+    lightwallet_server_url: Option<&str>,
+    lightwallet_tls_pin: Option<[u8; 32]>,
+) -> Result<(), String> {
+    if let Some(url) = lightwallet_server_url
+        .map(str::trim)
+        .filter(|s| !s.is_empty())
+    {
+        let bytes = darkfi_serial::serialize_async(tx).await;
+        let url = crate::lightwallet_client::normalize_lightwallet_url(url);
+        let client = crate::lightwallet_client::LightwalletClient::from_endpoint_and_pin(
+            &url,
+            lightwallet_tls_pin,
+        );
+        client
+            .send_transaction(bytes, Vec::new(), Vec::new())
+            .await
+            .map_err(|e| format!("broadcast via lightwalletd: {e}"))?;
+    } else {
+        let mut output = Vec::new();
+        drk.broadcast_tx(tx, &mut output)
+            .await
+            .map_err(|e| format!("broadcast via darkfid: {e}"))?;
+    }
+    if let Err(e) = crate::sync::remember_own_outputs_from_tx(drk, tx).await {
+        tracing::warn!(target: "wallet-tx", "own fee notes not recorded yet: {e}");
+    }
+    Ok(())
+}
+
 /// Create a DAO transfer proposal, build the on-chain propose transaction,
 /// broadcast it, and return the proposal bulla as b58.
 pub async fn propose_transfer(
@@ -199,11 +233,7 @@ pub async fn propose_transfer(
         .await
         .map_err(|e| format!("dao_transfer_proposal_tx: {e}"))?;
 
-    // Step 3: Broadcast
-    let mut output = Vec::new();
-    drk.broadcast_tx(&tx, &mut output)
-        .await
-        .map_err(|e| format!("broadcast propose tx: {e}"))?;
+    broadcast_wallet_tx(drk, &tx, lightwallet_server_url, lightwallet_tls_pin).await?;
 
     Ok(base_to_b58(proposal_bulla.inner()))
 }
@@ -235,11 +265,7 @@ pub async fn vote_on_proposal(
         .await
         .map_err(|e| format!("dao_vote: {e}"))?;
 
-    // Broadcast
-    let mut output = Vec::new();
-    drk.broadcast_tx(&tx, &mut output)
-        .await
-        .map_err(|e| format!("broadcast vote tx: {e}"))?;
+    broadcast_wallet_tx(drk, &tx, lightwallet_server_url, lightwallet_tls_pin).await?;
 
     Ok(tx.hash().to_string())
 }

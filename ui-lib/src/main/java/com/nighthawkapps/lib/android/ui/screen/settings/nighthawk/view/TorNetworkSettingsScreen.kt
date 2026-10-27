@@ -85,13 +85,11 @@ internal fun TorNetworkSettingsScreen(onBack: () -> Unit) {
             onSelect = { network ->
                 if (network != privacyNetwork) {
                     privacyNetwork = network
-                    scope.launch {
-                        AppNymCoordinator.applyPrivacyNetwork(
-                            context,
-                            network,
-                            AppWalletCoordinator.get(context),
-                        )
-                    }
+                    AppNymCoordinator.applyPrivacyNetworkAsync(
+                        context,
+                        network,
+                        AppWalletCoordinator.get(context),
+                    )
                 }
             },
         )
