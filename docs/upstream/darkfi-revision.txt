@@ -1,7 +1,7 @@
-e4e624179305952c95af1360100d379a81272586
+0e87090e9aa550d046c707b74ef5869269205f83
 # nighthawk24/darkfi branch nighthawk-testnet
 # Upstream is https://git.dark.fi/darkrenaissance/darkfi — do not clone the GitHub mirror.
-# This pin is not on git.dark.fi. It is dark.fi master (1cd71ea34) merged onto the
+# This pin is not on git.dark.fi. It is dark.fi master (37a4c5b76) merged onto the
 # Arti 0.45 pin. Upstream master is still Arti 0.42; this branch keeps 0.45.
 # Also keeps the kvdb-overlay pin, EventGraph mesh ingest, public Drk::scan_block,
 # scan_blocks without progress_pub, and darkfid sync hardening.
