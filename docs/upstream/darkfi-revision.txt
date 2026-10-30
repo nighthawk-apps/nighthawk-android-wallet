@@ -1,8 +1,12 @@
-9934daaede8ebbb1a5cd6bff2d3b40e93b48f23e
+8af61b3f03b47164b4e4e01fcdc84e2744cb8570
 # nighthawk24/darkfi branch nighthawk-testnet
 # Upstream is https://git.dark.fi/darkrenaissance/darkfi — do not clone the GitHub mirror.
-# This pin is not on git.dark.fi. It is dark.fi master (37a4c5b76) merged onto the
+# This pin is not on git.dark.fi. It is dark.fi master (0f985c7cf) merged onto the
 # Nighthawk branch, with Tor on Arti 0.47. Upstream master is still Arti 0.42.
+# 0f985c7cf pays fees from a tx-local change output when that output can cover
+# the fee, and falls back to another DRK coin. TransactionBuilder leaves carry
+# secret keys and build_signed() signs them. money_call_nullifiers lives on the
+# money client and includes burn.
 # blake3 stays 1.8.3 for nym-crypto 2.0.0. kvdb-overlay, RandomX, and rust-url are
 # fetched from GitLab, Codeberg, and GitHub while git.dark.fi returns HTTP 504.
 # Also keeps the kvdb-overlay pin, EventGraph mesh ingest, public Drk::scan_block,

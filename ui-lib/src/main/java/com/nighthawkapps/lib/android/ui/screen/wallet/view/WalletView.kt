@@ -301,6 +301,7 @@ fun WalletView(
                                     onFlipCurrency = {},
                                 )
                             }
+
                             BalanceViewType.ASSETS -> {
                                 TokenPortfolio(
                                     nativeAtomic = walletSnapshot.spendableBalanceAtomic(),
@@ -445,8 +446,7 @@ private fun WalletActionButton(
                     } else {
                         MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)
                     },
-                )
-                .clickable(enabled = enabled, onClick = onClick)
+                ).clickable(enabled = enabled, onClick = onClick)
                 .padding(horizontal = 14.dp, vertical = 10.dp),
         contentAlignment = Alignment.Center,
     ) {
@@ -572,8 +572,7 @@ fun BalanceAmountRow(
     }
 }
 
-fun isSyncing(status: DarkfiSyncStatus): Boolean =
-    status == DarkfiSyncStatus.SYNCING || status == DarkfiSyncStatus.SCANNING
+fun isSyncing(status: DarkfiSyncStatus): Boolean = status == DarkfiSyncStatus.SYNCING || status == DarkfiSyncStatus.SCANNING
 
 fun isSendDisabled(status: DarkfiSyncStatus): Boolean =
     status == DarkfiSyncStatus.ERROR ||

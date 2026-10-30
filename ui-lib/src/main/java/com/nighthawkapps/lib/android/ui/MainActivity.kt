@@ -1,7 +1,6 @@
 package com.nighthawkapps.lib.android.ui
 
 import android.annotation.SuppressLint
-import android.graphics.Color as AndroidColor
 import android.os.Build
 import android.os.Bundle
 import android.os.SystemClock
@@ -17,10 +16,6 @@ import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
 import androidx.annotation.VisibleForTesting
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.runtime.mutableLongStateOf
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.material3.LinearProgressIndicator
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -29,14 +24,18 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
+import androidx.compose.foundation.layout.width
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -57,10 +56,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.navigation.NavHostController
-import com.nighthawkapps.lib.android.sdk.mesh.MeshCoordinator
-import kotlinx.coroutines.delay
 import com.nighthawkapps.lib.android.global.AppWalletCoordinator
-import com.nighthawkapps.lib.android.ui.splash.NymSplashProgress
+import com.nighthawkapps.lib.android.sdk.mesh.MeshCoordinator
 import com.nighthawkapps.lib.android.sdk.net.PrivacyNetwork
 import com.nighthawkapps.lib.android.sdk.nym.AppNymCoordinator
 import com.nighthawkapps.lib.android.sdk.tor.AppTorCoordinator
@@ -76,6 +73,8 @@ import com.nighthawkapps.lib.android.ui.design.component.ConfigurationOverride
 import com.nighthawkapps.lib.android.ui.design.component.Override
 import com.nighthawkapps.lib.android.ui.design.theme.AppThemeVariant
 import com.nighthawkapps.lib.android.ui.design.theme.WalletTheme
+import com.nighthawkapps.lib.android.ui.preference.StandardPreferenceKeys
+import com.nighthawkapps.lib.android.ui.preference.StandardPreferenceSingleton
 import com.nighthawkapps.lib.android.ui.screen.home.viewmodel.HomeViewModel
 import com.nighthawkapps.lib.android.ui.screen.home.viewmodel.SecretState
 import com.nighthawkapps.lib.android.ui.screen.home.viewmodel.WalletViewModel
@@ -84,10 +83,10 @@ import com.nighthawkapps.lib.android.ui.screen.onboarding.nighthawk.view.Onboard
 import com.nighthawkapps.lib.android.ui.screen.onboarding.nighthawk.view.SeedBackup
 import com.nighthawkapps.lib.android.ui.screen.pin.AndroidPin
 import com.nighthawkapps.lib.android.ui.screen.warning.WrapNotEnoughSpace
-import com.nighthawkapps.lib.android.ui.preference.StandardPreferenceKeys
-import com.nighthawkapps.lib.android.ui.preference.StandardPreferenceSingleton
 import com.nighthawkapps.lib.android.ui.screen.warning.viewmodel.StorageCheckViewModel
+import com.nighthawkapps.lib.android.ui.splash.NymSplashProgress
 import com.nighthawkapps.lib.android.work.WorkIds
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
@@ -97,6 +96,7 @@ import kotlinx.coroutines.launch
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
+import android.graphics.Color as AndroidColor
 
 class MainActivity : FragmentActivity() {
     private val homeViewModel by viewModels<HomeViewModel>()
@@ -559,9 +559,10 @@ class MainActivity : FragmentActivity() {
         val torState by AppTorCoordinator.bootstrapState.collectAsStateWithLifecycle()
         val nymState by AppNymCoordinator.bootstrapState.collectAsStateWithLifecycle()
         val splash = SplashNetworkState.of(nymState, torState)
-        val onboardingPrefs = remember {
-            getSharedPreferences("nighthawk_onboarding", MODE_PRIVATE)
-        }
+        val onboardingPrefs =
+            remember {
+                getSharedPreferences("nighthawk_onboarding", MODE_PRIVATE)
+            }
         var onboardingDone by remember {
             mutableStateOf(onboardingPrefs.getBoolean("has_completed_onboarding", false))
         }

@@ -230,24 +230,26 @@ class NighthawkBleLink(
             SecureRandom().nextBytes(sessionHint)
         }
         val settings =
-            AdvertiseSettings.Builder()
+            AdvertiseSettings
+                .Builder()
                 .setAdvertiseMode(
                     if (foreground) {
                         AdvertiseSettings.ADVERTISE_MODE_LOW_LATENCY
                     } else {
                         AdvertiseSettings.ADVERTISE_MODE_LOW_POWER
                     },
-                )
-                .setConnectable(true)
+                ).setConnectable(true)
                 .setTimeout(0)
                 .build()
         val data =
-            AdvertiseData.Builder()
+            AdvertiseData
+                .Builder()
                 .addServiceUuid(ParcelUuid(MeshGattConstants.SERVICE_UUID))
                 .setIncludeDeviceName(false)
                 .build()
         val scan =
-            AdvertiseData.Builder()
+            AdvertiseData
+                .Builder()
                 .addServiceData(ParcelUuid(MeshGattConstants.SERVICE_UUID), sessionHint)
                 .build()
         try {
@@ -305,19 +307,20 @@ class NighthawkBleLink(
         val sc = scanner ?: return
         if (scanning) return
         val filter =
-            ScanFilter.Builder()
+            ScanFilter
+                .Builder()
                 .setServiceUuid(ParcelUuid(MeshGattConstants.SERVICE_UUID))
                 .build()
         val settings =
-            ScanSettings.Builder()
+            ScanSettings
+                .Builder()
                 .setScanMode(
                     if (foreground) {
                         ScanSettings.SCAN_MODE_BALANCED
                     } else {
                         ScanSettings.SCAN_MODE_LOW_POWER
                     },
-                )
-                .build()
+                ).build()
         try {
             sc.startScan(listOf(filter), settings, scanCallback)
             scanning = true
@@ -436,7 +439,8 @@ class NighthawkBleLink(
             ) {
                 if (status != BluetoothGatt.GATT_SUCCESS) return
                 val ch =
-                    gatt.getService(MeshGattConstants.SERVICE_UUID)
+                    gatt
+                        .getService(MeshGattConstants.SERVICE_UUID)
                         ?.getCharacteristic(MeshGattConstants.CHARACTERISTIC_UUID)
                         ?: return
                 try {
@@ -577,8 +581,7 @@ class NighthawkBleLink(
         meshToAtt[meshHex(meshId)] = attKey
     }
 
-    private fun meshHex(id: ByteArray): String =
-        id.joinToString("") { b -> "%02x".format(b.toInt() and 0xff) }
+    private fun meshHex(id: ByteArray): String = id.joinToString("") { b -> "%02x".format(b.toInt() and 0xff) }
 
     @SuppressLint("MissingPermission")
     private fun sendLocked(frame: ByteArray) {

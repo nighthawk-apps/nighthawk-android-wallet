@@ -117,10 +117,10 @@ private object LightStealthTokens {
     val outline = Color(0xFFC5CCD4)
     val outlineVariant = Color(0xFFADB6BF)
 
-    val accent = Color(0xFF4F8FA5)
-    val accentPressed = Color(0xFF3F7A8F)
-    val accentDeep = Color(0xFF356578)
-    val onAccent = Color(0xFFF8FAFB)
+    val accent = Color(0xFF2C333A)
+    val accentPressed = Color(0xFF1C2228)
+    val accentDeep = Color(0xFF12171C)
+    val onAccent = Color(0xFFF7F8FA)
 
     val ink = Color(0xFF1F2832)
     val inkMuted = Color(0xFF5C6570)
@@ -144,14 +144,14 @@ internal object Light {
     val outline = LightStealthTokens.outline
     val outlineVariant = LightStealthTokens.outlineVariant
 
-    val textHeaderOnBackground = LightStealthTokens.accent
+    val textHeaderOnBackground = LightStealthTokens.ink
     val textBodyOnBackground = LightStealthTokens.ink
     val textNavigationButton = LightStealthTokens.inkMuted
     val textPrimaryButton = LightStealthTokens.onAccent
     val textSecondaryButton = LightStealthTokens.ink
-    val textTertiaryButton = LightStealthTokens.accent
+    val textTertiaryButton = LightStealthTokens.ink
     val textCaption = LightStealthTokens.inkSoft
-    val textChipIndex = LightStealthTokens.accentDeep
+    val textChipIndex = LightStealthTokens.inkMuted
 
     val primaryButton = LightStealthTokens.accent
     val primaryButtonPressed = LightStealthTokens.accentPressed
@@ -192,7 +192,7 @@ internal object Light {
     val dangerous = Color(0xFFB3261E)
     val onDangerous = Color(0xFFFFFFFF)
 
-    val reference = LightStealthTokens.accent
+    val reference = LightStealthTokens.ink
     val divider = LightStealthTokens.outline
     val navigationContainer = LightStealthTokens.tertiaryPanel
     val selectedPageIndicator = LightStealthTokens.accent
@@ -319,15 +319,15 @@ private object PaperTokens {
     val surfaceVariant = Color(0xFFF2F4F7)
     val outline = Color(0xFFD0D7DE)
     val outlineVariant = Color(0xFFE6EBEF)
-    val accent = Color(0xFF0E6A80)
-    val accentPressed = Color(0xFF0B5668)
-    val accentDeep = Color(0xFF084454)
+    val accent = Color(0xFF2C333A)
+    val accentPressed = Color(0xFF1C2228)
+    val accentDeep = Color(0xFF12171C)
     val ink = Color(0xFF12171C)
     val inkBody = Color(0xFF1B242C)
     val inkMuted = Color(0xFF5E6A74)
-    val secondaryFill = Color(0xFFE7EEF2)
-    val secondaryFillHighlight = Color(0xFFD7E2E8)
-    val calloutFill = Color(0xFFE7F3F6)
+    val secondaryFill = Color(0xFFE8EBEE)
+    val secondaryFillHighlight = Color(0xFFDDE1E6)
+    val calloutFill = Color(0xFFEEF1F4)
 }
 
 internal object Paper {
@@ -346,7 +346,7 @@ internal object Paper {
     val textChipIndex = PaperTokens.accentDeep
     val primaryButton = PaperTokens.accent
     val primaryButtonPressed = PaperTokens.accentPressed
-    val primaryContainer = Color(0xFFD7EEF3)
+    val primaryContainer = Color(0xFFE6E9ED)
     val onPrimaryContainer = PaperTokens.ink
     val secondaryButton = PaperTokens.secondaryFill
     val secondaryButtonPressed = PaperTokens.secondaryFillHighlight

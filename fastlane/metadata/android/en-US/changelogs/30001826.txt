@@ -1,0 +1,1 @@
+Light and Paper use graphite and grey instead of teal. iOS type now matches Android: Outfit, Source Sans 3, Source Serif 4 on Paper, and IBM Plex Mono for keys. Fee payment can use change inside the transaction. Needs lightwalletd 0.3.0.

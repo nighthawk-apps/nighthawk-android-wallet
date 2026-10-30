@@ -21,7 +21,10 @@ object LocalNetworkPermission {
     fun runtimePermissions(sdkInt: Int = Build.VERSION.SDK_INT): Array<String> =
         if (isRequired(sdkInt)) arrayOf(ACCESS_LOCAL_NETWORK) else emptyArray()
 
-    fun hasGranted(context: Context, sdkInt: Int = Build.VERSION.SDK_INT): Boolean {
+    fun hasGranted(
+        context: Context,
+        sdkInt: Int = Build.VERSION.SDK_INT
+    ): Boolean {
         val needed = runtimePermissions(sdkInt)
         if (needed.isEmpty()) return true
         return needed.all { perm ->

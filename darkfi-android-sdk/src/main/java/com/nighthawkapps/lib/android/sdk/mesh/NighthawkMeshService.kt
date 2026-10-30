@@ -85,6 +85,7 @@ class NighthawkMeshService : Service() {
                     ensureRadio()
                     applyPower()
                 }
+
                 Lifecycle.Event.ON_STOP -> {
                     appForeground = false
                     applyPower()
@@ -93,7 +94,10 @@ class NighthawkMeshService : Service() {
                         stopSelf()
                     }
                 }
-                else -> Unit
+
+                else -> {
+                    Unit
+                }
             }
         }
 
@@ -113,7 +117,9 @@ class NighthawkMeshService : Service() {
         runningContext = this
         MeshCoordinator.bind(this)
         appForeground =
-            ProcessLifecycleOwner.get().lifecycle.currentState
+            ProcessLifecycleOwner
+                .get()
+                .lifecycle.currentState
                 .isAtLeast(Lifecycle.State.STARTED)
         promoteToForegroundOrStop()
         if (foregroundPromoted) {
@@ -186,8 +192,7 @@ class NighthawkMeshService : Service() {
         stopSelf()
     }
 
-    private fun stickyFlag(): Int =
-        if (MeshCoordinator.stickyRestart()) START_STICKY else START_NOT_STICKY
+    private fun stickyFlag(): Int = if (MeshCoordinator.stickyRestart()) START_STICKY else START_NOT_STICKY
 
     private fun ensureRadio() {
         if (!foregroundPromoted) return
@@ -246,7 +251,8 @@ class NighthawkMeshService : Service() {
         connectivity = cm
         try {
             cm.registerNetworkCallback(
-                NetworkRequest.Builder()
+                NetworkRequest
+                    .Builder()
                     .addTransportType(NetworkCapabilities.TRANSPORT_WIFI)
                     .build(),
                 networkCallback,

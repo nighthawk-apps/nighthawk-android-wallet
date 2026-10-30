@@ -16,8 +16,6 @@ import com.nighthawkapps.lib.android.global.AppDaemonCoordinator
 import com.nighthawkapps.lib.android.global.DeepLinkUtil
 import com.nighthawkapps.lib.android.sdk.wallet.DarkfiAmountFormatter
 import com.nighthawkapps.lib.android.sdk.wallet.DarkfiTransactionOverview
-import com.nighthawkapps.lib.android.ui.preference.StandardPreferenceKeys
-import com.nighthawkapps.lib.android.ui.preference.StandardPreferenceSingleton
 import com.nighthawkapps.lib.android.ui.MainActivity
 import com.nighthawkapps.lib.android.ui.R
 import com.nighthawkapps.lib.android.ui.common.ShortcutAction
@@ -25,6 +23,8 @@ import com.nighthawkapps.lib.android.ui.common.removeTrailingZero
 import com.nighthawkapps.lib.android.ui.common.setPlainText
 import com.nighthawkapps.lib.android.ui.common.showMessage
 import com.nighthawkapps.lib.android.ui.daemon.DarkfiRestartConnectionDialog
+import com.nighthawkapps.lib.android.ui.preference.StandardPreferenceKeys
+import com.nighthawkapps.lib.android.ui.preference.StandardPreferenceSingleton
 import com.nighthawkapps.lib.android.ui.screen.home.viewmodel.HomeViewModel
 import com.nighthawkapps.lib.android.ui.screen.home.viewmodel.WalletViewModel
 import com.nighthawkapps.lib.android.ui.screen.send.model.SendArgumentsWrapper

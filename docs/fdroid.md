@@ -36,7 +36,23 @@ srclib SHA edit.
 
 Tagging alone does **not** run this repo’s GitHub `Deploy` workflow (that is branch/`workflow_dispatch` + Play secrets). F-Droid’s scanner is separate.
 
-## 3.00.025 (this release)
+## 3.00.026 (this release)
+
+| Field | Value |
+|-------|--------|
+| `WALLET_VERSION_NAME` | `3.00.026` |
+| `WALLET_VERSION_CODE` | `30001826` |
+| Suggested git tag | `v3.00.026` |
+| Fastlane changelog | `fastlane/metadata/android/en-US/changelogs/30001826.txt` |
+| DarkFi pin | `8af61b3f03b47164b4e4e01fcdc84e2744cb8570` (`nighthawk-testnet`, Arti 0.47, upstream `0f985c7cf`) |
+
+What's new for testers:
+
+- Light and Paper drop the teal accent. Buttons, links, and progress use graphite on the existing grey surfaces.
+- iOS titles use Outfit, body text uses Source Sans 3, Paper titles use Source Serif 4, and keys use IBM Plex Mono, matching Android and desktop.
+- Sends can pay the fee from change inside the transaction, then fall back to another DRK coin.
+
+## 3.00.025
 
 | Field | Value |
 |-------|--------|

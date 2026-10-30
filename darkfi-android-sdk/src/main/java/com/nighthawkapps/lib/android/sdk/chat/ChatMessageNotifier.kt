@@ -9,8 +9,8 @@ import android.os.Build
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
-import androidx.lifecycle.ProcessLifecycleOwner
 import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.ProcessLifecycleOwner
 import com.nighthawkapps.lib.android.sdk.R
 import com.nighthawkapps.lib.android.spackle.Twig
 
@@ -27,7 +27,10 @@ internal object ChatMessageNotifier {
     ) {
         val app = context.applicationContext
         val foreground =
-            ProcessLifecycleOwner.get().lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED)
+            ProcessLifecycleOwner
+                .get()
+                .lifecycle.currentState
+                .isAtLeast(Lifecycle.State.STARTED)
         if (foreground) return
         if (Build.VERSION.SDK_INT >= 33) {
             val granted =

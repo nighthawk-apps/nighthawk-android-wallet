@@ -96,57 +96,57 @@ internal fun TorNetworkSettingsScreen(onBack: () -> Unit) {
         if (privacyNetwork == PrivacyNetwork.Tor) {
             TorSectionDivider()
             TorSectionHeading(stringResource(R.string.ns_tor_network_section_builtin))
-        BodyMedium(
-            text = stringResource(R.string.ns_tor_network_section_builtin_desc),
-            color = WalletTheme.colors.secondaryTitleText,
-        )
-        Spacer(modifier = Modifier.height(8.dp))
-        TorEmbeddedBuiltinSwitchRow(
-            checked = useEmbeddedTor,
-            enabled = true,
-            onCheckedChange = { enabled ->
-                useEmbeddedTor = enabled
-                prefs.useEmbeddedTor = enabled
-                applyProfileChange()
-            },
-        )
-        TorSectionDivider()
-        TorSectionHeading(stringResource(R.string.ns_tor_network_section_socks))
-        BodyMedium(
-            text =
-                stringResource(
-                    if (useEmbeddedTor) {
-                        R.string.ns_tor_network_section_socks_desc_embedded
-                    } else {
-                        R.string.ns_tor_network_section_socks_desc_external
-                    },
-                ),
-            color = WalletTheme.colors.secondaryTitleText,
-        )
-        Spacer(modifier = Modifier.height(8.dp))
-        TorSocksHostField(
-            enabled = true,
-            socksHost = socksHost,
-            onSocksHostChange = {
-                socksHost = it
-                prefs.socksHost = it
-                applyProfileChange()
-            },
-        )
-        Spacer(modifier = Modifier.height(8.dp))
-        TorSocksPortField(
-            enabled = true,
-            socksPortText = socksPortText,
-            onSocksPortTextChange = { raw ->
-                if (raw.all { it.isDigit() } && raw.length <= 5) {
-                    socksPortText = raw
-                    raw.toIntOrNull()?.let {
-                        prefs.socksPort = it
-                        applyProfileChange()
+            BodyMedium(
+                text = stringResource(R.string.ns_tor_network_section_builtin_desc),
+                color = WalletTheme.colors.secondaryTitleText,
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            TorEmbeddedBuiltinSwitchRow(
+                checked = useEmbeddedTor,
+                enabled = true,
+                onCheckedChange = { enabled ->
+                    useEmbeddedTor = enabled
+                    prefs.useEmbeddedTor = enabled
+                    applyProfileChange()
+                },
+            )
+            TorSectionDivider()
+            TorSectionHeading(stringResource(R.string.ns_tor_network_section_socks))
+            BodyMedium(
+                text =
+                    stringResource(
+                        if (useEmbeddedTor) {
+                            R.string.ns_tor_network_section_socks_desc_embedded
+                        } else {
+                            R.string.ns_tor_network_section_socks_desc_external
+                        },
+                    ),
+                color = WalletTheme.colors.secondaryTitleText,
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            TorSocksHostField(
+                enabled = true,
+                socksHost = socksHost,
+                onSocksHostChange = {
+                    socksHost = it
+                    prefs.socksHost = it
+                    applyProfileChange()
+                },
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            TorSocksPortField(
+                enabled = true,
+                socksPortText = socksPortText,
+                onSocksPortTextChange = { raw ->
+                    if (raw.all { it.isDigit() } && raw.length <= 5) {
+                        socksPortText = raw
+                        raw.toIntOrNull()?.let {
+                            prefs.socksPort = it
+                            applyProfileChange()
+                        }
                     }
-                }
-            },
-        )
+                },
+            )
         }
         TorNetworkSettingsFooter(onBack = onBack)
     }

@@ -62,7 +62,12 @@ object AttFrameSplitter {
         attPayload: Int,
     ): List<ByteArray> {
         val cap = max(1, attPayload)
-        val header = ByteBuffer.allocate(4).order(ByteOrder.BIG_ENDIAN).putInt(frame.size).array()
+        val header =
+            ByteBuffer
+                .allocate(4)
+                .order(ByteOrder.BIG_ENDIAN)
+                .putInt(frame.size)
+                .array()
         val stream = header + frame
         return stream.toList().chunked(cap).map { it.toByteArray() }
     }

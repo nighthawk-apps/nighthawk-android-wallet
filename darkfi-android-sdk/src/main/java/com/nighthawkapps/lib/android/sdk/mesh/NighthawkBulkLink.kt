@@ -104,12 +104,14 @@ class NighthawkBulkLink(
         }
         val cm = context.getSystemService(ConnectivityManager::class.java) ?: return
         val specifier =
-            WifiNetworkSpecifier.Builder()
+            WifiNetworkSpecifier
+                .Builder()
                 .setSsid(ssid)
                 .setWpa2Passphrase(psk)
                 .build()
         val request =
-            NetworkRequest.Builder()
+            NetworkRequest
+                .Builder()
                 .addTransportType(NetworkCapabilities.TRANSPORT_WIFI)
                 .setNetworkSpecifier(specifier)
                 .build()
@@ -206,12 +208,14 @@ class NighthawkBulkLink(
         try {
             client.soTimeout = 30_000
             Socket(host, port).use { remote ->
-                val up = Thread {
-                    copy(client, remote)
-                }
-                val down = Thread {
-                    copy(remote, client)
-                }
+                val up =
+                    Thread {
+                        copy(client, remote)
+                    }
+                val down =
+                    Thread {
+                        copy(remote, client)
+                    }
                 up.isDaemon = true
                 down.isDaemon = true
                 up.start()

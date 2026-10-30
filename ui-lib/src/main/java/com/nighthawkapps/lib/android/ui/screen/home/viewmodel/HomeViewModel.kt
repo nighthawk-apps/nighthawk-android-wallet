@@ -19,13 +19,13 @@ import com.nighthawkapps.lib.android.ui.preference.EncryptedPreferenceKeys
 import com.nighthawkapps.lib.android.ui.preference.EncryptedPreferenceSingleton
 import com.nighthawkapps.lib.android.ui.preference.StandardPreferenceKeys
 import com.nighthawkapps.lib.android.ui.preference.StandardPreferenceSingleton
-import com.nighthawkapps.lib.android.ui.theme.isSystemInNightMode
-import com.nighthawkapps.lib.android.ui.theme.systemNightMode
 import com.nighthawkapps.lib.android.ui.screen.fiatcurrency.model.FiatCurrency
 import com.nighthawkapps.lib.android.ui.screen.fiatcurrency.model.FiatCurrencyUiState
 import com.nighthawkapps.lib.android.ui.screen.home.model.WalletSnapshot
 import com.nighthawkapps.lib.android.ui.screen.home.model.spendableBalanceAtomic
 import com.nighthawkapps.lib.android.ui.screen.home.model.totalBalanceAtomic
+import com.nighthawkapps.lib.android.ui.theme.isSystemInNightMode
+import com.nighthawkapps.lib.android.ui.theme.systemNightMode
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted

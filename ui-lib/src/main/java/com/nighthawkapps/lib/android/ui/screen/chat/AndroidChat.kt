@@ -37,9 +37,9 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -65,33 +65,33 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.nighthawkapps.lib.android.global.DeepLinkUtil
-import com.nighthawkapps.lib.android.ui.design.theme.WalletTheme
 import com.nighthawkapps.lib.android.sdk.chat.ChatChannelMessage
 import com.nighthawkapps.lib.android.sdk.chat.DarkfiChatConnectionState
 import com.nighthawkapps.lib.android.sdk.chat.DarkfiChatController
 import com.nighthawkapps.lib.android.sdk.chat.DarkfiChatPreferences
 import com.nighthawkapps.lib.android.sdk.chat.EmbeddedDarkircNodeStatus
+import com.nighthawkapps.lib.android.sdk.chat.darkirc.DarkircChannelCryptoConfig
+import com.nighthawkapps.lib.android.sdk.chat.darkirc.DarkircCryptoManager
+import com.nighthawkapps.lib.android.sdk.chat.darkirc.DarkircDmPubkeyParser
 import com.nighthawkapps.lib.android.sdk.chat.fud.FudOfferInbox
 import com.nighthawkapps.lib.android.sdk.chat.fud.FudTransferDecision
 import com.nighthawkapps.lib.android.sdk.chat.fud.FudTransferPolicy
 import com.nighthawkapps.lib.android.sdk.chat.fud.FudUri
-import com.nighthawkapps.lib.android.sdk.chat.darkirc.DarkircChannelCryptoConfig
-import com.nighthawkapps.lib.android.sdk.chat.darkirc.DarkircCryptoManager
-import com.nighthawkapps.lib.android.sdk.chat.darkirc.DarkircDmPubkeyParser
 import com.nighthawkapps.lib.android.sdk.chat.hud.ChatChrome
 import com.nighthawkapps.lib.android.sdk.chat.hud.ChatInlineSpan
 import com.nighthawkapps.lib.android.sdk.chat.hud.ChatMessageLexer
 import com.nighthawkapps.lib.android.sdk.chat.hud.ChatTimeline
 import com.nighthawkapps.lib.android.sdk.chat.hud.ChatTimelineItem
-import com.nighthawkapps.lib.android.ui.preference.StandardPreferenceKeys
-import com.nighthawkapps.lib.android.ui.preference.StandardPreferenceSingleton
-import com.nighthawkapps.lib.android.ui.screen.home.viewmodel.WalletViewModel
 import com.nighthawkapps.lib.android.ui.MainActivity
 import com.nighthawkapps.lib.android.ui.R
 import com.nighthawkapps.lib.android.ui.common.SecureScreen
 import com.nighthawkapps.lib.android.ui.common.setSensitivePlainText
+import com.nighthawkapps.lib.android.ui.design.theme.WalletTheme
+import com.nighthawkapps.lib.android.ui.preference.StandardPreferenceKeys
+import com.nighthawkapps.lib.android.ui.preference.StandardPreferenceSingleton
 import com.nighthawkapps.lib.android.ui.screen.chat.view.ChatNetworkHud
 import com.nighthawkapps.lib.android.ui.screen.chat.view.ChatNewDmSheet
+import com.nighthawkapps.lib.android.ui.screen.home.viewmodel.WalletViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -161,8 +161,13 @@ private fun ChatScreen(
         mutableStateOf(controller.defaultChannels.firstOrNull() ?: "#dev")
     }
     var selectedDmLabel by remember { mutableStateOf<String?>(null) }
-    fun roomKey(mode: ChatInboxMode, channel: String, dm: String?): String =
-        ChatDrafts.key(mode == ChatInboxMode.Direct, channel, dm)
+
+    fun roomKey(
+        mode: ChatInboxMode,
+        channel: String,
+        dm: String?
+    ): String = ChatDrafts.key(mode == ChatInboxMode.Direct, channel, dm)
+
     fun openRoom(update: () -> Unit) {
         val previous = roomKey(inboxMode, selectedChannel, selectedDmLabel)
         val current = draft
@@ -175,6 +180,7 @@ private fun ChatScreen(
                 current,
             )
     }
+
     fun clearDraft() {
         ChatDrafts.clear(drafts, roomKey(inboxMode, selectedChannel, selectedDmLabel))
         draft = ""
@@ -555,14 +561,21 @@ private fun ChatScreen(
                                         uri = uri,
                                     )
                                 ) {
-                                    FudTransferDecision.Allowed ->
+                                    FudTransferDecision.Allowed -> {
                                         uri?.let { fudPrompt = FudPromptUi.Confirm(it) }
-                                    FudTransferDecision.Disabled ->
+                                    }
+
+                                    FudTransferDecision.Disabled -> {
                                         fudPrompt = FudPromptUi.Info(R.string.ns_chat_fud_disabled)
-                                    FudTransferDecision.NeedsPrivateTransport ->
+                                    }
+
+                                    FudTransferDecision.NeedsPrivateTransport -> {
                                         fudPrompt = FudPromptUi.Info(R.string.ns_chat_fud_needs_transport)
-                                    FudTransferDecision.Invalid ->
+                                    }
+
+                                    FudTransferDecision.Invalid -> {
                                         fudPrompt = FudPromptUi.Info(R.string.ns_chat_fud_invalid)
+                                    }
                                 }
                             },
                         )
@@ -605,7 +618,11 @@ private fun ChatScreen(
                 onClick = {
                     val fromDraft = draft.trim().takeIf { it.startsWith("drk:") }
                     val fromHistory =
-                        messages[activeThreadKey].orEmpty().asReversed().firstOrNull { it.text.startsWith("drk:") }?.text
+                        messages[activeThreadKey]
+                            .orEmpty()
+                            .asReversed()
+                            .firstOrNull { it.text.startsWith("drk:") }
+                            ?.text
                     val uri = fromDraft ?: fromHistory
                     if (uri != null && DeepLinkUtil.getSendDeepLinkData(Uri.parse(uri)) != null) {
                         onPayInvoice(uri)
@@ -942,6 +959,7 @@ private fun ChatScreen(
                     },
                 )
             }
+
             is FudPromptUi.Info -> {
                 AlertDialog(
                     onDismissRequest = { fudPrompt = null },
@@ -1044,8 +1062,7 @@ private fun ChatMessageLine(
                     } else {
                         MaterialTheme.colorScheme.surfaceVariant
                     },
-                )
-                .padding(horizontal = 8.dp, vertical = 6.dp)
+                ).padding(horizontal = 8.dp, vertical = 6.dp)
                 .combinedClickable(
                     onClick = {},
                     onLongClick = onLongPress,

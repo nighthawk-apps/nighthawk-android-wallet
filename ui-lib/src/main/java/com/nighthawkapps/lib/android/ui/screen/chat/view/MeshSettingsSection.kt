@@ -61,11 +61,17 @@ internal fun MeshSettingsSection(showOemCopy: Boolean = false) {
         if (meshOn && !NighthawkMeshService.isActive) {
             statusMessage =
                 when {
-                    !MeshPermissionGate.hasBlePermissions(context) ->
+                    !MeshPermissionGate.hasBlePermissions(context) -> {
                         context.getString(R.string.ns_chat_mesh_permission_denied)
-                    !MeshPermissionGate.isBluetoothAdapterEnabled(context) ->
+                    }
+
+                    !MeshPermissionGate.isBluetoothAdapterEnabled(context) -> {
                         context.getString(R.string.ns_chat_mesh_bt_off)
-                    else -> null
+                    }
+
+                    else -> {
+                        null
+                    }
                 }
         }
     }
@@ -201,7 +207,9 @@ internal fun MeshSettingsSection(showOemCopy: Boolean = false) {
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
-        if (!com.nighthawkapps.lib.android.sdk.mesh.MeshNative.neighborsReady()) {
+        if (!com.nighthawkapps.lib.android.sdk.mesh.MeshNative
+                .neighborsReady()
+        ) {
             Spacer(modifier = Modifier.height(8.dp))
             Text(
                 text = stringResource(R.string.ns_chat_mesh_unavailable),
@@ -219,7 +227,8 @@ internal fun MeshSettingsSection(showOemCopy: Boolean = false) {
         }
         val daemon =
             runCatching {
-                com.nighthawkapps.lib.uniffi.darkfi_mobile_ffi.darkircStatus()
+                com.nighthawkapps.lib.uniffi.darkfi_mobile_ffi
+                    .darkircStatus()
             }.getOrDefault("not_running")
         if (daemon == "not_running" || daemon == "failed") {
             Spacer(modifier = Modifier.height(8.dp))

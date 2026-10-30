@@ -52,10 +52,11 @@ class FudTransferTest {
 
     @Test
     fun inboxQueuesWithoutFetching() {
-        val dir = File.createTempFile("fud", "dir").apply {
-            delete()
-            mkdirs()
-        }
+        val dir =
+            File.createTempFile("fud", "dir").apply {
+                delete()
+                mkdirs()
+            }
         val uri = FudUri.parse("fud://abcdef012345/notes.txt")!!
         val file = FudOfferInbox.queue(dir, uri, nowMs = 42L)
         assertTrue(file.exists())

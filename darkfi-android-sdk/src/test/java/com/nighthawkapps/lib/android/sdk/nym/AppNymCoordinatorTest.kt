@@ -23,7 +23,11 @@ class AppNymCoordinatorTest {
 
     @Before
     fun clearPrefs() {
-        app.getSharedPreferences("darkfi_chat_transport", Context.MODE_PRIVATE).edit().clear().commit()
+        app
+            .getSharedPreferences("darkfi_chat_transport", Context.MODE_PRIVATE)
+            .edit()
+            .clear()
+            .commit()
     }
 
     @Test

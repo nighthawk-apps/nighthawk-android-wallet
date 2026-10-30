@@ -62,7 +62,13 @@ object PeerHostDisplay {
         host: String,
         peerIndex: Int,
     ): String {
-        val hash = host.hashCode().toUInt().toString(16).padStart(8, '0').take(6)
+        val hash =
+            host
+                .hashCode()
+                .toUInt()
+                .toString(16)
+                .padStart(8, '0')
+                .take(6)
         return if (peerIndex >= 0) {
             "peer $peerIndex"
         } else {

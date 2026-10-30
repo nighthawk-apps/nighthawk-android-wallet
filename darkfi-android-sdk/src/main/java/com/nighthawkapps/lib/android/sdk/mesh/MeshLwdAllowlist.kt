@@ -32,8 +32,7 @@ object MeshLwdAllowlist {
         return payload.decodeToString(0, nl)
     }
 
-    fun isForbidden(method: String): Boolean =
-        FORBIDDEN.any { it.equals(method, ignoreCase = true) }
+    fun isForbidden(method: String): Boolean = FORBIDDEN.any { it.equals(method, ignoreCase = true) }
 
     fun isAllowed(payload: ByteArray): Boolean {
         val method = methodLeaf(payload) ?: return false

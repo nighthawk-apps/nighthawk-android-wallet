@@ -8,8 +8,7 @@ object DarkfiExplorer {
     const val MAINNET_BASE: String = "https://explorer.dark.fi"
     const val TESTNET_BASE: String = "https://explorer.testnet.dark.fi"
 
-    fun baseUrl(network: DarkfiNetwork?): String =
-        if (network == DarkfiNetwork.Mainnet) MAINNET_BASE else TESTNET_BASE
+    fun baseUrl(network: DarkfiNetwork?): String = if (network == DarkfiNetwork.Mainnet) MAINNET_BASE else TESTNET_BASE
 
     fun transactionUrl(
         txid: String,

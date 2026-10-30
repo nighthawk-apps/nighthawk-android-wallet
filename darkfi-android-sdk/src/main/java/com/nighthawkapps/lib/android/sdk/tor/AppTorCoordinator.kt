@@ -230,30 +230,42 @@ object AppTorCoordinator {
     fun resolveDarkircP2pTransport(context: Context): DarkircP2pTransport {
         val prefs = DarkfiChatPreferences(context.applicationContext)
         return when (prefs.privacyNetwork) {
-            PrivacyNetwork.Nym ->
+            PrivacyNetwork.Nym -> {
                 DarkircP2pTransport.NymViaSocks5(PrivacyNetwork.NYM_SOCKS_HOST, prefs.nymSocksPort)
-            PrivacyNetwork.Tor ->
+            }
+
+            PrivacyNetwork.Tor -> {
                 DarkircP2pTransport.TorViaSocks5(
                     socksHost =
                         prefs.socksHost.trim().ifBlank { TorIntegrationHelper.DEFAULT_SOCKS_HOST },
                     socksPort = prefs.socksPort,
                 )
-            PrivacyNetwork.Direct -> DarkircP2pTransport.Clearnet
+            }
+
+            PrivacyNetwork.Direct -> {
+                DarkircP2pTransport.Clearnet
+            }
         }
     }
 
     fun resolveDarkfidP2pTransport(context: Context): DarkfidP2pTransport {
         val prefs = DarkfiChatPreferences(context.applicationContext)
         return when (prefs.privacyNetwork) {
-            PrivacyNetwork.Nym ->
+            PrivacyNetwork.Nym -> {
                 DarkfidP2pTransport.NymViaSocks5(PrivacyNetwork.NYM_SOCKS_HOST, prefs.nymSocksPort)
-            PrivacyNetwork.Tor ->
+            }
+
+            PrivacyNetwork.Tor -> {
                 DarkfidP2pTransport.TorViaSocks5(
                     socksHost =
                         prefs.socksHost.trim().ifBlank { TorIntegrationHelper.DEFAULT_SOCKS_HOST },
                     socksPort = prefs.socksPort,
                 )
-            PrivacyNetwork.Direct -> DarkfidP2pTransport.Clearnet
+            }
+
+            PrivacyNetwork.Direct -> {
+                DarkfidP2pTransport.Clearnet
+            }
         }
     }
 

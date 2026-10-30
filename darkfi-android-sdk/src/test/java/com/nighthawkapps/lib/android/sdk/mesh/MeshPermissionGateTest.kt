@@ -35,7 +35,8 @@ class MeshPermissionGateTest {
         val start = MeshPermissionGate.runtimeMeshPermissions(shareWifi = false, sdkInt = 37)
         assertTrue(start.contains(LocalNetworkPermission.ACCESS_LOCAL_NETWORK))
         assertFalse(
-            MeshPermissionGate.runtimeMeshPermissions(shareWifi = false, sdkInt = 36)
+            MeshPermissionGate
+                .runtimeMeshPermissions(shareWifi = false, sdkInt = 36)
                 .contains(LocalNetworkPermission.ACCESS_LOCAL_NETWORK),
         )
         val withWifi = MeshPermissionGate.runtimeMeshPermissions(shareWifi = true, sdkInt = 37)
@@ -46,7 +47,10 @@ class MeshPermissionGateTest {
     @Test
     fun gattUuidsAreNotBitchat() {
         assertFalse(
-            MeshGattConstants.SERVICE_UUID.toString().lowercase().startsWith("f47b5e2d"),
+            MeshGattConstants.SERVICE_UUID
+                .toString()
+                .lowercase()
+                .startsWith("f47b5e2d"),
         )
     }
 

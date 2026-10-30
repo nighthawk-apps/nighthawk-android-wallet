@@ -509,25 +509,49 @@ private fun Status(
                     Spacer(modifier = Modifier.height(2.dp))
                     val phaseHint =
                         when {
-                            walletSnapshot.status == DarkfiSyncStatus.CONNECTING -> " · connecting"
-                            walletSnapshot.status == DarkfiSyncStatus.DEGRADED ->
+                            walletSnapshot.status == DarkfiSyncStatus.CONNECTING -> {
+                                " · connecting"
+                            }
+
+                            walletSnapshot.status == DarkfiSyncStatus.DEGRADED -> {
                                 if (walletSnapshot.fallbackUserMessage.isNotBlank()) "" else " · fallback"
-                            !lwdLive -> " · not connected"
-                            walletSnapshot.syncStatusMessage.contains("1/2") -> " · scanning"
-                            walletSnapshot.syncStatusMessage.contains("2/2") -> " · fetching"
-                            else -> ""
+                            }
+
+                            !lwdLive -> {
+                                " · not connected"
+                            }
+
+                            walletSnapshot.syncStatusMessage.contains("1/2") -> {
+                                " · scanning"
+                            }
+
+                            walletSnapshot.syncStatusMessage.contains("2/2") -> {
+                                " · fetching"
+                            }
+
+                            else -> {
+                                ""
+                            }
                         }
                     Text(
                         text =
                             when {
                                 syncMethod == DarkfiSyncMethod.UNIF_OMR &&
-                                    walletSnapshot.fallbackUserMessage.isNotBlank() ->
+                                    walletSnapshot.fallbackUserMessage.isNotBlank() -> {
                                     "UnifOMR + trial-decrypt fallback$phaseHint"
-                                syncMethod == DarkfiSyncMethod.UNIF_OMR ->
+                                }
+
+                                syncMethod == DarkfiSyncMethod.UNIF_OMR -> {
                                     "UnifOMR$phaseHint"
-                                syncMethod == DarkfiSyncMethod.TRIAL_DECRYPT ->
+                                }
+
+                                syncMethod == DarkfiSyncMethod.TRIAL_DECRYPT -> {
                                     "Trial decryption$phaseHint"
-                                else -> syncMethod.displayLabel
+                                }
+
+                                else -> {
+                                    syncMethod.displayLabel
+                                }
                             },
                         style = MaterialTheme.typography.labelSmall,
                         color =

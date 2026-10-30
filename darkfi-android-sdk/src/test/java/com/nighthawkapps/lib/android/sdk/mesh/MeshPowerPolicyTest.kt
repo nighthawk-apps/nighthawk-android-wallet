@@ -8,12 +8,13 @@ import kotlin.test.assertTrue
 class MeshPowerPolicyTest {
     @Test
     fun foregroundBalancedDuty() {
-        val d = MeshPowerPolicy.scanDuty(
-            foreground = true,
-            hasPeers = false,
-            charging = false,
-            gatewayArmed = false,
-        )
+        val d =
+            MeshPowerPolicy.scanDuty(
+                foreground = true,
+                hasPeers = false,
+                charging = false,
+                gatewayArmed = false,
+            )
         assertEquals(8_000, d.scanOnMs)
         assertEquals(2_000, d.scanOffMs)
         assertFalse(d.isContinuous)
@@ -21,24 +22,26 @@ class MeshPowerPolicyTest {
 
     @Test
     fun backgroundAloneIsSparse() {
-        val d = MeshPowerPolicy.scanDuty(
-            foreground = false,
-            hasPeers = false,
-            charging = false,
-            gatewayArmed = false,
-        )
+        val d =
+            MeshPowerPolicy.scanDuty(
+                foreground = false,
+                hasPeers = false,
+                charging = false,
+                gatewayArmed = false,
+            )
         assertEquals(1_000, d.scanOnMs)
         assertEquals(59_000, d.scanOffMs)
     }
 
     @Test
     fun chargingGatewayIsContinuous() {
-        val d = MeshPowerPolicy.scanDuty(
-            foreground = false,
-            hasPeers = false,
-            charging = true,
-            gatewayArmed = true,
-        )
+        val d =
+            MeshPowerPolicy.scanDuty(
+                foreground = false,
+                hasPeers = false,
+                charging = true,
+                gatewayArmed = true,
+            )
         assertTrue(d.isContinuous)
     }
 

@@ -149,6 +149,9 @@ fun ShareAppDialog(onDismiss: () -> Unit) {
     )
 }
 
-private fun toast(context: Context, resId: Int) {
+private fun toast(
+    context: Context,
+    resId: Int
+) {
     Toast.makeText(context, resId, Toast.LENGTH_LONG).show()
 }

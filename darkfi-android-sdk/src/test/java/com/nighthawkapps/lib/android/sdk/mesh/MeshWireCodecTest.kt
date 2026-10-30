@@ -12,10 +12,33 @@ class MeshWireCodecTest {
     fun goldenAnnounceMatchesRust() {
         val frame =
             byteArrayOf(
-                0x4E, 0x48, 0x01, 0xA1.toByte(), 0x07, 0x00,
-                0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                0x11, 0x11, 0x11, 0x11, 0x11, 0x11, 0x11, 0x11,
-                0x00, 0x00, 0x00, 0x01, 0x00,
+                0x4E,
+                0x48,
+                0x01,
+                0xA1.toByte(),
+                0x07,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x11,
+                0x11,
+                0x11,
+                0x11,
+                0x11,
+                0x11,
+                0x11,
+                0x11,
+                0x00,
+                0x00,
+                0x00,
+                0x01,
+                0x00,
             )
         val pkt = MeshWireCodec.decode(frame)
         assertNotNull(pkt)

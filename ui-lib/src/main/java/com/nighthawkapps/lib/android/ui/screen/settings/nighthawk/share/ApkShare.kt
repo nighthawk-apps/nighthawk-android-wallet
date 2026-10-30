@@ -36,6 +36,7 @@ object ApkShare {
 
     fun installedApk(context: Context): InstalledApk {
         val info = context.applicationInfo
+
         @Suppress("DEPRECATION")
         val versionName =
             context.packageManager.getPackageInfo(context.packageName, 0).versionName ?: "unknown"
@@ -53,7 +54,9 @@ object ApkShare {
     /** ABIs with native libraries in [apk]; empty means the APK runs on any CPU. */
     fun nativeAbis(apk: File): Set<String> =
         ZipFile(apk).use { zip ->
-            zip.entries().asSequence()
+            zip
+                .entries()
+                .asSequence()
                 .map { it.name }
                 .filter { it.startsWith("lib/") && it.endsWith(".so") }
                 .mapNotNull { it.split('/').getOrNull(1) }
@@ -61,7 +64,10 @@ object ApkShare {
         }
 
     /** Copies the APK(s) into the FileProvider-visible cache, replacing any earlier share. */
-    fun copyForSharing(context: Context, apk: InstalledApk): List<File> {
+    fun copyForSharing(
+        context: Context,
+        apk: InstalledApk
+    ): List<File> {
         val dir = shareDir(context)
         if (!apk.isSplit) {
             val out = File(dir, apkFileName(apk.versionName))
@@ -75,7 +81,10 @@ object ApkShare {
     }
 
     /** Wraps the APK(s) in a zip so stock Bluetooth receivers accept the transfer. */
-    fun zipForBluetooth(context: Context, apk: InstalledApk): File {
+    fun zipForBluetooth(
+        context: Context,
+        apk: InstalledApk
+    ): File {
         val out = File(shareDir(context), zipFileName(apk.versionName))
         writeZip(
             out,
@@ -84,7 +93,10 @@ object ApkShare {
         return out
     }
 
-    internal fun writeZip(out: File, entries: List<Pair<String, File>>) {
+    internal fun writeZip(
+        out: File,
+        entries: List<Pair<String, File>>
+    ) {
         ZipOutputStream(out.outputStream().buffered()).use { zip ->
             // APKs are already compressed; deflating them again only costs time.
             zip.setLevel(Deflater.NO_COMPRESSION)
@@ -96,26 +108,39 @@ object ApkShare {
         }
     }
 
-    fun uriFor(context: Context, file: File): Uri =
-        FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
+    fun uriFor(
+        context: Context,
+        file: File
+    ): Uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
 
     /** Sends the zip at [zipUri] straight to the system Bluetooth app, or null if there is none. */
-    fun bluetoothIntent(context: Context, zipUri: Uri): Intent? {
+    fun bluetoothIntent(
+        context: Context,
+        zipUri: Uri
+    ): Intent? {
         val intent = sendIntent(ZIP_MIME, listOf(zipUri))
         val target =
-            context.packageManager.queryIntentActivities(intent, 0)
+            context.packageManager
+                .queryIntentActivities(intent, 0)
                 .firstOrNull { it.activityInfo.packageName.contains("bluetooth", ignoreCase = true) }
                 ?: return null
         return intent.setClassName(target.activityInfo.packageName, target.activityInfo.name)
     }
 
-    fun chooserIntent(context: Context, files: List<File>, title: String): Intent {
+    fun chooserIntent(
+        context: Context,
+        files: List<File>,
+        title: String
+    ): Intent {
         val mime = if (files.all { it.extension == "apk" }) APK_MIME else ZIP_MIME
         val send = sendIntent(mime, files.map { uriFor(context, it) })
         return Intent.createChooser(send, title).addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
     }
 
-    internal fun sendIntent(mime: String, uris: List<Uri>): Intent {
+    internal fun sendIntent(
+        mime: String,
+        uris: List<Uri>
+    ): Intent {
         require(uris.isNotEmpty())
         val intent =
             if (uris.size == 1) {

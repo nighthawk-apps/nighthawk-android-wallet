@@ -1,8 +1,8 @@
 package com.nighthawkapps.lib.android.ui.screen.addressbook
 
 import android.content.Context
-import com.nighthawkapps.lib.android.ui.preference.EncryptedPreferenceSingleton
 import com.nighthawkapps.lib.android.ui.preference.EncryptedPreferenceKeys
+import com.nighthawkapps.lib.android.ui.preference.EncryptedPreferenceSingleton
 import org.json.JSONArray
 import org.json.JSONObject
 

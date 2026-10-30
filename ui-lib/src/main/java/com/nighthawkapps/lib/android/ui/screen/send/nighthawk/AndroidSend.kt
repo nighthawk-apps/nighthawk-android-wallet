@@ -253,7 +253,10 @@ private fun NighthawkSendFlow(
                     isSendEnabled = canSend,
                     errorMessage =
                         when {
-                            !nativeAvailable -> stringResource(R.string.ns_send_ffi_unavailable)
+                            !nativeAvailable -> {
+                                stringResource(R.string.ns_send_ffi_unavailable)
+                            }
+
                             balanceCheck is SendBalanceCheck.Insufficient -> {
                                 stringResource(
                                     R.string.send_insufficient_balance,

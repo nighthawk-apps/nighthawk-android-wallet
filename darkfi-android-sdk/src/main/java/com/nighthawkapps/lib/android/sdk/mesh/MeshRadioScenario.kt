@@ -22,7 +22,10 @@ object MeshRadioScenario {
         var meshOn: Boolean = true,
     )
 
-    fun chatFrame(from: ByteArray, body: String): ByteArray =
+    fun chatFrame(
+        from: ByteArray,
+        body: String
+    ): ByteArray =
         MeshWireCodec.encode(
             MeshWirePacket(
                 type = MeshWireCodec.NH_DAG_EVENT,

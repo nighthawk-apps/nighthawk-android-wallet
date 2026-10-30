@@ -41,14 +41,20 @@ object TorOutboundSocks {
     /** SOCKS `(host, port)` for the wallet network, or null for [PrivacyNetwork.Direct]. */
     fun walletSocksEndpoint(prefs: DarkfiChatPreferences): InetSocketAddress? =
         when (prefs.privacyNetwork) {
-            PrivacyNetwork.Nym ->
+            PrivacyNetwork.Nym -> {
                 InetSocketAddress(PrivacyNetwork.NYM_SOCKS_HOST, prefs.nymSocksPort)
-            PrivacyNetwork.Tor ->
+            }
+
+            PrivacyNetwork.Tor -> {
                 InetSocketAddress(
                     prefs.socksHost.trim().ifBlank { TorIntegrationHelper.DEFAULT_SOCKS_HOST },
                     prefs.socksPort,
                 )
-            PrivacyNetwork.Direct -> null
+            }
+
+            PrivacyNetwork.Direct -> {
+                null
+            }
         }
 
     /**

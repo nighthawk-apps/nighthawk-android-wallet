@@ -13,11 +13,11 @@ import com.nighthawkapps.lib.android.ui.common.ANDROID_STATE_FLOW_TIMEOUT
 import com.nighthawkapps.lib.android.ui.design.theme.AppThemeVariant
 import com.nighthawkapps.lib.android.ui.preference.StandardPreferenceKeys
 import com.nighthawkapps.lib.android.ui.preference.StandardPreferenceSingleton
-import com.nighthawkapps.lib.android.ui.theme.isSystemInNightMode
-import com.nighthawkapps.lib.android.ui.theme.systemNightMode
 import com.nighthawkapps.lib.android.ui.screen.advancesetting.model.AvailableLogo
 import com.nighthawkapps.lib.android.ui.screen.advancesetting.model.OneLauncherAlias
 import com.nighthawkapps.lib.android.ui.screen.advancesetting.model.TwoLauncherAlias
+import com.nighthawkapps.lib.android.ui.theme.isSystemInNightMode
+import com.nighthawkapps.lib.android.ui.theme.systemNightMode
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -131,9 +131,10 @@ class SettingsViewModel(
     fun setBanditStatus(enabled: Boolean) {
         viewModelScope.launch {
             val prefs = StandardPreferenceSingleton.getInstance(getApplication())
-            val wasEnabled = mutex.withLock {
-                StandardPreferenceKeys.IS_BANDIT_AVAILABLE.getValue(prefs)
-            }
+            val wasEnabled =
+                mutex.withLock {
+                    StandardPreferenceKeys.IS_BANDIT_AVAILABLE.getValue(prefs)
+                }
             // Wallet opens call this with the current flag. Only a real
             // Bandit -> off transition should snap the theme back to Stealth.
             if (wasEnabled == enabled) return@launch

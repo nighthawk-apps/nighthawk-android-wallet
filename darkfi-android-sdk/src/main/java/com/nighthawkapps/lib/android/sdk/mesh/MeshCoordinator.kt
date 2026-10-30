@@ -43,8 +43,7 @@ object MeshCoordinator {
         alwaysOn = MeshPersist.alwaysOn(appCtx)
     }
 
-    fun canShowMeshToggle(sdkInt: Int = Build.VERSION.SDK_INT): Boolean =
-        MeshPermissionGate.isMeshSdkSupported(sdkInt)
+    fun canShowMeshToggle(sdkInt: Int = Build.VERSION.SDK_INT): Boolean = MeshPermissionGate.isMeshSdkSupported(sdkInt)
 
     fun noteGatewayAnnounce(
         id: ByteArray,

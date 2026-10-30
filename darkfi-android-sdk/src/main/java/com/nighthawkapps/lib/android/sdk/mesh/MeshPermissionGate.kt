@@ -44,7 +44,10 @@ object MeshPermissionGate {
             emptyArray()
         }
 
-    fun runtimeMeshPermissions(shareWifi: Boolean, sdkInt: Int = Build.VERSION.SDK_INT): Array<String> {
+    fun runtimeMeshPermissions(
+        shareWifi: Boolean,
+        sdkInt: Int = Build.VERSION.SDK_INT
+    ): Array<String> {
         val base = runtimeStartPermissions(sdkInt)
         return if (shareWifi) base + bulkWifiPermissions(sdkInt) else base
     }

@@ -33,7 +33,9 @@ import javax.security.auth.x500.X500Principal
 
 // If this is updated, update the Rust definition too.
 // Marked private as this is not meant to be used in Android code.
-private enum class StatusCode(val value: Int) {
+private enum class StatusCode(
+    val value: Int
+) {
     Ok(0),
     Unavailable(1),
     Expired(2),
@@ -69,12 +71,13 @@ internal object CertificateVerifier {
 
         factory.init(keystore)
 
-        val availableTrustManagers = try {
-            factory.trustManagers
-        } catch (e: RuntimeException) {
-            Log.w(TAG, "exception thrown creating a TrustManager: $e")
-            return null
-        }
+        val availableTrustManagers =
+            try {
+                factory.trustManagers
+            } catch (e: RuntimeException) {
+                Log.w(TAG, "exception thrown creating a TrustManager: $e")
+                return null
+            }
 
         for (manager in availableTrustManagers) {
             if (manager is X509TrustManager) {
@@ -144,12 +147,13 @@ internal object CertificateVerifier {
         val factory = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm())
         factory.init(systemKeystore)
 
-        val availableTrustManagers = try {
-            factory.trustManagers
-        } catch (e: RuntimeException) {
-            Log.w(TAG, "exception thrown creating a TrustManager: $e")
-            return rootCAs
-        }
+        val availableTrustManagers =
+            try {
+                factory.trustManagers
+            } catch (e: RuntimeException) {
+                Log.w(TAG, "exception thrown creating a TrustManager: $e")
+                return rootCAs
+            }
 
         availableTrustManagers.forEach { trustManager ->
             if (trustManager is X509TrustManager) {
@@ -167,16 +171,18 @@ internal object CertificateVerifier {
     private var systemTrustAnchorCache = hashSetOf<Pair<X500Principal, PublicKey>>()
 
     @get:Synchronized
-    private var systemCertificateDirectory: File? = System.getenv("ANDROID_ROOT")?.let { rootPath ->
-        File("$rootPath/etc/security/cacerts")
-    }
+    private var systemCertificateDirectory: File? =
+        System.getenv("ANDROID_ROOT")?.let { rootPath ->
+            File("$rootPath/etc/security/cacerts")
+        }
 
     @get:Synchronized
-    private val systemKeystore: KeyStore? = try {
-        KeyStore.getInstance("AndroidCAStore")
-    } catch (_: KeyStoreException) {
-        null
-    }
+    private val systemKeystore: KeyStore? =
+        try {
+            KeyStore.getInstance("AndroidCAStore")
+        } catch (_: KeyStoreException) {
+            null
+        }
 
     @get:Synchronized
     private val systemTrustManager: Lazy<X509TrustManagerExtensions?> =
@@ -195,11 +201,12 @@ internal object CertificateVerifier {
         // Convert the array of (supposedly) DER bytes into certificates.
         val certificateChain = mutableListOf<X509Certificate>()
         certChain.forEach { certBytes ->
-            val certificate = try {
-                certFactory.generateCertificate(ByteArrayInputStream(certBytes))
-            } catch (e: CertificateException) {
-                return VerificationResult(StatusCode.InvalidEncoding)
-            }
+            val certificate =
+                try {
+                    certFactory.generateCertificate(ByteArrayInputStream(certBytes))
+                } catch (e: CertificateException) {
+                    return VerificationResult(StatusCode.InvalidEncoding)
+                }
             certificateChain.add(certificate as X509Certificate)
         }
 
@@ -229,20 +236,21 @@ internal object CertificateVerifier {
         // - If built for tests:
         //      - If the mock CA store has any values, use the mock trust manager.
         //      - Otherwise, use the system trust manager.
-        val (trustManager, keystore) = if (!IS_TEST_BUILD) {
-            val trustManager =
-                systemTrustManager.value ?: return VerificationResult(StatusCode.Unavailable)
-            Pair(trustManager, systemKeystore)
-        } else {
-            if (mockKeystore.size() != 0) {
-                val trustManager = mockTrustManager.value!!
-                Pair(trustManager, mockKeystore)
-            } else {
+        val (trustManager, keystore) =
+            if (!IS_TEST_BUILD) {
                 val trustManager =
                     systemTrustManager.value ?: return VerificationResult(StatusCode.Unavailable)
                 Pair(trustManager, systemKeystore)
+            } else {
+                if (mockKeystore.size() != 0) {
+                    val trustManager = mockTrustManager.value!!
+                    Pair(trustManager, mockKeystore)
+                } else {
+                    val trustManager =
+                        systemTrustManager.value ?: return VerificationResult(StatusCode.Unavailable)
+                    Pair(trustManager, systemKeystore)
+                }
             }
-        }
 
         // Verify that the certificate chain is valid and correct, and nothing more.
         //
@@ -254,35 +262,40 @@ internal object CertificateVerifier {
         //
         // Returns the "the properly ordered chain used for verification as a list of X509Certificates.",
         // meaning a list from end-entity certificate to trust-anchor.
-        val validChain = try {
-            trustManager.checkServerTrusted(certificateChain.toTypedArray(), authMethod, serverName)
-        } catch (e: CertificateException) {
-            // In test configurations we may see `checkServerTrusted` fail once vendored test
-            // certificates pass their expiry date. We try to avoid that by using a fixed
-            // verification time when calling `endEntity.checkValidity` above, however we can't
-            // fix the time for the `checkServerTrusted` call.
-            //
-            // To make diagnosing CI test failures easier we try to find the root cause of
-            // checkServerTrusted failing, returning a different `StatusCode` as appropriate.
-            if (IS_TEST_BUILD) {
-                var rootCause: Throwable? = e
-                while (rootCause?.cause != null && rootCause.cause != rootCause) {
-                    rootCause = rootCause.cause
-                }
-                return when (rootCause) {
-                    is CertificateExpiredException, is CertificateNotYetValidException -> VerificationResult(
-                        StatusCode.Expired,
-                        rootCause.toString(),
-                    )
+        val validChain =
+            try {
+                trustManager.checkServerTrusted(certificateChain.toTypedArray(), authMethod, serverName)
+            } catch (e: CertificateException) {
+                // In test configurations we may see `checkServerTrusted` fail once vendored test
+                // certificates pass their expiry date. We try to avoid that by using a fixed
+                // verification time when calling `endEntity.checkValidity` above, however we can't
+                // fix the time for the `checkServerTrusted` call.
+                //
+                // To make diagnosing CI test failures easier we try to find the root cause of
+                // checkServerTrusted failing, returning a different `StatusCode` as appropriate.
+                if (IS_TEST_BUILD) {
+                    var rootCause: Throwable? = e
+                    while (rootCause?.cause != null && rootCause.cause != rootCause) {
+                        rootCause = rootCause.cause
+                    }
+                    return when (rootCause) {
+                        is CertificateExpiredException, is CertificateNotYetValidException -> {
+                            VerificationResult(
+                                StatusCode.Expired,
+                                rootCause.toString(),
+                            )
+                        }
 
-                    else -> VerificationResult(StatusCode.UnknownCert, rootCause.toString())
+                        else -> {
+                            VerificationResult(StatusCode.UnknownCert, rootCause.toString())
+                        }
+                    }
                 }
+                // In non-test configurations we should have caught expiry errors earlier and
+                // can simply return an unknown cert error without digging through the exception
+                // cause chain.
+                return VerificationResult(StatusCode.UnknownCert, e.toString())
             }
-            // In non-test configurations we should have caught expiry errors earlier and
-            // can simply return an unknown cert error without digging through the exception
-            // cause chain.
-            return VerificationResult(StatusCode.UnknownCert, e.toString())
-        }
 
         // TEST ONLY: Mock test suite cannot attempt to check revocation status if no OSCP data has been stapled,
         // because Android requires certificates to an specify OCSP responder for network fetch in this case.
@@ -332,10 +345,11 @@ internal object CertificateVerifier {
             val validator = CertPathValidator.getInstance("PKIX")
             val revocationChecker = validator.revocationChecker as PKIXRevocationChecker
 
-            revocationChecker.options = EnumSet.of(
-                PKIXRevocationChecker.Option.SOFT_FAIL,
-                PKIXRevocationChecker.Option.ONLY_END_ENTITY,
-            )
+            revocationChecker.options =
+                EnumSet.of(
+                    PKIXRevocationChecker.Option.SOFT_FAIL,
+                    PKIXRevocationChecker.Option.ONLY_END_ENTITY,
+                )
 
             // Use the OCSP data `rustls` provided, if present.
             // Its expected that the server only sends revocation data for its own leaf certificate.
@@ -371,18 +385,21 @@ internal object CertificateVerifier {
         return VerificationResult(StatusCode.Ok)
     }
 
-    private fun verifyCertUsage(certificate: X509Certificate, allowedEkus: Array<String>): Boolean {
-        val ekus = try {
-            certificate.extendedKeyUsage
-        }
-        // This should be unreachable, but could happen.
-        catch (_: CertificateParsingException) {
-            return false
-        } catch (_: NullPointerException) {
-            // According to Chromium's implementation, this can crash when the EKU data is malformed.
-            Log.w(TAG, "exception handling certificate EKU")
-            return false
-        } ?: return true // If the list is empty, we have nothing to do.
+    private fun verifyCertUsage(
+        certificate: X509Certificate,
+        allowedEkus: Array<String>
+    ): Boolean {
+        val ekus =
+            try {
+                certificate.extendedKeyUsage
+            } catch (_: CertificateParsingException) {
+                // This should be unreachable, but could happen.
+                return false
+            } catch (_: NullPointerException) {
+                // According to Chromium's implementation, this can crash when the EKU data is malformed.
+                Log.w(TAG, "exception handling certificate EKU")
+                return false
+            } ?: return true // If the list is empty, we have nothing to do.
 
         return ekus.any { allowedEkus.contains(it) }
     }

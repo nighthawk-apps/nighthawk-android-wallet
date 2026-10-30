@@ -5,8 +5,11 @@ package com.nighthawkapps.lib.android.ui.screen.chat
  * Switching rooms stashes the text so it is not sent to the wrong thread.
  */
 internal object ChatDrafts {
-    fun key(direct: Boolean, channel: String, dm: String?): String =
-        if (direct) "dm:${dm.orEmpty()}" else "ch:$channel"
+    fun key(
+        direct: Boolean,
+        channel: String,
+        dm: String?
+    ): String = if (direct) "dm:${dm.orEmpty()}" else "ch:$channel"
 
     fun switch(
         drafts: MutableMap<String, String>,
@@ -23,7 +26,10 @@ internal object ChatDrafts {
         return drafts[toKey].orEmpty()
     }
 
-    fun clear(drafts: MutableMap<String, String>, key: String) {
+    fun clear(
+        drafts: MutableMap<String, String>,
+        key: String
+    ) {
         drafts.remove(key)
     }
 }

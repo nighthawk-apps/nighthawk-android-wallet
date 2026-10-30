@@ -37,11 +37,12 @@ import com.nighthawkapps.lib.android.ui.screen.advancesetting.AndroidAdvancedSet
 import com.nighthawkapps.lib.android.ui.screen.changeserver.AndroidChangeServer
 import com.nighthawkapps.lib.android.ui.screen.chat.AndroidChat
 import com.nighthawkapps.lib.android.ui.screen.chat.AndroidChatSettings
-import com.nighthawkapps.lib.android.ui.screen.home.viewmodel.HomeViewModel
 import com.nighthawkapps.lib.android.ui.screen.dao.AndroidDaoDetail
 import com.nighthawkapps.lib.android.ui.screen.dao.AndroidDaoHub
 import com.nighthawkapps.lib.android.ui.screen.dao.AndroidDaoProposalDetail
+import com.nighthawkapps.lib.android.ui.screen.dex.DexComingSoonView
 import com.nighthawkapps.lib.android.ui.screen.fiatcurrency.AndroidFiatCurrency
+import com.nighthawkapps.lib.android.ui.screen.home.viewmodel.HomeViewModel
 import com.nighthawkapps.lib.android.ui.screen.navigation.ArgumentKeys.DAO_NAME
 import com.nighthawkapps.lib.android.ui.screen.navigation.ArgumentKeys.IS_PIN_SETUP
 import com.nighthawkapps.lib.android.ui.screen.navigation.ArgumentKeys.PROPOSAL_BULLA
@@ -51,15 +52,15 @@ import com.nighthawkapps.lib.android.ui.screen.navigation.NavigationTargets.ABOU
 import com.nighthawkapps.lib.android.ui.screen.navigation.NavigationTargets.ADVANCED_SETTING
 import com.nighthawkapps.lib.android.ui.screen.navigation.NavigationTargets.CHANGE_SERVER
 import com.nighthawkapps.lib.android.ui.screen.navigation.NavigationTargets.CHAT_SETTINGS
-import com.nighthawkapps.lib.android.ui.screen.navigation.NavigationTargets.MESH_SETTINGS
 import com.nighthawkapps.lib.android.ui.screen.navigation.NavigationTargets.DAO_DETAIL
 import com.nighthawkapps.lib.android.ui.screen.navigation.NavigationTargets.DAO_HUB
 import com.nighthawkapps.lib.android.ui.screen.navigation.NavigationTargets.DAO_PROPOSAL
 import com.nighthawkapps.lib.android.ui.screen.navigation.NavigationTargets.FIAT_CURRENCY
+import com.nighthawkapps.lib.android.ui.screen.navigation.NavigationTargets.MESH_SETTINGS
 import com.nighthawkapps.lib.android.ui.screen.navigation.NavigationTargets.PIN
 import com.nighthawkapps.lib.android.ui.screen.navigation.NavigationTargets.RECEIVE_MONEY
-import com.nighthawkapps.lib.android.ui.screen.navigation.NavigationTargets.REQUEST_MONEY
 import com.nighthawkapps.lib.android.ui.screen.navigation.NavigationTargets.RECEIVE_QR_CODES
+import com.nighthawkapps.lib.android.ui.screen.navigation.NavigationTargets.REQUEST_MONEY
 import com.nighthawkapps.lib.android.ui.screen.navigation.NavigationTargets.SCAN
 import com.nighthawkapps.lib.android.ui.screen.navigation.NavigationTargets.SECURITY
 import com.nighthawkapps.lib.android.ui.screen.navigation.NavigationTargets.SEND_MONEY
@@ -78,8 +79,8 @@ import com.nighthawkapps.lib.android.ui.screen.security.AndroidSecurity
 import com.nighthawkapps.lib.android.ui.screen.send.model.SendArgumentsWrapper
 import com.nighthawkapps.lib.android.ui.screen.send.nighthawk.AndroidSend
 import com.nighthawkapps.lib.android.ui.screen.settingbackupwallet.AndroidSettingBackUpWallet
-import com.nighthawkapps.lib.android.ui.screen.settings.nighthawk.AndroidSettings
 import com.nighthawkapps.lib.android.ui.screen.settings.nighthawk.AndroidMeshSettings
+import com.nighthawkapps.lib.android.ui.screen.settings.nighthawk.AndroidSettings
 import com.nighthawkapps.lib.android.ui.screen.settings.nighthawk.AndroidTorNetworkSettings
 import com.nighthawkapps.lib.android.ui.screen.settings.nighthawk.model.NighthawkSettingsNavigationCallbacks
 import com.nighthawkapps.lib.android.ui.screen.syncnotification.AndroidSyncNotification
@@ -87,7 +88,6 @@ import com.nighthawkapps.lib.android.ui.screen.topup.AndroidTopUp
 import com.nighthawkapps.lib.android.ui.screen.transactiondetails.AndroidTransactionDetails
 import com.nighthawkapps.lib.android.ui.screen.transactionhistory.AndroidTransactionHistory
 import com.nighthawkapps.lib.android.ui.screen.wallet.AndroidWallet
-import com.nighthawkapps.lib.android.ui.screen.dex.DexComingSoonView
 import kotlinx.collections.immutable.persistentListOf
 
 @Composable

@@ -92,7 +92,9 @@ object FudOfferInbox {
         if (!dir.exists()) dir.mkdirs()
         val file = File(dir, "${uri.infoHash}.json")
         val json =
-            """{"infoHash":${jsonString(uri.infoHash)},"fileName":${uri.fileName?.let { jsonString(it) } ?: "null"},"queuedAtEpochMs":$nowMs}"""
+            """{"infoHash":${jsonString(
+                uri.infoHash
+            )},"fileName":${uri.fileName?.let { jsonString(it) } ?: "null"},"queuedAtEpochMs":$nowMs}"""
         file.writeText(json)
         return file
     }

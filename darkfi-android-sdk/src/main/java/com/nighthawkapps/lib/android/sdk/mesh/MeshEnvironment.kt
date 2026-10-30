@@ -35,8 +35,11 @@ class MeshFrameInbox(
     fun shouldIngest(frame: ByteArray): Boolean {
         val pkt = MeshWireCodec.decode(frame) ?: return false
         return when (dag.consider(pkt)) {
-            MeshDagAdmit.RejectedOversized, MeshDagAdmit.RejectedForbiddenLwd -> false
-            MeshDagAdmit.Admitted, MeshDagAdmit.Ignored ->
+            MeshDagAdmit.RejectedOversized, MeshDagAdmit.RejectedForbiddenLwd -> {
+                false
+            }
+
+            MeshDagAdmit.Admitted, MeshDagAdmit.Ignored -> {
                 when (pkt.type) {
                     MeshWireCodec.NH_NOISE_HS,
                     MeshWireCodec.NH_NOISE_ENC,
@@ -44,8 +47,10 @@ class MeshFrameInbox(
                     MeshWireCodec.NH_PING,
                     MeshWireCodec.NH_PONG,
                     -> true
+
                     else -> false
                 }
+            }
         }
     }
 

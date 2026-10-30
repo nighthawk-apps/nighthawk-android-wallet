@@ -72,12 +72,14 @@ private val ShareTechMonoFontFamily =
     )
 
 private fun variableFamily(resId: Int): FontFamily {
-    fun face(weight: FontWeight, axis: Int) =
-        Font(
-            resId = resId,
-            weight = weight,
-            variationSettings = FontVariation.Settings(FontVariation.weight(axis)),
-        )
+    fun face(
+        weight: FontWeight,
+        axis: Int
+    ) = Font(
+        resId = resId,
+        weight = weight,
+        variationSettings = FontVariation.Settings(FontVariation.weight(axis)),
+    )
     return FontFamily(
         face(FontWeight.Normal, 400),
         face(FontWeight.Medium, 500),
@@ -87,16 +89,18 @@ private fun variableFamily(resId: Int): FontFamily {
 }
 
 private fun serifFamily(resId: Int): FontFamily {
-    fun face(weight: FontWeight, axis: Int) =
-        Font(
-            resId = resId,
-            weight = weight,
-            variationSettings =
-                FontVariation.Settings(
-                    FontVariation.weight(axis),
-                    FontVariation.Setting("opsz", 18f),
-                ),
-        )
+    fun face(
+        weight: FontWeight,
+        axis: Int
+    ) = Font(
+        resId = resId,
+        weight = weight,
+        variationSettings =
+            FontVariation.Settings(
+                FontVariation.weight(axis),
+                FontVariation.Setting("opsz", 18f),
+            ),
+    )
     return FontFamily(
         face(FontWeight.Normal, 400),
         face(FontWeight.Medium, 500),
@@ -189,6 +193,7 @@ internal val Typography =
 
 internal fun paperTypography(): Typography {
     fun TextStyle.asSerif() = copy(fontFamily = SourceSerifFamily, letterSpacing = 0.sp)
+
     fun TextStyle.asText() = copy(fontFamily = SourceSansFamily, letterSpacing = 0.sp)
     return Typography.copy(
         headlineLarge = Typography.headlineLarge.asSerif(),

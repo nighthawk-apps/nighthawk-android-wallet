@@ -76,8 +76,11 @@ object AppNymCoordinator {
                     ready = true
                     break
                 }
+
                 // The native bootstrap gave up; surface Retry now instead of at the deadline.
-                NYM_STATUS_FAILED -> break
+                NYM_STATUS_FAILED -> {
+                    break
+                }
             }
             delay(500)
         }

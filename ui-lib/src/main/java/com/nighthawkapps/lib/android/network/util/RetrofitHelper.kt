@@ -11,6 +11,7 @@ import retrofit2.converter.gson.GsonConverterFactory
 
 object RetrofitHelper {
     private const val COINGECKO_HOST = "api.coingecko.com"
+
     /**
      * Leaf SPKI pins. When CoinGecko rotates CDN certs, add the new pin here
      * **before** removing the old one (overlap window), then ship a release.
