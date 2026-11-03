@@ -26,18 +26,13 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.unit.TextUnit
-import androidx.compose.ui.unit.TextUnitType
 import androidx.compose.ui.unit.dp
 import com.nighthawkapps.lib.android.ui.R
 import com.nighthawkapps.lib.android.ui.design.component.BodyMedium
 import com.nighthawkapps.lib.android.ui.design.component.BodySmall
 import com.nighthawkapps.lib.android.ui.design.component.PrimaryButton
-import com.nighthawkapps.lib.android.ui.design.component.Reference
 import com.nighthawkapps.lib.android.ui.design.component.TertiaryButton
 import com.nighthawkapps.lib.android.ui.design.component.TitleLarge
 import com.nighthawkapps.lib.android.ui.design.component.TitleMedium
@@ -51,7 +46,6 @@ fun ComposablePreview() {
             GetStarted(
                 onCreateWallet = {},
                 onRestore = {},
-                onReference = {}
             )
         }
     }
@@ -61,7 +55,6 @@ fun ComposablePreview() {
 fun GetStarted(
     onCreateWallet: () -> Unit,
     onRestore: () -> Unit,
-    onReference: () -> Unit,
     createWalletError: String? = null,
 ) {
     Box(
@@ -103,11 +96,6 @@ fun GetStarted(
                     text = stringResource(id = R.string.ns_landing_footer),
                     modifier = Modifier.fillMaxWidth(0.7f),
                     textAlign = TextAlign.Center
-                )
-                Reference(
-                    text = stringResource(id = R.string.ns_terms_conditions),
-                    style = TextStyle(fontSize = TextUnit(12f, TextUnitType.Sp), textDecoration = TextDecoration.Underline),
-                    onClick = onReference
                 )
                 Spacer(modifier = Modifier.weight(1f))
                 if (createWalletError != null) {

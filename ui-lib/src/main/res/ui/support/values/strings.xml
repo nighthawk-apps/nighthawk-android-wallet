@@ -10,6 +10,6 @@
     <!-- This is replaced by a resource overlay via app/build.gradle.kts -->
     <string name="support_email_address"></string>
     <string name="support_information">Please let us know about any problems you have had, or features you want to see in the future.</string>
-    <string name="support_disclaimer">Information provided is handled in accordance with our Privacy Policy.</string>
+    <string name="support_disclaimer">Submitting this form sends your message together with device, operating system, permission, and crash information.</string>
     <string name="support_unable_to_open_email">Unable to launch email app.</string>
 </resources>

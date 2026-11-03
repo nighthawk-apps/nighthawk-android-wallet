@@ -79,6 +79,11 @@ class StubDarkfiSynchronizer(
 
     override suspend fun getProposal(proposalBullaB58: String) = null
 
+    override suspend fun daoImport(
+        name: String,
+        toml: String,
+    ): DarkfiTransferResult<String> = nativeTransferUnavailable()
+
     private fun <T> nativeTransferUnavailable(): DarkfiTransferResult<T> =
         DarkfiTransferResult.Failure(
             "Native wallet library is unavailable. Install libdarkfi_mobile_ffi for this ABI.",

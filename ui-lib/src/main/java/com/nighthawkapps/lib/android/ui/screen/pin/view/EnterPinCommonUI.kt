@@ -15,6 +15,7 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -108,7 +109,7 @@ fun EnterPinCommonUI(
                     onClick = { onKeyPressed(it) },
                     shape = CircleShape
                 ) {
-                    Text(text = it.keyValue, fontSize = 30.sp, color = Color.White)
+                    Text(text = it.keyValue, fontSize = 30.sp, color = MaterialTheme.colorScheme.onSurface)
                 }
             }
         }

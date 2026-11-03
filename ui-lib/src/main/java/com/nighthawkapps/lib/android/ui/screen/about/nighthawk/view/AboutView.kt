@@ -34,7 +34,7 @@ import com.nighthawkapps.lib.android.ui.design.theme.WalletTheme
 fun AboutViewPreview() {
     WalletTheme(darkTheme = false) {
         Surface {
-            AboutView(onBack = {}, onViewSource = {}, onCredits = {}, onTermAndCondition = {}, onViewLicence = {})
+            AboutView(onBack = {}, onViewSource = {}, onViewLicence = {})
         }
     }
 }
@@ -43,8 +43,6 @@ fun AboutViewPreview() {
 fun AboutView(
     onBack: () -> Unit,
     onViewSource: () -> Unit,
-    onCredits: () -> Unit,
-    onTermAndCondition: () -> Unit,
     onViewLicence: () -> Unit
 ) {
     Column(
@@ -73,18 +71,6 @@ fun AboutView(
             text = stringResource(id = R.string.ns_view_source),
             style = TextStyle(fontSize = TextUnit(12f, TextUnitType.Sp), textDecoration = TextDecoration.Underline),
             onClick = onViewSource
-        )
-        Spacer(modifier = Modifier.height(10.dp))
-        Reference(
-            text = stringResource(id = R.string.ns_credits),
-            style = TextStyle(fontSize = TextUnit(12f, TextUnitType.Sp), textDecoration = TextDecoration.Underline),
-            onClick = onCredits
-        )
-        Spacer(modifier = Modifier.height(10.dp))
-        Reference(
-            text = stringResource(id = R.string.ns_terms_conditions),
-            style = TextStyle(fontSize = TextUnit(12f, TextUnitType.Sp), textDecoration = TextDecoration.Underline),
-            onClick = onTermAndCondition
         )
         Spacer(modifier = Modifier.weight(1f))
         PrimaryButton(

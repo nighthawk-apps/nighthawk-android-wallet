@@ -179,7 +179,9 @@ dependencyResolutionManagement {
             val aboutLibrariesVersion = extra["ABOUT_LIBRARIES_VERSION"].toString()
             val retrofitVersion = extra["RETROFIT_VERSION"].toString()
             val okHttpVersion = extra["OKHTTP_VERSION"].toString()
-            val secureStorageVersion = extra["SECURE_STORAGE_VERSION"].toString()
+            val tinkVersion = extra["TINK_VERSION"].toString()
+            val dataStoreVersion = extra["DATASTORE_VERSION"].toString()
+            val jnaVersion = extra["JNA_VERSION"].toString()
 
             // Standalone versions
             version("flank", flankVersion)
@@ -233,7 +235,9 @@ dependencyResolutionManagement {
             library("square-retrofit-gson", "com.squareup.retrofit2:converter-gson:$retrofitVersion")
             library("square-okhttp", "com.squareup.okhttp3:okhttp:$okHttpVersion")
             library("square-okhttp-logging-interceptor", "com.squareup.okhttp3:logging-interceptor:$okHttpVersion")
-            library("secure-storage", "com.github.gmale:secure-storage-android:$secureStorageVersion")
+            library("google-tink", "com.google.crypto.tink:tink-android:$tinkVersion")
+            library("androidx-datastore-preferences", "androidx.datastore:datastore-preferences:$dataStoreVersion")
+            library("jna", "net.java.dev.jna:jna:$jnaVersion")
 
             // Test libraries
             library("androidx-compose-test-junit", "androidx.compose.ui:ui-test-junit4:$androidxComposeVersion")
@@ -248,7 +252,7 @@ dependencyResolutionManagement {
             library("androidx-test-orchestrator", "androidx.test:orchestrator:$androidxTestOrchestratorVersion")
             library("androidx-test-runner", "androidx.test:runner:$androidxTestRunnerVersion")
             library("androidx-test-services","androidx.test.services:test-services:$androidxTestServices")
-            library("androidx-uiAutomator", "androidx.test.uiautomator:uiautomator-v18:$androidxUiAutomatorVersion")
+            library("androidx-uiAutomator", "androidx.test.uiautomator:uiautomator:$androidxUiAutomatorVersion")
             library("kotlinx-coroutines-test", "org.jetbrains.kotlinx:kotlinx-coroutines-test:$kotlinxCoroutinesVersion")
             // Bundles
             bundle(

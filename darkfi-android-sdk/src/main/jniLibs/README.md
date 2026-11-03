@@ -13,6 +13,8 @@ cargo ndk -t arm64-v8a -t armeabi-v7a build -p darkfi-mobile-ffi --release
 
 These **`.so` files are not checked into Git** (see root `.gitignore`). After a **`cargo-ndk`** build, copy them here (commands in [`rust/darkfi-mobile-ffi/README.md`](../../../../rust/darkfi-mobile-ffi/README.md) and the repo **`README`** “Build the project”), or obtain them from CI artifacts.
 
+**2026-11-03:** `arm64-v8a` and `x86_64` were rebuilt with `SKIP_UNIFFI_BINDGEN=1` and export `dao_create`, `dao_exec`, and `dao_import`. `armeabi-v7a` and `x86` were not rebuilt, so those ABIs do not match the current Kotlin bindings.
+
 Until **`libdarkfi_mobile_ffi.so`** is present locally for each emulator/device ABI you use, UniFFI calls fail at runtime (`UnsatisfiedLinkError` / `DarkfiNativeProbe.MissingLibrary`); the app continues to use Kotlin stubs for chain/sync UX.
 
 Optional legacy artifact: **`libdarkfi_android_bridge.so`** from `rust/darkfi-android-bridge` is not used by the UniFFI stack.

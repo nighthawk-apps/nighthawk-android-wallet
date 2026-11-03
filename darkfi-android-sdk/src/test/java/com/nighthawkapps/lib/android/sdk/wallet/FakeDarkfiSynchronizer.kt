@@ -24,6 +24,7 @@ class FakeDarkfiSynchronizer(
 
     var estimateCalls = 0
     var submitCalls = 0
+    var daoImportCalls = 0
     var closeCount = 0
 
     override fun close() {
@@ -62,4 +63,12 @@ class FakeDarkfiSynchronizer(
     }
 
     override suspend fun getTransactionPaymentMemo(txId: String): String? = null
+
+    override suspend fun daoImport(
+        name: String,
+        toml: String,
+    ): DarkfiTransferResult<String> {
+        daoImportCalls++
+        return submitResult
+    }
 }

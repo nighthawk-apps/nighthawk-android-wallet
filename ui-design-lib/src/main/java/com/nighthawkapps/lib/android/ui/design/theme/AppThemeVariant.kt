@@ -1,15 +1,17 @@
 package com.nighthawkapps.lib.android.ui.design.theme
 
 /**
- * User-selectable visual themes. **Stealth** is the default dark branding;
- * **Light** is the mist palette; **Paper** is a white reading theme;
- * **Midnight** is a darker violet-accent variant.
+ * User-selectable visual themes. **Cyberpunk** is the default for a light or
+ * dark system theme. **Stealth** is the moonlit dark palette; **Light** is the
+ * mist palette; **Paper** is a white reading theme; **Midnight** is a darker
+ * violet-accent variant.
  */
 enum class AppThemeVariant {
     STEALTH_DEFAULT,
     LIGHT,
     PAPER,
     MIDNIGHT,
+    CYBERPUNK,
     ;
 
     companion object {
@@ -19,6 +21,7 @@ enum class AppThemeVariant {
                 "light" -> LIGHT
                 "paper", "white" -> PAPER
                 "midnight" -> MIDNIGHT
+                "cyberpunk" -> CYBERPUNK
                 "stealth_default", "default", "stealth", "dark" -> STEALTH_DEFAULT
                 else -> STEALTH_DEFAULT
             }
@@ -29,13 +32,15 @@ enum class AppThemeVariant {
                 LIGHT -> "light"
                 PAPER -> "paper"
                 MIDNIGHT -> "midnight"
+                CYBERPUNK -> "cyberpunk"
             }
 
         /**
          * Explicit [stored] wins. A legacy dark-theme flag wins when it was
-         * actually written. With neither set, a light system theme uses Paper
-         * and a dark system theme uses Stealth.
+         * actually written. With neither set, Cyberpunk is used for both a
+         * light and a dark system theme.
          */
+        @Suppress("UNUSED_PARAMETER")
         fun resolve(
             stored: String?,
             legacyDarkStored: String?,
@@ -45,7 +50,7 @@ enum class AppThemeVariant {
                 ?: when (legacyDarkStored?.trim()?.lowercase()) {
                     "false" -> PAPER
                     "true" -> STEALTH_DEFAULT
-                    else -> if (systemDark) STEALTH_DEFAULT else PAPER
+                    else -> CYBERPUNK
                 }
     }
 }

@@ -13,12 +13,19 @@ import android.os.Looper
 import androidx.annotation.RequiresApi
 import com.nighthawkapps.lib.android.sdk.net.LocalNetworkPermission
 import com.nighthawkapps.lib.android.spackle.Twig
+import java.io.InputStream
+import java.io.OutputStream
 import java.net.InetAddress
 import java.net.ServerSocket
 import java.net.Socket
 import java.security.SecureRandom
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicLong
+
+private const val MILLIS_PER_SECOND: Long = 1000L
+private const val BULK_ACCEPT_BACKLOG: Int = 8
+private const val BULK_SOCKET_TIMEOUT_MS: Int = 30_000
+private const val BULK_PIPE_BUFFER_BYTES: Int = 32 * 1024
 
 /** Quotas and start gates for UnifOMR bulk. Radios never start from a worker. */
 object NighthawkBulkPolicy {
@@ -50,9 +57,9 @@ class NighthawkBulkLink(
     private val context: Context,
 ) {
     private val main = Handler(Looper.getMainLooper())
-    private val running = AtomicBoolean(false)
-    private val bytes = AtomicLong(0)
-    private var startedAtMs: Long = 0
+    internal val running = AtomicBoolean(false)
+    internal val bytes = AtomicLong(0)
+    internal var startedAtMs: Long = 0
     private var hotspot: WifiManager.LocalOnlyHotspotReservation? = null
     private var listener: ServerSocket? = null
     private var spliceThread: Thread? = null
@@ -62,22 +69,11 @@ class NighthawkBulkLink(
     var lastOfferDest: ByteArray? = null
 
     fun startHostIfAllowed(fromBackgroundWorker: Boolean = false): Boolean {
-        if (!NighthawkBulkPolicy.mayStart(
-                foreground = true,
-                gatewayReady = MeshCoordinator.gatewayOptIn,
-                fromBackgroundWorker = fromBackgroundWorker,
-            )
-        ) {
-            return false
-        }
-        if (!MeshPermissionGate.hasNearbyWifiPermission(context)) {
-            Twig.warn { "mesh: nearby wifi permission missing for bulk" }
-            return false
-        }
-        if (!LocalNetworkPermission.hasGranted(context)) {
-            Twig.warn { "mesh: ACCESS_LOCAL_NETWORK missing for bulk" }
-            return false
-        }
+        if (!BulkStartGate.permitted(context, fromBackgroundWorker)) return false
+        return armHost()
+    }
+
+    private fun armHost(): Boolean {
         if (!running.compareAndSet(false, true)) return true
         startedAtMs = System.currentTimeMillis()
         bytes.set(0)
@@ -97,11 +93,7 @@ class NighthawkBulkLink(
         host: String,
         port: Int,
     ) {
-        if (ssid.isEmpty() || host.isEmpty() || port <= 0) return
-        if (!LocalNetworkPermission.hasGranted(context)) {
-            Twig.warn { "mesh: ACCESS_LOCAL_NETWORK missing for bulk join" }
-            return
-        }
+        if (!BulkStartGate.joinOk(context, ssid, host, port)) return
         val cm = context.getSystemService(ConnectivityManager::class.java) ?: return
         val specifier =
             WifiNetworkSpecifier
@@ -134,18 +126,8 @@ class NighthawkBulkLink(
     }
 
     fun noteBytes(n: Long): Boolean {
-        if (!running.get()) return false
-        val elapsed = (System.currentTimeMillis() - startedAtMs) / 1000L
-        if (elapsed > NighthawkBulkPolicy.MAX_SECS) {
-            stop()
-            return false
-        }
-        val total = bytes.addAndGet(n)
-        if (total > NighthawkBulkPolicy.MAX_BYTES || !MeshNative.recordBulkBytes(n)) {
-            stop()
-            return false
-        }
-        return true
+        if (!BulkQuota.accepting(this)) return false
+        return BulkQuota.record(this, n)
     }
 
     fun stop() {
@@ -179,7 +161,12 @@ class NighthawkBulkLink(
     private fun startListenerLocked() {
         val host = MeshCoordinator.lwdSpliceHost ?: return
         val port = MeshCoordinator.lwdSplicePort
-        val ss = ServerSocket(NighthawkBulkPolicy.DEFAULT_LISTEN_PORT, 8, InetAddress.getByName("0.0.0.0"))
+        val ss =
+            ServerSocket(
+                NighthawkBulkPolicy.DEFAULT_LISTEN_PORT,
+                BULK_ACCEPT_BACKLOG,
+                InetAddress.getByName("0.0.0.0"),
+            )
         listener = ss
         spliceThread =
             Thread({
@@ -206,7 +193,7 @@ class NighthawkBulkLink(
         port: Int,
     ) {
         try {
-            client.soTimeout = 30_000
+            client.soTimeout = BULK_SOCKET_TIMEOUT_MS
             Socket(host, port).use { remote ->
                 val up =
                     Thread {
@@ -236,16 +223,12 @@ class NighthawkBulkLink(
         from: Socket,
         to: Socket,
     ) {
-        val buf = ByteArray(32 * 1024)
+        val buf = ByteArray(BULK_PIPE_BUFFER_BYTES)
         try {
             val input = from.getInputStream()
             val output = to.getOutputStream()
             while (running.get()) {
-                val n = input.read(buf)
-                if (n <= 0) break
-                if (!noteBytes(n.toLong())) break
-                output.write(buf, 0, n)
-                output.flush()
+                if (!BulkPipe.transferChunk(this, input, output, buf)) break
             }
         } catch (_: Exception) {
         }
@@ -269,7 +252,7 @@ class NighthawkBulkLink(
                             val ssid = cfg?.SSID?.trim('"').orEmpty()
                             val psk = cfg?.preSharedKey?.trim('"').orEmpty()
                             val dest = lastOfferDest ?: return
-                            val sid = ByteArray(16)
+                            val sid = ByteArray(MeshNative.MESH_CORRELATION_BYTES)
                             SecureRandom().nextBytes(sid)
                             MeshNative.submitBulkOffer(
                                 dest,
@@ -293,5 +276,111 @@ class NighthawkBulkLink(
                 running.set(false)
             }
         }
+    }
+}
+
+private object BulkStartGate {
+    fun permitted(
+        context: Context,
+        fromBackgroundWorker: Boolean,
+    ): Boolean {
+        if (!policyAllows(fromBackgroundWorker)) return false
+        return permissions(context)
+    }
+
+    fun joinOk(
+        context: Context,
+        ssid: String,
+        host: String,
+        port: Int,
+    ): Boolean {
+        if (ssid.isEmpty() || host.isEmpty()) return false
+        return portAndLocal(context, port)
+    }
+
+    private fun policyAllows(fromBackgroundWorker: Boolean): Boolean =
+        NighthawkBulkPolicy.mayStart(
+            foreground = true,
+            gatewayReady = MeshCoordinator.gatewayOptIn,
+            fromBackgroundWorker = fromBackgroundWorker,
+        )
+
+    private fun permissions(context: Context): Boolean {
+        if (!nearbyWifi(context)) return false
+        return localNetwork(context, "mesh: ACCESS_LOCAL_NETWORK missing for bulk")
+    }
+
+    private fun nearbyWifi(context: Context): Boolean {
+        if (MeshPermissionGate.hasNearbyWifiPermission(context)) return true
+        Twig.warn { "mesh: nearby wifi permission missing for bulk" }
+        return false
+    }
+
+    private fun portAndLocal(
+        context: Context,
+        port: Int,
+    ): Boolean {
+        if (port <= 0) return false
+        return localNetwork(context, "mesh: ACCESS_LOCAL_NETWORK missing for bulk join")
+    }
+
+    private fun localNetwork(
+        context: Context,
+        denialMessage: String,
+    ): Boolean {
+        if (LocalNetworkPermission.hasGranted(context)) return true
+        Twig.warn { denialMessage }
+        return false
+    }
+}
+
+private object BulkQuota {
+    fun accepting(link: NighthawkBulkLink): Boolean {
+        if (!link.running.get()) return false
+        return withinTime(link)
+    }
+
+    fun record(
+        link: NighthawkBulkLink,
+        n: Long,
+    ): Boolean {
+        val total = link.bytes.addAndGet(n)
+        if (underCap(total) && MeshNative.recordBulkBytes(n)) return true
+        link.stop()
+        return false
+    }
+
+    private fun withinTime(link: NighthawkBulkLink): Boolean {
+        val elapsed = (System.currentTimeMillis() - link.startedAtMs) / MILLIS_PER_SECOND
+        if (elapsed <= NighthawkBulkPolicy.MAX_SECS) return true
+        link.stop()
+        return false
+    }
+
+    private fun underCap(total: Long): Boolean = total <= NighthawkBulkPolicy.MAX_BYTES
+}
+
+private object BulkPipe {
+    fun transferChunk(
+        link: NighthawkBulkLink,
+        input: InputStream,
+        output: OutputStream,
+        buf: ByteArray,
+    ): Boolean {
+        val n = input.read(buf)
+        if (n <= 0) return false
+        return forward(link, output, buf, n)
+    }
+
+    private fun forward(
+        link: NighthawkBulkLink,
+        output: OutputStream,
+        buf: ByteArray,
+        n: Int,
+    ): Boolean {
+        if (!link.noteBytes(n.toLong())) return false
+        output.write(buf, 0, n)
+        output.flush()
+        return true
     }
 }

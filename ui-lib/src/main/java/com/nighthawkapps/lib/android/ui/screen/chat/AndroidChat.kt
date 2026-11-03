@@ -41,11 +41,13 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -122,7 +124,13 @@ private sealed class FudPromptUi {
 internal fun MainActivity.AndroidChat(
     onChatSettings: () -> Unit,
     onPayInvoice: (String) -> Unit,
+    chatFullScreen: Boolean,
+    onChatFullScreenChange: (Boolean) -> Unit,
 ) {
+    val leaveFullScreen by rememberUpdatedState(onChatFullScreenChange)
+    DisposableEffect(Unit) {
+        onDispose { leaveFullScreen(false) }
+    }
     val controller = LocalDarkfiChatController.current
     if (controller == null) {
         Text(
@@ -138,15 +146,23 @@ internal fun MainActivity.AndroidChat(
         onChatSettings = onChatSettings,
         onPayInvoice = onPayInvoice,
         receiveAddress = addresses?.privateAddresses?.firstOrNull().orEmpty(),
+        fullScreen = ChatFullScreenToggle(chatFullScreen, onChatFullScreenChange),
     )
 }
 
+private data class ChatFullScreenToggle(
+    val enabled: Boolean,
+    val onChange: (Boolean) -> Unit,
+)
+
 @Composable
+@Suppress("LongMethod", "CyclomaticComplexMethod")
 private fun ChatScreen(
     controller: DarkfiChatController,
     onChatSettings: () -> Unit,
     onPayInvoice: (String) -> Unit,
     receiveAddress: String,
+    fullScreen: ChatFullScreenToggle,
 ) {
     val connectionState by controller.connectionState.collectAsStateWithLifecycle()
     val nodeStatus by controller.embeddedNodeStatus.collectAsStateWithLifecycle()
@@ -308,6 +324,19 @@ private fun ChatScreen(
                 style = MaterialTheme.typography.titleMedium,
                 modifier = Modifier.weight(1f),
             )
+            TextButton(onClick = { fullScreen.onChange(!fullScreen.enabled) }) {
+                Text(
+                    text =
+                        stringResource(
+                            if (fullScreen.enabled) {
+                                R.string.ns_chat_exit_full_screen
+                            } else {
+                                R.string.ns_chat_full_screen
+                            },
+                        ),
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+            }
             IconButton(onClick = {
                 newDmInitialPubkey = null
                 showNewDm = true
@@ -507,15 +536,15 @@ private fun ChatScreen(
 
         // Scroll to bottom on initial load and when switching channels/DM threads.
         LaunchedEffect(activeThreadKey) {
-            if (threadMessages.isNotEmpty()) {
-                listState.scrollToItem(threadMessages.lastIndex)
+            if (timeline.isNotEmpty()) {
+                listState.scrollToItem(timeline.lastIndex)
             }
         }
 
         // Auto-scroll to bottom when new messages arrive
-        LaunchedEffect(threadMessages.size) {
-            if (threadMessages.isNotEmpty()) {
-                listState.animateScrollToItem(threadMessages.lastIndex)
+        LaunchedEffect(timeline.size) {
+            if (timeline.isNotEmpty()) {
+                listState.animateScrollToItem(timeline.lastIndex)
             }
         }
 

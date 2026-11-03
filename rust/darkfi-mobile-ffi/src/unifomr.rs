@@ -1087,9 +1087,9 @@ pub fn validate_slot_heights(
     Ok(())
 }
 
-/// Domain-separated message prefix for clue-PK ownership proofs (v2:
-/// binds network byte + monotonic key_version against replay).
-pub const CLUE_PK_OWNERSHIP_DOMAIN: &[u8] = b"DarkFi-UnifOMR-CluePK-v2";
+/// Domain-separated message prefix for clue-PK ownership proofs. The signed
+/// message binds the network byte and a monotonic key_version against replay.
+pub const CLUE_PK_OWNERSHIP_DOMAIN: &[u8] = b"DarkFi-UnifOMR-CluePK";
 
 /// Build the signed message for RegisterCluePublicKey ownership proofs.
 ///
@@ -1111,13 +1111,12 @@ pub fn clue_pk_ownership_message(
     msg
 }
 
-/// Monotonic clue-key version for registrations (unix seconds).
-pub fn clue_key_version_now() -> u64 {
-    std::time::SystemTime::now()
-        .duration_since(std::time::UNIX_EPOCH)
-        .map(|d| d.as_secs())
-        .unwrap_or(1)
-}
+/// Clue-key version sent with every registration.
+///
+/// The clue key is derived from the wallet secret and never rotates, so the
+/// version stays 1. Directory decoys carry the same value; a timestamp here
+/// would mark real entries and leak when the wallet last started.
+pub const CLUE_KEY_VERSION: u64 = 1;
 
 /// Sign `RegisterCluePublicKey` with the payment [`darkfi_sdk::crypto::SecretKey`].
 pub fn sign_clue_pk_ownership(
@@ -1145,23 +1144,10 @@ pub fn verify_clue_pk_ownership(
     use darkfi_sdk::crypto::schnorr::SchnorrPublic;
     use darkfi_sdk::crypto::PublicKey;
     use darkfi_serial::deserialize;
-    const OWNERSHIP_PROOF_WIRE_LEN: usize = 128;
-    let proof_bytes = if ownership_proof.len() == OWNERSHIP_PROOF_WIRE_LEN {
-        if ownership_proof.len() < 2 {
-            return Err("ownership proof wire too short".into());
-        }
-        let len = u16::from_le_bytes([ownership_proof[0], ownership_proof[1]]) as usize;
-        if len == 0 || 2 + len > ownership_proof.len() {
-            return Err("ownership proof length invalid".into());
-        }
-        &ownership_proof[2..2 + len]
-    } else {
-        ownership_proof
-    };
     let pk = PublicKey::from_bytes(*payment_pubkey)
         .map_err(|e| format!("invalid payment pubkey: {e}"))?;
-    let sig: darkfi_sdk::crypto::schnorr::Signature =
-        deserialize(proof_bytes).map_err(|e| format!("invalid ownership proof encoding: {e}"))?;
+    let sig: darkfi_sdk::crypto::schnorr::Signature = deserialize(ownership_proof)
+        .map_err(|e| format!("invalid ownership proof encoding: {e}"))?;
     let msg = clue_pk_ownership_message(network, key_version, payment_pubkey, clue_public_key);
     if !pk.verify(&msg, &sig) {
         return Err("clue public key ownership proof verification failed".into());
@@ -1170,7 +1156,7 @@ pub fn verify_clue_pk_ownership(
 }
 
 /// Domain-separated message prefix for lightwalletd directory attestations.
-pub const DIRECTORY_ATTEST_DOMAIN: &[u8] = b"DarkFi-UnifOMR-DirAttest-v1";
+pub const DIRECTORY_ATTEST_DOMAIN: &[u8] = b"DarkFi-UnifOMR-DirAttest";
 
 fn directory_attest_message(
     network: u8,
@@ -1205,20 +1191,16 @@ pub fn verify_directory_attestation(
     if server_pk.len() != 32 {
         return Err("directory attest pubkey must be 32 bytes".into());
     }
+    if attestation.len() != OWNERSHIP_PROOF_WIRE_LEN {
+        return Err("directory attestation must be the fixed-length wire proof".into());
+    }
     let mut pk_bytes = [0u8; 32];
     pk_bytes.copy_from_slice(server_pk);
-    let proof_bytes = if attestation.len() == OWNERSHIP_PROOF_WIRE_LEN {
-        if attestation.len() < 2 {
-            return Err("directory attestation wire too short".into());
-        }
-        let len = u16::from_le_bytes([attestation[0], attestation[1]]) as usize;
-        if len == 0 || 2 + len > attestation.len() {
-            return Err("directory attestation length invalid".into());
-        }
-        &attestation[2..2 + len]
-    } else {
-        attestation
-    };
+    let len = u16::from_le_bytes([attestation[0], attestation[1]]) as usize;
+    if len == 0 || 2 + len > attestation.len() {
+        return Err("directory attestation length invalid".into());
+    }
+    let proof_bytes = &attestation[2..2 + len];
     let pk = PublicKey::from_bytes(pk_bytes)
         .map_err(|e| format!("invalid directory attest pubkey: {e}"))?;
     let sig: darkfi_sdk::crypto::schnorr::Signature = deserialize(proof_bytes)

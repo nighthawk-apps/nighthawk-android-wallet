@@ -446,6 +446,18 @@ impl SyncEngine {
             .store(strict, std::sync::atomic::Ordering::Relaxed);
     }
 
+    /// Local override used by `E2E_FORCE_TRIAL`. This is not a server
+    /// advertisement, so it must not increment the downgrade counter.
+    pub fn force_local_trial(&self) {
+        self.set_strict_omr_only(false);
+        let mut state = self.state.lock().unwrap();
+        state.omr_available = false;
+        if state.sync_type == LightSyncType::Omr || state.sync_type == LightSyncType::Idle {
+            state.sync_type = LightSyncType::TrialDecryption;
+        }
+        state.refresh_messages();
+    }
+
     /// Get a snapshot of the current sync state.
     pub fn snapshot(&self) -> LightSyncState {
         self.state.lock().unwrap().clone()

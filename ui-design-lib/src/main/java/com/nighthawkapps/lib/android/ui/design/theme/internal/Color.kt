@@ -247,6 +247,28 @@ internal val LightColorPalette =
         onError = Light.onDangerous,
     )
 
+internal val CyberpunkColorPalette =
+    DarkColorPalette.copy(
+        primary = Color(0xFF5CE1FF),
+        onPrimary = Color(0xFF041018),
+        primaryContainer = Color(0xCC102833),
+        onPrimaryContainer = Color(0xFFF4FBFF),
+        secondary = Color(0xCC1A1024),
+        onSecondary = Color(0xFFF4FBFF),
+        secondaryContainer = Color(0xCC2A1430),
+        onSecondaryContainer = Color(0xFFFFD6F6),
+        tertiary = Color(0xB8141824),
+        onTertiary = Color(0xFFF4FBFF),
+        background = Color(0x99050810),
+        onBackground = Color(0xFFF4FBFF),
+        surface = Color(0xC010121C),
+        onSurface = Color(0xFFF4FBFF),
+        surfaceVariant = Color(0xB8161C28),
+        onSurfaceVariant = Color(0xFFD5DEEA),
+        outline = Color(0xFF3D4C5C),
+        outlineVariant = Color(0xFF2A3544),
+    )
+
 internal val MidnightColorPalette =
     DarkColorPalette.copy(
         primary = Color(0xFF9B87F5),
@@ -295,6 +317,23 @@ internal val DarkExtendedColorPalette =
         navigationContainer = Dark.navigationContainer,
         selectedPageIndicator = Dark.selectedPageIndicator,
         secondaryTitleText = Dark.secondaryTitleText,
+    )
+
+internal val CyberpunkExtendedColorPalette =
+    DarkExtendedColorPalette.copy(
+        surfaceEnd = Color(0x99050810),
+        onBackgroundHeader = Color(0xFFF7FBFF),
+        reference = Color(0xFFFF4FD8),
+        selectedPageIndicator = Color(0xFF5CE1FF),
+        progressStart = Color(0xFF5CE1FF),
+        progressEnd = Color(0xFFFF4FD8),
+        navigationIcon = Color(0xFFE7EEF8),
+        navigationContainer = Color(0xC0050810),
+        secondaryTitleText = Color(0xFFD5DEEA),
+        divider = Color(0xFF3D4C5C),
+        addressHighlightBorder = Color(0xFF3D4C5C),
+        addressHighlightUnified = Color(0xFF5CE1FF),
+        addressHighlightPublic = Color(0xFFFF4FD8),
     )
 
 internal val MidnightExtendedColorPalette =

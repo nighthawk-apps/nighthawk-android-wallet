@@ -5,8 +5,6 @@ import androidx.activity.viewModels
 import androidx.compose.runtime.Composable
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.nighthawkapps.lib.android.ui.MainActivity
-import com.nighthawkapps.lib.android.ui.R
-import com.nighthawkapps.lib.android.ui.common.onLaunchUrl
 import com.nighthawkapps.lib.android.ui.screen.home.viewmodel.WalletViewModel
 import com.nighthawkapps.lib.android.ui.screen.onboarding.nighthawk.view.GetStarted
 import com.nighthawkapps.lib.android.ui.screen.onboarding.nighthawk.view.RestoreWallet
@@ -27,9 +25,6 @@ internal fun WrapOnBoarding(activity: ComponentActivity) {
         GetStarted(
             onCreateWallet = { walletViewModel.persistNewWallet() },
             onRestore = { onBoardingViewModel.setIsImporting(true) },
-            onReference = {
-                activity.onLaunchUrl(url = activity.getString(R.string.ns_license_link))
-            },
             createWalletError = createWalletError,
         )
     } else {

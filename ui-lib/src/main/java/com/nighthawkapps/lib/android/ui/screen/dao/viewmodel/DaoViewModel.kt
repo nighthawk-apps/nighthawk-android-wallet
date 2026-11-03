@@ -1,19 +1,33 @@
+@file:Suppress("TooManyFunctions", "TooGenericExceptionCaught")
+
 package com.nighthawkapps.lib.android.ui.screen.dao.viewmodel
 
 import android.app.Application
+import androidx.annotation.StringRes
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.nighthawkapps.lib.android.global.AppWalletCoordinator
 import com.nighthawkapps.lib.android.sdk.dao.DarkfiDaoProposalDetail
 import com.nighthawkapps.lib.android.sdk.dao.DarkfiDaoProposalSummary
 import com.nighthawkapps.lib.android.sdk.dao.DarkfiDaoSummary
+import com.nighthawkapps.lib.android.sdk.dao.DarkfiMintAuthority
 import com.nighthawkapps.lib.android.sdk.uniffi.DarkfiNativeProbe
 import com.nighthawkapps.lib.android.sdk.wallet.DarkfiSynchronizer
 import com.nighthawkapps.lib.android.sdk.wallet.DarkfiTransferResult
+import com.nighthawkapps.lib.android.ui.R
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+
+data class DaoCreateRequest(
+    val name: String,
+    val proposerLimit: String,
+    val quorum: String,
+    val earlyExecQuorum: String,
+    val approvalRatio: Double,
+    val govTokenId: String,
+)
 
 class DaoViewModel(
     application: Application,
@@ -38,20 +52,31 @@ class DaoViewModel(
     private val _proposalDetail = MutableStateFlow<DarkfiDaoProposalDetail?>(null)
     val proposalDetail: StateFlow<DarkfiDaoProposalDetail?> = _proposalDetail.asStateFlow()
 
-    // ── Action state ────────────────────────────────────────────────────
     private val _actionInProgress = MutableStateFlow(false)
     val actionInProgress: StateFlow<Boolean> = _actionInProgress.asStateFlow()
 
     private val _actionResult = MutableStateFlow<ActionResult?>(null)
     val actionResult: StateFlow<ActionResult?> = _actionResult.asStateFlow()
 
+    private val _openVotes = MutableStateFlow<Map<String, Int>>(emptyMap())
+    val openVotes: StateFlow<Map<String, Int>> = _openVotes.asStateFlow()
+
+    private val _treasury = MutableStateFlow(text(R.string.ns_dao_not_scanned))
+    val treasury: StateFlow<String> = _treasury.asStateFlow()
+
+    private val _mintAuthorities = MutableStateFlow<List<DarkfiMintAuthority>>(emptyList())
+    val mintAuthorities: StateFlow<List<DarkfiMintAuthority>> = _mintAuthorities.asStateFlow()
+
+    private val _roleExport = MutableStateFlow<String?>(null)
+    val roleExport: StateFlow<String?> = _roleExport.asStateFlow()
+
     sealed class ActionResult {
         data class Success(
-            val message: String
+            val message: String,
         ) : ActionResult()
 
         data class Error(
-            val message: String
+            val message: String,
         ) : ActionResult()
     }
 
@@ -65,9 +90,9 @@ class DaoViewModel(
             _error.value = null
             val sync = requireSync() ?: return@launch
             try {
-                _daos.value = sync.listDaos()
+                refreshHub(sync)
             } catch (e: Exception) {
-                _error.value = e.message ?: "Failed to load DAOs"
+                _error.value = e.message ?: text(R.string.ns_dao_load_failed)
             }
             _loading.value = false
         }
@@ -79,17 +104,17 @@ class DaoViewModel(
             _error.value = null
             val sync = requireSync() ?: return@launch
             try {
-                // Reuse already-loaded DAO list when available
                 val daos = _daos.value.ifEmpty { sync.listDaos() }
                 _selectedDao.value = daos.find { it.name == daoName }
                 if (_selectedDao.value == null) {
-                    _error.value = "DAO not found: $daoName"
+                    _error.value = text(R.string.ns_dao_missing, daoName)
                     _proposals.value = emptyList()
                 } else {
-                    _proposals.value = sync.listProposals(daoName)
+                    refreshTreasuryAndProposals(sync, daoName)
+                    _mintAuthorities.value = mintAuthoritiesOf(sync)
                 }
             } catch (e: Exception) {
-                _error.value = e.message ?: "Failed to load DAO detail"
+                _error.value = e.message ?: text(R.string.ns_dao_detail_load_failed)
             }
             _loading.value = false
         }
@@ -103,16 +128,14 @@ class DaoViewModel(
             try {
                 _proposalDetail.value = sync.getProposal(proposalBullaB58)
                 if (_proposalDetail.value == null) {
-                    _error.value = "Proposal not found"
+                    _error.value = text(R.string.ns_dao_proposal_missing)
                 }
             } catch (e: Exception) {
-                _error.value = e.message ?: "Failed to load proposal"
+                _error.value = e.message ?: text(R.string.ns_dao_proposal_load_failed)
             }
             _loading.value = false
         }
     }
-
-    // ── Propose ─────────────────────────────────────────────────────────
 
     fun proposeTransfer(
         daoName: String,
@@ -121,10 +144,15 @@ class DaoViewModel(
         tokenId: String?,
         recipientAddress: String,
     ) {
+        if (_actionInProgress.value) return
+        _actionInProgress.value = true
         viewModelScope.launch {
-            _actionInProgress.value = true
             _actionResult.value = null
-            val sync = requireSync() ?: return@launch
+            val sync = requireSync()
+            if (sync == null) {
+                _actionInProgress.value = false
+                return@launch
+            }
             try {
                 when (
                     val result =
@@ -139,10 +167,9 @@ class DaoViewModel(
                     is DarkfiTransferResult.Success -> {
                         _actionResult.value =
                             ActionResult.Success(
-                                "Proposal submitted! Bulla: ${result.value.take(16)}…"
+                                text(R.string.ns_dao_proposal_submitted, result.value.take(SHORT_ID)),
                             )
-                        // Refresh proposals list
-                        _proposals.value = sync.listProposals(daoName)
+                        refreshTreasuryAndProposals(sync, daoName)
                     }
 
                     is DarkfiTransferResult.Failure -> {
@@ -150,25 +177,25 @@ class DaoViewModel(
                     }
                 }
             } catch (e: Exception) {
-                _actionResult.value =
-                    ActionResult.Error(
-                        e.message ?: "Propose failed"
-                    )
+                _actionResult.value = ActionResult.Error(e.message ?: text(R.string.ns_dao_propose_failed))
             }
             _actionInProgress.value = false
         }
     }
 
-    // ── Vote ────────────────────────────────────────────────────────────
-
     fun voteOnProposal(
         proposalBullaB58: String,
         voteYes: Boolean,
     ) {
+        if (_actionInProgress.value) return
+        _actionInProgress.value = true
         viewModelScope.launch {
-            _actionInProgress.value = true
             _actionResult.value = null
-            val sync = requireSync() ?: return@launch
+            val sync = requireSync()
+            if (sync == null) {
+                _actionInProgress.value = false
+                return@launch
+            }
             try {
                 when (
                     val result =
@@ -178,10 +205,15 @@ class DaoViewModel(
                         )
                 ) {
                     is DarkfiTransferResult.Success -> {
+                        val messageId =
+                            if (voteYes) {
+                                R.string.ns_dao_vote_yes_submitted
+                            } else {
+                                R.string.ns_dao_vote_no_submitted
+                            }
                         _actionResult.value =
-                            ActionResult.Success(
-                                "Vote ${if (voteYes) "YES" else "NO"} submitted! TX: ${result.value.take(16)}…"
-                            )
+                            ActionResult.Success(text(messageId, result.value.take(SHORT_ID)))
+                        daoNameFor(proposalBullaB58)?.let { refreshTreasuryAndProposals(sync, it) }
                     }
 
                     is DarkfiTransferResult.Failure -> {
@@ -189,27 +221,247 @@ class DaoViewModel(
                     }
                 }
             } catch (e: Exception) {
-                _actionResult.value =
-                    ActionResult.Error(
-                        e.message ?: "Vote failed"
-                    )
+                _actionResult.value = ActionResult.Error(e.message ?: text(R.string.ns_dao_vote_failed))
             }
             _actionInProgress.value = false
         }
     }
 
+    fun execProposal(proposalBullaB58: String) {
+        runDaoAction(
+            success = text(R.string.ns_dao_payment_sent),
+            refresh = DaoRefresh.Treasury,
+            daoName = daoNameFor(proposalBullaB58),
+        ) { it.daoExec(proposalBullaB58) }
+    }
+
+    fun fundDao(
+        daoName: String,
+        amount: String,
+        tokenId: String?,
+    ) {
+        runDaoAction(
+            success = text(R.string.ns_dao_funds_sent),
+            refresh = DaoRefresh.Treasury,
+            daoName = daoName,
+        ) { it.daoFund(daoName, amount, tokenId) }
+    }
+
+    fun createGroup(request: DaoCreateRequest) {
+        runDaoAction(
+            success = text(R.string.ns_dao_group_submitted),
+            refresh = DaoRefresh.Hub,
+        ) {
+            it.daoCreate(
+                request.name,
+                request.proposerLimit,
+                request.quorum,
+                request.earlyExecQuorum,
+                request.approvalRatio,
+                request.govTokenId,
+            )
+        }
+    }
+
+    fun importGroup(
+        name: String,
+        toml: String,
+    ) {
+        runDaoAction(
+            success = text(R.string.ns_dao_group_imported),
+            refresh = DaoRefresh.Hub,
+        ) { it.daoImport(name, toml) }
+    }
+
+    fun issueToken(
+        alias: String?,
+        amount: String,
+        recipient: String,
+    ) {
+        if (_actionInProgress.value) return
+        _actionInProgress.value = true
+        viewModelScope.launch {
+            _actionResult.value = null
+            val sync = requireSync()
+            if (sync == null) {
+                _actionInProgress.value = false
+                return@launch
+            }
+            try {
+                when (val created = sync.tokenGenerate(alias?.takeIf { it.isNotBlank() })) {
+                    is DarkfiTransferResult.Failure -> {
+                        _actionResult.value = ActionResult.Error(created.message)
+                    }
+
+                    is DarkfiTransferResult.Success -> {
+                        when (val minted = sync.tokenMint(created.value, amount, recipient)) {
+                            is DarkfiTransferResult.Failure -> {
+                                _actionResult.value = ActionResult.Error(minted.message)
+                            }
+
+                            is DarkfiTransferResult.Success -> {
+                                _actionResult.value = ActionResult.Success(text(R.string.ns_dao_token_issued))
+                            }
+                        }
+                        _mintAuthorities.value = mintAuthoritiesOf(sync)
+                    }
+                }
+            } catch (e: Exception) {
+                _actionResult.value = ActionResult.Error(e.message ?: text(R.string.ns_dao_token_failed))
+            }
+            _actionInProgress.value = false
+        }
+    }
+
+    fun mintToken(
+        tokenId: String,
+        amount: String,
+        recipient: String,
+    ) {
+        runDaoAction(
+            success = text(R.string.ns_dao_tokens_minted),
+            refresh = DaoRefresh.Mints,
+        ) { it.tokenMint(tokenId, amount, recipient) }
+    }
+
+    fun freezeToken(tokenId: String) {
+        runDaoAction(
+            success = text(R.string.ns_dao_supply_frozen),
+            refresh = DaoRefresh.Mints,
+        ) { it.tokenFreeze(tokenId) }
+    }
+
+    fun exportRole(
+        daoName: String,
+        role: String,
+    ) {
+        if (_actionInProgress.value) return
+        _actionInProgress.value = true
+        viewModelScope.launch {
+            val sync = requireSync()
+            if (sync == null) {
+                _actionInProgress.value = false
+                return@launch
+            }
+            _roleExport.value = null
+            when (val result = sync.daoExportRole(daoName, role)) {
+                is DarkfiTransferResult.Success -> _roleExport.value = result.value
+                is DarkfiTransferResult.Failure -> _actionResult.value = ActionResult.Error(result.message)
+            }
+            _actionInProgress.value = false
+        }
+    }
+
+    fun clearRoleExport() {
+        _roleExport.value = null
+    }
+
+    private fun runDaoAction(
+        success: String,
+        refresh: DaoRefresh,
+        daoName: String? = null,
+        block: suspend (DarkfiSynchronizer) -> DarkfiTransferResult<String>,
+    ) {
+        if (_actionInProgress.value) return
+        _actionInProgress.value = true
+        viewModelScope.launch {
+            _actionResult.value = null
+            val sync = requireSync()
+            if (sync == null) {
+                _actionInProgress.value = false
+                return@launch
+            }
+            try {
+                when (val result = block(sync)) {
+                    is DarkfiTransferResult.Success -> {
+                        _actionResult.value = ActionResult.Success(success)
+                        applyRefresh(sync, refresh, daoName)
+                    }
+
+                    is DarkfiTransferResult.Failure -> {
+                        _actionResult.value = ActionResult.Error(result.message)
+                    }
+                }
+            } catch (e: Exception) {
+                _actionResult.value = ActionResult.Error(e.message ?: success)
+            }
+            _actionInProgress.value = false
+        }
+    }
+
+    private suspend fun applyRefresh(
+        sync: DarkfiSynchronizer,
+        refresh: DaoRefresh,
+        daoName: String?,
+    ) {
+        when (refresh) {
+            DaoRefresh.Hub -> refreshHub(sync)
+            DaoRefresh.Treasury -> daoName?.let { refreshTreasuryAndProposals(sync, it) }
+            DaoRefresh.Mints -> _mintAuthorities.value = mintAuthoritiesOf(sync)
+        }
+    }
+
+    private suspend fun refreshHub(sync: DarkfiSynchronizer) {
+        _daos.value = sync.listDaos()
+        refreshOpenVotes(sync)
+    }
+
+    private suspend fun refreshTreasuryAndProposals(
+        sync: DarkfiSynchronizer,
+        daoName: String,
+    ) {
+        _proposals.value = sync.listProposals(daoName)
+        _treasury.value = sync.daoTreasury(daoName)
+        refreshOpenVotes(sync)
+    }
+
+    private suspend fun refreshOpenVotes(sync: DarkfiSynchronizer) {
+        val proposals = runCatching { sync.listProposals(null) }.getOrDefault(emptyList())
+        _openVotes.value =
+            proposals
+                .filter { !it.isExecuted }
+                .groupingBy { it.daoName }
+                .eachCount()
+    }
+
+    private suspend fun mintAuthoritiesOf(sync: DarkfiSynchronizer): List<DarkfiMintAuthority> =
+        runCatching { sync.listMintAuthorities() }.getOrDefault(emptyList())
+
+    private fun daoNameFor(proposalBullaB58: String): String? =
+        _selectedDao.value?.name
+            ?: _proposalDetail.value
+                ?.summary
+                ?.takeIf { it.proposalBullaB58 == proposalBullaB58 }
+                ?.daoName
+            ?: _proposals.value.firstOrNull { it.proposalBullaB58 == proposalBullaB58 }?.daoName
+
     private suspend fun requireSync(): DarkfiSynchronizer? {
-        if (DarkfiNativeProbe.run() !is DarkfiNativeProbe.Ok) {
-            _error.value = "Native wallet library unavailable. Run ./scripts/build-darkfi-mobile-ffi-android.sh and rebuild the app."
-            _loading.value = false
-            return null
-        }
         val sync = walletCoordinator.synchronizer.value
-        if (sync == null) {
-            _error.value = "Wallet is still loading. Try again in a moment."
+        val message =
+            when {
+                DarkfiNativeProbe.run() !is DarkfiNativeProbe.Ok -> text(R.string.ns_dao_native_unavailable)
+                sync == null -> text(R.string.ns_dao_wallet_loading)
+                else -> null
+            }
+        if (message != null) {
+            _error.value = message
             _loading.value = false
-            return null
         }
-        return sync
+        return if (message == null) sync else null
+    }
+
+    private fun text(
+        @StringRes id: Int,
+        vararg args: Any,
+    ): String = getApplication<Application>().getString(id, *args)
+
+    private enum class DaoRefresh {
+        Hub,
+        Treasury,
+        Mints,
+    }
+
+    private companion object {
+        const val SHORT_ID = 16
     }
 }

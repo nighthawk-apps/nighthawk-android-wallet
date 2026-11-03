@@ -9,6 +9,8 @@ import java.util.concurrent.Executors
  * Optional JNA surface for the mesh C ABI. Missing symbols (older
  * `libdarkfi_mobile_ffi.so`) must not crash the radio path.
  */
+// Names match the C ABI of libdarkfi_mobile_ffi.
+@Suppress("FunctionNaming", "TooManyFunctions")
 internal interface NhMeshLib : Library {
     fun nh_mesh_start(): Int
 
@@ -54,6 +56,8 @@ internal interface NhMeshLib : Library {
         corrOut: ByteArray,
     ): Int
 
+    // Arity matches the C symbol nh_mesh_submit_bulk_offer.
+    @Suppress("LongParameterList")
     fun nh_mesh_submit_bulk_offer(
         dest: ByteArray,
         kind: Int,
@@ -85,6 +89,8 @@ internal interface NhMeshLib : Library {
 }
 
 /** New C ABI symbols. Loaded separately so an older `.so` still binds [NhMeshLib]. */
+// Names match the C ABI of libdarkfi_mobile_ffi.
+@Suppress("FunctionNaming")
 internal interface NhMeshNeighborLib : Library {
     fun nh_mesh_neighbor_up(dest: ByteArray): Int
 
@@ -97,19 +103,23 @@ internal interface NhMeshNeighborLib : Library {
 }
 
 object MeshNative {
+    internal const val MESH_CORRELATION_BYTES: Int = 16
+    internal const val MESH_IO_BUFFER_BYTES: Int = 64 * 1024
+    internal const val MESH_OUTBOUND_POP_LIMIT: Int = 32
+
     private val lock = Any()
 
     @Volatile
     private var tried = false
 
     @Volatile
-    private var lib: NhMeshLib? = null
+    private var libHandle: NhMeshLib? = null
 
     @Volatile
     private var neighborTried = false
 
     @Volatile
-    private var neighborLib: NhMeshNeighborLib? = null
+    private var neighborHandle: NhMeshNeighborLib? = null
 
     @Volatile
     var cacheEvicted: Boolean = false
@@ -117,6 +127,11 @@ object MeshNative {
     @Volatile
     var available: Boolean = false
         private set
+
+    private val gatewayExec =
+        Executors.newSingleThreadExecutor { r ->
+            Thread(r, "nh-mesh-lwd").apply { isDaemon = true }
+        }
 
     fun neighborsReady(): Boolean = neighborLib() != null
 
@@ -127,37 +142,32 @@ object MeshNative {
         }
     }
 
-    private val gatewayExec =
-        Executors.newSingleThreadExecutor { r ->
-            Thread(r, "nh-mesh-lwd").apply { isDaemon = true }
-        }
-
-    private fun lib(): NhMeshLib? {
+    internal fun lib(): NhMeshLib? {
         synchronized(lock) {
-            if (tried) return lib
+            if (tried) return libHandle
             tried = true
-            lib =
+            libHandle =
                 try {
                     Native.load("darkfi_mobile_ffi", NhMeshLib::class.java)
                 } catch (_: Throwable) {
                     null
                 }
-            available = lib != null
-            return lib
+            available = libHandle != null
+            return libHandle
         }
     }
 
-    private fun neighborLib(): NhMeshNeighborLib? {
+    internal fun neighborLib(): NhMeshNeighborLib? {
         synchronized(lock) {
-            if (neighborTried) return neighborLib
+            if (neighborTried) return neighborHandle
             neighborTried = true
-            neighborLib =
+            neighborHandle =
                 try {
                     Native.load("darkfi_mobile_ffi", NhMeshNeighborLib::class.java)
                 } catch (_: Throwable) {
                     null
                 }
-            return neighborLib
+            return neighborHandle
         }
     }
 
@@ -191,21 +201,6 @@ object MeshNative {
         runCatching { lib()?.nh_mesh_ingest_link_bytes(frame, frame.size) }
     }
 
-    fun flushOutbound(send: (ByteArray) -> Unit) {
-        val native = lib() ?: return
-        val buf = ByteArray(64 * 1024)
-        repeat(32) {
-            val n =
-                try {
-                    native.nh_mesh_pop_outbound(buf, buf.size)
-                } catch (_: Throwable) {
-                    return
-                }
-            if (n <= 0) return
-            send(buf.copyOf(n))
-        }
-    }
-
     fun pumpGatewayAsync(flush: () -> Unit) {
         val native = lib() ?: return
         gatewayExec.execute {
@@ -216,118 +211,5 @@ object MeshNative {
             }
             flush()
         }
-    }
-
-    fun submitLwdCtrl(
-        dest: ByteArray,
-        method: String,
-        body: ByteArray = ByteArray(0),
-    ): Boolean {
-        if (dest.size != 8) return false
-        val corr = ByteArray(16)
-        val rc =
-            runCatching {
-                lib()?.nh_mesh_submit_lwd_ctrl(dest, method, body, body.size, corr)
-            }.getOrNull() ?: return false
-        return rc == 0
-    }
-
-    fun popEventsJson(): String? {
-        val native = lib() ?: return null
-        val buf = ByteArray(64 * 1024)
-        val n =
-            try {
-                native.nh_mesh_pop_events_json(buf, buf.size)
-            } catch (_: Throwable) {
-                return null
-            }
-        if (n <= 0) return null
-        return String(buf, 0, n, Charsets.UTF_8)
-    }
-
-    fun submitBulkJoin(dest: ByteArray): Boolean {
-        if (dest.size != 8) return false
-        val corr = ByteArray(16)
-        val rc =
-            runCatching { lib()?.nh_mesh_submit_bulk_join(dest, corr) }.getOrNull() ?: return false
-        return rc == 0
-    }
-
-    fun submitBulkOffer(
-        dest: ByteArray,
-        kind: Int,
-        port: Int,
-        ssid: String,
-        psk: ByteArray,
-        sessionId: ByteArray = ByteArray(16),
-    ): Boolean {
-        if (dest.size != 8) return false
-        val rc =
-            runCatching {
-                lib()?.nh_mesh_submit_bulk_offer(dest, kind, port, ssid, psk, psk.size, sessionId)
-            }.getOrNull() ?: return false
-        return rc == 0
-    }
-
-    fun setBulkTcp(
-        host: String?,
-        port: Int,
-    ) {
-        runCatching { lib()?.nh_mesh_set_bulk_tcp(host, port) }
-    }
-
-    fun recordBulkBytes(n: Long): Boolean {
-        val rc = runCatching { lib()?.nh_mesh_record_bulk_bytes(n) }.getOrNull() ?: return false
-        return rc == 1
-    }
-
-    fun wipe() {
-        runCatching { lib()?.nh_mesh_wipe() }
-        setBulkTcp(null, 0)
-    }
-
-    fun lastGatewayPeer(): ByteArray? {
-        val native = lib() ?: return null
-        val buf = ByteArray(8)
-        val n =
-            try {
-                native.nh_mesh_last_gateway_peer(buf, buf.size)
-            } catch (_: Throwable) {
-                return null
-            }
-        if (n != 8) return null
-        return buf
-    }
-
-    fun publishDag(body: ByteArray): Boolean {
-        val rc = runCatching { lib()?.nh_mesh_publish_dag(body, body.size) }.getOrNull() ?: return false
-        return rc == 0
-    }
-
-    fun requestDagSync() {
-        runCatching { lib()?.nh_mesh_request_dag_sync() }
-    }
-
-    fun neighborUp(dest: ByteArray) {
-        if (dest.size != 8) return
-        runCatching { neighborLib()?.nh_mesh_neighbor_up(dest) }
-    }
-
-    fun neighborDown(dest: ByteArray) {
-        if (dest.size != 8) return
-        runCatching { neighborLib()?.nh_mesh_neighbor_down(dest) }
-    }
-
-    fun peerId(): ByteArray? {
-        val native = neighborLib() ?: return null
-        val buf = ByteArray(8)
-        val n =
-            try {
-                native.nh_mesh_peer_id(buf, buf.size)
-            } catch (_: Throwable) {
-                return null
-            }
-        if (n != 8) return null
-        return buf
     }
 }

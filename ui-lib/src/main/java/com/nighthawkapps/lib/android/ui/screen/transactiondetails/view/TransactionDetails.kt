@@ -23,7 +23,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.res.painterResource
@@ -47,6 +46,7 @@ import com.nighthawkapps.lib.android.ui.common.addressTypeNameId
 import com.nighthawkapps.lib.android.ui.common.removeTrailingZero
 import com.nighthawkapps.lib.android.ui.design.component.BalanceText
 import com.nighthawkapps.lib.android.ui.design.component.BodyMedium
+import com.nighthawkapps.lib.android.ui.design.component.DottedBorderBadge
 import com.nighthawkapps.lib.android.ui.design.component.DottedBorderTextButton
 import com.nighthawkapps.lib.android.ui.design.component.MaxWidthHorizontalDivider
 import com.nighthawkapps.lib.android.ui.design.component.NighthawkTopBar
@@ -215,8 +215,7 @@ fun TransactionDetails(
                     }
                 }
 
-            DottedBorderTextButton(
-                onClick = {},
+            DottedBorderBadge(
                 text = stringResource(id = transactionStateTextId),
                 modifier =
                     Modifier
@@ -308,7 +307,7 @@ fun TransactionDetails(
                     color = WalletTheme.colors.secondaryTitleText
                 )
                 BodyMedium(
-                    text = "${overview.minedHeight}",
+                    text = overview.minedHeight?.toString() ?: stringResource(id = R.string.ns_pending),
                     color = WalletTheme.colors.secondaryTitleText
                 )
             }
@@ -414,7 +413,7 @@ fun TransactionDetails(
                             text =
                                 buildAnnotatedString {
                                     if (recipientAddress.length > 20) {
-                                        withStyle(style = SpanStyle(color = Color.White)) {
+                                        withStyle(style = SpanStyle(color = MaterialTheme.colorScheme.onSurface)) {
                                             append(recipientAddress.take(10))
                                         }
                                         withStyle(style = SpanStyle(color = WalletTheme.colors.secondaryTitleText)) {
@@ -425,7 +424,7 @@ fun TransactionDetails(
                                                 )
                                             )
                                         }
-                                        withStyle(style = SpanStyle(color = Color.White)) {
+                                        withStyle(style = SpanStyle(color = MaterialTheme.colorScheme.onSurface)) {
                                             append(recipientAddress.takeLast(10))
                                         }
                                     } else {

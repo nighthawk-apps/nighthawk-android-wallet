@@ -531,6 +531,102 @@ class NativeDarkfiSynchronizer internal constructor(
             )
         }
 
+    override suspend fun daoExec(proposalBullaB58: String): DarkfiTransferResult<String> =
+        daoCall("DAO exec failed") {
+            handle.daoExec(proposalBullaB58.trim())
+        }
+
+    override suspend fun daoTreasury(daoName: String): String =
+        withContext(Dispatchers.IO) {
+            runCatching { handle.daoTreasury(daoName.trim()) }.getOrElse { error ->
+                val detail = error.message?.takeIf { it.isNotBlank() } ?: "unknown error"
+                "Treasury unavailable: $detail"
+            }
+        }
+
+    override suspend fun daoImport(
+        name: String,
+        toml: String,
+    ): DarkfiTransferResult<String> =
+        daoCall("DAO import failed") {
+            handle.daoImport(name.trim(), toml)
+        }
+
+    override suspend fun daoCreate(
+        name: String,
+        proposerLimit: String,
+        quorum: String,
+        earlyExecQuorum: String,
+        approvalRatio: Double,
+        govTokenId: String,
+    ): DarkfiTransferResult<String> =
+        daoCall("DAO create failed") {
+            handle.daoCreate(
+                name.trim(),
+                proposerLimit.trim(),
+                quorum.trim(),
+                earlyExecQuorum.trim(),
+                approvalRatio,
+                govTokenId.trim(),
+            )
+        }
+
+    override suspend fun daoFund(
+        daoName: String,
+        amount: String,
+        tokenId: String?,
+    ): DarkfiTransferResult<String> =
+        daoCall("Add funds failed") {
+            handle.daoFund(daoName.trim(), amount.trim(), tokenId?.trim()?.takeIf { it.isNotEmpty() })
+        }
+
+    override suspend fun daoExportRole(
+        daoName: String,
+        role: String,
+    ): DarkfiTransferResult<String> =
+        daoCall("Role export failed") {
+            handle.daoExportRole(daoName.trim(), role.trim())
+        }
+
+    override suspend fun tokenGenerate(alias: String?): DarkfiTransferResult<String> =
+        daoCall("Issue token failed") {
+            handle.tokenGenerate(alias?.trim()?.takeIf { it.isNotEmpty() })
+        }
+
+    override suspend fun tokenMint(
+        tokenId: String,
+        amount: String,
+        recipientAddress: String,
+    ): DarkfiTransferResult<String> =
+        daoCall("Mint failed") {
+            handle.tokenMint(tokenId.trim(), amount.trim(), recipientAddress.trim())
+        }
+
+    override suspend fun tokenFreeze(tokenId: String): DarkfiTransferResult<String> =
+        daoCall("Freeze failed") { handle.tokenFreeze(tokenId.trim()) }
+
+    override suspend fun listMintAuthorities() =
+        withContext(Dispatchers.IO) {
+            handle.listMintAuthorities().map {
+                com.nighthawkapps.lib.android.sdk.dao.DarkfiMintAuthority(
+                    tokenId = it.tokenId,
+                    alias = it.alias,
+                    frozen = it.frozen,
+                )
+            }
+        }
+
+    private suspend fun daoCall(
+        fallback: String,
+        block: () -> String,
+    ): DarkfiTransferResult<String> =
+        withContext(Dispatchers.IO) {
+            runCatching { block() }.fold(
+                onSuccess = { DarkfiTransferResult.Success(it) },
+                onFailure = { e -> DarkfiTransferResult.Failure(e.message ?: fallback, e) },
+            )
+        }
+
     /** Address-only fallback when FFI deposit address is not ready yet. */
     private object NoOpDarkfidRpc : com.nighthawkapps.lib.android.sdk.wallet.rpc.DarkfidJsonRpcCaller {
         override suspend fun invoke(requestPayload: org.json.JSONObject): org.json.JSONObject = error("not used")

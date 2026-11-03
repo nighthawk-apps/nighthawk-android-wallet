@@ -48,8 +48,9 @@ async fn open_wallet() -> Result<DrkWalletPtr, String> {
         nym_socks_port: 0,
         darkfid_rpc_url: None,
         // Sends stay UnifOMR. Receiving must trial-decrypt: the sender's
-        // change note is not covered by the recipient clue.
-        strict_omr_only: false,
+        // change note is not covered by the recipient clue. E2E_STRICT=1
+        // opts into the strict path so a clue-less payment stays invisible.
+        strict_omr_only: std::env::var("E2E_STRICT").ok().as_deref() == Some("1"),
     };
     bootstrap::bootstrap_drk(&config, &ex).await
 }
@@ -66,9 +67,9 @@ async fn probe_or_recover(wallet: &DrkWalletPtr, recover: bool) -> Result<(), St
     use std::collections::HashSet;
     use std::io::Cursor;
 
+    use darkfi_money_contract::client::MoneyNote;
     use darkfi_sdk::crypto::note::AeadEncryptedNote;
     use darkfi_serial::Decodable;
-    use darkfi_money_contract::client::MoneyNote;
 
     let (secrets, known, scanned_keys, balance) = {
         let drk = wallet.read().await;
@@ -113,11 +114,7 @@ async fn probe_or_recover(wallet: &DrkWalletPtr, recover: bool) -> Result<(), St
         }
         keys.sort_unstable();
         let show = keys.len().saturating_sub(8);
-        println!(
-            "SCAN_KEYS n={} tail={:?}",
-            keys.len(),
-            &keys[show..]
-        );
+        println!("SCAN_KEYS n={} tail={:?}", keys.len(), &keys[show..]);
         let bal = balance_atomic(&drk).await?;
         (secrets, known, keys, bal)
     };
@@ -179,8 +176,9 @@ async fn probe_or_recover(wallet: &DrkWalletPtr, recover: bool) -> Result<(), St
         return Ok(());
     }
     let drk = wallet.read().await;
-    println!("REBUILD tree to {tip}");
-    sync::rebuild_money_tree_to_height(&drk, &client, tip).await?;
+    let height = sync::spendable_rebuild_height(&drk, tip)?;
+    println!("REBUILD tree to {height}");
+    sync::rebuild_money_tree_to_height(&drk, &client, height).await?;
     let bal = balance_atomic(&drk).await?;
     println!("BALANCE_AFTER_REBUILD={bal}");
     Ok(())
@@ -197,6 +195,30 @@ async fn sync_wallet(wallet: &DrkWalletPtr) -> Result<u64, String> {
     sync::sync_once_via_lightwallet(wallet.clone(), &lwd()).await?;
     let drk = wallet.read().await;
     balance_atomic(&drk).await
+}
+
+/// One genesis replay per wallet directory. An earlier sync could mark the
+/// Money tree complete after a birthday window, and spend proofs then fail
+/// with Money `Custom(5)` (TransferMerkleRoot).
+async fn ensure_genesis_tree(wallet: &DrkWalletPtr) -> Result<(), String> {
+    let stamp = env_dir().join("merkle-rebuilt");
+    if stamp.exists() {
+        return Ok(());
+    }
+    let _ = sync_wallet(wallet).await?;
+    let client = darkfi_mobile_ffi::lightwallet_client::LightwalletClient::from_endpoint_and_pin(
+        &lwd(),
+        None,
+    );
+    let tip = client.get_light_info().await?.chain_tip_height;
+    let drk = wallet.read().await;
+    let height = sync::spendable_rebuild_height(&drk, tip)?;
+    println!("REBUILD tree 0..={height}");
+    sync::rebuild_money_tree_to_height(&drk, &client, height).await?;
+    drop(drk);
+    std::fs::write(&stamp, format!("{height}\n")).map_err(|e| e.to_string())?;
+    println!("REBUILD done height={height}");
+    Ok(())
 }
 
 fn arg(flag: &str) -> Option<String> {
@@ -241,6 +263,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
         let wallet = open_wallet().await?;
         if cmd == "sync" {
+            ensure_genesis_tree(&wallet).await?;
             let bal = sync_wallet(&wallet).await?;
             let addr = {
                 let drk = wallet.read().await;
@@ -256,8 +279,12 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
 
         if cmd == "send" {
+            ensure_genesis_tree(&wallet).await?;
             let to = arg("--to").ok_or("missing --to")?;
-            let count: u32 = arg("--count").unwrap_or_else(|| "1".into()).parse().map_err(|e: std::num::ParseIntError| e.to_string())?;
+            let count: u32 = arg("--count")
+                .unwrap_or_else(|| "1".into())
+                .parse()
+                .map_err(|e: std::num::ParseIntError| e.to_string())?;
             let amount = arg("--amount").unwrap_or_else(|| "0.01".into());
             let mut ok = 0u32;
             let mut fail = 0u32;

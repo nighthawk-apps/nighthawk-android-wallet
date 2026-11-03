@@ -6,7 +6,6 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.tooling.preview.Preview
 import com.nighthawkapps.lib.android.ui.design.component.Body
 import com.nighthawkapps.lib.android.ui.design.component.BodyMedium
@@ -54,7 +53,7 @@ fun AlertDialog(
             }
         },
         text = {
-            BodyMedium(text = desc, color = Color.White)
+            BodyMedium(text = desc, color = MaterialTheme.colorScheme.onSurface)
         }
     )
 }

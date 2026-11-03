@@ -43,6 +43,7 @@ impl<V> BoundedCache<V> {
         Self::with_capacity(MAX_SENT_CACHE_ENTRIES)
     }
 
+    #[cfg(test)]
     fn len(&self) -> usize {
         self.map.len()
     }
@@ -104,6 +105,17 @@ async fn prefetch_money_zkas(
     lightwallet_server_url: Option<&str>,
     lightwallet_tls_pin: Option<[u8; 32]>,
 ) -> Result<(), String> {
+    let money_id = MONEY_CONTRACT_ID.to_string();
+    prefetch_contract_zkas(lightwallet_server_url, lightwallet_tls_pin, &[&money_id]).await
+}
+
+/// Fetch circuit bincodes before a contract call. `dao_mint` reads this cache
+/// and does not dial `LookupZkas` itself.
+pub async fn prefetch_contract_zkas(
+    lightwallet_server_url: Option<&str>,
+    lightwallet_tls_pin: Option<[u8; 32]>,
+    contract_ids: &[&str],
+) -> Result<(), String> {
     drk::rpc::set_zkas_lookup_fallback(Some(zkas_lookup_fallback));
     let Some(url) = lightwallet_server_url
         .map(str::trim)
@@ -116,8 +128,20 @@ async fn prefetch_money_zkas(
         &lw_url,
         lightwallet_tls_pin,
     );
-    let money_id = MONEY_CONTRACT_ID.to_string();
-    let _ = crate::zkas_cache::warm_zkas_cache(&client, &[&money_id]).await;
+    let warmed = crate::zkas_cache::warm_zkas_cache(&client, contract_ids).await?;
+    if warmed == 0 {
+        let missing = contract_ids.iter().any(|id| {
+            crate::zkas_cache::global_zkas_cache()
+                .entries_for_contract(id)
+                .is_empty()
+        });
+        if missing {
+            return Err(format!(
+                "LookupZkas returned no circuits for {}",
+                contract_ids.join(", ")
+            ));
+        }
+    }
     Ok(())
 }
 
@@ -270,7 +294,7 @@ pub async fn build_transfer(
 
 /// Look up recipient UnifOMR clue PK and build a paper clue.
 /// Ownership proof from LWD MUST verify; otherwise treat as unregistered.
-async fn resolve_outgoing_omr_clue(
+pub(crate) async fn resolve_outgoing_omr_clue(
     recipient_pk: &[u8; 32],
     network_byte: u8,
     lightwallet_server_url: Option<&str>,

@@ -14,7 +14,7 @@ class MeshCoordinatorTest {
     fun fgsStartRefusesApplicationContext() {
         val app: Application = ApplicationProvider.getApplicationContext()
         assertFalse(NighthawkMeshService.startFromForeground(app))
-        assertFalse(MeshPowerPolicy.mayStartForegroundServiceFromBackground())
+        assertFalse(MeshPowerPolicy.mayStartForegroundServiceFromBackground)
         assertTrue(app.findActivity() == null)
     }
 

@@ -49,7 +49,7 @@ object StandardPreferenceKeys {
 
     val IS_DARK_THEME_ENABLED = BooleanPreferenceDefault(PreferenceKey("is_dark_theme_enabled"), true)
 
-    /** Stored theme mode; blank falls back to legacy [IS_DARK_THEME_ENABLED]. */
+    /** Stored theme mode. Blank, with no legacy flag, resolves to Cyberpunk. */
     val APP_THEME_VARIANT = StringPreferenceDefault(PreferenceKey("app_theme_variant"), "")
 
     /**

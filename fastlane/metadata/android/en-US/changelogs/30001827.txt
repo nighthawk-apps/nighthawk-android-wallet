@@ -1,0 +1,1 @@
+Cyberpunk is the default theme in light or dark system settings. The Void wallpaper is anchored at the top left and continues under the status bar and navigation bar. Body text uses DejaVu Sans Mono. Nym keeps the tunnel up when one lookup fails, and wallet sync waits through the UnifOMR rate limit. Needs lightwalletd 0.3.1.

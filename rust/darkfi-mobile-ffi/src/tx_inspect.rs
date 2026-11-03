@@ -2,9 +2,8 @@
 
 use darkfi::tx::Transaction;
 use darkfi_dao_contract::DaoFunction;
-use darkfi_money_contract::{client::MoneyNote, model::MoneyTransferParamsV1, MoneyFunction};
+use darkfi_money_contract::{client::MoneyNote, MoneyFunction};
 use darkfi_sdk::crypto::contract_id::{DAO_CONTRACT_ID, MONEY_CONTRACT_ID};
-use darkfi_serial::deserialize_async;
 use drk::Drk;
 
 pub fn contract_summary_for_tx(tx: &Transaction) -> String {
@@ -69,45 +68,29 @@ fn dao_function_label(code: u8) -> String {
 }
 
 pub async fn net_value_atomic(drk: &Drk, tx: &Transaction) -> Result<i64, String> {
-    let received = sum_decrypted_transfer_outputs(drk, tx).await?;
+    let received = sum_own_drk_outputs(drk, tx).await?;
     let spent = sum_coins_spent_in_tx(drk, tx).await?;
     let net = received as i64 - spent as i64;
     Ok(net)
 }
 
-async fn sum_decrypted_transfer_outputs(drk: &Drk, tx: &Transaction) -> Result<u64, String> {
-    let secret = drk.default_secret().await.map_err(|e| e.to_string())?;
+/// DRK this wallet receives in `tx`: payment, change and fee change outputs.
+/// Other tokens are left out so history stays in DRK.
+async fn sum_own_drk_outputs(drk: &Drk, tx: &Transaction) -> Result<u64, String> {
+    use darkfi_money_contract::model::DARK_TOKEN_ID;
 
+    let secrets = drk.get_money_secrets().await.map_err(|e| e.to_string())?;
     let mut total = 0u64;
-    for call in &tx.calls {
-        if call.data.contract_id != *MONEY_CONTRACT_ID {
-            continue;
-        }
-        let data = &call.data.data;
-        if data.is_empty() {
-            continue;
-        }
-        let Ok(func) = MoneyFunction::try_from(data[0]) else {
-            continue;
-        };
-        if !matches!(func, MoneyFunction::TransferV1) {
-            continue;
-        }
-
-        let params: MoneyTransferParamsV1 = deserialize_async(&data[1..])
-            .await
-            .map_err(|e| e.to_string())?;
-
-        for output in params.outputs {
-            if output.tx_local {
-                continue;
-            }
-            if let Ok(note) = output.note.decrypt::<MoneyNote>(&secret) {
-                total = total.saturating_add(note.value);
+    for output in crate::lightwallet_client::visible_money_outputs(tx).await? {
+        for secret in &secrets {
+            if let Ok(note) = output.note.decrypt::<MoneyNote>(secret) {
+                if note.token_id == *DARK_TOKEN_ID {
+                    total = total.saturating_add(note.value);
+                }
+                break;
             }
         }
     }
-
     Ok(total)
 }
 
@@ -117,7 +100,10 @@ async fn sum_coins_spent_in_tx(drk: &Drk, tx: &Transaction) -> Result<u64, Strin
     for (owncoin, _, is_spent, _, spent_tx_hash) in
         drk.get_coins(true).await.map_err(|e| e.to_string())?
     {
-        if !is_spent || spent_tx_hash != tx_hash {
+        if !is_spent
+            || spent_tx_hash != tx_hash
+            || owncoin.note.token_id != *darkfi_money_contract::model::DARK_TOKEN_ID
+        {
             continue;
         }
         total = total.saturating_add(owncoin.note.value);

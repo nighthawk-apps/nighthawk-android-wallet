@@ -9,13 +9,16 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationBarDefaults
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
 import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavController
 import androidx.navigation.NavHostController
@@ -31,6 +34,7 @@ import com.nighthawkapps.lib.android.ui.MainActivity
 import com.nighthawkapps.lib.android.ui.NavigationArguments
 import com.nighthawkapps.lib.android.ui.R
 import com.nighthawkapps.lib.android.ui.design.component.BodySmall
+import com.nighthawkapps.lib.android.ui.design.theme.LocalCyberpunkChrome
 import com.nighthawkapps.lib.android.ui.design.theme.WalletTheme
 import com.nighthawkapps.lib.android.ui.screen.about.nighthawk.AndroidAboutView
 import com.nighthawkapps.lib.android.ui.screen.advancesetting.AndroidAdvancedSetting
@@ -91,15 +95,20 @@ import com.nighthawkapps.lib.android.ui.screen.wallet.AndroidWallet
 import kotlinx.collections.immutable.persistentListOf
 
 @Composable
+@Suppress("LongMethod")
 internal fun MainActivity.MainNavigation(
     navHostController: NavHostController,
-    paddingValues: PaddingValues
+    paddingValues: PaddingValues,
+    chatFullScreen: Boolean,
+    onChatFullScreenChange: (Boolean) -> Unit,
 ) {
     val homeViewModel by viewModels<HomeViewModel>()
-    NavHost(navController = navHostController, startDestination = BottomNavItem.Chat.route, modifier = Modifier.padding(paddingValues)) {
+    NavHost(navController = navHostController, startDestination = BottomNavItem.Wallet.route, modifier = Modifier.padding(paddingValues)) {
         composable(BottomNavItem.Chat.route) {
             AndroidChat(
                 onChatSettings = { navHostController.navigateJustOnce(CHAT_SETTINGS) },
+                chatFullScreen = chatFullScreen,
+                onChatFullScreenChange = onChatFullScreenChange,
                 onPayInvoice = { uri ->
                     homeViewModel.sendDeepLinkData =
                         DeepLinkUtil.getSendDeepLinkData(Uri.parse(uri))
@@ -259,13 +268,16 @@ internal fun MainActivity.MainNavigation(
         }
         composable(SCAN) {
             WrapScanValidator(
-                onScanValid = { result ->
-                    Twig.debug { "OnScanValid: $result" }
-                    // At this point we only pass recipient address
+                onScanValid = { address, amountDisplay, memo ->
+                    Twig.debug { "OnScanValid: $address" }
                     navHostController.previousBackStackEntry?.savedStateHandle?.apply {
-                        set(NavigationArguments.SEND_RECIPIENT_ADDRESS, result)
-                        set(NavigationArguments.SEND_AMOUNT, null)
-                        set(NavigationArguments.SEND_MEMO, null)
+                        set(NavigationArguments.SEND_RECIPIENT_ADDRESS, address)
+                        if (!amountDisplay.isNullOrBlank()) {
+                            set(NavigationArguments.SEND_AMOUNT, amountDisplay)
+                        }
+                        if (memo != null) {
+                            set(NavigationArguments.SEND_MEMO, memo)
+                        }
                     }
                     navHostController.popBackStackJustOnce(SCAN)
                 },
@@ -380,23 +392,21 @@ internal fun BottomNavigation(navController: NavController) {
     val currentRoute = navBackStackEntry?.destination?.route
     val showBottomNavBar = destinationsWithBottomBar.any { it.contentEquals(currentRoute, true) }
     if (showBottomNavBar) {
+        val cyberpunk = LocalCyberpunkChrome.current
         NavigationBar(
-            containerColor = WalletTheme.colors.navigationContainer
+            containerColor =
+                if (cyberpunk) {
+                    Color(0x6610141C)
+                } else {
+                    WalletTheme.colors.navigationContainer
+                },
+            tonalElevation = if (cyberpunk) 0.dp else NavigationBarDefaults.Elevation,
+            windowInsets = NavigationBarDefaults.windowInsets,
         ) {
             navItemList.forEach { bottomNavItem ->
                 NavigationBarItem(
                     selected = isBottomNavItemSelected(bottomNavItem.route, currentRoute),
-                    onClick = {
-                        navController.navigate(bottomNavItem.route) {
-                            navController.graph.startDestinationRoute?.let { screenRoute ->
-                                popUpTo(screenRoute) {
-                                    saveState = true
-                                }
-                            }
-                            launchSingleTop = true
-                            restoreState = true
-                        }
-                    },
+                    onClick = { navController.navigateBottomDestination(bottomNavItem.route) },
                     icon = { Icon(painter = painterResource(id = bottomNavItem.icon), contentDescription = bottomNavItem.route) },
                     enabled = true,
                     label = { BodySmall(text = stringResource(id = bottomNavItem.title)) },
@@ -456,10 +466,10 @@ fun isBottomNavItemSelected(
         }
     }
 
-private val navItemList =
+internal val navItemList =
     persistentListOf(BottomNavItem.Chat, BottomNavItem.Wallet, BottomNavItem.Dex, BottomNavItem.Settings)
 
-private val destinationsWithBottomBar =
+internal val destinationsWithBottomBar =
     persistentListOf(
         BottomNavItem.Chat.route,
         BottomNavItem.Wallet.route,

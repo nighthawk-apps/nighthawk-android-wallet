@@ -22,19 +22,19 @@ class DaoModelTest {
     @Test
     fun statusLabel_executedProposal() {
         val proposal = sampleProposal(isExecuted = true, mintHeight = 100)
-        assertEquals("Executed", proposal.statusLabel)
+        assertEquals("Paid", proposal.statusLabel)
     }
 
     @Test
     fun statusLabel_activeProposal() {
         val proposal = sampleProposal(isExecuted = false, mintHeight = 100)
-        assertEquals("Active", proposal.statusLabel)
+        assertEquals("Open", proposal.statusLabel)
     }
 
     @Test
     fun statusLabel_pendingProposal() {
         val proposal = sampleProposal(isExecuted = false, mintHeight = null)
-        assertEquals("Pending", proposal.statusLabel)
+        assertEquals("Waiting", proposal.statusLabel)
     }
 
     // ── DarkfiDaoSummary role checks ─────────────────────────────────────
@@ -88,17 +88,31 @@ class DaoModelTest {
     // ── ActionResult sealed class ─────────────────────────────────────
 
     @Test
+    fun paymentTitle_usesPayLine() {
+        val proposal = sampleProposal(summaryLine = "Hub · Pay 1 DRK")
+        assertEquals("Pay 1 DRK", proposal.paymentTitle)
+        assertTrue(proposal.paymentTitle.isNotEmpty())
+    }
+
+    @Test
+    fun paymentTitle_genericWithoutPayout() {
+        val proposal = sampleProposal(summaryLine = "auth calls: 2")
+        assertEquals("Generic proposal", proposal.paymentTitle)
+        assertTrue(proposal.paymentTitle.isNotEmpty())
+    }
+
+    @Test
     fun actionResult_successMessage() {
         val result = DaoViewModel.ActionResult.Success("Proposal submitted!")
-        assertTrue(result is DaoViewModel.ActionResult.Success)
-        assertEquals("Proposal submitted!", (result as DaoViewModel.ActionResult.Success).message)
+        assertEquals("Proposal submitted!", result.message)
+        assertTrue(result.message.isNotEmpty())
     }
 
     @Test
     fun actionResult_errorMessage() {
         val result = DaoViewModel.ActionResult.Error("Vote failed: insufficient tokens")
-        assertTrue(result is DaoViewModel.ActionResult.Error)
-        assertEquals("Vote failed: insufficient tokens", (result as DaoViewModel.ActionResult.Error).message)
+        assertEquals("Vote failed: insufficient tokens", result.message)
+        assertTrue(result.message.isNotEmpty())
     }
 
     // ── canVote / canPropose role gating ─────────────────────────────
@@ -121,14 +135,14 @@ class DaoModelTest {
     fun activeProposal_isVoteable() {
         // Active = not executed + has mintHeight
         val proposal = sampleProposal(isExecuted = false, mintHeight = 100)
-        assertEquals("Active", proposal.statusLabel)
+        assertEquals("Open", proposal.statusLabel)
         assertFalse(proposal.isExecuted)
     }
 
     @Test
     fun executedProposal_isNotVoteable() {
         val proposal = sampleProposal(isExecuted = true, mintHeight = 100)
-        assertEquals("Executed", proposal.statusLabel)
+        assertEquals("Paid", proposal.statusLabel)
         assertTrue(proposal.isExecuted)
     }
 
@@ -155,6 +169,7 @@ class DaoModelTest {
     private fun sampleProposal(
         isExecuted: Boolean = false,
         mintHeight: Long? = null,
+        summaryLine: String = "Test proposal summary",
     ) = DarkfiDaoProposalSummary(
         proposalBullaB58 = "prop_bulla_test",
         daoName = "TestDAO",
@@ -165,6 +180,6 @@ class DaoModelTest {
         mintHeight = mintHeight,
         execHeight = if (isExecuted) 200L else null,
         isExecuted = isExecuted,
-        summaryLine = "Test proposal summary",
+        summaryLine = summaryLine,
     )
 }

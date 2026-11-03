@@ -79,8 +79,8 @@ dependencies {
     implementation(libs.androidx.core)
     implementation(libs.androidx.lifecycle.livedata)
     implementation("androidx.lifecycle:lifecycle-process:${project.property("ANDROIDX_LIFECYCLE_VERSION")}")
-    implementation("androidx.datastore:datastore-preferences:1.1.1")
-    implementation("com.google.crypto.tink:tink-android:1.8.0")
+    implementation(libs.androidx.datastore.preferences)
+    implementation(libs.google.tink)
     implementation(libs.androidx.splash)
     implementation(libs.androidx.workmanager)
     implementation(libs.bundles.androidx.camera)
@@ -102,7 +102,6 @@ dependencies {
     implementation(libs.square.retrofit.gson)
     implementation(libs.square.okhttp)
     implementation(libs.square.okhttp.logging.interceptor)
-    implementation(libs.secure.storage)
 
     implementation(projects.buildInfoLib)
     implementation(projects.configurationApiLib)

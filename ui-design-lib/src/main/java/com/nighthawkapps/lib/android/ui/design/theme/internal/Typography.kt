@@ -112,8 +112,18 @@ private fun serifFamily(resId: Int): FontFamily {
 /** Stealth and Midnight headings. Outfit is geometric but readable at title sizes. */
 private val OutfitFamily = variableFamily(R.font.outfit)
 
-/** Body for every theme. Source Sans 3 is a text face; Share Tech Mono stays for raw keys. */
-private val SourceSansFamily = variableFamily(R.font.source_sans_3)
+/**
+ * Body, labels, and captions for every theme. Same face as the Void terminal:
+ * DejaVu Sans Mono (Sakura asks for Ubuntu Mono, which is not installed, so
+ * the window draws this monospace). Titles stay Outfit, or Source Serif on Paper.
+ */
+private val TerminalFamily =
+    FontFamily(
+        Font(R.font.dejavu_sans_mono, FontWeight.Normal),
+        Font(R.font.dejavu_sans_mono_bold, FontWeight.Medium),
+        Font(R.font.dejavu_sans_mono_bold, FontWeight.SemiBold),
+        Font(R.font.dejavu_sans_mono_bold, FontWeight.Bold),
+    )
 
 /** Paper headings. Source Serif 4 is a text serif, not a display face. */
 private val SourceSerifFamily = serifFamily(R.font.source_serif_4)
@@ -143,7 +153,7 @@ internal val Typography =
             ),
         bodyLarge =
             TextStyle(
-                fontFamily = SourceSansFamily,
+                fontFamily = TerminalFamily,
                 fontWeight = FontWeight.Normal,
                 fontSize = 16.sp,
                 letterSpacing = TextUnit(value = 0.3f, TextUnitType.Sp),
@@ -151,7 +161,7 @@ internal val Typography =
             ),
         bodyMedium =
             TextStyle(
-                fontFamily = SourceSansFamily,
+                fontFamily = TerminalFamily,
                 fontWeight = FontWeight.Normal,
                 fontSize = 14.sp,
                 letterSpacing = TextUnit(value = 0.3f, TextUnitType.Sp),
@@ -159,7 +169,7 @@ internal val Typography =
             ),
         bodySmall =
             TextStyle(
-                fontFamily = SourceSansFamily,
+                fontFamily = TerminalFamily,
                 fontWeight = FontWeight.Normal,
                 fontSize = 12.sp,
                 letterSpacing = TextUnit(value = 0.3f, TextUnitType.Sp),
@@ -167,7 +177,7 @@ internal val Typography =
             ),
         labelLarge =
             TextStyle(
-                fontFamily = SourceSansFamily,
+                fontFamily = TerminalFamily,
                 fontWeight = FontWeight.Normal,
                 fontSize = 16.sp
             ),
@@ -194,7 +204,7 @@ internal val Typography =
 internal fun paperTypography(): Typography {
     fun TextStyle.asSerif() = copy(fontFamily = SourceSerifFamily, letterSpacing = 0.sp)
 
-    fun TextStyle.asText() = copy(fontFamily = SourceSansFamily, letterSpacing = 0.sp)
+    fun TextStyle.asText() = copy(fontFamily = TerminalFamily, letterSpacing = 0.sp)
     return Typography.copy(
         headlineLarge = Typography.headlineLarge.asSerif(),
         headlineMedium = Typography.headlineMedium.asSerif(),

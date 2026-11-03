@@ -93,3 +93,6 @@ seed.txt
 # Testnet build & runtime data
 app/darkfitestnet/
 
+# Local Gradle daemon JVM choice. Not part of the project.
+gradle/gradle-daemon-jvm.properties
+

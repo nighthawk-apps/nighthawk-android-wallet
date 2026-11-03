@@ -1,12 +1,12 @@
 package com.nighthawkapps.lib.android.ui
 
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
@@ -15,8 +15,8 @@ import com.nighthawkapps.lib.android.sdk.chat.DarkfiChatConnectionBridge
 import com.nighthawkapps.lib.android.sdk.chat.DarkfiChatConnectionState
 import com.nighthawkapps.lib.android.sdk.chat.DarkfiChatController
 import com.nighthawkapps.lib.android.ui.screen.chat.LocalDarkfiChatController
-import com.nighthawkapps.lib.android.ui.screen.navigation.BottomNavigation
 import com.nighthawkapps.lib.android.ui.screen.navigation.MainNavigation
+import com.nighthawkapps.lib.android.ui.screen.navigation.NighthawkAdaptiveShell
 
 @Composable
 internal fun MainActivity.NavigationMainContent() {
@@ -69,15 +69,20 @@ internal fun MainActivity.NavigationMainContent() {
     }
 
     val navController = rememberNavController()
-    CompositionLocalProvider(LocalDarkfiChatController provides chatController) {
-        Scaffold(
-            containerColor = MaterialTheme.colorScheme.background,
-            contentColor = MaterialTheme.colorScheme.onBackground,
-            bottomBar = {
-                BottomNavigation(navController = navController)
-            },
-        ) {
-            MainNavigation(navHostController = navController, paddingValues = it)
+    val chatFullScreen = rememberSaveable { mutableStateOf(false) }
+    CompositionLocalProvider(
+        LocalDarkfiChatController provides chatController,
+    ) {
+        NighthawkAdaptiveShell(
+            navController = navController,
+            chatFullScreen = chatFullScreen.value,
+        ) { padding ->
+            MainNavigation(
+                navHostController = navController,
+                paddingValues = padding,
+                chatFullScreen = chatFullScreen.value,
+                onChatFullScreenChange = { chatFullScreen.value = it },
+            )
         }
     }
 }

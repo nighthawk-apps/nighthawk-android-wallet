@@ -78,6 +78,25 @@ impl SlidingWindowLimiter {
         guard.push_back(now);
         Ok(())
     }
+
+    /// Wait until a slot is free. A sync that needs more RPCs than the window
+    /// allows must pause here; returning the limit error aborts the scan and
+    /// the next cycle hits the same full window.
+    pub async fn acquire(&self) -> Result<(), String> {
+        let deadline = Instant::now() + self.window + Duration::from_secs(2);
+        loop {
+            match self.try_acquire() {
+                Ok(()) => return Ok(()),
+                Err(e) if e.starts_with("rate limited") => {
+                    if Instant::now() >= deadline {
+                        return Err(e);
+                    }
+                    tokio::time::sleep(Duration::from_millis(250)).await;
+                }
+                Err(e) => return Err(e),
+            }
+        }
+    }
 }
 
 /// UnifOMR GenDetKey wire size (~19MB for n=512); raise tonic's 4MB default.
@@ -254,6 +273,8 @@ pub struct LightServerInfo {
     pub server_version: String,
     pub chain_name: String,
     pub chain_tip_height: u32,
+    /// Seconds per block, as darkfid reports it (0 when unknown).
+    pub block_target: u32,
     pub omr_supported: bool,
     /// Best block hash at chain_tip_height (finding 5.3).
     /// May be empty if the server hasn't been updated with field 7.
@@ -578,7 +599,9 @@ pub(crate) fn pool_digest_needs_reregister(err: &str) -> bool {
 
 /// Output indexes that must carry the sender's clue, never the recipient clue.
 pub fn non_payment_output_indexes(output_count: u32, payment_index: u32) -> Vec<u32> {
-    (0..output_count).filter(|idx| *idx != payment_index).collect()
+    (0..output_count)
+        .filter(|idx| *idx != payment_index)
+        .collect()
 }
 
 pub fn clues_for_indexes(
@@ -1067,6 +1090,7 @@ impl LightwalletClient {
                 server_version: info.version,
                 chain_name: info.chain_name,
                 chain_tip_height: info.block_height,
+                block_target: info.block_target,
                 omr_supported: info.omr_supported,
                 best_block_hash: info.best_block_hash,
                 backend_version: info.backend_version,
@@ -1432,18 +1456,43 @@ impl LightwalletClient {
         wallet_secret: &[u8],
         network: u8,
     ) -> Result<Vec<u8>, String> {
-        let extra = match self_change_omr_clues(&tx_data, wallet_secret, network, 0, &omr_clue).await
-        {
-            Ok(clues) => clues,
-            Err(e) => {
-                tracing::warn!(
-                    target: "lightwallet-client",
-                    "sender change clues not attached: {e}"
-                );
-                Vec::new()
-            }
-        };
+        let extra =
+            match self_change_omr_clues(&tx_data, wallet_secret, network, 0, &omr_clue).await {
+                Ok(clues) => clues,
+                Err(e) => {
+                    tracing::warn!(
+                        target: "lightwallet-client",
+                        "sender change clues not attached: {e}"
+                    );
+                    Vec::new()
+                }
+            };
         self.send_transaction_inner(tx_data, omr_clue, 0, omr_metadata_enc, extra)
+            .await
+    }
+
+    /// Broadcast a wallet-built contract transaction (DAO, token) with the
+    /// wallet's own clue on `own_indexes` and, when resolved, the recipient's
+    /// clue on its output. Strict-OMR wallets only see outputs with a clue.
+    pub async fn send_transaction_with_output_clues(
+        &self,
+        tx_data: Vec<u8>,
+        own_indexes: &[u32],
+        recipient_clue: Option<(u32, Vec<u8>)>,
+        wallet_secret: &[u8],
+        network: u8,
+    ) -> Result<Vec<u8>, String> {
+        let (_sk, pk) = crate::unifomr::clue_keypair_from_wallet(wallet_secret, network)?;
+        let own_clue = crate::unifomr::build_omr_clue_from_pk(&pk);
+        let mut extra = clues_for_indexes(own_indexes, &own_clue);
+        let (clue, clue_index) = match recipient_clue {
+            Some((index, clue)) => {
+                extra.retain(|c| c.output_index != index);
+                (clue, index)
+            }
+            None => (Vec::new(), 0),
+        };
+        self.send_transaction_inner(tx_data, clue, clue_index, Vec::new(), extra)
             .await
     }
 
@@ -1526,7 +1575,7 @@ impl LightwalletClient {
         if detection_keys.iter().any(|k| k.is_empty()) {
             return Err("empty detection key not allowed".into());
         }
-        self.omr_limiter.try_acquire()?;
+        self.omr_limiter.acquire().await?;
         let result = async_compat::Compat::new(async {
             let channel = self.connect_channel().await?;
             let mut client = lwd_client(channel);
@@ -1576,7 +1625,7 @@ impl LightwalletClient {
         if detection_key.is_empty() {
             return Err("empty detection key not allowed".into());
         }
-        self.omr_limiter.try_acquire()?;
+        self.omr_limiter.acquire().await?;
         let result = async_compat::Compat::new(async {
             let channel = self.connect_channel().await?;
             let mut client = lwd_client(channel);
@@ -1635,7 +1684,7 @@ impl LightwalletClient {
                 handle.len()
             ));
         }
-        self.omr_limiter.try_acquire()?;
+        self.omr_limiter.acquire().await?;
         let handle = handle.to_vec();
         let result = async_compat::Compat::new(async {
             let channel = self.connect_channel().await?;
@@ -2335,24 +2384,26 @@ fn chain_tip_notice(tip: lightwallet_proto::ChainTip) -> ChainTipNotice {
 pub fn compact_bodies_to_blocks(bodies: Vec<CompactOutputBodyDto>) -> Vec<LightCompactBlock> {
     use std::collections::BTreeMap;
 
-    let mut by_height: BTreeMap<u32, (Vec<u8>, Vec<u8>, BTreeMap<Vec<u8>, Vec<LightCompactOutput>>)> =
-        BTreeMap::new();
+    let mut by_height: BTreeMap<
+        u32,
+        (Vec<u8>, Vec<u8>, BTreeMap<Vec<u8>, Vec<LightCompactOutput>>),
+    > = BTreeMap::new();
     for body in bodies {
-        let entry = by_height.entry(body.height).or_insert_with(|| {
-            (
-                body.hash.clone(),
-                body.prev_hash.clone(),
-                BTreeMap::new(),
-            )
-        });
-        entry.2.entry(body.tx_hash).or_default().push(LightCompactOutput {
-            coin: body.coin,
-            encrypted_note: body.encrypted_note,
-            value_commit: Vec::new(),
-            token_commit: Vec::new(),
-            omr_clue: body.omr_clue,
-            omr_metadata_enc: body.omr_metadata_enc,
-        });
+        let entry = by_height
+            .entry(body.height)
+            .or_insert_with(|| (body.hash.clone(), body.prev_hash.clone(), BTreeMap::new()));
+        entry
+            .2
+            .entry(body.tx_hash)
+            .or_default()
+            .push(LightCompactOutput {
+                coin: body.coin,
+                encrypted_note: body.encrypted_note,
+                value_commit: Vec::new(),
+                token_commit: Vec::new(),
+                omr_clue: body.omr_clue,
+                omr_metadata_enc: body.omr_metadata_enc,
+            });
     }
     by_height
         .into_iter()
@@ -2398,17 +2449,41 @@ pub async fn self_change_omr_clues(
 /// Compact-block output indexes for non-`tx_local` Money outputs, in the
 /// same call order lightwalletd uses when it builds `CompactTx.outputs`.
 async fn money_compact_output_indexes(tx_data: &[u8]) -> Result<Vec<u32>, String> {
+    use darkfi_serial::deserialize_async;
+    let tx: darkfi::tx::Transaction = deserialize_async(tx_data)
+        .await
+        .map_err(|e| format!("decode tx for change clues: {e}"))?;
+    Ok(visible_money_outputs(&tx)
+        .await?
+        .into_iter()
+        .map(|output| output.index)
+        .collect())
+}
+
+/// One Money output as lightwalletd lists it in a compact block.
+#[derive(Debug, Clone)]
+pub struct VisibleMoneyOutput {
+    /// Position among the transaction's compact outputs.
+    pub index: u32,
+    /// `MoneyFunction` code of the call that created the output.
+    pub func_code: u8,
+    pub coin: darkfi_money_contract::model::Coin,
+    pub note: darkfi_sdk::crypto::note::AeadEncryptedNote,
+}
+
+/// Non-`tx_local` Money outputs in compact-block order. lightwalletd walks
+/// calls the same way, so `index` matches the server's output index.
+pub async fn visible_money_outputs(
+    tx: &darkfi::tx::Transaction,
+) -> Result<Vec<VisibleMoneyOutput>, String> {
     use darkfi_money_contract::{
-        model::{MoneyFeeParamsV1, MoneyTransferParamsV1},
+        model::{MoneyFeeParamsV1, MoneyTokenMintParamsV1, MoneyTransferParamsV1},
         MoneyFunction,
     };
     use darkfi_sdk::crypto::contract_id::MONEY_CONTRACT_ID;
     use darkfi_serial::deserialize_async;
 
-    let tx: darkfi::tx::Transaction = deserialize_async(tx_data)
-        .await
-        .map_err(|e| format!("decode tx for change clues: {e}"))?;
-    let mut indexes = Vec::new();
+    let mut outputs = Vec::new();
     let mut next = 0u32;
     for call in &tx.calls {
         if call.data.contract_id != *MONEY_CONTRACT_ID {
@@ -2418,31 +2493,52 @@ async fn money_compact_output_indexes(tx_data: &[u8]) -> Result<Vec<u32>, String
         if data.is_empty() {
             continue;
         }
-        let visible = match MoneyFunction::try_from(data[0]) {
+        let func_code = data[0];
+        let found = match MoneyFunction::try_from(func_code) {
             Ok(MoneyFunction::TransferV1) => {
                 let params = deserialize_async::<MoneyTransferParamsV1>(&data[1..])
                     .await
                     .map_err(|e| format!("transfer params: {e}"))?;
-                params.outputs.iter().filter(|o| !o.tx_local).count()
+                params
+                    .outputs
+                    .into_iter()
+                    .filter(|o| !o.tx_local)
+                    .map(|o| (o.coin, o.note))
+                    .collect()
             }
             Ok(MoneyFunction::FeeV1) => {
                 if data.len() < 10 {
-                    0
+                    Vec::new()
                 } else {
                     let params = deserialize_async::<MoneyFeeParamsV1>(&data[9..])
                         .await
                         .map_err(|e| format!("fee params: {e}"))?;
-                    usize::from(!params.output.tx_local)
+                    if params.output.tx_local {
+                        Vec::new()
+                    } else {
+                        vec![(params.output.coin, params.output.note)]
+                    }
                 }
             }
-            _ => 0,
+            Ok(MoneyFunction::TokenMintV1) => {
+                let params = deserialize_async::<MoneyTokenMintParamsV1>(&data[1..])
+                    .await
+                    .map_err(|e| format!("token mint params: {e}"))?;
+                vec![(params.coin, params.enc_note)]
+            }
+            _ => Vec::new(),
         };
-        for _ in 0..visible {
-            indexes.push(next);
+        for (coin, note) in found {
+            outputs.push(VisibleMoneyOutput {
+                index: next,
+                func_code,
+                coin,
+                note,
+            });
             next = next.saturating_add(1);
         }
     }
-    Ok(indexes)
+    Ok(outputs)
 }
 
 // =============================================================================
@@ -3114,6 +3210,7 @@ mod tests {
             server_version: "0.1.0".into(),
             chain_name: "testnet".into(),
             chain_tip_height: 42000,
+            block_target: 120,
             omr_supported: true,
             best_block_hash: vec![0xAA; 32],
             backend_version: "darkfid 0.5.0".into(),
@@ -3133,6 +3230,7 @@ mod tests {
             server_version: "0.1.0".into(),
             chain_name: "testnet".into(),
             chain_tip_height: 42000,
+            block_target: 120,
             omr_supported: false,
             best_block_hash: vec![],
             backend_version: String::new(),

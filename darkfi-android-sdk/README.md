@@ -2,6 +2,27 @@
 
 Kotlin bindings for the DarkFi mobile wallet, generated from `rust/darkfi-mobile-ffi` via UniFFI.
 
+The app opens these calls from **Settings → Groups** and from the Wallet screen. Default methods on `DarkfiSynchronizer` fail closed until `NativeDarkfiSynchronizer` is installed.
+
+## Groups, treasury, and tokens
+
+`DarkfiSynchronizer` (`wallet/DarkfiSynchronizer.kt`):
+
+| Call | Behavior |
+|------|----------|
+| `daoCreate(name, proposerLimit, quorum, earlyExecQuorum, approvalRatio, govTokenId)` | Mints a group and keeps all six role keys. A blank `earlyExecQuorum` means the same value as `quorum`. |
+| `daoImport(name, toml)` | Imports a group from exported drk TOML. |
+| `daoExportRole(daoName, role)` | `role` is `proposer`, `voter`, `executor`, or `all`. Returns multi-line drk TOML. |
+| `daoExec(proposalBullaB58)` | Pays an approved proposal. There is no early/normal flag; the native wallet chooses from the chain tip. |
+| `daoFund`, `daoProposeTransfer`, `daoVote`, `daoTreasury` | Treasury send, payment proposal, yes/no vote, and per-token treasury lines. |
+| `tokenGenerate`, `tokenMint`, `tokenFreeze`, `listMintAuthorities` | `tokenMint` rejects a blank recipient and a non-positive amount. |
+
+`listDaos()`, `listProposals()`, and `getProposal()` read the wallet database. Proposal status labels in the UI are Paid, Open, and Waiting.
+
+## Clue version and block target
+
+Registrations use `CLUE_KEY_VERSION = 1` (`rust/darkfi-mobile-ffi`). `GetLightInfo.block_target` is stored on the light-server info and used for DAO window length. Phone and emulator native libraries that match this surface are `jniLibs/arm64-v8a` and `jniLibs/x86_64` (rebuilt 2026-11-03). `armeabi-v7a` and `x86` still need a rebuild before those ABIs can link the new calls.
+
 ## UnifOMR Sync Types
 
 The SDK exposes the following sync-related types:

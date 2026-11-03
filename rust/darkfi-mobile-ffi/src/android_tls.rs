@@ -11,7 +11,9 @@ use jni::objects::{JClass, JObject};
 use jni::EnvUnowned;
 
 #[no_mangle]
-pub extern "system" fn Java_com_nighthawkapps_lib_android_sdk_nym_PlatformTls_nativeInit<'caller>(
+pub extern "system" fn Java_com_nighthawkapps_lib_android_sdk_nym_PlatformTls_nativeInit<
+    'caller,
+>(
     mut env: EnvUnowned<'caller>,
     _class: JClass<'caller>,
     context: JObject<'caller>,

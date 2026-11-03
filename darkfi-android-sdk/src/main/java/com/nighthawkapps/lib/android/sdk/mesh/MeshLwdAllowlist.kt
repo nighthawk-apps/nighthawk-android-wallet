@@ -36,7 +36,11 @@ object MeshLwdAllowlist {
 
     fun isAllowed(payload: ByteArray): Boolean {
         val method = methodLeaf(payload) ?: return false
-        if (FORBIDDEN.any { it.equals(method, ignoreCase = true) }) return false
+        return methodAllowed(method)
+    }
+
+    private fun methodAllowed(method: String): Boolean {
+        if (isForbidden(method)) return false
         return ALLOWED.any { it.equals(method, ignoreCase = true) }
     }
 }

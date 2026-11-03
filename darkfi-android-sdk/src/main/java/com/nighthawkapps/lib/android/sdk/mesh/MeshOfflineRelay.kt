@@ -27,25 +27,21 @@ object MeshOfflineRelay {
         foreground: Boolean,
         method: String = "GetLightInfo",
     ): Plan {
-        if (!meshOn || !internetUnreachable) return Plan.None
-        val dest = dest() ?: return Plan.None
-        if (needUnifOmr) {
-            return if (foreground) Plan.BulkJoin(dest) else Plan.None
-        }
-        if (MeshLwdAllowlist.isForbidden(method)) return Plan.None
-        if (!MeshLwdAllowlist.isAllowed("$method\n".toByteArray())) return Plan.None
-        return Plan.Ctrl(dest, method)
+        val dest = MeshOfflinePlans.reachableDest(meshOn, internetUnreachable) ?: return Plan.None
+        return MeshOfflinePlans.forDest(dest, needUnifOmr, foreground, method)
     }
 
-    @Suppress("UNUSED_PARAMETER")
-    fun execute(plan: Plan): Boolean = false
+    fun execute(plan: Plan): Boolean =
+        when (plan) {
+            is Plan.None, is Plan.Ctrl, is Plan.BulkJoin -> false
+        }
 
     /** Internet lost: probe gateway with GetLightInfo. UnifOMR uses [requestBulkIfNeeded]. */
     fun onInternetUnreachable(
         meshOn: Boolean = NighthawkMeshService.isActive,
         foreground: Boolean = true,
     ): Boolean {
-        val p =
+        val planned =
             plan(
                 meshOn = meshOn,
                 internetUnreachable = true,
@@ -53,7 +49,7 @@ object MeshOfflineRelay {
                 foreground = foreground,
                 method = "GetLightInfo",
             )
-        return execute(p)
+        return execute(planned)
     }
 
     fun requestBulkIfNeeded(
@@ -61,18 +57,66 @@ object MeshOfflineRelay {
         foreground: Boolean = true,
         fromBackgroundWorker: Boolean = false,
     ): Boolean {
-        if (fromBackgroundWorker) return false
-        if ((MeshCoordinator.lastGatewayCaps and 0x02) == 0) return false
-        val p =
+        if (!MeshOfflinePlans.bulkAllowed(fromBackgroundWorker)) return false
+        val planned =
             plan(
                 meshOn = meshOn,
                 internetUnreachable = true,
                 needUnifOmr = true,
                 foreground = foreground,
             )
-        return execute(p)
+        return execute(planned)
     }
 
-    @Suppress("UNUSED_PARAMETER")
-    fun publishChat(body: ByteArray): Boolean = false
+    fun publishChat(body: ByteArray): Boolean =
+        when {
+            body.isEmpty() -> false
+            else -> false
+        }
+}
+
+private const val GATEWAY_CAP_BULK: Int = 0x02
+
+private object MeshOfflinePlans {
+    fun reachableDest(
+        meshOn: Boolean,
+        internetUnreachable: Boolean,
+    ): ByteArray? {
+        if (!meshOn || !internetUnreachable) return null
+        return MeshOfflineRelay.dest()
+    }
+
+    fun forDest(
+        dest: ByteArray,
+        needUnifOmr: Boolean,
+        foreground: Boolean,
+        method: String,
+    ): MeshOfflineRelay.Plan {
+        if (needUnifOmr) return bulk(dest, foreground)
+        return ctrl(dest, method)
+    }
+
+    fun bulkAllowed(fromBackgroundWorker: Boolean): Boolean {
+        if (fromBackgroundWorker) return false
+        return (MeshCoordinator.lastGatewayCaps and GATEWAY_CAP_BULK) != 0
+    }
+
+    private fun bulk(
+        dest: ByteArray,
+        foreground: Boolean,
+    ): MeshOfflineRelay.Plan =
+        if (foreground) MeshOfflineRelay.Plan.BulkJoin(dest) else MeshOfflineRelay.Plan.None
+
+    private fun ctrl(
+        dest: ByteArray,
+        method: String,
+    ): MeshOfflineRelay.Plan {
+        if (methodRejected(method)) return MeshOfflineRelay.Plan.None
+        return MeshOfflineRelay.Plan.Ctrl(dest, method)
+    }
+
+    private fun methodRejected(method: String): Boolean {
+        if (MeshLwdAllowlist.isForbidden(method)) return true
+        return !MeshLwdAllowlist.isAllowed("$method\n".toByteArray())
+    }
 }

@@ -9,6 +9,7 @@ import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.biometric.BiometricManager
 import androidx.biometric.BiometricPrompt
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.TextFieldColors
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
@@ -41,14 +42,18 @@ internal fun ComponentActivity.onLaunchUrl(url: String) {
 }
 
 @Composable
-internal fun TextFieldDefaults.customColors(): TextFieldColors =
-    this.colors(
-        focusedTextColor = Color.White,
-        focusedIndicatorColor = Color.White,
-        unfocusedIndicatorColor = Color.White,
+internal fun TextFieldDefaults.customColors(): TextFieldColors {
+    val textColor = MaterialTheme.colorScheme.onSurface
+    return this.colors(
+        focusedTextColor = textColor,
+        unfocusedTextColor = textColor,
+        cursorColor = textColor,
+        focusedIndicatorColor = textColor,
+        unfocusedIndicatorColor = textColor,
         focusedContainerColor = Color.Transparent,
         unfocusedContainerColor = Color.Transparent,
     )
+}
 
 internal fun Context.isBioMetricEnabledOnMobile(): Boolean =
     BiometricManager.from(this).canAuthenticate(BiometricManager.Authenticators.BIOMETRIC_WEAK) ==
@@ -78,7 +83,7 @@ internal fun FragmentActivity.authenticate(
             }
 
             override fun onAuthenticationFailed() {
-                showMessage("Authentication failed :(")
+                showMessage(getString(R.string.ns_bio_auth_failed))
             }
 
             override fun onAuthenticationError(
@@ -89,51 +94,54 @@ internal fun FragmentActivity.authenticate(
                     showMessage(message)
                 }
                 when (errorCode) {
-                    BiometricPrompt.ERROR_HW_NOT_PRESENT, BiometricPrompt.ERROR_HW_UNAVAILABLE,
-                    BiometricPrompt.ERROR_NO_BIOMETRICS, BiometricPrompt.ERROR_NO_DEVICE_CREDENTIAL,
+                    BiometricPrompt.ERROR_HW_NOT_PRESENT,
+                    BiometricPrompt.ERROR_HW_UNAVAILABLE,
+                    BiometricPrompt.ERROR_NO_BIOMETRICS,
+                    BiometricPrompt.ERROR_NO_DEVICE_CREDENTIAL,
                     -> {
-                        showMessage("Please enable screen lock on this device to add security here!")
-                        block()
+                        // Fail closed. Hardware and enrollment errors must not unlock
+                        // the wallet; the caller keeps the in-app PIN screen up.
+                        showMessage(getString(R.string.ns_bio_unavailable))
                     }
 
                     BiometricPrompt.ERROR_LOCKOUT -> {
-                        doNothing("Too many attempts. Try again in 30s.")
+                        doNothing(getString(R.string.ns_bio_lockout))
                     }
 
                     BiometricPrompt.ERROR_LOCKOUT_PERMANENT -> {
-                        doNothing("Whoa. Waaaay too many attempts!")
+                        doNothing(getString(R.string.ns_bio_lockout_permanent))
                     }
 
                     BiometricPrompt.ERROR_CANCELED -> {
-                        doNothing("I just can't right now. Please try again.")
+                        doNothing(getString(R.string.ns_bio_canceled))
                     }
 
                     BiometricPrompt.ERROR_NEGATIVE_BUTTON -> {
-                        doNothing("Authentication cancelled")
+                        doNothing(getString(R.string.ns_bio_negative))
                     }
 
                     BiometricPrompt.ERROR_USER_CANCELED -> {
-                        doNothing("Face/Touch ID Authentication Cancelled")
+                        doNothing(getString(R.string.ns_bio_user_canceled))
                     }
 
                     BiometricPrompt.ERROR_NO_SPACE -> {
-                        doNothing("Not enough storage space!")
+                        doNothing(getString(R.string.ns_bio_no_space))
                     }
 
                     BiometricPrompt.ERROR_TIMEOUT -> {
-                        doNothing("Oops. It timed out.")
+                        doNothing(getString(R.string.ns_bio_timeout))
                     }
 
                     BiometricPrompt.ERROR_UNABLE_TO_PROCESS -> {
-                        doNothing(".")
+                        doNothing(getString(R.string.ns_bio_unable))
                     }
 
                     BiometricPrompt.ERROR_VENDOR -> {
-                        doNothing("We got some weird error and you should report this.")
+                        doNothing(getString(R.string.ns_bio_vendor))
                     }
 
                     else -> {
-                        doNothing("Authentication failed with error code $errorCode")
+                        doNothing(getString(R.string.ns_bio_failed_code, errorCode))
                     }
                 }
             }

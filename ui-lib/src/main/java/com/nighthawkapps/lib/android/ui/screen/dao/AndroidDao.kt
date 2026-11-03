@@ -19,7 +19,7 @@ internal fun MainActivity.AndroidDaoHub(
     val viewModel by viewModels<DaoViewModel>()
     BackHandler(onBack = onBack)
     LaunchedEffect(Unit) { viewModel.loadHub() }
-    DaoHubScreen(viewModel = viewModel, onBack = onBack, onDaoSelected = onOpenDao)
+    DaoHubScreen(viewModel = viewModel, onBack = onBack, onSelectDao = onOpenDao)
 }
 
 @Composable
@@ -34,7 +34,7 @@ internal fun MainActivity.AndroidDaoDetail(
     DaoDetailScreen(
         viewModel = viewModel,
         onBack = onBack,
-        onProposalSelected = onOpenProposal,
+        onSelectProposal = onOpenProposal,
     )
 }
 

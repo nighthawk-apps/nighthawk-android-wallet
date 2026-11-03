@@ -6,7 +6,7 @@
 
 Privacy-preserving wallet (work-in-progress) by [Nighthawk Apps](https://nighthawkapps.com). This tree ships as a **new Android application id** on the DarkFi network (DRK). The app integrates a native DarkFi wallet API via **UniFFI** (`rust/darkfi-mobile-ffi` → generated Kotlin + `DarkfiMobileFfiApi`) for chain sync, broadcast, and chat.
 
-**3.00.026** (`WALLET_VERSION_CODE=30001826`). Sync uses lightwalletd proto 2.0.0 (lightwalletd **0.3.0** or later): snapshot checkpoints, padded commitment ranges, a pooled UnifOMR detection key, and a `SubscribeBlocks` ChainTip stream. The wallet opens without waiting for Nym or Tor; the sync thread dials lightwalletd only once the tunnel is up. Nym is the default network for the wallet, DarkIRC, and the embedded node. The splash shows mixnet progress and **Continue without Nym** after 20 seconds or a failed bootstrap. Settings → **Share Nighthawk** sends the APK to another Android device (zipped for Bluetooth, raw APK for other share targets). Toolchain: Gradle **9.8.1**, AGP **9.4.1**, Kotlin **2.2.21**, Compose UI **1.12.1**, Material3 **1.4.0**, Material icons **1.7.8**, AndroidX Lifecycle **2.11.0**, Navigation Compose **2.10.1**, JNA **5.19.1**, UniFFI **0.32**, NDK **26.1.10909125**, minSdk **27**, compile SDK **37.2**, target SDK **37** (Android 17). DarkFi pin `8af61b3f0` (Arti 0.47, upstream `0f985c7cf` tx-local fees, public `scan_block`, darkfid sync hardening). Native sent-tx session cache is FIFO-capped (10,000). Reorg “transactions affected” is counted from `drk.get_txs_history()` (`block_height > rewind`), not from CLI log lines.
+**3.00.027** (`WALLET_VERSION_CODE=30001827`). Cyberpunk is the default theme on a light or dark system. The Void wallpaper stays anchored at the top left and continues under the status bar and the navigation bar. Body text uses DejaVu Sans Mono. Light and Paper use graphite and grey instead of teal. Sync uses lightwalletd proto 2.0.0 (lightwalletd **0.3.0** or later): snapshot checkpoints, padded commitment ranges, a pooled UnifOMR detection key, and a `SubscribeBlocks` ChainTip stream. The wallet opens without waiting for Nym or Tor; the sync thread dials lightwalletd only once the tunnel is up. Nym is the default network for the wallet, DarkIRC, and the embedded node. The splash shows mixnet progress and **Continue without Nym** after 20 seconds or a failed bootstrap. Settings → **Share Nighthawk** sends the APK to another Android device (zipped for Bluetooth, raw APK for other share targets). Toolchain: Gradle **9.8.1**, AGP **9.4.1**, Kotlin **2.2.21**, Compose UI **1.12.1**, Material3 **1.4.0**, Material icons **1.7.8**, AndroidX Lifecycle **2.11.0**, Navigation Compose **2.10.1**, JNA **5.19.1**, UniFFI **0.32**, NDK **26.1.10909125**, minSdk **27**, compile SDK **37.2**, target SDK **37** (Android 17). DarkFi pin `8af61b3f0` (Arti 0.47, upstream `0f985c7cf` tx-local fees, public `scan_block`, darkfid sync hardening). Native sent-tx session cache is FIFO-capped (10,000). Reorg “transactions affected” is counted from `drk.get_txs_history()` (`block_height > rewind`), not from CLI log lines.
 
 ## Contents
 
@@ -29,7 +29,7 @@ Privacy-preserving wallet (work-in-progress) by [Nighthawk Apps](https://nightha
 
 Store listings are **not finalized** for `com.nighthawkwallet.android`. Placeholder targets until publishing completes:
 
-- **F-Droid:** DarkFi **testnet** package `com.nighthawkwallet.android.testnet` / flavor `darkfitestnet` (see [docs/fdroid.md](docs/fdroid.md); listing pending fdroiddata merge). **3.00.026** (`WALLET_VERSION_CODE=30001826`) — Fastlane changelog `fastlane/metadata/android/en-US/changelogs/30001826.txt`, tag `v3.00.026`. Local unsigned APK: `bundle exec fastlane fdroid`.
+- **F-Droid:** DarkFi **testnet** package `com.nighthawkwallet.android.testnet` / flavor `darkfitestnet` (see [docs/fdroid.md](docs/fdroid.md); listing pending fdroiddata merge). **3.00.027** (`WALLET_VERSION_CODE=30001827`) — Fastlane changelog `fastlane/metadata/android/en-US/changelogs/30001827.txt`, tag `v3.00.027`. Local unsigned APK: `bundle exec fastlane fdroid`.
 - **Google Play:** `https://PLACEHOLDER_PLAY_STORE_LISTING_URL`
 
 Replace these URLs when production listings exist—do not invent live links prematurely.
@@ -211,19 +211,19 @@ In-app **Chat** uses a **native in-process DarkIRC daemon** over UniFFI (`start_
 
 ## Nighthawk Mesh (encrypted EventGraph hop)
 
-Optional nearby BLE hop for **encrypted DarkIRC DAG** frames (Noise per GATT neighbor). Chat still goes through EventGraph → `event_pub` → UI. Share-internet / SoftAP / BLE LWD are **off**. The 2026-10-21 wallet localnet did not exercise this hop. Rebuild with `SKIP_UNIFFI_BINDGEN=1` after mesh C ABI changes. Full write-up: [docs/nighthawk-mesh.md](docs/nighthawk-mesh.md).
+Optional nearby BLE hop for **encrypted DarkIRC DAG** frames (Noise per GATT neighbor). Frame size is capped per message type, dedup ignores the timestamp, and aged sessions are rekeyed. Chat still goes through EventGraph → `event_pub` → UI. Share-internet / SoftAP / BLE LWD are **off**. The 2026-10-21 wallet localnet did not exercise this hop. Rebuild with `SKIP_UNIFFI_BINDGEN=1` after mesh C ABI changes. Full write-up: [docs/nighthawk-mesh.md](docs/nighthawk-mesh.md).
 
 ---
 
 ## Architecture
 
-- **UI:** `ui-lib` Compose — onboarding, backup, restore, send, receive, settings, chat. Bottom nav: **Chat → Wallet → Transfer → Settings** (opens on Chat).
-- **Themes:** Stealth (default), Light, Midnight (`APP_THEME_VARIANT`).
-- **Settings:** identity (IRC nickname / chat public ID / gated secret), Network privacy (Nym / Tor / Direct), Share Nighthawk, chat, server, security, about.
+- **UI:** `ui-lib` Compose — onboarding, backup, restore, send, receive, settings, chat, groups. Bottom nav: **Chat, Wallet, Dex, Settings**. The app opens on **Wallet**. Send, Receive, scan-to-send, and send-again are on the Wallet screen.
+- **Themes:** Stealth (default dark), Light (mist), Paper (white; a light system theme with nothing stored resolves to Paper), Midnight. Light and Paper accents are graphite and grey, not teal (`APP_THEME_VARIANT`).
+- **Settings:** identity (IRC nickname / chat public ID / gated secret), Network privacy (Nym / Tor / Direct), Share Nighthawk, Groups, chat, server, security, about.
 - **Wallet SDK:** `darkfi-android-sdk` — `PersistableDarkfiWallet`, `DarkfiMnemonic` (22-word), `DarkfiWalletCoordinator`, `DarkfiSynchronizer`.
 - **Balance:** single confirmed/spendable DRK tally (no transparent/shielded split).
 - **RPC presets:** `DarkfiEndpoint` defaults to lightwalletd **`tcp://127.0.0.1:9067`** (both networks). Network identity is enforced via `GetLightInfo.chain_name`.
-- **Native:** UniFFI + JNA → `libdarkfi_mobile_ffi.so` in `jniLibs/<abi>/`. Mesh C ABI: `SKIP_UNIFFI_BINDGEN=1`. **arm64-v8a** includes neighbor mesh symbols; **x86_64** emulator `.so` is older until rebuilt.
+- **Native:** UniFFI + JNA → `libdarkfi_mobile_ffi.so` in `jniLibs/<abi>/`. Mesh C ABI: `SKIP_UNIFFI_BINDGEN=1`. **arm64-v8a** and **x86_64** were rebuilt on 2026-11-03 and export `dao_create`, `dao_exec`, and `dao_import`. **armeabi-v7a** and **x86** were not part of that rebuild.
 
 ### UniFFI & native bridge
 
@@ -235,6 +235,18 @@ Optional nearby BLE hop for **encrypted DarkIRC DAG** frames (Noise per GATT nei
 | **`rust/darkfi-android-bridge`** | Legacy minimal bridge — prefer `darkfi-mobile-ffi` |
 | **JNA** | UniFFI **0.32** Kotlin bindings (`net.java.dev.jna:jna` **5.19.1**) |
 | **`jniLibs/`** | Per-ABI `.so` — Gradle does **not** invoke Cargo automatically |
+
+### Recent changes
+
+In **3.00.027**:
+
+- **Cyberpunk** is the default theme for a light or dark system. The Void wallpaper is anchored at the top left, one image pixel per screen pixel, and shows through the status bar and the navigation bar.
+- Body text uses DejaVu Sans Mono. Titles stay Outfit, or Source Serif 4 on Paper.
+- Home opens on **Wallet**. Send and Receive stay on that screen.
+- **Settings → Groups** is the DAO hub. Create a group with a proposer minimum, a quorum, an optional early-exec quorum (blank means the same as the quorum), and an approval ratio. Import a group from drk TOML. Fund the treasury, propose a payment, vote, and pay from the treasury. The wallet chooses early or normal execution from the chain tip. Issue a token, mint more, freeze supply, and export a role (`proposer`, `voter`, `executor`, or `all`) as drk TOML.
+- Clue-key registration sends `key_version = 1` every time. The key is derived from the wallet secret and does not rotate, so the directory does not learn when the app was last opened.
+- `GetLightInfo.block_target` is kept. DAO voting windows use that target (4 hours per window at the current 120-second target).
+- The spendable Money tree is rebuilt only through the wallet's last scanned height, so a spend does not skip coins that arrive before the server tip.
 
 ---
 
@@ -377,7 +389,7 @@ Notes:
 3. `IS_ANDROID_INSTRUMENTATION_TEST_COVERAGE_ENABLED` prevents interactive debugging of the debug APK (CI-only).
 4. Compose + Jacoco coverage remains limited upstream.
 5. DarkIRC over Nym dials the public clearnet seeds through the mixnet. Those port-9600 handshakes can stall; switch to Tor, or use **Continue without Nym**, if chat stays on "waiting for peers".
-6. Rebuild `libdarkfi_mobile_ffi.so` for **arm64-v8a** before a phone install. The x86_64 emulator library is the one exercised with the 3.00.021 bindings.
+6. **armeabi-v7a** and **x86** `libdarkfi_mobile_ffi.so` do not yet include the DAO entry points. Phone (`arm64-v8a`) and emulator (`x86_64`) libraries were rebuilt on 2026-11-03.
 7. Strict UnifOMR (the default) does not trial-decrypt own change or a Moonshine `--no-omr` payment. Turn strict mode off, or those notes stay unscanned. A compact-block hole must not mark the missing heights scanned. Rebuilding the money tree from `GetNoteCommitments` is required after a strict pass already appended commitments; a rewind that appends again duplicates leaves.
 8. `git.dark.fi` returns HTTP 504. `kvdb-overlay` is fetched from GitLab (`nighthawk24/kvdb-overlay` `accd2689`), RandomX from Codeberg (`0e31d5a`), and `rust-url` from GitHub (`v258`). The F-Droid RandomX path patch keys the Codeberg URL, which now matches `Cargo.toml`.
 

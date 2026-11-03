@@ -936,7 +936,6 @@ async fn run_darkirc_daemon(
         },
     };
     use kvdb_overlay::Database;
-    use url::Url;
 
     // Create datastore (with retry for rapid restart lock release).
     // Existing sled directories will not open; testers must wipe DarkIRC cache.
@@ -1123,7 +1122,10 @@ async fn run_darkirc_daemon(
     // tens of seconds. The post-sync replay below skips these ids.
     match event_graph.order_events().await {
         Ok(cached) => {
-            log::info!("darkirc daemon replaying {} cached events before peer sync", cached.len());
+            log::info!(
+                "darkirc daemon replaying {} cached events before peer sync",
+                cached.len()
+            );
             replay_history(cached, &callback, &relayed_ids).await;
         }
         Err(e) => log::warn!("darkirc daemon cached history unavailable: {e}"),
@@ -1396,7 +1398,10 @@ mod tests {
         }
         assert_eq!(plan.mixed_profiles, vec!["tcp+tls".to_string()]);
         let proxy = plan.nym_socks5_proxy.unwrap();
-        assert_eq!((proxy.scheme(), proxy.host_str(), proxy.port()), ("socks5", Some("127.0.0.1"), Some(1080)));
+        assert_eq!(
+            (proxy.scheme(), proxy.host_str(), proxy.port()),
+            ("socks5", Some("127.0.0.1"), Some(1080))
+        );
         assert!(plan.tor_socks5_proxy.is_none());
         assert!(plan.slow_links);
     }
@@ -1416,7 +1421,10 @@ mod tests {
         assert_eq!(routes[0].scheme(), "socks5+tls");
         assert_eq!(routes[0].port(), Some(1080));
         assert_eq!(routes[0].path(), "/203.0.113.7:9600");
-        let onion = url::Url::parse("tor://abcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefab.onion:9601").unwrap();
+        let onion = url::Url::parse(
+            "tor://abcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefab.onion:9601",
+        )
+        .unwrap();
         assert!(darkfi::net::hosts::HostContainer::mix_host(
             &onion,
             &[plan.profile_name.to_string()],

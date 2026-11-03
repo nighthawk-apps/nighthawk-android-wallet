@@ -15,6 +15,8 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
 import androidx.annotation.VisibleForTesting
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -41,6 +43,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.stringResource
@@ -58,6 +63,7 @@ import androidx.lifecycle.repeatOnLifecycle
 import androidx.navigation.NavHostController
 import com.nighthawkapps.lib.android.global.AppWalletCoordinator
 import com.nighthawkapps.lib.android.sdk.mesh.MeshCoordinator
+import com.nighthawkapps.lib.android.sdk.mesh.restoreOnResume
 import com.nighthawkapps.lib.android.sdk.net.PrivacyNetwork
 import com.nighthawkapps.lib.android.sdk.nym.AppNymCoordinator
 import com.nighthawkapps.lib.android.sdk.tor.AppTorCoordinator
@@ -105,8 +111,6 @@ class MainActivity : FragmentActivity() {
 
     @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
     val storageCheckViewModel by viewModels<StorageCheckViewModel>()
-
-    lateinit var navControllerForTesting: NavHostController
 
     val configurationOverrideFlow = MutableStateFlow<ConfigurationOverride?>(null)
 
@@ -508,6 +512,7 @@ class MainActivity : FragmentActivity() {
                 val themeVariant = homeViewModel.appThemeVariant.collectAsStateWithLifecycle().value
                 val lightChrome =
                     themeVariant == AppThemeVariant.PAPER || themeVariant == AppThemeVariant.LIGHT
+                val cyberpunk = themeVariant == AppThemeVariant.CYBERPUNK
                 SideEffect {
                     enableEdgeToEdge(
                         statusBarStyle =
@@ -523,15 +528,42 @@ class MainActivity : FragmentActivity() {
                                 SystemBarStyle.dark(AndroidColor.TRANSPARENT)
                             },
                     )
+                    // Android paints its own scrim over a transparent bar. That
+                    // hides the wallpaper in the status and gesture areas.
+                    if (cyberpunk && Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                        window.isNavigationBarContrastEnforced = false
+                    }
+                    if (cyberpunk && Build.VERSION.SDK_INT >= 35) {
+                        window.isStatusBarContrastEnforced = false
+                    }
                 }
                 WalletTheme(themeVariant = themeVariant) {
+                    Box(modifier = Modifier.fillMaxSize()) {
+                        if (cyberpunk) {
+                            // Full 3840×2160 frame, 1 image pixel per screen pixel,
+                            // clipped at the top left. Larger screens reveal more.
+                            Box(Modifier.fillMaxSize().background(Color(0xFF05060A)))
+                            Image(
+                                painter = painterResource(R.drawable.cyberpunk_bg),
+                                contentDescription = null,
+                                alignment = Alignment.TopStart,
+                                contentScale = ContentScale.None,
+                                modifier = Modifier.fillMaxSize(),
+                            )
+                            Box(Modifier.fillMaxSize().background(Color(0x80050810)))
+                        }
                     Surface(
                         modifier =
                             Modifier
                                 .fillMaxWidth()
                                 .fillMaxHeight()
-                                .safeDrawingPadding(),
-                        color = MaterialTheme.colorScheme.background,
+                                .then(if (cyberpunk) Modifier else Modifier.safeDrawingPadding()),
+                        color =
+                            if (cyberpunk) {
+                                Color.Transparent
+                            } else {
+                                MaterialTheme.colorScheme.background
+                            },
                     ) {
                         BindCompLocalProvider {
                             val isEnoughSpace by storageCheckViewModel.isEnoughSpace.collectAsStateWithLifecycle()
@@ -541,6 +573,7 @@ class MainActivity : FragmentActivity() {
                                 MainContent()
                             }
                         }
+                    }
                     }
                 }
             }

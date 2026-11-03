@@ -130,8 +130,7 @@
     <string name="ns_motto">Where privacy is proven, not promised.</string>
     <string name="ns_get_started">Get Started</string>
     <string name="ns_landing_text">If it\'s your first time using Nighthawk, you\'ll need to create a wallet. If you are returning to Nighthawk, you can try to restore your previous wallet.</string>
-    <string name="ns_landing_footer">This app is free software. Use is covered only by its license.</string>
-    <string name="ns_terms_conditions">View license</string>
+    <string name="ns_landing_footer">This app is free software. Licences are listed under Settings &gt; About &gt; Licences.</string>
     <string name="ns_create_wallet">Create Wallet</string>
     <string name="ns_create_wallet_title">Write down your backup seed</string>
     <string name="ns_create_wallet_confirm_text">I confirm I have written down my seed phrase.</string>
@@ -254,7 +253,6 @@
     <string name="ns_security_try_again">Please try again</string>
     <string name="ns_about">About</string>
     <string name="ns_view_source">View Source</string>
-    <string name="ns_credits">Nighthawk friends</string>
     <string name="ns_about_text">Nighthawk v%s &amp; Licenses</string>
     <string name="ns_view_license">OSS Licenses</string>
     <string name="ns_back_up_seed_dialog_title">View Seed Words?</string>
@@ -399,7 +397,7 @@
     <string name="support_confirmation_dialog_cancel">إلغاء</string>
     <string name="support_email_address"></string>
     <string name="support_information">Please let us know about any problems you have had, or features you want to see in the future.</string>
-    <string name="support_disclaimer">Information provided is handled in accordance with our Privacy Policy.</string>
+    <string name="support_disclaimer">Submitting this form sends your message together with device, operating system, permission, and crash information.</string>
     <string name="support_unable_to_open_email">Unable to launch email app.</string>
     <string name="update_header">Update available!</string>
     <string name="update_critical_header">Critical update required!</string>

@@ -54,7 +54,7 @@ class MeshPowerPolicyTest {
 
     @Test
     fun cannotStartFgsFromBackground() {
-        assertFalse(MeshPowerPolicy.mayStartForegroundServiceFromBackground())
+        assertFalse(MeshPowerPolicy.mayStartForegroundServiceFromBackground)
     }
 
     @Test

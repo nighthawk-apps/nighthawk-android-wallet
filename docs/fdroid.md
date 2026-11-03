@@ -36,7 +36,23 @@ srclib SHA edit.
 
 Tagging alone does **not** run this repo’s GitHub `Deploy` workflow (that is branch/`workflow_dispatch` + Play secrets). F-Droid’s scanner is separate.
 
-## 3.00.026 (this release)
+## 3.00.027 (this release)
+
+| Field | Value |
+|-------|--------|
+| `WALLET_VERSION_NAME` | `3.00.027` |
+| `WALLET_VERSION_CODE` | `30001827` |
+| Suggested git tag | `v3.00.027` |
+| Fastlane changelog | `fastlane/metadata/android/en-US/changelogs/30001827.txt` |
+| DarkFi pin | `8af61b3f03b47164b4e4e01fcdc84e2744cb8570` (`nighthawk-testnet`, Arti 0.47, upstream `0f985c7cf`) |
+
+What's new for testers:
+
+- Cyberpunk is the default theme whether the phone is in light or dark mode. The Void wallpaper is anchored at the top left and continues under the status bar and the navigation bar.
+- Body text uses DejaVu Sans Mono. Titles stay Outfit, or Source Serif 4 on Paper.
+- Nym keeps the mixnet tunnel up when one peer lookup fails, and wallet sync waits through the UnifOMR rate limit instead of stopping. Needs lightwalletd 0.3.1.
+
+## 3.00.026
 
 | Field | Value |
 |-------|--------|

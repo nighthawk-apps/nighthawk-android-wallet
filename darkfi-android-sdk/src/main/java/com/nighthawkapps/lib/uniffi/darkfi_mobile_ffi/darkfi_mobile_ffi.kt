@@ -769,7 +769,19 @@ internal object IntegrityCheckingUniffiLib {
     ): Int
     external fun uniffi_darkfi_mobile_ffi_checksum_method_darkfiwallethandle_confirmed_balance_atomic(
     ): Int
+    external fun uniffi_darkfi_mobile_ffi_checksum_method_darkfiwallethandle_dao_create(
+    ): Int
+    external fun uniffi_darkfi_mobile_ffi_checksum_method_darkfiwallethandle_dao_exec(
+    ): Int
+    external fun uniffi_darkfi_mobile_ffi_checksum_method_darkfiwallethandle_dao_export_role(
+    ): Int
+    external fun uniffi_darkfi_mobile_ffi_checksum_method_darkfiwallethandle_dao_fund(
+    ): Int
+    external fun uniffi_darkfi_mobile_ffi_checksum_method_darkfiwallethandle_dao_import(
+    ): Int
     external fun uniffi_darkfi_mobile_ffi_checksum_method_darkfiwallethandle_dao_propose_transfer(
+    ): Int
+    external fun uniffi_darkfi_mobile_ffi_checksum_method_darkfiwallethandle_dao_treasury(
     ): Int
     external fun uniffi_darkfi_mobile_ffi_checksum_method_darkfiwallethandle_dao_vote(
     ): Int
@@ -786,6 +798,8 @@ internal object IntegrityCheckingUniffiLib {
     external fun uniffi_darkfi_mobile_ffi_checksum_method_darkfiwallethandle_list_addresses(
     ): Int
     external fun uniffi_darkfi_mobile_ffi_checksum_method_darkfiwallethandle_list_daos(
+    ): Int
+    external fun uniffi_darkfi_mobile_ffi_checksum_method_darkfiwallethandle_list_mint_authorities(
     ): Int
     external fun uniffi_darkfi_mobile_ffi_checksum_method_darkfiwallethandle_list_proposals(
     ): Int
@@ -804,6 +818,12 @@ internal object IntegrityCheckingUniffiLib {
     external fun uniffi_darkfi_mobile_ffi_checksum_method_darkfiwallethandle_strict_omr_only(
     ): Int
     external fun uniffi_darkfi_mobile_ffi_checksum_method_darkfiwallethandle_sync_snapshot(
+    ): Int
+    external fun uniffi_darkfi_mobile_ffi_checksum_method_darkfiwallethandle_token_freeze(
+    ): Int
+    external fun uniffi_darkfi_mobile_ffi_checksum_method_darkfiwallethandle_token_generate(
+    ): Int
+    external fun uniffi_darkfi_mobile_ffi_checksum_method_darkfiwallethandle_token_mint(
     ): Int
     external fun uniffi_darkfi_mobile_ffi_checksum_method_darkfiwallethandle_transaction_payment_memo(
     ): Int
@@ -847,7 +867,19 @@ internal object UniffiLib {
     ): RustBuffer.ByValue
     external fun uniffi_darkfi_mobile_ffi_fn_method_darkfiwallethandle_confirmed_balance_atomic(`ptr`: Long,uniffi_out_err: UniffiRustCallStatus, 
     ): Long
+    external fun uniffi_darkfi_mobile_ffi_fn_method_darkfiwallethandle_dao_create(`ptr`: Long,`name`: RustBuffer.ByValue,`proposerLimit`: RustBuffer.ByValue,`quorum`: RustBuffer.ByValue,`earlyExecQuorum`: RustBuffer.ByValue,`approvalRatio`: Double,`govTokenId`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
+    external fun uniffi_darkfi_mobile_ffi_fn_method_darkfiwallethandle_dao_exec(`ptr`: Long,`proposalBullaB58`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
+    external fun uniffi_darkfi_mobile_ffi_fn_method_darkfiwallethandle_dao_export_role(`ptr`: Long,`daoName`: RustBuffer.ByValue,`role`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
+    external fun uniffi_darkfi_mobile_ffi_fn_method_darkfiwallethandle_dao_fund(`ptr`: Long,`daoName`: RustBuffer.ByValue,`amount`: RustBuffer.ByValue,`tokenId`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
+    external fun uniffi_darkfi_mobile_ffi_fn_method_darkfiwallethandle_dao_import(`ptr`: Long,`name`: RustBuffer.ByValue,`toml`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
     external fun uniffi_darkfi_mobile_ffi_fn_method_darkfiwallethandle_dao_propose_transfer(`ptr`: Long,`daoName`: RustBuffer.ByValue,`durationBlockwindows`: Long,`amount`: RustBuffer.ByValue,`tokenId`: RustBuffer.ByValue,`recipientAddress`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
+    external fun uniffi_darkfi_mobile_ffi_fn_method_darkfiwallethandle_dao_treasury(`ptr`: Long,`daoName`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
     ): RustBuffer.ByValue
     external fun uniffi_darkfi_mobile_ffi_fn_method_darkfiwallethandle_dao_vote(`ptr`: Long,`proposalBullaB58`: RustBuffer.ByValue,`voteYes`: Byte,uniffi_out_err: UniffiRustCallStatus, 
     ): RustBuffer.ByValue
@@ -864,6 +896,8 @@ internal object UniffiLib {
     external fun uniffi_darkfi_mobile_ffi_fn_method_darkfiwallethandle_list_addresses(`ptr`: Long,uniffi_out_err: UniffiRustCallStatus, 
     ): RustBuffer.ByValue
     external fun uniffi_darkfi_mobile_ffi_fn_method_darkfiwallethandle_list_daos(`ptr`: Long,uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
+    external fun uniffi_darkfi_mobile_ffi_fn_method_darkfiwallethandle_list_mint_authorities(`ptr`: Long,uniffi_out_err: UniffiRustCallStatus, 
     ): RustBuffer.ByValue
     external fun uniffi_darkfi_mobile_ffi_fn_method_darkfiwallethandle_list_proposals(`ptr`: Long,`daoName`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
     ): RustBuffer.ByValue
@@ -882,6 +916,12 @@ internal object UniffiLib {
     external fun uniffi_darkfi_mobile_ffi_fn_method_darkfiwallethandle_strict_omr_only(`ptr`: Long,uniffi_out_err: UniffiRustCallStatus, 
     ): Byte
     external fun uniffi_darkfi_mobile_ffi_fn_method_darkfiwallethandle_sync_snapshot(`ptr`: Long,uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
+    external fun uniffi_darkfi_mobile_ffi_fn_method_darkfiwallethandle_token_freeze(`ptr`: Long,`tokenId`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
+    external fun uniffi_darkfi_mobile_ffi_fn_method_darkfiwallethandle_token_generate(`ptr`: Long,`alias`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
+    external fun uniffi_darkfi_mobile_ffi_fn_method_darkfiwallethandle_token_mint(`ptr`: Long,`tokenId`: RustBuffer.ByValue,`amount`: RustBuffer.ByValue,`recipientAddress`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
     ): RustBuffer.ByValue
     external fun uniffi_darkfi_mobile_ffi_fn_method_darkfiwallethandle_transaction_payment_memo(`ptr`: Long,`txHash`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
     ): RustBuffer.ByValue
@@ -1134,7 +1174,25 @@ private fun uniffiCheckApiChecksums(lib: IntegrityCheckingUniffiLib) {
     if (lib.uniffi_darkfi_mobile_ffi_checksum_method_darkfiwallethandle_confirmed_balance_atomic() != 48819) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
+    if (lib.uniffi_darkfi_mobile_ffi_checksum_method_darkfiwallethandle_dao_create() != 14392) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_darkfi_mobile_ffi_checksum_method_darkfiwallethandle_dao_exec() != 5409) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_darkfi_mobile_ffi_checksum_method_darkfiwallethandle_dao_export_role() != 2019) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_darkfi_mobile_ffi_checksum_method_darkfiwallethandle_dao_fund() != 603) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_darkfi_mobile_ffi_checksum_method_darkfiwallethandle_dao_import() != 11109) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
     if (lib.uniffi_darkfi_mobile_ffi_checksum_method_darkfiwallethandle_dao_propose_transfer() != 39787) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_darkfi_mobile_ffi_checksum_method_darkfiwallethandle_dao_treasury() != 42940) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if (lib.uniffi_darkfi_mobile_ffi_checksum_method_darkfiwallethandle_dao_vote() != 28282) {
@@ -1159,6 +1217,9 @@ private fun uniffiCheckApiChecksums(lib: IntegrityCheckingUniffiLib) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if (lib.uniffi_darkfi_mobile_ffi_checksum_method_darkfiwallethandle_list_daos() != 41886) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_darkfi_mobile_ffi_checksum_method_darkfiwallethandle_list_mint_authorities() != 11513) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if (lib.uniffi_darkfi_mobile_ffi_checksum_method_darkfiwallethandle_list_proposals() != 42935) {
@@ -1186,6 +1247,15 @@ private fun uniffiCheckApiChecksums(lib: IntegrityCheckingUniffiLib) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if (lib.uniffi_darkfi_mobile_ffi_checksum_method_darkfiwallethandle_sync_snapshot() != 34731) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_darkfi_mobile_ffi_checksum_method_darkfiwallethandle_token_freeze() != 2602) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_darkfi_mobile_ffi_checksum_method_darkfiwallethandle_token_generate() != 36230) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_darkfi_mobile_ffi_checksum_method_darkfiwallethandle_token_mint() != 3320) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if (lib.uniffi_darkfi_mobile_ffi_checksum_method_darkfiwallethandle_transaction_payment_memo() != 24617) {
@@ -1721,7 +1791,19 @@ public interface DarkfiWalletHandleInterface {
     
     fun `confirmedBalanceAtomic`(): kotlin.Long
     
+    fun `daoCreate`(`name`: kotlin.String, `proposerLimit`: kotlin.String, `quorum`: kotlin.String, `earlyExecQuorum`: kotlin.String, `approvalRatio`: kotlin.Double, `govTokenId`: kotlin.String): kotlin.String
+    
+    fun `daoExec`(`proposalBullaB58`: kotlin.String): kotlin.String
+    
+    fun `daoExportRole`(`daoName`: kotlin.String, `role`: kotlin.String): kotlin.String
+    
+    fun `daoFund`(`daoName`: kotlin.String, `amount`: kotlin.String, `tokenId`: kotlin.String?): kotlin.String
+    
+    fun `daoImport`(`name`: kotlin.String, `toml`: kotlin.String): kotlin.String
+    
     fun `daoProposeTransfer`(`daoName`: kotlin.String, `durationBlockwindows`: kotlin.ULong, `amount`: kotlin.String, `tokenId`: kotlin.String?, `recipientAddress`: kotlin.String): kotlin.String
+    
+    fun `daoTreasury`(`daoName`: kotlin.String): kotlin.String
     
     fun `daoVote`(`proposalBullaB58`: kotlin.String, `voteYes`: kotlin.Boolean): kotlin.String
     
@@ -1743,6 +1825,8 @@ public interface DarkfiWalletHandleInterface {
     fun `listAddresses`(): List<kotlin.String>
     
     fun `listDaos`(): List<DrkDaoSummary>
+    
+    fun `listMintAuthorities`(): List<DrkMintAuthority>
     
     fun `listProposals`(`daoName`: kotlin.String?): List<DrkDaoProposalSummary>
     
@@ -1771,6 +1855,12 @@ public interface DarkfiWalletHandleInterface {
     fun `strictOmrOnly`(): kotlin.Boolean
     
     fun `syncSnapshot`(): DrkSyncSnapshot
+    
+    fun `tokenFreeze`(`tokenId`: kotlin.String): kotlin.String
+    
+    fun `tokenGenerate`(`alias`: kotlin.String?): kotlin.String
+    
+    fun `tokenMint`(`tokenId`: kotlin.String, `amount`: kotlin.String, `recipientAddress`: kotlin.String): kotlin.String
     
     fun `transactionPaymentMemo`(`txHash`: kotlin.String): kotlin.String?
     
@@ -1939,6 +2029,90 @@ open class DarkfiWalletHandle: Disposable, AutoCloseable, DarkfiWalletHandleInte
     
 
     
+    @Throws(DarkfiWalletNativeException::class)override fun `daoCreate`(`name`: kotlin.String, `proposerLimit`: kotlin.String, `quorum`: kotlin.String, `earlyExecQuorum`: kotlin.String, `approvalRatio`: kotlin.Double, `govTokenId`: kotlin.String): kotlin.String {
+            return FfiConverterString.lift(
+    callWithHandle {
+    uniffiRustCallWithError(DarkfiWalletNativeException) { _status ->
+    UniffiLib.uniffi_darkfi_mobile_ffi_fn_method_darkfiwallethandle_dao_create(
+        it,
+        
+        FfiConverterString.lower(`name`),
+        FfiConverterString.lower(`proposerLimit`),
+        FfiConverterString.lower(`quorum`),
+        FfiConverterString.lower(`earlyExecQuorum`),
+        FfiConverterDouble.lower(`approvalRatio`),
+        FfiConverterString.lower(`govTokenId`),_status)
+}
+    }
+    )
+    }
+    
+
+    
+    @Throws(DarkfiWalletNativeException::class)override fun `daoExec`(`proposalBullaB58`: kotlin.String): kotlin.String {
+            return FfiConverterString.lift(
+    callWithHandle {
+    uniffiRustCallWithError(DarkfiWalletNativeException) { _status ->
+    UniffiLib.uniffi_darkfi_mobile_ffi_fn_method_darkfiwallethandle_dao_exec(
+        it,
+        
+        FfiConverterString.lower(`proposalBullaB58`),_status)
+}
+    }
+    )
+    }
+    
+
+    
+    @Throws(DarkfiWalletNativeException::class)override fun `daoExportRole`(`daoName`: kotlin.String, `role`: kotlin.String): kotlin.String {
+            return FfiConverterString.lift(
+    callWithHandle {
+    uniffiRustCallWithError(DarkfiWalletNativeException) { _status ->
+    UniffiLib.uniffi_darkfi_mobile_ffi_fn_method_darkfiwallethandle_dao_export_role(
+        it,
+        
+        FfiConverterString.lower(`daoName`),
+        FfiConverterString.lower(`role`),_status)
+}
+    }
+    )
+    }
+    
+
+    
+    @Throws(DarkfiWalletNativeException::class)override fun `daoFund`(`daoName`: kotlin.String, `amount`: kotlin.String, `tokenId`: kotlin.String?): kotlin.String {
+            return FfiConverterString.lift(
+    callWithHandle {
+    uniffiRustCallWithError(DarkfiWalletNativeException) { _status ->
+    UniffiLib.uniffi_darkfi_mobile_ffi_fn_method_darkfiwallethandle_dao_fund(
+        it,
+        
+        FfiConverterString.lower(`daoName`),
+        FfiConverterString.lower(`amount`),
+        FfiConverterOptionalString.lower(`tokenId`),_status)
+}
+    }
+    )
+    }
+    
+
+    
+    @Throws(DarkfiWalletNativeException::class)override fun `daoImport`(`name`: kotlin.String, `toml`: kotlin.String): kotlin.String {
+            return FfiConverterString.lift(
+    callWithHandle {
+    uniffiRustCallWithError(DarkfiWalletNativeException) { _status ->
+    UniffiLib.uniffi_darkfi_mobile_ffi_fn_method_darkfiwallethandle_dao_import(
+        it,
+        
+        FfiConverterString.lower(`name`),
+        FfiConverterString.lower(`toml`),_status)
+}
+    }
+    )
+    }
+    
+
+    
     @Throws(DarkfiWalletNativeException::class)override fun `daoProposeTransfer`(`daoName`: kotlin.String, `durationBlockwindows`: kotlin.ULong, `amount`: kotlin.String, `tokenId`: kotlin.String?, `recipientAddress`: kotlin.String): kotlin.String {
             return FfiConverterString.lift(
     callWithHandle {
@@ -1951,6 +2125,21 @@ open class DarkfiWalletHandle: Disposable, AutoCloseable, DarkfiWalletHandleInte
         FfiConverterString.lower(`amount`),
         FfiConverterOptionalString.lower(`tokenId`),
         FfiConverterString.lower(`recipientAddress`),_status)
+}
+    }
+    )
+    }
+    
+
+    
+    @Throws(DarkfiWalletNativeException::class)override fun `daoTreasury`(`daoName`: kotlin.String): kotlin.String {
+            return FfiConverterString.lift(
+    callWithHandle {
+    uniffiRustCallWithError(DarkfiWalletNativeException) { _status ->
+    UniffiLib.uniffi_darkfi_mobile_ffi_fn_method_darkfiwallethandle_dao_treasury(
+        it,
+        
+        FfiConverterString.lower(`daoName`),_status)
 }
     }
     )
@@ -2073,6 +2262,20 @@ open class DarkfiWalletHandle: Disposable, AutoCloseable, DarkfiWalletHandleInte
     callWithHandle {
     uniffiRustCallWithError(DarkfiWalletNativeException) { _status ->
     UniffiLib.uniffi_darkfi_mobile_ffi_fn_method_darkfiwallethandle_list_daos(
+        it,
+        _status)
+}
+    }
+    )
+    }
+    
+
+    
+    @Throws(DarkfiWalletNativeException::class)override fun `listMintAuthorities`(): List<DrkMintAuthority> {
+            return FfiConverterSequenceTypeDrkMintAuthority.lift(
+    callWithHandle {
+    uniffiRustCallWithError(DarkfiWalletNativeException) { _status ->
+    UniffiLib.uniffi_darkfi_mobile_ffi_fn_method_darkfiwallethandle_list_mint_authorities(
         it,
         _status)
 }
@@ -2209,6 +2412,53 @@ open class DarkfiWalletHandle: Disposable, AutoCloseable, DarkfiWalletHandleInte
     UniffiLib.uniffi_darkfi_mobile_ffi_fn_method_darkfiwallethandle_sync_snapshot(
         it,
         _status)
+}
+    }
+    )
+    }
+    
+
+    
+    @Throws(DarkfiWalletNativeException::class)override fun `tokenFreeze`(`tokenId`: kotlin.String): kotlin.String {
+            return FfiConverterString.lift(
+    callWithHandle {
+    uniffiRustCallWithError(DarkfiWalletNativeException) { _status ->
+    UniffiLib.uniffi_darkfi_mobile_ffi_fn_method_darkfiwallethandle_token_freeze(
+        it,
+        
+        FfiConverterString.lower(`tokenId`),_status)
+}
+    }
+    )
+    }
+    
+
+    
+    @Throws(DarkfiWalletNativeException::class)override fun `tokenGenerate`(`alias`: kotlin.String?): kotlin.String {
+            return FfiConverterString.lift(
+    callWithHandle {
+    uniffiRustCallWithError(DarkfiWalletNativeException) { _status ->
+    UniffiLib.uniffi_darkfi_mobile_ffi_fn_method_darkfiwallethandle_token_generate(
+        it,
+        
+        FfiConverterOptionalString.lower(`alias`),_status)
+}
+    }
+    )
+    }
+    
+
+    
+    @Throws(DarkfiWalletNativeException::class)override fun `tokenMint`(`tokenId`: kotlin.String, `amount`: kotlin.String, `recipientAddress`: kotlin.String): kotlin.String {
+            return FfiConverterString.lift(
+    callWithHandle {
+    uniffiRustCallWithError(DarkfiWalletNativeException) { _status ->
+    UniffiLib.uniffi_darkfi_mobile_ffi_fn_method_darkfiwallethandle_token_mint(
+        it,
+        
+        FfiConverterString.lower(`tokenId`),
+        FfiConverterString.lower(`amount`),
+        FfiConverterString.lower(`recipientAddress`),_status)
 }
     }
     )
@@ -2762,6 +3012,49 @@ public object FfiConverterTypeDrkLightSyncState: FfiConverterRustBuffer<DrkLight
             FfiConverterTypeSyncFallbackReason.write(value.`fallbackReason`, buf)
             FfiConverterString.write(value.`fallbackUserMessage`, buf)
             FfiConverterBoolean.write(value.`protoVersionMismatch`, buf)
+    }
+}
+
+
+
+data class DrkMintAuthority (
+    var `tokenId`: kotlin.String
+    , 
+    var `alias`: kotlin.String?
+    , 
+    var `frozen`: kotlin.Boolean
+    
+){
+    
+
+    
+
+    
+    companion object
+}
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeDrkMintAuthority: FfiConverterRustBuffer<DrkMintAuthority> {
+    override fun read(buf: ByteBuffer): DrkMintAuthority {
+        return DrkMintAuthority(
+            FfiConverterString.read(buf),
+            FfiConverterOptionalString.read(buf),
+            FfiConverterBoolean.read(buf),
+        )
+    }
+
+    override fun allocationSize(value: DrkMintAuthority) = (
+            FfiConverterString.allocationSize(value.`tokenId`) +
+            FfiConverterOptionalString.allocationSize(value.`alias`) +
+            FfiConverterBoolean.allocationSize(value.`frozen`)
+    )
+
+    override fun write(value: DrkMintAuthority, buf: ByteBuffer) {
+            FfiConverterString.write(value.`tokenId`, buf)
+            FfiConverterOptionalString.write(value.`alias`, buf)
+            FfiConverterBoolean.write(value.`frozen`, buf)
     }
 }
 
@@ -3591,6 +3884,34 @@ public object FfiConverterSequenceTypeDrkDaoSummary: FfiConverterRustBuffer<List
         buf.putInt(value.size)
         value.iterator().forEach {
             FfiConverterTypeDrkDaoSummary.write(it, buf)
+        }
+    }
+}
+
+
+
+
+/**
+ * @suppress
+ */
+public object FfiConverterSequenceTypeDrkMintAuthority: FfiConverterRustBuffer<List<DrkMintAuthority>> {
+    override fun read(buf: ByteBuffer): List<DrkMintAuthority> {
+        val len = buf.getInt()
+        return List<DrkMintAuthority>(len) {
+            FfiConverterTypeDrkMintAuthority.read(buf)
+        }
+    }
+
+    override fun allocationSize(value: List<DrkMintAuthority>): ULong {
+        val sizeForLength = 4UL
+        val sizeForItems = value.map { FfiConverterTypeDrkMintAuthority.allocationSize(it) }.sum()
+        return sizeForLength + sizeForItems
+    }
+
+    override fun write(value: List<DrkMintAuthority>, buf: ByteBuffer) {
+        buf.putInt(value.size)
+        value.iterator().forEach {
+            FfiConverterTypeDrkMintAuthority.write(it, buf)
         }
     }
 }

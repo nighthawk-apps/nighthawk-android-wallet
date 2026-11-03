@@ -148,6 +148,12 @@ dictionary DrkTransactionRecord {
     SyncMethod sync_method;
 };
 
+dictionary DrkMintAuthority {
+    string token_id;
+    string? alias;
+    boolean frozen;
+};
+
 dictionary DrkDaoSummary {
     string name;
     string bulla_b58;
@@ -293,6 +299,36 @@ interface DarkfiWalletHandle {
 
     [Throws=DarkfiWalletNativeError]
     string dao_vote(string proposal_bulla_b58, boolean vote_yes);
+
+    [Throws=DarkfiWalletNativeError]
+    string dao_exec(string proposal_bulla_b58);
+
+    [Throws=DarkfiWalletNativeError]
+    string dao_treasury(string dao_name);
+
+    [Throws=DarkfiWalletNativeError]
+    string dao_create(string name, string proposer_limit, string quorum, string early_exec_quorum, double approval_ratio, string gov_token_id);
+
+    [Throws=DarkfiWalletNativeError]
+    string dao_fund(string dao_name, string amount, string? token_id);
+
+    [Throws=DarkfiWalletNativeError]
+    string dao_export_role(string dao_name, string role);
+
+    [Throws=DarkfiWalletNativeError]
+    string dao_import(string name, string toml);
+
+    [Throws=DarkfiWalletNativeError]
+    string token_generate(string? alias);
+
+    [Throws=DarkfiWalletNativeError]
+    string token_mint(string token_id, string amount, string recipient_address);
+
+    [Throws=DarkfiWalletNativeError]
+    string token_freeze(string token_id);
+
+    [Throws=DarkfiWalletNativeError]
+    sequence<DrkMintAuthority> list_mint_authorities();
 
     /// Register a callback for chain reorganization events.
     /// The callback fires when reorg is detected during sync.

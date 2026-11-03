@@ -23,7 +23,7 @@ object MeshCoordinator {
         private set
 
     @Volatile
-    var lwdSplicePort: Int = 443
+    var lwdSplicePort: Int = DEFAULT_LWD_SPLICE_PORT
         private set
 
     @Volatile
@@ -49,7 +49,7 @@ object MeshCoordinator {
         id: ByteArray,
         caps: Int,
     ) {
-        if (id.size != 8) return
+        if (id.size != MeshWireCodec.SENDER_LEN) return
         lastGatewayId = id.copyOf()
         lastGatewayCaps = caps
     }
@@ -83,23 +83,6 @@ object MeshCoordinator {
 
     fun stickyRestart(): Boolean = alwaysOn
 
-    fun enableFromForeground(context: Context): Boolean {
-        bind(context)
-        val activity = context.findActivity()
-        if (activity == null) {
-            Twig.warn { "mesh: enable requested without an Activity" }
-            return false
-        }
-        if (!canShowMeshToggle()) return false
-        if (!MeshPermissionGate.hasBlePermissions(activity)) {
-            Twig.warn { "mesh: enable requested without BLE runtime grants" }
-            return false
-        }
-        MeshPersist.setEnabled(activity, true)
-        MeshNative.setGatewayEligible(gatewayOptIn)
-        return NighthawkMeshService.startFromForeground(activity)
-    }
-
     fun disable(context: Context) {
         bind(context)
         MeshPersist.setEnabled(context, false)
@@ -107,24 +90,72 @@ object MeshCoordinator {
         NighthawkMeshService.stop(context)
     }
 
-    fun restoreOnResume(activity: Activity): Boolean {
-        bind(activity)
-        if (!canShowMeshToggle()) return false
-        if (!MeshPersist.isEnabled(activity)) return false
-        if (!MeshPermissionGate.hasBlePermissions(activity)) {
-            Twig.warn { "mesh: resume skipped — BLE permission missing" }
-            return false
-        }
-        MeshNative.setGatewayEligible(false)
+    /** Default lightwalletd TLS port when the UI has not set a splice target. */
+    private const val DEFAULT_LWD_SPLICE_PORT: Int = 443
+}
+
+fun MeshCoordinator.enableFromForeground(context: Context): Boolean {
+    bind(context)
+    val activity = MeshStartGate.activityForEnable(context) ?: return false
+    return MeshStartGate.enableOn(activity)
+}
+
+fun MeshCoordinator.restoreOnResume(activity: Activity): Boolean {
+    bind(activity)
+    if (!MeshStartGate.resumeAllowed(activity)) return false
+    MeshNative.setGatewayEligible(false)
+    return NighthawkMeshService.startFromForeground(activity)
+}
+
+fun MeshCoordinator.startFromBootIfEnabled(context: Context): Boolean {
+    bind(context)
+    if (!MeshStartGate.bootStartAllowed(context)) return false
+    MeshNative.setGatewayEligible(false)
+    return NighthawkMeshService.startFromBootExemption(context)
+}
+
+private object MeshStartGate {
+    fun activityForEnable(context: Context): Activity? {
+        val activity = context.findActivity()
+        if (activity != null) return activity
+        Twig.warn { "mesh: enable requested without an Activity" }
+        return null
+    }
+
+    fun enableOn(activity: Activity): Boolean {
+        if (!meshToggleGranted(activity)) return false
+        MeshPersist.setEnabled(activity, true)
+        MeshNative.setGatewayEligible(MeshCoordinator.gatewayOptIn)
         return NighthawkMeshService.startFromForeground(activity)
     }
 
-    fun startFromBootIfEnabled(context: Context): Boolean {
-        bind(context)
-        if (!canShowMeshToggle()) return false
-        if (!MeshPersist.isEnabled(context) || !alwaysOn) return false
-        if (!MeshPermissionGate.hasBlePermissions(context)) return false
-        MeshNative.setGatewayEligible(false)
-        return NighthawkMeshService.startFromBootExemption(context)
+    fun meshToggleGranted(activity: Activity): Boolean {
+        if (!MeshCoordinator.canShowMeshToggle()) return false
+        return bleGranted(activity, "mesh: enable requested without BLE runtime grants")
+    }
+
+    fun resumeAllowed(activity: Activity): Boolean {
+        if (!toggleAndPersisted(activity)) return false
+        return bleGranted(activity, "mesh: resume skipped — BLE permission missing")
+    }
+
+    fun bootStartAllowed(context: Context): Boolean {
+        if (!MeshCoordinator.canShowMeshToggle() || !bootPrefs(context)) return false
+        return MeshPermissionGate.hasBlePermissions(context)
+    }
+
+    private fun toggleAndPersisted(activity: Activity): Boolean =
+        MeshCoordinator.canShowMeshToggle() && MeshPersist.isEnabled(activity)
+
+    private fun bootPrefs(context: Context): Boolean =
+        MeshPersist.isEnabled(context) && MeshCoordinator.alwaysOn
+
+    private fun bleGranted(
+        activity: Activity,
+        denialMessage: String,
+    ): Boolean {
+        if (MeshPermissionGate.hasBlePermissions(activity)) return true
+        Twig.warn { denialMessage }
+        return false
     }
 }

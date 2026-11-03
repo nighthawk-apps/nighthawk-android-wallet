@@ -41,8 +41,7 @@
     <string name="splash_nym_slow" translatable="false">Taking longer than usual. Keep waiting, or continue without Nym.</string>
     <string name="ns_get_started">Get Started</string>
     <string name="ns_landing_text">If it\'s your first time using Nighthawk, you\'ll need to create a wallet. If you are returning to Nighthawk, you can try to restore your previous wallet.</string>
-    <string name="ns_landing_footer">This app is free software. Use is covered only by its license.</string>
-    <string name="ns_terms_conditions">View license</string>
+    <string name="ns_landing_footer">This app is free software. Licences are listed under Settings &gt; About &gt; Licences.</string>
     <string name="ns_create_wallet">Create Wallet</string>
     <string name="ns_create_wallet_title">Write down your backup seed</string>
     <string name="ns_create_wallet_text">If you lose access to your phone or Nighthawk Wallet, the only way you can regain access to your wallet is if you have this 22-word phrase and wallet birthday code.\n\nWrite it down on paper and store it somewhere safe.</string>
@@ -117,6 +116,9 @@
     <string name="ns_block_id">Block ID</string>
     <string name="ns_confirmations">Confirmations</string>
     <string name="ns_transaction_id">Transaction ID</string>
+    <string name="ns_copy_transaction_id">Copy transaction ID</string>
+    <string name="ns_next_steps">Next steps</string>
+    <string name="ns_send_again">Send again</string>
     <string name="ns_processing">Processing</string>
     <string name="ns_transaction_details_error_msg">Transaction details are currently unavailable. Please wait until the scanning process is complete.</string>
     <string name="ns_transaction_date_error">Not available</string>
@@ -156,19 +158,49 @@
     <string name="ns_send_ffi_unavailable">Native wallet library unavailable. Send is disabled.</string>
     <string name="ns_top_up">Top up your wallet</string>
     <string name="ns_top_up_text">Acquire DRK (no partner configured)</string>
-    <string name="ns_dao_hub">DAO Hub</string>
-    <string name="ns_dao_hub_text">Browse DAOs and proposals (read-only)</string>
-    <string name="ns_dao_hub_title">DAO Hub</string>
-    <string name="ns_dao_hub_subtitle">Governance imported with your wallet. Voting and execution arrive in a later release.</string>
-    <string name="ns_dao_hub_empty">No DAOs found for this wallet. Import a wallet that participates in a DAO, or wait for sync to finish.</string>
-    <string name="ns_dao_hub_row_desc">Quorum %1$s · Approval %2$.0f%%</string>
+    <string name="ns_dao_hub">Groups</string>
+    <string name="ns_dao_hub_text">Shared treasury, votes, and tokens</string>
+    <string name="ns_dao_hub_title">Groups</string>
+    <string name="ns_dao_hub_subtitle">Groups this wallet has scanned. A payment from the treasury waits for a vote.</string>
+    <string name="ns_dao_hub_empty">Sync has not found a group yet.</string>
+    <string name="ns_dao_hub_row_desc">%1$s · %2$d open</string>
     <string name="ns_dao_detail_title">DAO</string>
     <string name="ns_dao_not_found">DAO not found</string>
-    <string name="ns_dao_proposals_section">Proposals</string>
-    <string name="ns_dao_proposals_empty">No proposals for this DAO.</string>
+    <string name="ns_dao_proposals_section">Votes</string>
+    <string name="ns_dao_proposals_empty">No votes yet.</string>
+    <string name="ns_dao_section_treasury">Treasury</string>
+    <string name="ns_dao_section_tokens">Tokens</string>
+    <string name="ns_dao_section_admin">Admin</string>
+    <string name="ns_dao_propose_payment">Propose a payment</string>
+    <string name="ns_dao_add_funds">Add funds</string>
+    <string name="ns_dao_pay_treasury">Pay from treasury</string>
+    <string name="ns_dao_start_group">Start a group</string>
+    <string name="ns_dao_create_group">Create group</string>
+    <string name="ns_dao_import_group">Import group</string>
+    <string name="ns_dao_import_toml">Group file (TOML)</string>
+    <string name="ns_dao_send_to_treasury">Send to treasury</string>
+    <string name="ns_dao_propose">Propose</string>
+    <string name="ns_dao_mint">Mint</string>
+    <string name="ns_dao_issue_token_confirm">Issue token</string>
+    <string name="ns_dao_refresh">Refresh</string>
+    <string name="ns_dao_vote_yes">Yes</string>
+    <string name="ns_dao_vote_no">No</string>
+    <string name="ns_dao_issue_more">Issue more</string>
+    <string name="ns_dao_freeze">Freeze supply</string>
+    <string name="ns_dao_issue_token">Issue a token</string>
+    <plurals name="ns_dao_voting_window">
+        <item quantity="one">Voting window: %1$d block window (%2$d hours).</item>
+        <item quantity="other">Voting window: %1$d block windows (%2$d hours).</item>
+    </plurals>
+    <string name="ns_dao_votes_needed">Votes needed to count</string>
+    <string name="ns_dao_yes_share">Yes share required</string>
+    <string name="ns_dao_details">Details</string>
+    <string name="ns_dao_proposer_minimum">Proposer minimum</string>
+    <string name="ns_dao_early_quorum">Early quorum</string>
+    <string name="ns_dao_early_quorum_hint">Leave blank to use the quorum. It must be at least the quorum.</string>
     <string name="ns_dao_proposal_detail_title">Proposal</string>
     <string name="ns_dao_proposal_not_found">Proposal not found</string>
-    <string name="ns_dao_read_only_hint">Read-only preview (M1). Propose, vote, and execute will be enabled after testnet validation.</string>
+    <string name="ns_dao_read_only_hint">Coins sent to the group without the treasury mark cannot be paid out later.</string>
     <string name="ns_dao_field_gov_token">Governance token</string>
     <string name="ns_dao_field_quorum">Quorum</string>
     <string name="ns_dao_field_proposer_limit">Proposer limit</string>
@@ -178,11 +210,70 @@
     <string name="ns_dao_field_roles">Your roles</string>
     <string name="ns_dao_roles_none">None</string>
     <string name="ns_dao_field_dao">DAO</string>
-    <string name="ns_dao_field_status">Status</string>
-    <string name="ns_dao_field_auth_calls">Auth calls</string>
-    <string name="ns_dao_field_duration_blocks">Duration (blocks)</string>
     <string name="ns_dao_field_propose_tx">Propose transaction</string>
     <string name="ns_dao_field_exec_tx">Execute transaction</string>
+    <string name="ns_dao_name">Name</string>
+    <string name="ns_dao_recipient">Recipient address</string>
+    <string name="ns_dao_amount">Amount</string>
+    <string name="ns_dao_token_optional">Token ID (optional, default DRK)</string>
+    <string name="ns_dao_duration">Duration (block windows)</string>
+    <string name="ns_dao_propose_hint">Group %1$s. This submits the payment for a vote. The chain stores the amount with 8 decimals.</string>
+    <string name="ns_dao_gov_token_field">Governance token</string>
+    <string name="ns_dao_token_decimals">The chain stores 8 decimals.</string>
+    <string name="ns_dao_role_export_title">Role copy</string>
+    <string name="ns_dao_role_import_hint">The receiver imports it with Import group.</string>
+    <string name="ns_dao_role_qr">Role QR</string>
+    <string name="ns_dao_qr_failed">Could not build the QR code.</string>
+    <string name="ns_dao_role_proposer">Proposer</string>
+    <string name="ns_dao_role_voter">Voter</string>
+    <string name="ns_dao_role_executor">Executor</string>
+    <string name="ns_dao_role_full">Full copy</string>
+    <string name="ns_dao_proposal_id">Proposal id</string>
+    <string name="ns_dao_group_id">Group id</string>
+    <string name="ns_dao_dismiss">Dismiss</string>
+    <string name="ns_dao_close">Close</string>
+    <string name="ns_dao_copy_cd">Copy %1$s</string>
+    <string name="ns_dao_copied">%1$s copied</string>
+    <string name="ns_dao_not_scanned">Not scanned yet</string>
+    <string name="ns_dao_load_failed">Failed to load groups.</string>
+    <string name="ns_dao_detail_load_failed">Failed to load this group.</string>
+    <string name="ns_dao_missing">DAO not found: %1$s</string>
+    <string name="ns_dao_proposal_missing">Proposal not found</string>
+    <string name="ns_dao_proposal_load_failed">Failed to load proposal.</string>
+    <string name="ns_dao_proposal_submitted">Proposal submitted. Id: %1$s…</string>
+    <string name="ns_dao_vote_yes_submitted">Yes vote submitted. Transaction: %1$s…</string>
+    <string name="ns_dao_vote_no_submitted">No vote submitted. Transaction: %1$s…</string>
+    <string name="ns_dao_propose_failed">Propose failed</string>
+    <string name="ns_dao_vote_failed">Vote failed</string>
+    <string name="ns_dao_payment_sent">Payment sent</string>
+    <string name="ns_dao_funds_sent">Funds sent to the treasury</string>
+    <string name="ns_dao_group_submitted">Group submitted</string>
+    <string name="ns_dao_group_imported">Group imported</string>
+    <string name="ns_dao_token_issued">Token issued</string>
+    <string name="ns_dao_tokens_minted">Tokens issued</string>
+    <string name="ns_dao_supply_frozen">Supply frozen</string>
+    <string name="ns_dao_token_failed">Token creation failed</string>
+    <string name="ns_dao_wallet_loading">Wallet is still loading. Try again in a moment.</string>
+    <string name="ns_dao_native_unavailable">Native wallet library unavailable. Run ./scripts/build-darkfi-mobile-ffi-android.sh and rebuild the app.</string>
+    <string name="ns_tx_direction_amount">%1$s · %2$s DRK</string>
+    <string name="ns_sync_unifomr">UnifOMR</string>
+    <string name="ns_sync_unifomr_fallback">UnifOMR · trial-decrypt fallback</string>
+    <string name="ns_sync_trial_decryption">Trial decryption</string>
+    <string name="ns_sync_block_progress">Block %1$s / %2$s</string>
+    <string name="ns_sync_synced_block">Synced · Block %1$s</string>
+    <string name="ns_send_status_unknown">The send may already have been broadcast. Check history before sending again. The status is unknown.</string>
+    <string name="ns_bio_auth_failed">Authentication failed :(</string>
+    <string name="ns_bio_unavailable">Biometrics unavailable. Use your PIN.</string>
+    <string name="ns_bio_lockout">Too many attempts. Try again in 30s.</string>
+    <string name="ns_bio_lockout_permanent">Whoa. Waaaay too many attempts!</string>
+    <string name="ns_bio_canceled">I just can\'t right now. Please try again.</string>
+    <string name="ns_bio_negative">Authentication cancelled</string>
+    <string name="ns_bio_user_canceled">Face/Touch ID Authentication Cancelled</string>
+    <string name="ns_bio_no_space">Not enough storage space!</string>
+    <string name="ns_bio_timeout">Oops. It timed out.</string>
+    <string name="ns_bio_unable">.</string>
+    <string name="ns_bio_vendor">We got some weird error and you should report this.</string>
+    <string name="ns_bio_failed_code">Authentication failed with error code %1$d</string>
     <string name="ns_receive_money_securely">Receive money privately</string>
     <string name="ns_show_qr_code">Show QR Code</string>
     <string name="ns_show_qr_code_text">Let someone scan to send you money.</string>
@@ -202,6 +293,8 @@
     <!-- Chat (DarkIRC-aligned preview; wallet stays independent) -->
     <string name="ns_chat">Chat</string>
     <string name="ns_chat_title">DarkFi chat</string>
+    <string name="ns_chat_full_screen">Full screen</string>
+    <string name="ns_chat_exit_full_screen">Exit full screen</string>
     <string name="ns_chat_hud_title">Network</string>
     <string name="ns_chat_hud_subtitle">Outbound peers · tap status to hide</string>
     <string name="ns_chat_hud_peers">Peers</string>
@@ -472,13 +565,9 @@
     <string name="ns_about">About</string>
     <string name="ns_about_message">Nighthawk is a Stealth/DarkFi-oriented wallet experience built from the former shielded-wallet codebase.\n\nYou alone control your keys—back up your recovery phrase immediately.\n\nNetwork sync, chat (DarkIRC-style), and privacy tooling rely on backend infrastructure you choose or operate yourself; defaults are convenience-only.\n\nThird-party exchange, card-on-ramp, and legacy vendor integrations have been removed from this tree.\n\nThis software is provided “as is”, without warranty of any kind.</string>
     <string name="ns_view_source">View Source</string>
-    <string name="ns_credits">Nighthawk friends</string>
     <string name="ns_about_text">Nighthawk v%s &amp; Licenses</string>
     <string name="ns_view_license">OSS Licenses</string>
     <string name="ns_source_code_link" translatable="false">https://github.com/nighthawk-apps/nighthawk-android-wallet</string>
-    <string name="ns_license_link" translatable="false">https://github.com/nighthawk-apps/nighthawk-android-wallet/blob/nighthawk-dark/LICENSE</string>
-    <string name="ns_credits_link" translatable="false">https://nighthawkwallet.com/credits/</string>
-    <string name="ns_privacy_policy_link" translatable="false">https://nighthawkwallet.com/privacypolicy/</string>
     <string name="ns_block_explorer_url_testnet" translatable="false">https://explorer.testnet.dark.fi/tx/%s</string>
     <string name="ns_block_explorer_url_main_net" translatable="false">https://explorer.dark.fi/tx/%s</string>
     <string name="ns_back_up_seed_dialog_title">View Seed Words?</string>
@@ -584,7 +673,7 @@
     <string name="keep_screen_on">Keep Screen on</string>
     <string name="keep_screen_on_detail_msg">If you haven\'t opened your wallet in a while, the sync process can take some time. Setting screen mode to \"Keep on\" will ensure your phone doesn\'t fall asleep while syncing.</string>
     <string name="strict_omr_only">Strict UnifOMR sync</string>
-    <string name="strict_omr_only_detail_msg">On = UnifOMR only (the lightwalletd never learns which compact blocks you trial-decrypt). Off (default) = UnifOMR plus trial-decrypt fallback so you can receive from wallets that omit UnifOMR clues (including drk CLI). Trial-decrypt tells the server which compact blocks this wallet tries.</string>
+    <string name="strict_omr_only_detail_msg">On (default) = UnifOMR only (the lightwalletd never learns which compact blocks you trial-decrypt). Off = UnifOMR plus trial-decrypt fallback so you can receive from wallets that omit UnifOMR clues (including drk CLI). Trial-decrypt tells the server which compact blocks this wallet tries.</string>
     <string name="advanced">Advanced</string>
     <string name="advanced_msg">Less common settings</string>
     <string name="nuke_wallet">Nuke Wallet</string>
@@ -604,6 +693,8 @@
     <string name="theme_variant_paper_detail">White background with a text serif. Built for long reading.</string>
     <string name="theme_variant_midnight">Midnight</string>
     <string name="theme_variant_midnight_detail">Deeper base with violet accent.</string>
+    <string name="theme_variant_cyberpunk">Cyberpunk</string>
+    <string name="theme_variant_cyberpunk_detail">Void desktop wallpaper, top left. Larger screens show more of the same picture.</string>
     <string name="ns_host">Host</string>
     <string name="ns_port">Port</string>
     <string name="tex_address_support_error">Invalid Address, Tex Address is not supported</string>

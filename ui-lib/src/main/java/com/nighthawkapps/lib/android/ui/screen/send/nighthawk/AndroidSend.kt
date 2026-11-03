@@ -10,18 +10,15 @@ import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.nighthawkapps.lib.android.sdk.wallet.DarkfiAmountFormatter
 import com.nighthawkapps.lib.android.sdk.wallet.DarkfiAmountParser
-import com.nighthawkapps.lib.android.sdk.wallet.DarkfiPaymentMemo
 import com.nighthawkapps.lib.android.sdk.wallet.SendBalanceCheck
 import com.nighthawkapps.lib.android.sdk.wallet.maxSpendableAtomic
 import com.nighthawkapps.lib.android.ui.MainActivity
 import com.nighthawkapps.lib.android.ui.R
+import com.nighthawkapps.lib.android.ui.screen.home.viewmodel.HomeViewModel
 import com.nighthawkapps.lib.android.ui.screen.home.viewmodel.WalletViewModel
 import com.nighthawkapps.lib.android.ui.screen.send.model.SendArgumentsWrapper
 import com.nighthawkapps.lib.android.ui.screen.send.model.SendStage
@@ -66,6 +63,7 @@ private fun NighthawkSendFlow(
     onExit: () -> Unit,
     onScan: () -> Unit,
 ) {
+    val homeViewModel by activity.viewModels<HomeViewModel>()
     val walletViewModel by activity.viewModels<WalletViewModel>()
     val sendViewModel by activity.viewModels<SendViewModel>()
     val walletSnapshot by walletViewModel.walletSnapshot.collectAsStateWithLifecycle()
@@ -75,39 +73,37 @@ private fun NighthawkSendFlow(
     val isSubmitting by sendViewModel.isSubmitting.collectAsStateWithLifecycle()
     val errorMessage by sendViewModel.errorMessage.collectAsStateWithLifecycle()
     val lastTxId by sendViewModel.lastTxId.collectAsStateWithLifecycle()
+    val stageName by sendViewModel.stage.collectAsStateWithLifecycle()
+    val amountText by sendViewModel.amountText.collectAsStateWithLifecycle()
+    val recipient by sendViewModel.recipient.collectAsStateWithLifecycle()
+    val memoText by sendViewModel.memoText.collectAsStateWithLifecycle()
+    val selectedTokenIdRaw by sendViewModel.selectedTokenId.collectAsStateWithLifecycle()
+    val pendingDeepLink by homeViewModel.sendDeepLinkDataFlow.collectAsStateWithLifecycle()
     val tokenBalances by (
         synchronizer?.tokenBalances
             ?: kotlinx.coroutines.flow.flowOf(emptyList())
     ).collectAsStateWithLifecycle(initialValue = emptyList())
+    val stage = runCatching { SendStage.valueOf(stageName) }.getOrDefault(SendStage.Amount)
+    val selectedTokenId = selectedTokenIdRaw.takeIf { it.isNotBlank() }
 
-    var stage by remember { mutableStateOf(SendStage.Amount) }
-    var amountText by remember(sendArgumentsWrapper) {
-        mutableStateOf(sendArgumentsWrapper?.amount.orEmpty())
-    }
-    var recipient by remember(sendArgumentsWrapper) {
-        mutableStateOf(sendArgumentsWrapper?.recipientAddress.orEmpty())
-    }
-    var memoText by remember(sendArgumentsWrapper) {
-        mutableStateOf(
-            DarkfiPaymentMemo.truncateToMaxBytes(sendArgumentsWrapper?.memo.orEmpty()),
+    LaunchedEffect(sendArgumentsWrapper) {
+        sendViewModel.applyIncoming(
+            recipientAddress = sendArgumentsWrapper?.recipientAddress,
+            amountDisplay = sendArgumentsWrapper?.amount,
+            memo = sendArgumentsWrapper?.memo,
+            tokenId = sendArgumentsWrapper?.tokenId,
         )
     }
-    var selectedTokenId by remember { mutableStateOf(sendArgumentsWrapper?.tokenId) }
 
-    LaunchedEffect(tokenBalances) {
-        if (selectedTokenId == null && tokenBalances.isNotEmpty()) {
-            selectedTokenId = tokenBalances.first().tokenId
-        }
+    LaunchedEffect(pendingDeepLink) {
+        val link = pendingDeepLink ?: return@LaunchedEffect
+        homeViewModel.sendDeepLinkData = null
+        sendViewModel.applyDeepLink(link)
     }
 
-    // Prefill from QR scan jumps to recipient (or review if amount+address present).
-    LaunchedEffect(sendArgumentsWrapper) {
-        val args = sendArgumentsWrapper ?: return@LaunchedEffect
-        if (!args.recipientAddress.isNullOrBlank() && !args.amount.isNullOrBlank()) {
-            stage = SendStage.Review
-        } else if (!args.recipientAddress.isNullOrBlank()) {
-            stage = SendStage.Recipient
-        }
+    LaunchedEffect(tokenBalances) {
+        val firstToken = tokenBalances.firstOrNull()?.tokenId ?: return@LaunchedEffect
+        sendViewModel.selectTokenIfUnset(firstToken)
     }
 
     val amountOk = DarkfiAmountParser.parseDisplayAmountToDrkString(amountText) != null
@@ -129,19 +125,20 @@ private fun NighthawkSendFlow(
     fun goBackStage() {
         when (stage) {
             SendStage.Amount -> {
+                sendViewModel.onFlowExit()
                 onExit()
             }
 
             SendStage.Recipient -> {
-                stage = SendStage.Amount
+                sendViewModel.setStage(SendStage.Amount)
             }
 
             SendStage.Memo -> {
-                stage = SendStage.Recipient
+                sendViewModel.setStage(SendStage.Recipient)
             }
 
             SendStage.Review -> {
-                stage = SendStage.Memo
+                sendViewModel.setStage(SendStage.Memo)
             }
 
             SendStage.Sending -> {
@@ -149,11 +146,13 @@ private fun NighthawkSendFlow(
             }
 
             SendStage.Failed -> {
-                stage = SendStage.Review
+                sendViewModel.setStage(SendStage.Review)
             }
 
             SendStage.Success -> {
                 sendViewModel.clearTransientState()
+                sendViewModel.clearDraft()
+                sendViewModel.onFlowExit()
                 onExit()
             }
         }
@@ -184,24 +183,25 @@ private fun NighthawkSendFlow(
                             else -> errorMessage
                         },
                     onBack = { goBackStage() },
-                    onAmountChanged = { amountText = it },
-                    onTokenSelected = { selectedTokenId = it },
+                    onAmountChanged = { sendViewModel.setAmountText(it) },
+                    onTokenSelected = { sendViewModel.setSelectedTokenId(it) },
                     onMaxAmount = {
                         val token = tokenBalances.firstOrNull { it.tokenId == selectedTokenId }
                         val rawAtomic = token?.balanceAtomic ?: balanceAtomic
                         val feeFromThisAsset =
                             token == null ||
                                 token.displayName.equals("DRK", ignoreCase = true)
-                        amountText =
+                        sendViewModel.setAmountText(
                             DarkfiAmountFormatter.formatAtomic(
                                 maxSpendableAtomic(
                                     availableAtomic = rawAtomic,
                                     feeAtomic = feeAtomic,
                                     feePaidFromThisAsset = feeFromThisAsset,
                                 ),
-                            )
+                            ),
+                        )
                     },
-                    onContinue = { stage = SendStage.Recipient },
+                    onContinue = { sendViewModel.setStage(SendStage.Recipient) },
                     onScanPaymentRequest = onScan,
                 )
             }
@@ -211,10 +211,10 @@ private fun NighthawkSendFlow(
                     receiverAddress = recipient,
                     isContinueBtnEnabled = recipient.isNotBlank(),
                     onBack = { goBackStage() },
-                    onValueChanged = { recipient = it },
+                    onValueChanged = { sendViewModel.setRecipient(it) },
                     onContinue = {
-                        recipient = it
-                        stage = SendStage.Memo
+                        sendViewModel.setRecipient(it)
+                        sendViewModel.setStage(SendStage.Memo)
                     },
                     onScan = onScan,
                 )
@@ -224,11 +224,11 @@ private fun NighthawkSendFlow(
                 EnterMemo(
                     memoText = memoText,
                     onBack = { goBackStage() },
-                    onMemoChanged = { memoText = it },
-                    onContinue = { stage = SendStage.Review },
+                    onMemoChanged = { sendViewModel.setMemoText(it) },
+                    onContinue = { sendViewModel.setStage(SendStage.Review) },
                     onSkip = {
-                        memoText = ""
-                        stage = SendStage.Review
+                        sendViewModel.setMemoText("")
+                        sendViewModel.setStage(SendStage.Review)
                     },
                 )
             }
@@ -271,7 +271,7 @@ private fun NighthawkSendFlow(
                         },
                     onBack = { goBackStage() },
                     onSend = {
-                        stage = SendStage.Sending
+                        sendViewModel.setStage(SendStage.Sending)
                         sendViewModel.submitTransfer(
                             recipientAddress = recipient,
                             amountDisplay = amountText,
@@ -279,7 +279,7 @@ private fun NighthawkSendFlow(
                             tokenId = selectedTokenId,
                             paymentMemo = memoText.ifBlank { null },
                         ) {
-                            stage = SendStage.Success
+                            sendViewModel.setStage(SendStage.Success)
                         }
                     },
                 )
@@ -288,20 +288,22 @@ private fun NighthawkSendFlow(
             SendStage.Sending -> {
                 SendConfirmation(
                     sendConfirmationState = SendConfirmationState.Sending,
+                    errorMessage = errorMessage,
                     onCancel = {
-                        // Broadcast already in flight — exit wizard; do not cancel Rust work.
+                        sendViewModel.onFlowExit()
                         onExit()
                     },
                     onTryAgain = {},
                     onDone = {},
                 )
                 LaunchedEffect(isSubmitting, errorMessage, lastTxId) {
-                    if (!isSubmitting) {
-                        if (lastTxId != null) {
-                            stage = SendStage.Success
-                        } else if (errorMessage != null) {
-                            stage = SendStage.Failed
-                        }
+                    if (isSubmitting) {
+                        return@LaunchedEffect
+                    }
+                    if (lastTxId != null) {
+                        sendViewModel.setStage(SendStage.Success)
+                    } else if (errorMessage != null) {
+                        sendViewModel.setStage(SendStage.Failed)
                     }
                 }
             }
@@ -309,13 +311,15 @@ private fun NighthawkSendFlow(
             SendStage.Failed -> {
                 SendConfirmation(
                     sendConfirmationState = SendConfirmationState.Failed,
+                    errorMessage = errorMessage,
                     onCancel = {
                         sendViewModel.clearTransientState()
+                        sendViewModel.onFlowExit()
                         onExit()
                     },
                     onTryAgain = {
                         sendViewModel.clearTransientState()
-                        stage = SendStage.Review
+                        sendViewModel.setStage(SendStage.Review)
                     },
                     onDone = {},
                 )
@@ -329,6 +333,7 @@ private fun NighthawkSendFlow(
                     onTryAgain = {},
                     onDone = {
                         sendViewModel.clearTransientState()
+                        sendViewModel.clearDraft()
                         onExit()
                     },
                 )

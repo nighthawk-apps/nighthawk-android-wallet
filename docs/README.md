@@ -48,8 +48,15 @@ Index for the Nighthawk Android DarkFi wallet.
 | [security-audit.md](security-audit.md) | Audit notes |
 | [cache-encryption.md](cache-encryption.md) | Cache at rest |
 
+## Testing
+
+| Document | Description |
+|----------|-------------|
+| [darkirc-testing.md](darkirc-testing.md) | DarkIRC tests post only in `#random` |
+| [testing/emulator-instrumented-tests.md](testing/emulator-instrumented-tests.md) | Emulator instrumented tests and chat smoke |
+
 ## Root
 
 | Document | Description |
 |----------|-------------|
-| [README.md](../README.md) | Overview, **3.00.010**, toolchain |
+| [README.md](../README.md) | Overview, **3.00.027**, toolchain. Recent notes: Cyberpunk default theme, DejaVu Sans Mono body text, Wallet-first home, Settings → Groups, clue-key version `1` |

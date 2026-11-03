@@ -4,6 +4,8 @@ import android.content.Intent
 import android.net.NetworkCapabilities
 import android.os.BatteryManager
 
+private const val INBOX_FRAME_CAP: Int = 64
+
 /** Pure helpers so gateway arming can be unit-tested without a radio. */
 object MeshEnvironment {
     fun isCharging(batteryChanged: Intent?): Boolean {
@@ -58,7 +60,7 @@ class MeshFrameInbox(
     override fun onLinkFrame(frame: ByteArray) {
         if (!shouldIngest(frame)) return
         frames.addLast(frame)
-        while (frames.size > 64) frames.removeFirst()
+        while (frames.size > INBOX_FRAME_CAP) frames.removeFirst()
     }
 
     @Synchronized

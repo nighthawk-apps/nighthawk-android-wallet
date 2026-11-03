@@ -418,7 +418,7 @@ message CluePublicKeyRegistration {
   // Serialized UnifOMR RLWE public key (see unifomr::serialize_public_key)
   bytes clue_public_key = 2;
   // Schnorr signature (darkfi-serial) over:
-  //   b"DarkFi-UnifOMR-CluePK-v2" || network_byte || key_version (u64 LE)
+  //   b"DarkFi-UnifOMR-CluePK" || network_byte || key_version (u64 LE)
   //     || payment_pubkey || clue_public_key
   // under the payment SecretKey. Required — proves ownership of payment_pubkey,
   // binds the network (no cross-network replay) and a monotonic key_version
@@ -434,7 +434,7 @@ message CluePublicKey {
   bool found = 2;
   // Directory attestation (fixed padded wire length), signed by
   // LightInfo.directory_attest_pubkey over:
-  //   b"DarkFi-UnifOMR-DirAttest-v1" || network || key_version || payment_pk || clue_pk
+  //   b"DarkFi-UnifOMR-DirAttest" || network || key_version || payment_pk || clue_pk
   // Real and decoy entries both verify. Clients MUST verify this (not a
   // payment-key Schnorr) before building a clue.
   bytes ownership_proof = 3;

@@ -24,10 +24,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.res.painterResource
@@ -104,8 +104,8 @@ internal fun Restore(
     onBack: () -> Unit,
 ) {
     val scrollState = rememberScrollState()
-    var seeds by remember { mutableStateOf("") }
-    var birthday by remember { mutableStateOf("") }
+    var seeds by rememberSaveable { mutableStateOf("") }
+    var birthday by rememberSaveable { mutableStateOf("") }
     val birthdayDigits = birthday.filter { it.isDigit() }
     val birthdayValue = birthdayDigits.toLongOrNull()
     val birthdayValid =
@@ -169,8 +169,18 @@ internal fun Restore(
             },
             colors =
                 OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = if (isSeedValid) MaterialTheme.colorScheme.primary else Color.White,
-                    unfocusedBorderColor = if (isSeedValid) MaterialTheme.colorScheme.primary else Color.White,
+                    focusedBorderColor =
+                        if (isSeedValid) {
+                            MaterialTheme.colorScheme.primary
+                        } else {
+                            MaterialTheme.colorScheme.onSurface
+                        },
+                    unfocusedBorderColor =
+                        if (isSeedValid) {
+                            MaterialTheme.colorScheme.primary
+                        } else {
+                            MaterialTheme.colorScheme.onSurface
+                        },
                 ),
         )
         Spacer(modifier = Modifier.size(21.dp))
@@ -192,8 +202,8 @@ internal fun Restore(
             },
             colors =
                 OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = Color.White,
-                    unfocusedBorderColor = Color.White,
+                    focusedBorderColor = MaterialTheme.colorScheme.onSurface,
+                    unfocusedBorderColor = MaterialTheme.colorScheme.onSurface,
                 ),
             keyboardOptions = KeyboardOptions.Default.copy(keyboardType = KeyboardType.Number),
             singleLine = true,

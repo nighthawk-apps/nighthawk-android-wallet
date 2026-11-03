@@ -159,13 +159,13 @@ android {
 dependencies {
     // UniFFI-generated Kotlin bindings (0.31+) use JNA to load `libdarkfi_mobile_ffi`.
     // `@aar` bundles per-ABI `libjnidispatch.so` (required on Android; plain `jna` jar does not).
-    implementation("net.java.dev.jna:jna:5.19.1@aar")
+    implementation("net.java.dev.jna:jna:${project.property("JNA_VERSION")}@aar")
     implementation(libs.androidx.annotation)
     implementation(libs.androidx.core)
     implementation("androidx.lifecycle:lifecycle-process:${project.property("ANDROIDX_LIFECYCLE_VERSION")}")
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:${project.property("ANDROIDX_LIFECYCLE_VERSION")}")
-    implementation("androidx.datastore:datastore-preferences:1.1.1")
-    implementation("com.google.crypto.tink:tink-android:1.8.0")
+    implementation(libs.androidx.datastore.preferences)
+    implementation(libs.google.tink)
     implementation(libs.kotlin.stdlib)
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.kotlinx.coroutines.core)

@@ -129,7 +129,10 @@ pub fn is_arti_running() -> bool {
 /// Bootstrap failed or the proxy is not running; dials through the SOCKS route
 /// cannot succeed until it is restarted.
 pub fn arti_failed() -> bool {
-    matches!(ARTI_STATE.load(Ordering::SeqCst), ARTI_FAILED | ARTI_STOPPED)
+    matches!(
+        ARTI_STATE.load(Ordering::SeqCst),
+        ARTI_FAILED | ARTI_STOPPED
+    )
 }
 
 /// Bootstrap the Tor client and serve SOCKS5 CONNECT requests until stopped.

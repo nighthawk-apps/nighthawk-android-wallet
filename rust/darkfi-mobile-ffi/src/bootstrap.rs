@@ -113,13 +113,8 @@ pub async fn seed_from_lightwalletd(drk: &Drk, plan: &LwdSeedPlan) {
         // recorded a genesis-complete tree (every app open used to wipe
         // post-birthday leaves).
         if last_scanned == 0 {
-            match backfill_money_tree_to_birthday(
-                drk,
-                birthday,
-                &plan.lightwallet_server_url,
-                pin,
-            )
-            .await
+            match backfill_money_tree_to_birthday(drk, birthday, &plan.lightwallet_server_url, pin)
+                .await
             {
                 Ok(()) => {
                     // Prefer a real block hash when darkfid is configured. Seeding

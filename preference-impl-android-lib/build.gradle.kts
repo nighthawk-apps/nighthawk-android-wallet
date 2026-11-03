@@ -25,8 +25,8 @@ android {
 }
 
 dependencies {
-    implementation("androidx.datastore:datastore-preferences:1.1.1")
-    implementation("com.google.crypto.tink:tink-android:1.8.0")
+    implementation(libs.androidx.datastore.preferences)
+    implementation(libs.google.tink)
     implementation(libs.kotlin.stdlib)
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.kotlinx.coroutines.core)

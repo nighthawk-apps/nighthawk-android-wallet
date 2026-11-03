@@ -24,7 +24,6 @@ import com.nighthawkapps.lib.android.ui.screen.fiatcurrency.model.FiatCurrencyUi
 import com.nighthawkapps.lib.android.ui.screen.home.model.WalletSnapshot
 import com.nighthawkapps.lib.android.ui.screen.home.model.spendableBalanceAtomic
 import com.nighthawkapps.lib.android.ui.screen.home.model.totalBalanceAtomic
-import com.nighthawkapps.lib.android.ui.theme.isSystemInNightMode
 import com.nighthawkapps.lib.android.ui.theme.systemNightMode
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -78,15 +77,21 @@ class HomeViewModel(
         }.stateIn(
             viewModelScope,
             SharingStarted.WhileSubscribed(ANDROID_STATE_FLOW_TIMEOUT.inWholeMilliseconds),
-            if (application.isSystemInNightMode()) {
-                AppThemeVariant.STEALTH_DEFAULT
-            } else {
-                AppThemeVariant.PAPER
-            },
+            AppThemeVariant.CYBERPUNK,
         )
 
     var intentDataUriForDeepLink: Uri? = null
-    var sendDeepLinkData: DeepLinkUtil.SendDeepLinkData? = null
+
+    private val sendDeepLinkDataState = MutableStateFlow<DeepLinkUtil.SendDeepLinkData?>(null)
+
+    var sendDeepLinkData: DeepLinkUtil.SendDeepLinkData?
+        get() = sendDeepLinkDataState.value
+        set(value) {
+            sendDeepLinkDataState.value = value
+        }
+
+    val sendDeepLinkDataFlow: StateFlow<DeepLinkUtil.SendDeepLinkData?> = sendDeepLinkDataState.asStateFlow()
+
     var shortcutAction: ShortcutAction? = null
 
     // Flag to track any expecting balance is there or not. We will show snackBar everytime user open the app until it is a confirmed transaction

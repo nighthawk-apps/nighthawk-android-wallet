@@ -24,7 +24,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.dimensionResource
@@ -35,6 +34,7 @@ import androidx.compose.ui.unit.dp
 import com.nighthawkapps.lib.android.global.PdfUtil
 import com.nighthawkapps.lib.android.sdk.wallet.PersistableDarkfiWallet
 import com.nighthawkapps.lib.android.ui.R
+import com.nighthawkapps.lib.android.ui.common.SecureScreen
 import com.nighthawkapps.lib.android.ui.design.component.BodyMedium
 import com.nighthawkapps.lib.android.ui.design.component.BodySmall
 import com.nighthawkapps.lib.android.ui.design.component.NighthawkTopBar
@@ -91,6 +91,7 @@ fun SeedBackupContent(
     onContinue: () -> Unit,
     onBack: () -> Unit,
 ) {
+    SecureScreen()
     val showEncryptedPdfDialog = remember { mutableStateOf(false) }
     Box(contentAlignment = Alignment.Center) {
         val scrollState = rememberScrollState()
@@ -149,7 +150,10 @@ fun SeedBackupContent(
                         checked = checkedState.value,
                         onCheckedChange = { checkedState.value = it },
                         modifier = Modifier.size(24.dp),
-                        colors = CheckboxDefaults.colors(uncheckedColor = Color.White),
+                        colors =
+                            CheckboxDefaults.colors(
+                                uncheckedColor = MaterialTheme.colorScheme.onSurface,
+                            ),
                     )
                     BodyMedium(
                         text = stringResource(id = R.string.ns_create_wallet_confirm_text),
@@ -157,7 +161,7 @@ fun SeedBackupContent(
                     )
                 }
             }
-            Spacer(modifier = Modifier.weight(1f))
+            Spacer(modifier = Modifier.height(24.dp))
             if (!navigationFromSettings) {
                 PrimaryButton(
                     onClick = onContinue,
@@ -189,7 +193,7 @@ fun SeedBackupContent(
                     modifier = exportModifier,
                 )
             }
-            Spacer(modifier = Modifier.weight(1f))
+            Spacer(modifier = Modifier.height(24.dp))
         }
 
         if (showEncryptedPdfDialog.value) {

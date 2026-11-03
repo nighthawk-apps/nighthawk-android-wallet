@@ -57,17 +57,12 @@ fun PrimaryButton(
     onClick: () -> Unit,
     text: String,
     modifier: Modifier = Modifier,
-    outerPaddingValues: PaddingValues =
-        PaddingValues(
-            horizontal = WalletTheme.dimens.spacingDefault,
-            vertical = WalletTheme.dimens.spacingSmall
-        ),
+    outerPaddingValues: PaddingValues? = null,
     enabled: Boolean = true
 ) {
-    Twig.debug { "$outerPaddingValues" }
     Button(
         onClick = onClick,
-        modifier = modifier,
+        modifier = if (outerPaddingValues != null) modifier.padding(outerPaddingValues) else modifier,
         enabled = enabled,
         colors =
             buttonColors(
@@ -90,21 +85,12 @@ fun SecondaryButton(
     onClick: () -> Unit,
     text: String,
     modifier: Modifier = Modifier,
-    outerPaddingValues: PaddingValues =
-        PaddingValues(
-            horizontal = WalletTheme.dimens.spacingDefault,
-            vertical = WalletTheme.dimens.spacingSmall
-        ),
+    outerPaddingValues: PaddingValues? = null,
     enabled: Boolean = true
 ) {
     Button(
         onClick = onClick,
-        modifier =
-            modifier.then(
-                Modifier
-                    .fillMaxWidth()
-                    .padding(outerPaddingValues)
-            ),
+        modifier = if (outerPaddingValues != null) modifier.padding(outerPaddingValues) else modifier,
         enabled = enabled,
         colors = buttonColors(containerColor = MaterialTheme.colorScheme.secondary)
     ) {
@@ -145,17 +131,12 @@ fun TertiaryButton(
     onClick: () -> Unit,
     text: String,
     modifier: Modifier = Modifier,
-    outerPaddingValues: PaddingValues =
-        PaddingValues(
-            horizontal = WalletTheme.dimens.spacingDefault,
-            vertical = WalletTheme.dimens.spacingSmall
-        ),
+    outerPaddingValues: PaddingValues? = null,
     enabled: Boolean = true
 ) {
-    Twig.debug { "$outerPaddingValues" }
     Button(
         onClick = onClick,
-        modifier = modifier,
+        modifier = if (outerPaddingValues != null) modifier.padding(outerPaddingValues) else modifier,
         enabled = enabled,
         elevation = ButtonDefaults.buttonElevation(0.dp, 0.dp, 0.dp),
         colors = buttonColors(containerColor = WalletTheme.colors.tertiary),
@@ -246,6 +227,46 @@ fun DottedBorderTextButton(
                 Modifier
                     .align(Alignment.Center)
                     .padding(start = 12.dp, end = 12.dp),
+        ) {
+            if (startIcon != null) {
+                Icon(painter = painterResource(id = startIcon), contentDescription = null, tint = borderColor)
+                Spacer(modifier = Modifier.width(8.dp))
+            }
+            BodyMedium(text = text, textAlign = TextAlign.Center, color = MaterialTheme.colorScheme.onBackground)
+        }
+    }
+}
+
+@Composable
+fun DottedBorderBadge(
+    text: String,
+    modifier: Modifier = Modifier,
+    borderColor: Color = MaterialTheme.colorScheme.primary,
+    @DrawableRes startIcon: Int? = null
+) {
+    Box(
+        modifier =
+            modifier.then(
+                Modifier
+                    .clip(RoundedCornerShape(44))
+                    .padding(2.dp)
+            )
+    ) {
+        val stroke = Stroke(width = 2f, pathEffect = PathEffect.dashPathEffect(floatArrayOf(10f, 10f), 0f))
+        Canvas(
+            modifier =
+                Modifier
+                    .matchParentSize()
+                    .background(color = WalletTheme.colors.navigationContainer)
+        ) {
+            drawRoundRect(color = borderColor, style = stroke, cornerRadius = CornerRadius(x = 40f))
+        }
+        androidx.compose.foundation.layout.Row(
+            modifier =
+                Modifier
+                    .align(Alignment.Center)
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically
         ) {
             if (startIcon != null) {
                 Icon(painter = painterResource(id = startIcon), contentDescription = null, tint = borderColor)

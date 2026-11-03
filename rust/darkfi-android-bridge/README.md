@@ -5,7 +5,7 @@ Rust library historically used as a thin DarkFi façade for Android.
 ## Current state
 
 - Static **`darkfi_bridge_ping()`** only — validates basic `cdylib` builds.
-- **UniFFI** for product code lives in **[`darkfi-mobile-ffi`](../darkfi-mobile-ffi/README.md)** (`libdarkfi_mobile_ffi`, generated Kotlin package `com.nighthawkapps.lib.uniffi.darkfi_mobile_ffi`, façade `DarkfiMobileFfiApi` in `darkfi-android-sdk`). Prefer that crate when extending the native API.
+- **UniFFI** for product code lives in **[`darkfi-mobile-ffi`](../darkfi-mobile-ffi/README.md)** (`libdarkfi_mobile_ffi`, generated Kotlin package `com.nighthawkapps.lib.uniffi.darkfi_mobile_ffi`, façade `DarkfiMobileFfiApi` in `darkfi-android-sdk`). Prefer that crate when extending the native API. Groups, token mint, the stable clue-key version, and the Money-tree scan cursor are all on that crate. This bridge was not part of the 2026-11-03 native rebuild.
 
 ## Building for Android ABIs (manual)
 

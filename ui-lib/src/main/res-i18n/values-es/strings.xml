@@ -132,8 +132,7 @@
     <string name="ns_motto">Where privacy is proven, not promised.</string>
     <string name="ns_get_started">Comenzar</string>
     <string name="ns_landing_text">Si es tu primera vez usando Nighthawk, tendrás que crear una billetera. Si regresas a Nighthawk, puedes intentar restaurar tu billetera anterior.</string>
-    <string name="ns_landing_footer">This app is free software. Use is covered only by its license.</string>
-    <string name="ns_terms_conditions">View license</string>
+    <string name="ns_landing_footer">Esta aplicación es software libre. Las licencias están en Ajustes &gt; Acerca de &gt; Licencias.</string>
     <string name="ns_create_wallet">Crear billetera</string>
     <string name="ns_create_wallet_title">Escribe tu semilla de respaldo</string>
     <string name="ns_create_wallet_confirm_text">Confirmo que he escrito mi frase semilla.</string>
@@ -256,7 +255,6 @@
     <string name="ns_security_try_again">Por favor, inténtalo de nuevo</string>
     <string name="ns_about">Acerca de</string>
     <string name="ns_view_source">Ver código fuente</string>
-    <string name="ns_credits">Amigos de Nighthawk</string>
     <string name="ns_about_text">Nighthawk v%s &amp; Licencias</string>
     <string name="ns_view_license">Licencias OSS</string>
     <string name="ns_back_up_seed_dialog_title">¿Ver frase semilla?</string>
@@ -401,7 +399,7 @@
     <string name="support_confirmation_dialog_cancel">Cancelar</string>
     <string name="support_email_address"></string>
     <string name="support_information">Por favor, háganos saber sobre cualquier problema que haya tenido, o características que desee ver en el futuro.</string>
-    <string name="support_disclaimer">La información proporcionada se maneja de acuerdo con nuestra Política de Privacidad.</string>
+    <string name="support_disclaimer">Al enviar este formulario se envían tu mensaje y la información del dispositivo, el sistema operativo, los permisos y los fallos.</string>
     <string name="support_unable_to_open_email">No se puede iniciar la aplicación de correo electrónico.</string>
     <string name="update_header">¡Actualización disponible!</string>
     <string name="update_critical_header">¡Actualización crítica requerida!</string>

@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.PagerState
@@ -30,6 +31,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -164,7 +166,7 @@ fun WalletView(
                     bottom = 10.dp
                 )
     ) {
-        val isBalancePrivateMode = remember { mutableStateOf(true) }
+        var isBalancePrivateMode by remember { mutableStateOf(true) }
         var rotationTarget by remember {
             mutableFloatStateOf(0f)
         }
@@ -256,15 +258,27 @@ fun WalletView(
             ) {
                 Image(
                     painter = painterResource(id = R.drawable.ic_icon_scan_qr),
-                    contentDescription = stringResource(id = R.string.ns_logo_desc),
+                    contentDescription = stringResource(id = R.string.home_action_show_qr_content_description),
                     contentScale = ContentScale.Inside,
-                    modifier = Modifier.clickable { onAddressQrCodes() }
+                    modifier =
+                        Modifier
+                            .sizeIn(minWidth = 48.dp, minHeight = 48.dp)
+                            .clickable(
+                                role = androidx.compose.ui.semantics.Role.Button,
+                                onClick = { onAddressQrCodes() },
+                            ),
                 )
                 Image(
                     painter = painterResource(id = R.drawable.ic_qr_scan),
-                    contentDescription = stringResource(id = R.string.ns_logo_desc),
+                    contentDescription = stringResource(id = R.string.home_action_scan_qr_content_description),
                     contentScale = ContentScale.Inside,
-                    modifier = Modifier.clickable { onScanToSend() }
+                    modifier =
+                        Modifier
+                            .sizeIn(minWidth = 48.dp, minHeight = 48.dp)
+                            .clickable(
+                                role = androidx.compose.ui.semantics.Role.Button,
+                                onClick = { onScanToSend() },
+                            ),
                 )
             }
         }
@@ -316,7 +330,9 @@ fun WalletView(
                     if (balanceViewType != BalanceViewType.SWIPE) {
                         PageIndicator(pageCount = pages.size, pagerState = state)
                     }
-                    isBalancePrivateMode.value = balanceViewType == BalanceViewType.SWIPE
+                    LaunchedEffect(balanceViewType) {
+                        isBalancePrivateMode = balanceViewType == BalanceViewType.SWIPE
+                    }
                 }
             } else {
                 val walletDisplayValues =
@@ -358,7 +374,7 @@ fun WalletView(
                 TransactionOverviewHistoryRow(
                     transactionOverview = transactionOverview,
                     fiatCurrencyUiState = fiatCurrencyUiState,
-                    isBalancePrivateMode = isBalancePrivateMode.value,
+                    isBalancePrivateMode = isBalancePrivateMode,
                     isFiatCurrencyPreferred = isFiatCurrencyPreferred,
                     onItemClick = { onTransactionDetail(it.rawId) },
                     onItemLongClick = onLongItemClick
@@ -438,7 +454,7 @@ private fun WalletActionButton(
     Box(
         modifier =
             modifier
-                .heightIn(min = 40.dp)
+                .heightIn(min = 48.dp)
                 .clip(RoundedCornerShape(8.dp))
                 .background(
                     if (enabled) {
@@ -446,8 +462,12 @@ private fun WalletActionButton(
                     } else {
                         MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)
                     },
-                ).clickable(enabled = enabled, onClick = onClick)
-                .padding(horizontal = 14.dp, vertical = 10.dp),
+                ).clickable(
+                    enabled = enabled,
+                    role = androidx.compose.ui.semantics.Role.Button,
+                    onClick = onClick,
+                )
+                .padding(horizontal = 14.dp, vertical = 12.dp),
         contentAlignment = Alignment.Center,
     ) {
         TitleMedium(

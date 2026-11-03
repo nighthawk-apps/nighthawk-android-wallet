@@ -35,7 +35,7 @@ export ANDROID_SERIAL=emulator-5554
 
 1. Install: `./gradlew :app:installDarkfitestnetDebug`
 2. Launch: `adb shell am start -n com.nighthawkwallet.android.testnet/com.nighthawkapps.lib.android.ui.screen.advancesetting.model.OneLauncherAlias`
-3. Open **Chat** tab → confirm **Channels** / **Direct**, **+** (New conversation), **Post to channel** on a `#` channel.
+3. Open **Chat** tab → confirm **Channels** / **Direct**, **+** (New conversation). Post the smoke message on **`#random`** only. See [darkirc-testing.md](../darkirc-testing.md).
 
 Embedded DarkIRC may show **IRC: error** until P2P seeds connect; DM crypto still requires **embedded DarkIRC** enabled in chat settings.
 

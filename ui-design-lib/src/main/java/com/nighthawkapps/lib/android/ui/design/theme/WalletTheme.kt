@@ -3,6 +3,9 @@ package com.nighthawkapps.lib.android.ui.design.theme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.staticCompositionLocalOf
+import com.nighthawkapps.lib.android.ui.design.theme.internal.CyberpunkColorPalette
+import com.nighthawkapps.lib.android.ui.design.theme.internal.CyberpunkExtendedColorPalette
 import com.nighthawkapps.lib.android.ui.design.theme.internal.DarkColorPalette
 import com.nighthawkapps.lib.android.ui.design.theme.internal.DarkExtendedColorPalette
 import com.nighthawkapps.lib.android.ui.design.theme.internal.ExtendedTypography
@@ -17,6 +20,9 @@ import com.nighthawkapps.lib.android.ui.design.theme.internal.PaperExtendedColor
 import com.nighthawkapps.lib.android.ui.design.theme.internal.Typography
 import com.nighthawkapps.lib.android.ui.design.theme.internal.extendedTypography
 import com.nighthawkapps.lib.android.ui.design.theme.internal.paperTypography
+
+/** True while Cyberpunk is the active theme, so chrome can stay see-through. */
+val LocalCyberpunkChrome = staticCompositionLocalOf { false }
 
 /**
  * Root Compose theme: **Stealth** (dark, default) uses moonlit neutrals + cool slate accent;
@@ -35,6 +41,7 @@ fun WalletTheme(
             AppThemeVariant.PAPER -> PaperColorPalette
             AppThemeVariant.STEALTH_DEFAULT -> DarkColorPalette
             AppThemeVariant.MIDNIGHT -> MidnightColorPalette
+            AppThemeVariant.CYBERPUNK -> CyberpunkColorPalette
         }
 
     val extendedColors =
@@ -43,11 +50,13 @@ fun WalletTheme(
             AppThemeVariant.PAPER -> PaperExtendedColorPalette
             AppThemeVariant.STEALTH_DEFAULT -> DarkExtendedColorPalette
             AppThemeVariant.MIDNIGHT -> MidnightExtendedColorPalette
+            AppThemeVariant.CYBERPUNK -> CyberpunkExtendedColorPalette
         }
 
     CompositionLocalProvider(
         LocalExtendedColors provides extendedColors,
         LocalExtendedTypography provides extendedTypography(paper),
+        LocalCyberpunkChrome provides (themeVariant == AppThemeVariant.CYBERPUNK),
     ) {
         ProvideDimens {
             MaterialTheme(

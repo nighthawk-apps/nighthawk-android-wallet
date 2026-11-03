@@ -16,12 +16,10 @@ import com.nighthawkapps.lib.android.ui.preference.StandardPreferenceSingleton
 import com.nighthawkapps.lib.android.ui.screen.advancesetting.model.AvailableLogo
 import com.nighthawkapps.lib.android.ui.screen.advancesetting.model.OneLauncherAlias
 import com.nighthawkapps.lib.android.ui.screen.advancesetting.model.TwoLauncherAlias
-import com.nighthawkapps.lib.android.ui.theme.isSystemInNightMode
 import com.nighthawkapps.lib.android.ui.theme.systemNightMode
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.WhileSubscribed
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.emitAll
@@ -91,11 +89,7 @@ class SettingsViewModel(
         }.stateIn(
             viewModelScope,
             SharingStarted.WhileSubscribed(ANDROID_STATE_FLOW_TIMEOUT.inWholeMilliseconds),
-            if (getApplication<Application>().isSystemInNightMode()) {
-                AppThemeVariant.STEALTH_DEFAULT
-            } else {
-                AppThemeVariant.PAPER
-            },
+            AppThemeVariant.CYBERPUNK,
         )
 
     private fun booleanStateFlow(default: BooleanPreferenceDefault): StateFlow<Boolean?> =

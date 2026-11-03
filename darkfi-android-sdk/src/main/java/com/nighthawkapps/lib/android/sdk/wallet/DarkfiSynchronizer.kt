@@ -122,6 +122,53 @@ interface DarkfiSynchronizer : java.io.Closeable {
         proposalBullaB58: String,
         voteYes: Boolean,
     ): DarkfiTransferResult<String> = DarkfiTransferResult.Failure("DAO vote not supported")
+
+    /** Pay an approved proposal. The wallet chooses early or normal execution. */
+    @Suppress("MaxLineLength")
+    suspend fun daoExec(proposalBullaB58: String): DarkfiTransferResult<String> = DarkfiTransferResult.Failure("DAO exec not supported")
+
+    /** Spendable treasury balances, or "Not scanned yet". */
+    suspend fun daoTreasury(daoName: String): String = "Not scanned yet"
+
+    @Suppress("LongParameterList")
+    suspend fun daoCreate(
+        name: String,
+        proposerLimit: String,
+        quorum: String,
+        earlyExecQuorum: String,
+        approvalRatio: Double,
+        govTokenId: String,
+    ): DarkfiTransferResult<String> = DarkfiTransferResult.Failure("DAO create not supported")
+
+    suspend fun daoImport(
+        name: String,
+        toml: String,
+    ): DarkfiTransferResult<String> = DarkfiTransferResult.Failure("DAO import not supported")
+
+    suspend fun daoFund(
+        daoName: String,
+        amount: String,
+        tokenId: String?,
+    ): DarkfiTransferResult<String> = DarkfiTransferResult.Failure("DAO fund not supported")
+
+    suspend fun daoExportRole(
+        daoName: String,
+        role: String,
+    ): DarkfiTransferResult<String> = DarkfiTransferResult.Failure("DAO role export not supported")
+
+    @Suppress("MaxLineLength")
+    suspend fun tokenGenerate(alias: String?): DarkfiTransferResult<String> = DarkfiTransferResult.Failure("Token generate not supported")
+
+    suspend fun tokenMint(
+        tokenId: String,
+        amount: String,
+        recipientAddress: String,
+    ): DarkfiTransferResult<String> = DarkfiTransferResult.Failure("Token mint not supported")
+
+    @Suppress("MaxLineLength")
+    suspend fun tokenFreeze(tokenId: String): DarkfiTransferResult<String> = DarkfiTransferResult.Failure("Token freeze not supported")
+
+    suspend fun listMintAuthorities(): List<com.nighthawkapps.lib.android.sdk.dao.DarkfiMintAuthority> = emptyList()
 }
 
 suspend fun DarkfiSynchronizer.validateAddressStub(address: String): DarkfiAddressType =

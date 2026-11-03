@@ -29,7 +29,6 @@ class ShortOnboardingTestSetup(
             GetStarted(
                 onCreateWallet = { onCreateWalletCallbackCount.incrementAndGet() },
                 onRestore = { onImportWalletCallbackCount.incrementAndGet() },
-                onReference = {}
             )
         }
     }

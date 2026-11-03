@@ -10,6 +10,7 @@ import androidx.core.net.toUri
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.nighthawkapps.lib.android.global.DeepLinkUtil
 import com.nighthawkapps.lib.android.sdk.wallet.DarkfiAddressType
+import com.nighthawkapps.lib.android.sdk.wallet.DarkfiAmountFormatter
 import com.nighthawkapps.lib.android.sdk.wallet.validateAddressStub
 import com.nighthawkapps.lib.android.ui.MainActivity
 import com.nighthawkapps.lib.android.ui.R
@@ -20,7 +21,7 @@ import kotlinx.coroutines.launch
 
 @Composable
 internal fun MainActivity.WrapScanValidator(
-    onScanValid: (address: String) -> Unit,
+    onScanValid: (address: String, amountDisplay: String?, memo: String?) -> Unit,
     goBack: () -> Unit
 ) {
     WrapScan(
@@ -33,7 +34,7 @@ internal fun MainActivity.WrapScanValidator(
 @Composable
 fun WrapScan(
     activity: ComponentActivity,
-    onScanValid: (address: String) -> Unit,
+    onScanValid: (address: String, amountDisplay: String?, memo: String?) -> Unit,
     goBack: () -> Unit
 ) {
     val walletViewModel by activity.viewModels<WalletViewModel>()
@@ -53,9 +54,12 @@ fun WrapScan(
                 scope.launch {
                     val sendDeepLinkData = DeepLinkUtil.getSendDeepLinkData(result.toUri())
                     val address = sendDeepLinkData?.address ?: result
+                    val amountDisplay =
+                        sendDeepLinkData?.amount?.let { DarkfiAmountFormatter.formatAtomic(it) }
+                    val memo = sendDeepLinkData?.memo
                     val isAddressValid = synchronizer.validateAddressStub(address) != DarkfiAddressType.Invalid
                     if (isAddressValid) {
-                        onScanValid(address)
+                        onScanValid(address, amountDisplay, memo)
                     } else {
                         snackbarHostState.showSnackbar(
                             message = activity.getString(R.string.scan_validation_invalid_address)

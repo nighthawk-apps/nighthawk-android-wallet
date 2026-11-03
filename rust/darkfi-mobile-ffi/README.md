@@ -4,6 +4,14 @@ Rust `cdylib` that exposes a UniFFI surface for the Android SDK (`namespace com.
 
 Product direction for expanding this crate—embedded **`drk`**-equivalent wallet logic vs thinner APIs—is **`docs/wallet-roadmap.md`**.
 
+## Recent surface
+
+- **`CLUE_KEY_VERSION = 1`** (`src/unifomr.rs`). Every `RegisterCluePublicKey` sends that constant. The clue key is derived from the wallet secret and does not rotate, so a timestamp would mark a real entry and show when the wallet last started. Server decoys are expected to use the same value.
+- **DAO.** `dao_create` takes proposer limit, quorum, early-exec quorum, and approval ratio, and keeps all six role keys. `dao_import` reads drk TOML. `dao_export_role` writes drk TOML for `proposer`, `voter`, `executor`, or `all`. `dao_exec` has no early flag; the wallet chooses early or normal execution from the tip. Treasury, fund, propose, vote, and token generate/mint/freeze are on the same handle.
+- **`block_target`.** `LightServerInfo` keeps `GetLightInfo.block_target`. DAO voting windows use it.
+- **Money tree.** A rebuild stops at the wallet's last scanned height, not the server tip, so coins between the scan cursor and the tip are not skipped after a spend.
+- **Android binaries.** `arm64-v8a` and `x86_64` were rebuilt on 2026-11-03 with `SKIP_UNIFFI_BINDGEN=1` (Kotlin bindings left as generated). `armeabi-v7a` and `x86` were not.
+
 ## Sync Architecture — UnifOMR
 
 The crate implements **UnifOMR** (Oblivious Message Retrieval with near-optimal concrete efficiency) for private block scanning. The sync engine uses a tiered approach:

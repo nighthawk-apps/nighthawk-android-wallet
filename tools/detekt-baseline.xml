@@ -41,7 +41,7 @@
     <ID>LongMethod:EncryptedPdfDialog.kt$@Composable fun EncryptedPdfDialog( onDismissRequest: () -&gt; Unit, onExportPdf: (password: String) -&gt; Unit )</ID>
     <ID>LongMethod:EnterPinCommonUI.kt$@Composable fun EnterPinCommonUI( incorrectPassword: Boolean, enteredPassword: String, message: String, onKeyPressed: (NumberPadValueTypes) -&gt; Unit )</ID>
     <ID>LongMethod:EnterReceiverAddress.kt$@Composable fun EnterReceiverAddress( receiverAddress: String, isContinueBtnEnabled: Boolean, onBack: () -&gt; Unit, onValueChanged: (String) -&gt; Unit, onContinue: (String) -&gt; Unit, onScan: () -&gt; Unit )</ID>
-    <ID>LongMethod:GetStarted.kt$@Composable fun GetStarted( onCreateWallet: () -&gt; Unit, onRestore: () -&gt; Unit, onReference: () -&gt; Unit )</ID>
+    <ID>LongMethod:GetStarted.kt$@Composable fun GetStarted( onCreateWallet: () -&gt; Unit, onRestore: () -&gt; Unit, createWalletError: String? = null, )</ID>
     <ID>LongMethod:LongNewWalletBackupView.kt$@Composable private fun TestInProgress( splitSeedPhrase: ImmutableList&lt;String&gt;, selectedTestChoices: TestChoices, onChoicesChanged: ((choicesCount: Int) -&gt; Unit)?, backupState: BackupState )</ID>
     <ID>LongMethod:MainNavigation.kt$@Composable internal fun MainActivity.MainNavigation( navHostController: NavHostController, paddingValues: PaddingValues )</ID>
     <ID>LongMethod:PdfUtil.kt$PdfUtil$fun exportPasswordProtectedPdf( context: Context, password: String, seedWords: List&lt;String&gt;, birthDay: Long? )</ID>

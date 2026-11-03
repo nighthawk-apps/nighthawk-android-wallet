@@ -131,8 +131,7 @@
     <string name="ns_motto">Where privacy is proven, not promised.</string>
     <string name="ns_get_started">Get Started</string>
     <string name="ns_landing_text">If it\'s your first time using Nighthawk, you\'ll need to create a wallet. If you are returning to Nighthawk, you can try to restore your previous wallet.</string>
-    <string name="ns_landing_footer">This app is free software. Use is covered only by its license.</string>
-    <string name="ns_terms_conditions">View license</string>
+    <string name="ns_landing_footer">이 앱은 자유 소프트웨어입니다. 라이선스는 설정 &gt; 정보 &gt; 라이선스에 있습니다.</string>
     <string name="ns_create_wallet">Create Wallet</string>
     <string name="ns_create_wallet_title">Write down your backup seed</string>
     <string name="ns_create_wallet_confirm_text">I confirm I have written down my seed phrase.</string>
@@ -255,7 +254,6 @@
     <string name="ns_security_try_again">Please try again</string>
     <string name="ns_about">About</string>
     <string name="ns_view_source">View Source</string>
-    <string name="ns_credits">Nighthawk friends</string>
     <string name="ns_about_text">Nighthawk v%s &amp; Licenses</string>
     <string name="ns_view_license">OSS 라이선스</string>
     <string name="ns_back_up_seed_dialog_title">View Seed Words?</string>
@@ -408,7 +406,7 @@
     <string name="support_confirmation_dialog_cancel">취소</string>
     <string name="support_email_address"></string>
     <string name="support_information">사용하면서 겪었던 문제나 앞으로 추가되었으면 하는 기능에 대해 알려주세요.</string>
-    <string name="support_disclaimer">제공된 정보는 당사의 개인정보 취급방침에 따라 처리됩니다.</string>
+    <string name="support_disclaimer">이 양식을 제출하면 메시지와 함께 기기, 운영체제, 권한, 비정상 종료 정보가 전송됩니다.</string>
     <string name="support_unable_to_open_email">이메일 앱을 열 수 없습니다</string>
     <string name="update_header">업데이트 가능!</string>
     <string name="update_critical_header">중요한 업데이트가 필요합니다!</string>

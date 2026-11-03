@@ -15,7 +15,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Icon
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Surface
@@ -90,6 +92,7 @@ fun AdvanceSetting(
         modifier =
             Modifier
                 .fillMaxSize()
+                .verticalScroll(rememberScrollState())
                 .padding(horizontal = WalletTheme.dimens.spacingDefault)
                 .padding(vertical = dimensionResource(id = R.dimen.screen_standard_margin))
     ) {
@@ -224,6 +227,12 @@ fun AdvanceSetting(
             detail = stringResource(id = R.string.theme_variant_midnight_detail),
             selected = themeVariant == AppThemeVariant.MIDNIGHT,
             onClick = { onThemeVariantChanged(AppThemeVariant.MIDNIGHT) },
+        )
+        ThemeVariantRow(
+            label = stringResource(id = R.string.theme_variant_cyberpunk),
+            detail = stringResource(id = R.string.theme_variant_cyberpunk_detail),
+            selected = themeVariant == AppThemeVariant.CYBERPUNK,
+            onClick = { onThemeVariantChanged(AppThemeVariant.CYBERPUNK) },
         )
 
         Spacer(modifier = Modifier.height(24.dp))

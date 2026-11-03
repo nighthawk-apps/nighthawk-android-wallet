@@ -389,7 +389,7 @@ pub struct CluePublicKeyRegistration {
     #[prost(bytes = "vec", tag = "2")]
     pub clue_public_key: ::prost::alloc::vec::Vec<u8>,
     /// Schnorr signature (darkfi-serial) over:
-    ///    b"DarkFi-UnifOMR-CluePK-v2" || network_byte || key_version (u64 LE)
+    ///    b"DarkFi-UnifOMR-CluePK" || network_byte || key_version (u64 LE)
     ///      || payment_pubkey || clue_public_key
     /// under the payment SecretKey. Required — proves ownership of payment_pubkey,
     /// binds the network (no cross-network replay) and a monotonic key_version
@@ -409,7 +409,7 @@ pub struct CluePublicKey {
     pub found: bool,
     /// Directory attestation (fixed padded wire length), signed by
     /// LightInfo.directory_attest_pubkey over:
-    ///    b"DarkFi-UnifOMR-DirAttest-v1" || network || key_version || payment_pk || clue_pk
+    ///    b"DarkFi-UnifOMR-DirAttest" || network || key_version || payment_pk || clue_pk
     /// Real and decoy entries both verify. Clients MUST verify this (not a
     /// payment-key Schnorr) before building a clue.
     #[prost(bytes = "vec", tag = "3")]
@@ -886,8 +886,10 @@ pub mod dark_fi_light_wallet_client {
             self.inner.unary(req, path, codec).await
         }
         /// Get all note commitments (coins) added in a block range.
-        /// The range must be a power-of-two bucket (minimum 1024) ending at or
-        /// before the tip, the same rule as the client's pad_block_range.
+        /// The range must be a padded bucket from pad_block_range:
+        /// span = end-start+1 is a power of two of at least 1024 and at most
+        /// max_range_per_request, or a bucket cut short at a tip within 64 blocks
+        /// of the server's. end <= tip.
         /// Clients drop heights outside the real scan window after receiving them.
         pub async fn get_note_commitments(
             &mut self,

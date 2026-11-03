@@ -31,11 +31,24 @@ data class DarkfiDaoProposalSummary(
     val statusLabel: String
         get() =
             when {
-                isExecuted -> "Executed"
-                mintHeight != null -> "Active"
-                else -> "Pending"
+                isExecuted -> "Paid"
+                mintHeight != null -> "Open"
+                else -> "Waiting"
             }
+
+    /** Payment line when the summary has payout text. Otherwise a generic proposal. */
+    val paymentTitle: String
+        get() {
+            val rest = summaryLine.substringAfter("· ", summaryLine).trim()
+            return if (rest.startsWith("Pay ")) rest else "Generic proposal"
+        }
 }
+
+data class DarkfiMintAuthority(
+    val tokenId: String,
+    val alias: String?,
+    val frozen: Boolean,
+)
 
 data class DarkfiDaoProposalDetail(
     val summary: DarkfiDaoProposalSummary,

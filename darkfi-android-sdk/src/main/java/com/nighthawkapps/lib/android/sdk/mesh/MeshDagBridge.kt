@@ -21,17 +21,25 @@ class MeshDagBridge(
         @Synchronized get() = admitted.size
 
     @Synchronized
-    fun consider(pkt: MeshWirePacket): MeshDagAdmit {
-        if (pkt.type == MeshWireCodec.NH_LWD_CTRL) {
-            return MeshDagAdmit.RejectedForbiddenLwd
-        }
+    fun consider(pkt: MeshWirePacket): MeshDagAdmit = gate(pkt) ?: MeshDagAdmit.Ignored
+
+    private fun gate(pkt: MeshWirePacket): MeshDagAdmit? {
+        if (pkt.type == MeshWireCodec.NH_LWD_CTRL) return MeshDagAdmit.RejectedForbiddenLwd
+        return dagOrNoise(pkt)
+    }
+
+    private fun dagOrNoise(pkt: MeshWirePacket): MeshDagAdmit? {
         if (pkt.type == MeshWireCodec.NH_DAG_EVENT || pkt.type == MeshWireCodec.NH_DAG_SYNC) {
             return MeshDagAdmit.Ignored
         }
+        return noiseIfOversized(pkt)
+    }
+
+    private fun noiseIfOversized(pkt: MeshWirePacket): MeshDagAdmit? {
         if (pkt.type == MeshWireCodec.NH_NOISE_ENC && pkt.payload.size > maxBlobBytes) {
             return MeshDagAdmit.RejectedOversized
         }
-        return MeshDagAdmit.Ignored
+        return null
     }
 
     @Synchronized
@@ -43,6 +51,5 @@ class MeshDagBridge(
 
     companion object {
         const val MAX_MESH_EVENT_BLOB: Int = 1024 * 1024 - 512
-        private const val MAX_QUEUED: Int = 128
     }
 }

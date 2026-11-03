@@ -12,6 +12,15 @@ data class MeshScanDuty(
 }
 
 object MeshPowerPolicy {
+    const val mayStartForegroundServiceFromBackground: Boolean = false
+
+    private const val FOREGROUND_SCAN_ON_MS: Long = 8_000L
+    private const val FOREGROUND_SCAN_OFF_MS: Long = 2_000L
+    private const val PEER_SCAN_ON_MS: Long = 1_000L
+    private const val PEER_SCAN_OFF_MS: Long = 29_000L
+    private const val IDLE_SCAN_ON_MS: Long = 1_000L
+    private const val IDLE_SCAN_OFF_MS: Long = 59_000L
+
     fun scanDuty(
         foreground: Boolean,
         hasPeers: Boolean,
@@ -19,17 +28,9 @@ object MeshPowerPolicy {
         gatewayArmed: Boolean,
         alwaysOn: Boolean = true,
     ): MeshScanDuty {
-        if (charging && gatewayArmed) {
-            return MeshScanDuty(scanOnMs = Long.MAX_VALUE, scanOffMs = 0)
-        }
-        if (!alwaysOn && !foreground) {
-            return MeshScanDuty(scanOnMs = 0, scanOffMs = Long.MAX_VALUE)
-        }
-        return when {
-            foreground -> MeshScanDuty(8_000, 2_000)
-            hasPeers -> MeshScanDuty(1_000, 29_000)
-            else -> MeshScanDuty(1_000, 59_000)
-        }
+        val forced = forcedDuty(charging, gatewayArmed, alwaysOn, foreground)
+        if (forced != null) return forced
+        return routineDuty(foreground, hasPeers)
     }
 
     fun gatewayReady(
@@ -39,8 +40,6 @@ object MeshPowerPolicy {
         unmetered: Boolean,
     ): Boolean = meshOn && gatewayOptIn && charging && unmetered
 
-    fun mayStartForegroundServiceFromBackground(): Boolean = false
-
     fun mayStartUnifOmrBulk(
         foreground: Boolean,
         gatewayReady: Boolean,
@@ -48,4 +47,34 @@ object MeshPowerPolicy {
     ): Boolean = foreground && gatewayReady && !fromBackgroundWorker
 
     fun mayOriginateLwdCtrl(foreground: Boolean): Boolean = foreground
+
+    private fun forcedDuty(
+        charging: Boolean,
+        gatewayArmed: Boolean,
+        alwaysOn: Boolean,
+        foreground: Boolean,
+    ): MeshScanDuty? {
+        if (charging && gatewayArmed) {
+            return MeshScanDuty(scanOnMs = Long.MAX_VALUE, scanOffMs = 0)
+        }
+        return pausedDuty(alwaysOn, foreground)
+    }
+
+    private fun pausedDuty(
+        alwaysOn: Boolean,
+        foreground: Boolean,
+    ): MeshScanDuty? {
+        if (alwaysOn || foreground) return null
+        return MeshScanDuty(scanOnMs = 0, scanOffMs = Long.MAX_VALUE)
+    }
+
+    private fun routineDuty(
+        foreground: Boolean,
+        hasPeers: Boolean,
+    ): MeshScanDuty =
+        when {
+            foreground -> MeshScanDuty(FOREGROUND_SCAN_ON_MS, FOREGROUND_SCAN_OFF_MS)
+            hasPeers -> MeshScanDuty(PEER_SCAN_ON_MS, PEER_SCAN_OFF_MS)
+            else -> MeshScanDuty(IDLE_SCAN_ON_MS, IDLE_SCAN_OFF_MS)
+        }
 }
