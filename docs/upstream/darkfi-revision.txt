@@ -1,8 +1,8 @@
-8af61b3f03b47164b4e4e01fcdc84e2744cb8570
+e47d3f5f26b2786a2062f254d177d0ad3a6de13a
 # nighthawk24/darkfi branch nighthawk-testnet
 # Upstream is https://git.dark.fi/darkrenaissance/darkfi — do not clone the GitHub mirror.
 # This pin is not on git.dark.fi. It is dark.fi master (0f985c7cf) merged onto the
-# Nighthawk branch, with Tor on Arti 0.47. Upstream master is still Arti 0.42.
+# Nighthawk branch, with Tor on Arti 0.48. Upstream master is still Arti 0.42.
 # 0f985c7cf pays fees from a tx-local change output when that output can cover
 # the fee, and falls back to another DRK coin. TransactionBuilder leaves carry
 # secret keys and build_signed() signs them. money_call_nullifiers lives on the
