@@ -12,11 +12,13 @@
 
 use std::sync::{
     atomic::{AtomicU8, Ordering},
-    Arc, OnceLock,
+    Arc, Mutex, OnceLock,
 };
 
 use arti_client::config::{BoolOrAuto, TorClientConfigBuilder};
 use arti_client::{StreamPrefs, TorClient, TorClientConfig};
+use futures::{AsyncReadExt, AsyncWriteExt};
+use smol::net::{TcpListener, TcpStream};
 
 static ARTI_STORAGE_DIR: OnceLock<std::path::PathBuf> = OnceLock::new();
 
@@ -35,8 +37,6 @@ fn arti_dirs() -> Result<(std::path::PathBuf, std::path::PathBuf), String> {
     std::fs::create_dir_all(&cache_dir).map_err(|e| format!("arti cache_dir: {e}"))?;
     Ok((state_dir, cache_dir))
 }
-use futures::{AsyncReadExt, AsyncWriteExt};
-use smol::net::{TcpListener, TcpStream};
 
 /// Proxy lifecycle, exposed as a single atomic for cheap status polling.
 const ARTI_STOPPED: u8 = 0;
@@ -50,6 +50,22 @@ static ARTI_STATE: AtomicU8 = AtomicU8::new(ARTI_STOPPED);
 static ARTI_STOP_REQUESTED: std::sync::atomic::AtomicBool =
     std::sync::atomic::AtomicBool::new(false);
 
+/// Join handle for the single arti-proxy thread. Retries join a finished
+/// thread before spawning again so we never run two proxies (or tear down
+/// while a second start races into Arti).
+static ARTI_THREAD: Mutex<Option<std::thread::JoinHandle<()>>> = Mutex::new(None);
+
+fn take_finished_arti_thread() -> Option<std::thread::JoinHandle<()>> {
+    let mut slot = match ARTI_THREAD.lock() {
+        Ok(g) => g,
+        Err(e) => e.into_inner(),
+    };
+    match slot.as_ref().map(|h| h.is_finished()) {
+        Some(true) => slot.take(),
+        _ => None,
+    }
+}
+
 /// Start the in-process Arti SOCKS proxy on the given port.
 ///
 /// Returns `Ok(true)` when a new proxy bootstrap was kicked off, `Ok(false)`
@@ -62,6 +78,13 @@ pub fn start_arti_proxy(socks_port: u16) -> Result<bool, crate::DarkfiWalletNati
     // rustls 0.23 requires an explicit process-level CryptoProvider when both
     // `ring` and `aws-lc-rs` may be pulled in transitively (Arti + tonic).
     let _ = rustls::crypto::ring::default_provider().install_default();
+
+    // Reap a previous proxy thread that already exited (Failed / Stopped) so a
+    // Retry cannot overlap with teardown — that race SIGSEGV'd Arti on x86_64
+    // emulator builds during F-Droid review of 3.00.018.
+    if let Some(h) = take_finished_arti_thread() {
+        let _ = h.join();
+    }
 
     // Only one proxy at a time.
     if ARTI_STATE
@@ -85,7 +108,7 @@ pub fn start_arti_proxy(socks_port: u16) -> Result<bool, crate::DarkfiWalletNati
 
     ARTI_STOP_REQUESTED.store(false, Ordering::SeqCst);
 
-    std::thread::Builder::new()
+    let handle = std::thread::Builder::new()
         .name("arti-proxy".into())
         .spawn(move || {
             let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
@@ -112,6 +135,12 @@ pub fn start_arti_proxy(socks_port: u16) -> Result<bool, crate::DarkfiWalletNati
             ))
         })?;
 
+    let mut slot = match ARTI_THREAD.lock() {
+        Ok(g) => g,
+        Err(e) => e.into_inner(),
+    };
+    *slot = Some(handle);
+
     Ok(true)
 }
 
@@ -137,6 +166,13 @@ pub fn arti_failed() -> bool {
 
 /// Bootstrap the Tor client and serve SOCKS5 CONNECT requests until stopped.
 async fn run_socks_proxy(socks_port: u16) -> Result<(), String> {
+    // Resolve storage *before* bind so a missing cache dir fails closed without
+    // briefly advertising a SOCKS port that vanishes before Android probes it.
+    let (state_dir, cache_dir) = arti_dirs()?;
+    if ARTI_STOP_REQUESTED.load(Ordering::SeqCst) {
+        return Ok(());
+    }
+
     // Bind the SOCKS port *before* Tor bootstrap. Bootstrap can take 10–60s on
     // first launch; if we only listen afterwards, Android readiness probes
     // (30s) time out and darkirc/lightwalletd fail closed with "no SOCKS".
@@ -147,17 +183,42 @@ async fn run_socks_proxy(socks_port: u16) -> Result<(), String> {
         .map_err(|e| format!("SOCKS bind on 127.0.0.1:{socks_port} failed: {e}"))?;
     tracing::info!("arti SOCKS bound on 127.0.0.1:{socks_port}; bootstrapping Tor client...");
 
-    let (state_dir, cache_dir) = arti_dirs()?;
     let mut builder = TorClientConfigBuilder::from_directories(state_dir, cache_dir);
     builder.address_filter().allow_onion_addrs(true);
     let config: TorClientConfig = builder
         .build()
         .map_err(|e| format!("Tor config (onion must be enabled): {e}"))?;
-    // Arti ≥0.45 returns Arc<TorClient<_>>; isolated_client() also yields Arc.
-    let tor_client: Arc<TorClient<tor_rtcompat::PreferredRuntime>> =
+
+    // Poll stop during bootstrap so splash "Continue without Tor" / Retry can
+    // abandon a hung create_bootstrapped instead of leaving BOOTSTRAPPING forever.
+    let bootstrap = async {
         TorClient::create_bootstrapped(config)
             .await
-            .map_err(|e| format!("Tor bootstrap failed: {e}"))?;
+            .map_err(|e| format!("Tor bootstrap failed: {e}"))
+    };
+    futures::pin_mut!(bootstrap);
+    let tor_client: Arc<TorClient<tor_rtcompat::PreferredRuntime>> = loop {
+        if ARTI_STOP_REQUESTED.load(Ordering::SeqCst) {
+            return Ok(());
+        }
+        let tick = smol::Timer::after(std::time::Duration::from_millis(500));
+        match smol::future::race(
+            async { Some(bootstrap.as_mut().await) },
+            async {
+                tick.await;
+                None
+            },
+        )
+        .await
+        {
+            Some(result) => break result?,
+            None => continue,
+        }
+    };
+
+    if ARTI_STOP_REQUESTED.load(Ordering::SeqCst) {
+        return Ok(());
+    }
 
     ARTI_STATE.store(ARTI_CONNECTED, Ordering::SeqCst);
     tracing::info!("arti SOCKS proxy bootstrapped and ready on 127.0.0.1:{socks_port}");

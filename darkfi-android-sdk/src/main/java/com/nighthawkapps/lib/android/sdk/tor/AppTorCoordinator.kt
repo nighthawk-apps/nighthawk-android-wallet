@@ -91,8 +91,15 @@ object AppTorCoordinator {
             _bootstrapState.value = TorBootstrapUiState.Disabled
             return
         }
+        val retrying = _bootstrapState.value == TorBootstrapUiState.Failed
         _bootstrapState.value = TorBootstrapUiState.Bootstrapping
         scope.launch {
+            // Splash Retry after Failed: stop first so Rust can join the dead
+            // arti-proxy thread before spawning another (avoids the emulator SIGSEGV).
+            if (retrying) {
+                runCatching { stopArtiProxy() }
+                delay(250)
+            }
             ensureSocksReady(context)
         }
     }
@@ -188,7 +195,13 @@ object AppTorCoordinator {
         when {
             !stillWantsTor -> _bootstrapState.value = TorBootstrapUiState.Disabled
             port != null -> _bootstrapState.value = TorBootstrapUiState.Ready
-            else -> _bootstrapState.value = TorBootstrapUiState.Failed
+            else -> {
+                // Abandon a hung bootstrap so Retry starts clean.
+                if (prefs.useEmbeddedTor) {
+                    runCatching { stopArtiProxy() }
+                }
+                _bootstrapState.value = TorBootstrapUiState.Failed
+            }
         }
         return if (stillWantsTor) port else null
     }

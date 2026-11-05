@@ -1,0 +1,1 @@
+F-Droid review fixes: seed backup sets FLAG_SECURE. Tor Retry joins the prior Arti thread before restart. Default network remains Nym; Continue without Tor/Nym still available on the splash.
