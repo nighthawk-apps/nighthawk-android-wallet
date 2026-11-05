@@ -43,14 +43,15 @@ async fn replay_history(
             continue;
         }
         if let Ok((privmsg, _)) = deserialize_async_partial::<Privmsg>(ev.content()).await {
+            let shown = present_privmsg(privmsg);
             dispatch_darkirc_message(
                 cb.as_ref(),
                 eid,
-                privmsg.channel,
-                privmsg.nick,
-                privmsg.msg,
+                shown.channel,
+                shown.nick,
+                shown.msg,
                 ev.header.timestamp,
-                false,
+                shown.is_outgoing,
             );
         }
     }
@@ -236,6 +237,8 @@ static DM_CONTACTS: std::sync::LazyLock<
     std::sync::Mutex<std::collections::HashMap<String, DmContactBoxes>>,
 > = std::sync::LazyLock::new(|| std::sync::Mutex::new(std::collections::HashMap::new()));
 
+static LAST_SELF_NICK: std::sync::Mutex<String> = std::sync::Mutex::new(String::new());
+
 struct DmContactBoxes {
     saltbox: crypto_box::ChaChaBox,
     self_saltbox: crypto_box::ChaChaBox,
@@ -263,12 +266,15 @@ pub fn register_dm_contact(
 
 fn load_dm_contacts_from_datastore(dir: &std::path::Path) {
     let path = dir.join("darkirc_crypto_bundle.json");
-    let Ok(raw) = std::fs::read_to_string(path) else {
+    let Ok(raw) = std::fs::read_to_string(&path) else {
         return;
     };
     for contact in parse_dm_contacts_json(&raw) {
         let _ = register_dm_contact(&contact.0, &contact.1, &contact.2);
     }
+    // The bundle holds DM private keys. Keep them in memory only.
+    let _ = std::fs::write(&path, vec![0u8; raw.len()]);
+    let _ = std::fs::remove_file(&path);
 }
 
 fn parse_dm_contacts_json(raw: &str) -> Vec<(String, Vec<u8>, Vec<u8>)> {
@@ -310,11 +316,75 @@ fn json_string_field<'a>(obj: &'a str, key: &str) -> Option<&'a str> {
     Some(&rest[..end])
 }
 
+fn reload_dm_contacts() {
+    if let Some(dir) = DATASTORE_PATH.get() {
+        load_dm_contacts_from_datastore(dir);
+    }
+}
+
+struct PresentedPrivmsg {
+    channel: String,
+    nick: String,
+    msg: String,
+    is_outgoing: bool,
+}
+
+/// Decrypt a DM the way upstream darkirc does, or pass a public channel through.
+fn present_privmsg(privmsg: Privmsg) -> PresentedPrivmsg {
+    if privmsg.channel.starts_with('#') {
+        return PresentedPrivmsg {
+            channel: privmsg.channel.clone(),
+            nick: privmsg.nick,
+            msg: privmsg.msg,
+            is_outgoing: false,
+        };
+    }
+    let Ok(contacts) = DM_CONTACTS.lock() else {
+        return PresentedPrivmsg {
+            channel: privmsg.channel,
+            nick: privmsg.nick,
+            msg: privmsg.msg,
+            is_outgoing: false,
+        };
+    };
+    let channel_ct = bs58::decode(&privmsg.channel).into_vec().unwrap_or_default();
+    let nick_ct = bs58::decode(&privmsg.nick).into_vec().unwrap_or_default();
+    let msg_ct = bs58::decode(&privmsg.msg).into_vec().unwrap_or_default();
+    for (name, contact) in contacts.iter() {
+        if irc2::crypto::saltbox::try_decrypt(&contact.saltbox, &channel_ct).is_none() {
+            continue;
+        }
+        let outgoing =
+            irc2::crypto::saltbox::try_decrypt(&contact.self_saltbox, &nick_ct).is_some();
+        let Some(msg_dec) = irc2::crypto::saltbox::try_decrypt(&contact.saltbox, &msg_ct) else {
+            continue;
+        };
+        let self_nick = LAST_SELF_NICK.lock().map(|g| g.clone()).unwrap_or_default();
+        return PresentedPrivmsg {
+            channel: name.clone(),
+            nick: if outgoing && !self_nick.is_empty() {
+                self_nick
+            } else {
+                name.clone()
+            },
+            msg: String::from_utf8_lossy(&msg_dec).into_owned(),
+            is_outgoing: outgoing,
+        };
+    }
+    PresentedPrivmsg {
+        channel: privmsg.channel,
+        nick: privmsg.nick,
+        msg: privmsg.msg,
+        is_outgoing: false,
+    }
+}
+
 /// Encrypt channel, nick, and message for DMs exactly as upstream `try_encrypt`.
 fn try_encrypt_privmsg(privmsg: &mut Privmsg) -> Result<(), String> {
     if privmsg.channel.starts_with('#') {
         return Ok(());
     }
+    reload_dm_contacts();
     let contacts = DM_CONTACTS.lock().map_err(|e| e.to_string())?;
     let Some(contact) = contacts.get(&privmsg.channel) else {
         return Err(format!(
@@ -744,6 +814,9 @@ fn send_chat_message_inner(
         let p2p_lock = P2P.read().await;
 
         if let (Some(eg), Some(p2p)) = (&*eg_lock, &*p2p_lock) {
+            if let Ok(mut slot) = LAST_SELF_NICK.lock() {
+                *slot = nick.clone();
+            }
             let mut msg = new_privmsg(channel.clone(), nick.clone(), message.clone());
             if let Err(e) = try_encrypt_privmsg(&mut msg) {
                 return Err(DarkfiWalletNativeError::NativeDrkUnavailable(e));
@@ -1096,14 +1169,15 @@ async fn run_darkirc_daemon(
                 if let Ok((privmsg, _)) = deserialize_async_partial::<Privmsg>(ev.content()).await {
                     let eid = ev.id().to_hex().to_string();
                     relayed_ids_clone.lock().await.insert(eid.clone());
+                    let shown = present_privmsg(privmsg);
                     dispatch_darkirc_message(
                         cb.as_ref(),
                         eid,
-                        privmsg.channel,
-                        privmsg.nick,
-                        privmsg.msg,
+                        shown.channel,
+                        shown.nick,
+                        shown.msg,
                         ev.header.timestamp,
-                        false,
+                        shown.is_outgoing,
                     );
                 }
             }

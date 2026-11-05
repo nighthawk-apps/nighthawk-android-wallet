@@ -134,7 +134,29 @@ async fn dao_name_for_bulla(drk: &Drk, dao_bulla_b58: &str) -> Result<String, St
 
 pub async fn list_daos(drk: &Drk) -> Result<Vec<DrkDaoSummary>, String> {
     let daos = drk.get_daos().await.map_err(|e| e.to_string())?;
-    Ok(daos.iter().map(map_dao).collect())
+    let mut rows: Vec<DrkDaoSummary> = daos.iter().map(map_dao).collect();
+    let known: std::collections::HashSet<String> =
+        rows.iter().map(|dao| dao.bulla_b58.clone()).collect();
+    for found in crate::dao_compact::discovered_daos(drk) {
+        let bulla_b58 = bs58::encode(found.bulla).into_string();
+        if known.contains(&bulla_b58) {
+            continue;
+        }
+        let short: String = bulla_b58.chars().take(8).collect();
+        rows.push(DrkDaoSummary {
+            name: format!("unknown-{short}"),
+            bulla_b58,
+            gov_token_id: "unknown".into(),
+            quorum_display: "unknown".into(),
+            proposer_limit_display: "unknown".into(),
+            approval_ratio_percent: 0.0,
+            mint_height: i64::from(found.height),
+            can_propose: false,
+            can_vote: false,
+            can_exec: false,
+        });
+    }
+    Ok(rows)
 }
 
 pub async fn list_proposals(
@@ -215,6 +237,7 @@ async fn broadcast_wallet_tx(
             .collect();
         let network = network_byte(drk);
         let mut recipient_clue = None;
+        if crate::lightwallet_sync::experimental_unifomr() {
         if let Some((public_key, index)) = recipient {
             if !own_indexes.contains(&index) {
                 match crate::transactions::resolve_outgoing_omr_clue(
@@ -232,6 +255,7 @@ async fn broadcast_wallet_tx(
                     ),
                 }
             }
+        }
         }
         let wallet_secret = drk.default_secret().await.map_err(|e| e.to_string())?;
         let wallet_secret = zeroize::Zeroizing::new(wallet_secret.inner().to_repr());
@@ -257,6 +281,33 @@ async fn broadcast_wallet_tx(
     Ok(())
 }
 
+async fn install_lightwallet_chain_context(
+    lightwallet_server_url: Option<&str>,
+    lightwallet_tls_pin: Option<[u8; 32]>,
+) {
+    let Some(url) = lightwallet_server_url
+        .map(str::trim)
+        .filter(|s| !s.is_empty())
+    else {
+        drk::rpc::set_chain_context_fallback(None, None);
+        return;
+    };
+    let url = crate::lightwallet_client::normalize_lightwallet_url(url);
+    let client = crate::lightwallet_client::LightwalletClient::from_endpoint_and_pin(
+        &url,
+        lightwallet_tls_pin,
+    );
+    match client.get_light_info().await {
+        Ok(info) if info.chain_tip_height > 0 && info.block_target > 0 => {
+            drk::rpc::set_chain_context_fallback(
+                Some(info.chain_tip_height.saturating_add(1)),
+                Some(info.block_target),
+            );
+        }
+        _ => drk::rpc::set_chain_context_fallback(None, None),
+    }
+}
+
 /// Create a DAO transfer proposal, build the on-chain propose transaction,
 /// broadcast it, and return the proposal bulla as b58.
 pub async fn propose_transfer(
@@ -269,6 +320,7 @@ pub async fn propose_transfer(
     lightwallet_server_url: Option<&str>,
     lightwallet_tls_pin: Option<[u8; 32]>,
 ) -> Result<String, String> {
+    install_lightwallet_chain_context(lightwallet_server_url, lightwallet_tls_pin).await;
     use darkfi_sdk::crypto::keypair::Address;
     use std::str::FromStr;
 
@@ -328,6 +380,7 @@ pub async fn vote_on_proposal(
     lightwallet_server_url: Option<&str>,
     lightwallet_tls_pin: Option<[u8; 32]>,
 ) -> Result<String, String> {
+    install_lightwallet_chain_context(lightwallet_server_url, lightwallet_tls_pin).await;
     crate::sync::ensure_spendable_money_tree(drk, lightwallet_server_url, lightwallet_tls_pin)
         .await
         .map_err(|e| format!("merkle rebuild for DAO vote: {e}"))?;
@@ -456,6 +509,7 @@ pub async fn exec_proposal(
     lightwallet_server_url: Option<&str>,
     lightwallet_tls_pin: Option<[u8; 32]>,
 ) -> Result<String, String> {
+    install_lightwallet_chain_context(lightwallet_server_url, lightwallet_tls_pin).await;
     let bulla = parse_proposal_bulla(proposal_bulla_b58)?;
     let proposal = drk
         .get_dao_proposal_by_bulla(&bulla)

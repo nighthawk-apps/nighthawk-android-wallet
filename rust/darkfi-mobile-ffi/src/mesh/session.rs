@@ -425,12 +425,21 @@ impl SessionTable {
         self.lru.push_back(peer);
     }
 
+    fn is_handshake(&self, peer: &[u8; SENDER_LEN]) -> bool {
+        matches!(
+            self.map.get(peer).map(|s| &s.state),
+            Some(SessState::InitSent { .. } | SessState::WaitHs3 { .. })
+        )
+    }
+
+    /// Handshake slots are separate from authenticated Ready sessions.
+    /// A flood of HS1 frames cannot evict a live session.
     fn evict_if_needed(&mut self) {
-        while self.map.len() >= MAX_SESSIONS {
-            let Some(k) = self.lru.pop_front() else {
+        while self.lru.iter().filter(|k| self.is_handshake(k)).count() >= MAX_SESSIONS {
+            let Some(k) = self.lru.iter().copied().find(|k| self.is_handshake(k)) else {
                 break;
             };
-            self.map.remove(&k);
+            self.drop_peer(&k);
         }
     }
 }

@@ -62,8 +62,12 @@ fn read_golomb(bits: &mut BitReader<'_>, p: u8) -> Option<u32> {
             None => return None,
         }
     }
+    if p >= 32 {
+        return None;
+    }
     let r = bits.read_n(p)?;
-    Some((q << p) | r)
+    let shifted = q.checked_shl(u32::from(p))?;
+    Some(shifted | r)
 }
 
 #[derive(Default)]

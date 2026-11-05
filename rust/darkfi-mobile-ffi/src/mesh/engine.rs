@@ -6,7 +6,7 @@ use std::sync::Arc;
 use super::allowlist::{gateway_eligible, validate_lwd_ctrl, LwdCtrlError};
 use super::bulk_session::{BulkOffer, BulkQuota, ID_ROTATE_MS};
 use super::fragment::{split, FragError, FragmentAssembler};
-use super::gcs::{encode_gcs, gcs_contains};
+use super::gcs::{encode_gcs, gcs_contains, golomb_p};
 use super::identity::MeshIdentity;
 use super::lwd_ctrl::{
     decode_inner, encode_inner, LwdInner, KIND_DAG_SYNC, KIND_EVENT_PUT, KIND_REQ,
@@ -412,6 +412,9 @@ impl MeshEngine {
         if self.is_duplicate(&pkt, now) {
             return Err(IngestError::DroppedDuplicate);
         }
+        if !self.inbound_ok(pkt.sender) {
+            return Err(IngestError::RateLimited);
+        }
         let Some(pkt) = self.assembler.ingest(&pkt, now)? else {
             return Ok(());
         };
@@ -471,7 +474,8 @@ impl MeshEngine {
 
     fn handle_complete(&mut self, pkt: MeshPacket) -> Result<(), IngestError> {
         match pkt.typ {
-            PacketType::Announce | PacketType::DagEvent | PacketType::DagSync => Ok(()),
+            PacketType::Announce => self.neighbor_up(pkt.sender),
+            PacketType::DagEvent | PacketType::DagSync => Ok(()),
             PacketType::LwdCtrl => Err(IngestError::PlaintextCtrl),
             PacketType::NoiseHs => {
                 if pkt.recipient.is_none() {
@@ -529,9 +533,6 @@ impl MeshEngine {
 
     fn on_noise_enc(&mut self, pkt: MeshPacket) -> Result<(), IngestError> {
         let from = pkt.sender;
-        if !self.inbound_ok(from) {
-            return Err(IngestError::RateLimited);
-        }
         let inner_bytes = self.sessions.open(&self.identity, &from, &pkt.payload)?;
         let inner = decode_inner(&inner_bytes).map_err(IngestError::Lwd)?;
         match inner.kind {
@@ -592,7 +593,7 @@ impl MeshEngine {
                     }
                 }
                 self.sync_sent.entry(from).or_default().extend(to_send);
-                if !seen_recently {
+                if !seen_recently && dag_sync_payload_ok(&inner.body) {
                     let fwd = encode_inner(&LwdInner {
                         kind: KIND_DAG_SYNC,
                         corr_id: inner.corr_id,
@@ -635,7 +636,7 @@ impl MeshEngine {
     }
 
     fn diff_gcs(&self, payload: &[u8]) -> Vec<[u8; 16]> {
-        if payload.len() < 7 {
+        if !dag_sync_payload_ok(payload) {
             return Vec::new();
         }
         let p = payload[0];
@@ -709,6 +710,20 @@ impl MeshEngine {
         }
         false
     }
+}
+
+const MAX_DAG_SYNC_BYTES: usize = 2048;
+
+fn dag_sync_payload_ok(payload: &[u8]) -> bool {
+    if payload.len() < 7 || payload.len() > MAX_DAG_SYNC_BYTES {
+        return false;
+    }
+    let p = payload[0];
+    if p != golomb_p() || p == 0 || p >= 32 {
+        return false;
+    }
+    let n = u16::from_be_bytes(payload[5..7].try_into().unwrap()) as usize;
+    payload.len() >= 7 + n
 }
 
 impl Default for MeshEngine {

@@ -303,6 +303,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                             Some(&format!("localnet-{i}")),
                             Some(&lwd()),
                             None,
+                            false,
                         )
                         .await;
                         match built {

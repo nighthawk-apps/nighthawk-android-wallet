@@ -6,7 +6,7 @@
 
 Privacy-preserving wallet (work-in-progress) by [Nighthawk Apps](https://nighthawkapps.com). This tree ships as a **new Android application id** on the DarkFi network (DRK). The app integrates a native DarkFi wallet API via **UniFFI** (`rust/darkfi-mobile-ffi` → generated Kotlin + `DarkfiMobileFfiApi`) for chain sync, broadcast, and chat.
 
-**3.00.027** (`WALLET_VERSION_CODE=30001827`). Cyberpunk is the default theme on a light or dark system. The Void wallpaper stays anchored at the top left and continues under the status bar and the navigation bar. Body text uses DejaVu Sans Mono. Light and Paper use graphite and grey instead of teal. Sync uses lightwalletd proto 2.0.0 (lightwalletd **0.3.0** or later): snapshot checkpoints, padded commitment ranges, a pooled UnifOMR detection key, and a `SubscribeBlocks` ChainTip stream. The wallet opens without waiting for Nym or Tor; the sync thread dials lightwalletd only once the tunnel is up. Nym is the default network for the wallet, DarkIRC, and the embedded node. The splash shows mixnet progress and **Continue without Nym** after 20 seconds or a failed bootstrap. Settings → **Share Nighthawk** sends the APK to another Android device (zipped for Bluetooth, raw APK for other share targets). Toolchain: Gradle **9.8.1**, AGP **9.4.1**, Kotlin **2.2.21**, Compose UI **1.12.1**, Material3 **1.4.0**, Material icons **1.7.8**, AndroidX Lifecycle **2.11.0**, Navigation Compose **2.10.1**, JNA **5.19.1**, UniFFI **0.32**, NDK **26.1.10909125**, minSdk **27**, compile SDK **37.2**, target SDK **37** (Android 17). DarkFi pin `8af61b3f0` (Arti 0.47, upstream `0f985c7cf` tx-local fees, public `scan_block`, darkfid sync hardening). Native sent-tx session cache is FIFO-capped (10,000). Reorg “transactions affected” is counted from `drk.get_txs_history()` (`block_height > rewind`), not from CLI log lines.
+**3.01.00** (`WALLET_VERSION_CODE=30100800`). Cyberpunk is the default theme on a light or dark system. The Void wallpaper stays anchored at the top left and continues under the status bar and the navigation bar. Body text uses DejaVu Sans Mono. Light and Paper use graphite and grey instead of teal. Sync uses lightwalletd proto 2.1.0. The default is padded trial decryption of Money notes, token mints, and compact DAO calls. UnifOMR is an experimental Advanced setting and is not maintained until DarkFi mainnet contracts are live. Embedded Tor is Arti 0.48. The wallet opens without waiting for Nym or Tor; the sync thread dials lightwalletd only once the tunnel is up. Nym is the default network for the wallet, DarkIRC, and the embedded node. The splash shows mixnet progress and **Continue without Nym** after 20 seconds or a failed bootstrap. Settings → **Share Nighthawk** sends the APK to another Android device (zipped for Bluetooth, raw APK for other share targets). Toolchain: Gradle **9.8.1**, AGP **9.4.1**, Kotlin **2.2.21**, Compose UI **1.12.1**, Material3 **1.4.0**, Material icons **1.7.8**, AndroidX Lifecycle **2.11.0**, Navigation Compose **2.10.1**, JNA **5.19.1**, UniFFI **0.32**, NDK **26.1.10909125**, minSdk **27**, compile SDK **37.2**, target SDK **37** (Android 17). DarkFi pin `8af61b3f0` (Arti 0.47, upstream `0f985c7cf` tx-local fees, public `scan_block`, darkfid sync hardening). Native sent-tx session cache is FIFO-capped (10,000). Reorg “transactions affected” is counted from `drk.get_txs_history()` (`block_height > rewind`), not from CLI log lines.
 
 ## Contents
 
@@ -29,7 +29,7 @@ Privacy-preserving wallet (work-in-progress) by [Nighthawk Apps](https://nightha
 
 Store listings are **not finalized** for `com.nighthawkwallet.android`. Placeholder targets until publishing completes:
 
-- **F-Droid:** DarkFi **testnet** package `com.nighthawkwallet.android.testnet` / flavor `darkfitestnet` (see [docs/fdroid.md](docs/fdroid.md); listing pending fdroiddata merge). **3.00.027** (`WALLET_VERSION_CODE=30001827`) — Fastlane changelog `fastlane/metadata/android/en-US/changelogs/30001827.txt`, tag `v3.00.027`. Local unsigned APK: `bundle exec fastlane fdroid`.
+- **F-Droid:** DarkFi **testnet** package `com.nighthawkwallet.android.testnet` / flavor `darkfitestnet` (see [docs/fdroid.md](docs/fdroid.md); listing pending fdroiddata merge). **3.01.00** (`WALLET_VERSION_CODE=30100800`) — Fastlane changelog `fastlane/metadata/android/en-US/changelogs/30100800.txt`, tag `v3.01.00`. Local unsigned APK: `bundle exec fastlane fdroid`.
 - **Google Play:** `https://PLACEHOLDER_PLAY_STORE_LISTING_URL`
 
 Replace these URLs when production listings exist—do not invent live links prematurely.
@@ -238,6 +238,12 @@ Optional nearby BLE hop for **encrypted DarkIRC DAG** frames (Noise per GATT nei
 
 ### Recent changes
 
+In **3.01.00**:
+
+- Default sync is padded trial decryption. Money notes, token mints, and compact DAO calls do not need a UnifOMR clue.
+- Experimental UnifOMR is off under Advanced settings. It is not maintained until DarkFi mainnet contracts are live.
+- Embedded Tor is Arti 0.48. The client speaks lightwalletd proto 2.1.0.
+
 In **3.00.027**:
 
 - **Cyberpunk** is the default theme for a light or dark system. The Void wallpaper is anchored at the top left, one image pixel per screen pixel, and shows through the status bar and the navigation bar.
@@ -312,7 +318,7 @@ See [docs/instant-sync-strategy.md](docs/instant-sync-strategy.md) for the origi
 - Crypto parity: RLWE `n=1024`, signed AHE, `CLUE_ERROR_BOUND=2`, length-prefixed SealPIR limbs
 - Flow: RegisterCluePublicKey → GetClue → SendTransaction(omr_clue) → GetUnifOmrDigest → FetchPirBatch
 - Sync fail-closed if clue PK registration fails; send uses LWD `SendTransaction` only (24h clue hint)
-- **Strict UnifOMR sync (default on):** `strictOmrOnly` defaults to true, so only payments that carry a UnifOMR clue are discovered. Turn it **off** under Advanced settings to trial-decrypt compact blocks and receive from non-UnifOMR wallets (upstream `drk`, Moonshine `tx send --no-omr`).
+- **Trial decryption is the default.** Money notes, token mints, and compact DAO calls sync without a clue. Experimental UnifOMR is off under Advanced settings. Turn it on only when both wallets are registered on the same lightwalletd. It is not maintained until DarkFi mainnet contracts are live.
 - **Localnet (2026-10-21, not iOS):** 100/100 UnifOMR sends each way with Moonshine and with desktop. Eleven Moonshine `--no-omr` payments trial-decrypted; the balance stayed put across later syncs. Trial mode has to clear strict mode before it clears OMR, or the scan cursor goes idle and own change stays unscanned. A `GetBlockRange` hole stores only the last contiguous height actually returned. Rewinding a tree that already has those commitments duplicates leaves; rebuild it from `GetNoteCommitments`.
 - Default local endpoint: `http://127.0.0.1:9067`
 - Limits: [`doc/unifomr_mvp_limits.md`](doc/unifomr_mvp_limits.md)

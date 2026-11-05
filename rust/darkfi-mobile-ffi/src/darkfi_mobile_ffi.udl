@@ -83,7 +83,8 @@ dictionary DrkBootstrapConfig {
     /// Optional darkfid JSON-RPC URL for broadcast fallback only.
     /// Leave unset/empty for lightwalletd-only (recommended). Never hardcode a testnet port.
     string? darkfid_rpc_url;
-    /// When true, UnifOMR-only (no supplemental/gap trial decrypt). Default true.
+    /// Experimental UnifOMR. Not maintained until DarkFi mainnet contracts are live.
+    /// Default false: padded trial decryption, the same scan drk uses on full blocks.
     boolean strict_omr_only;
 };
 

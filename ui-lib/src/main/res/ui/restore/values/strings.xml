@@ -672,8 +672,8 @@
     <string name="dialog_first_use_view_tx_title">Potential Privacy Risk</string>
     <string name="keep_screen_on">Keep Screen on</string>
     <string name="keep_screen_on_detail_msg">If you haven\'t opened your wallet in a while, the sync process can take some time. Setting screen mode to \"Keep on\" will ensure your phone doesn\'t fall asleep while syncing.</string>
-    <string name="strict_omr_only">Strict UnifOMR sync</string>
-    <string name="strict_omr_only_detail_msg">On (default) = UnifOMR only (the lightwalletd never learns which compact blocks you trial-decrypt). Off = UnifOMR plus trial-decrypt fallback so you can receive from wallets that omit UnifOMR clues (including drk CLI). Trial-decrypt tells the server which compact blocks this wallet tries.</string>
+    <string name="strict_omr_only">Experimental UnifOMR</string>
+    <string name="strict_omr_only_detail_msg">Off (default) = padded trial decryption. Payments are found from the note itself, including ones sent by Dark Wallet or another lightwalletd. On = experimental UnifOMR. Both wallets must register on this same lightwalletd server first. An unregistered, offline, or cross-server address can miss funds. Uploads a large detection key over Tor.</string>
     <string name="advanced">Advanced</string>
     <string name="advanced_msg">Less common settings</string>
     <string name="nuke_wallet">Nuke Wallet</string>
@@ -694,7 +694,7 @@
     <string name="theme_variant_midnight">Midnight</string>
     <string name="theme_variant_midnight_detail">Deeper base with violet accent.</string>
     <string name="theme_variant_cyberpunk">Cyberpunk</string>
-    <string name="theme_variant_cyberpunk_detail">Void desktop wallpaper, top left. Larger screens show more of the same picture.</string>
+    <string name="theme_variant_cyberpunk_detail">Top left of the wallpaper, scaled to this screen.</string>
     <string name="ns_host">Host</string>
     <string name="ns_port">Port</string>
     <string name="tex_address_support_error">Invalid Address, Tex Address is not supported</string>

@@ -27,8 +27,7 @@ object MeshAttPolicy {
  * then sliced to the current ATT payload cap.
  */
 class AttFrameAssembler(
-    private val maxFrame: Int =
-        MeshWireCodec.MAX_PAYLOAD + MeshWireCodec.HEADER_LEN + MeshWireCodec.SENDER_LEN,
+    private val maxFrame: Int = 64 * 1024,
 ) {
     private val buf = ArrayList<Byte>(ASSEMBLER_INITIAL_BYTES)
 
@@ -81,10 +80,19 @@ class AttFrameAssembler(
 
     private fun copyFrame(len: Int): ByteArray {
         val frame = ByteArray(len)
+        val start = FRAME_LEN_BYTES
         for (i in 0 until len) {
-            frame[i] = buf[FRAME_LEN_BYTES + i]
+            frame[i] = buf[start + i]
         }
-        repeat(FRAME_LEN_BYTES + len) { buf.removeAt(0) }
+        val drop = FRAME_LEN_BYTES + len
+        if (drop >= buf.size) {
+            buf.clear()
+        } else {
+            val rest = ArrayList<Byte>(buf.size - drop)
+            for (i in drop until buf.size) rest.add(buf[i])
+            buf.clear()
+            buf.addAll(rest)
+        }
         return frame
     }
 

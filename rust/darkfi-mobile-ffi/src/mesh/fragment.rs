@@ -62,7 +62,7 @@ struct Assembly {
 
 #[derive(Default)]
 pub struct FragmentAssembler {
-    inflight: std::collections::HashMap<[u8; 8], Assembly>,
+    inflight: std::collections::HashMap<([u8; SENDER_LEN], [u8; 8]), Assembly>,
 }
 
 impl FragmentAssembler {
@@ -89,17 +89,18 @@ impl FragmentAssembler {
         if pkt.payload.len() - FRAG_HDR > FRAGMENT_CHUNK {
             return Err(FragError::TooLarge);
         }
-        if self.inflight.len() >= MAX_IN_FLIGHT_ASSEMBLIES && !self.inflight.contains_key(&stream) {
+        let key = (pkt.sender, stream);
+        if self.inflight.len() >= MAX_IN_FLIGHT_ASSEMBLIES && !self.inflight.contains_key(&key) {
             return Err(FragError::TooManyFragments);
         }
-        let entry = self.inflight.entry(stream).or_insert_with(|| Assembly {
+        let entry = self.inflight.entry(key).or_insert_with(|| Assembly {
             sender: pkt.sender,
             original,
             total,
             chunks: vec![None; total as usize],
             started_ms: now_ms,
         });
-        if entry.total != total || entry.original != original {
+        if entry.sender != pkt.sender || entry.total != total || entry.original != original {
             return Err(FragError::BadHeader);
         }
         entry.chunks[index as usize] = Some(pkt.payload[FRAG_HDR..].to_vec());
@@ -113,12 +114,12 @@ impl FragmentAssembler {
         let typ = match PacketType::from_u8(original) {
             Some(t) => t,
             None => {
-                self.inflight.remove(&stream);
+                self.inflight.remove(&key);
                 return Err(FragError::BadHeader);
             }
         };
         if body.len() > typ.payload_limit() || body.len() > MAX_PAYLOAD {
-            self.inflight.remove(&stream);
+            self.inflight.remove(&key);
             return Err(FragError::TooLarge);
         }
         let rebuilt = MeshPacket {
@@ -130,7 +131,7 @@ impl FragmentAssembler {
             recipient: pkt.recipient,
             payload: body,
         };
-        self.inflight.remove(&stream);
+        self.inflight.remove(&key);
         if rebuilt.payload.is_empty() {
             return Err(FragError::CompleteButShort);
         }

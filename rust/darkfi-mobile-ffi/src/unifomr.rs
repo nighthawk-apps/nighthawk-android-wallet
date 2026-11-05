@@ -2,7 +2,12 @@
  *
  * Copyright (C) 2026 Nighthawk Apps
  *
- * UnifOMR — paper-faithful Oblivious Message Retrieval (ePrint 2026/910).
+ * UnifOMR — frozen experimental code (ePrint 2026/910).
+ *
+ * Not maintained until DarkFi mainnet contracts are released and live.
+ * Production sync does not call this module. The experimental wallet flag
+ * is the only entry, and it can hide funds when a recipient is not
+ * registered on the same lightwalletd.
  *
  * Construction (Algorithm 1, simplified for the `fhe` BFV backend):
  *   1. GenClueKey: RLWE-PKE secret/public key (sk_clue, pk_clue)

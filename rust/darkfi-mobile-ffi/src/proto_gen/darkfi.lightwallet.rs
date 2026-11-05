@@ -103,6 +103,31 @@ pub struct CompactOutput {
     /// LWD stores opaquely; cannot decrypt. Merged on block confirm.
     #[prost(bytes = "vec", tag = "6")]
     pub omr_metadata_enc: ::prost::alloc::vec::Vec<u8>,
+    /// MoneyFunction discriminant. Zero means the server did not record one.
+    #[prost(uint32, tag = "7")]
+    pub func_code: u32,
+}
+#[derive(Clone, Copy, PartialEq, ::prost::Message)]
+pub struct FuncBlockRange {
+    #[prost(uint32, tag = "1")]
+    pub start_height: u32,
+    #[prost(uint32, tag = "2")]
+    pub end_height: u32,
+    #[prost(uint32, tag = "3")]
+    pub func_code: u32,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct CompactDaoCall {
+    #[prost(uint32, tag = "1")]
+    pub height: u32,
+    #[prost(bytes = "vec", tag = "2")]
+    pub tx_hash: ::prost::alloc::vec::Vec<u8>,
+    #[prost(uint32, tag = "3")]
+    pub kind: u32,
+    #[prost(bytes = "vec", tag = "4")]
+    pub bulla: ::prost::alloc::vec::Vec<u8>,
+    #[prost(bytes = "vec", tag = "5")]
+    pub payload: ::prost::alloc::vec::Vec<u8>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct NoteCommitmentUpdate {
@@ -214,6 +239,8 @@ pub struct CompactOutputBody {
     pub omr_metadata_enc: ::prost::alloc::vec::Vec<u8>,
     #[prost(bytes = "vec", tag = "8")]
     pub tx_hash: ::prost::alloc::vec::Vec<u8>,
+    #[prost(uint32, tag = "9")]
+    pub func_code: u32,
 }
 /// Server-chosen handle for a pooled detection key. Do not log `handle`.
 #[derive(Clone, PartialEq, ::prost::Message)]
@@ -980,6 +1007,66 @@ pub mod dark_fi_light_wallet_client {
                     GrpcMethod::new(
                         "darkfi.lightwallet.DarkFiLightWallet",
                         "GetCompactOutputBodies",
+                    ),
+                );
+            self.inner.server_streaming(req, path, codec).await
+        }
+        /// Money outputs whose func_code matches. Token mints have no UnifOMR clue.
+        pub async fn get_compact_outputs_by_func(
+            &mut self,
+            request: impl tonic::IntoRequest<super::FuncBlockRange>,
+        ) -> std::result::Result<
+            tonic::Response<tonic::codec::Streaming<super::CompactOutputBody>>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic::codec::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/darkfi.lightwallet.DarkFiLightWallet/GetCompactOutputsByFunc",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "darkfi.lightwallet.DarkFiLightWallet",
+                        "GetCompactOutputsByFunc",
+                    ),
+                );
+            self.inner.server_streaming(req, path, codec).await
+        }
+        /// DAO calls with proofs removed.
+        pub async fn get_compact_dao_calls(
+            &mut self,
+            request: impl tonic::IntoRequest<super::BlockRange>,
+        ) -> std::result::Result<
+            tonic::Response<tonic::codec::Streaming<super::CompactDaoCall>>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic::codec::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/darkfi.lightwallet.DarkFiLightWallet/GetCompactDaoCalls",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "darkfi.lightwallet.DarkFiLightWallet",
+                        "GetCompactDaoCalls",
                     ),
                 );
             self.inner.server_streaming(req, path, codec).await

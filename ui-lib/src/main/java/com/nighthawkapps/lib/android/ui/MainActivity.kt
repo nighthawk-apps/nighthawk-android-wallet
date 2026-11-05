@@ -540,14 +540,13 @@ class MainActivity : FragmentActivity() {
                 WalletTheme(themeVariant = themeVariant) {
                     Box(modifier = Modifier.fillMaxSize()) {
                         if (cyberpunk) {
-                            // Full 3840×2160 frame, 1 image pixel per screen pixel,
-                            // clipped at the top left. Larger screens reveal more.
+                            // Top-left of the wallpaper, scaled to this screen and clipped.
                             Box(Modifier.fillMaxSize().background(Color(0xFF05060A)))
                             Image(
                                 painter = painterResource(R.drawable.cyberpunk_bg),
                                 contentDescription = null,
                                 alignment = Alignment.TopStart,
-                                contentScale = ContentScale.None,
+                                contentScale = ContentScale.Crop,
                                 modifier = Modifier.fillMaxSize(),
                             )
                             Box(Modifier.fillMaxSize().background(Color(0x80050810)))

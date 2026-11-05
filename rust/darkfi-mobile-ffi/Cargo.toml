@@ -32,8 +32,8 @@ darkirc = { path = "../../third_party/darkfi/bin/darkirc", optional = true }
 semver = "1.0.28"
 kvdb-overlay = { git = "https://gitlab.com/nighthawk24/kvdb-overlay", rev = "accd2689f42e17d8db05294fbe9c3dac1ef307f4", version = "0.1.0" }
 tracing = "0.1.44"
-arti-client = { version = "0.47.0", default-features = false, features = ["async-std", "compression", "error_detail", "rustls", "onion-service-client"] }
-tor-rtcompat = { version = "0.47.0", features = ["async-std", "rustls"] }
+arti-client = { version = "0.48.0", default-features = false, features = ["async-std", "compression", "error_detail", "rustls", "onion-service-client"] }
+tor-rtcompat = { version = "0.48.0", features = ["async-std", "rustls"] }
 darkfi-serial = { path = "../../third_party/darkfi/src/serial" }
 darkfi_money_contract = { path = "../../third_party/darkfi/src/contract/money", features = ["no-entrypoint", "client"] }
 darkfi_dao_contract = { path = "../../third_party/darkfi/src/contract/dao", features = ["no-entrypoint", "client"] }

@@ -36,7 +36,23 @@ srclib SHA edit.
 
 Tagging alone does **not** run this repo’s GitHub `Deploy` workflow (that is branch/`workflow_dispatch` + Play secrets). F-Droid’s scanner is separate.
 
-## 3.00.027 (this release)
+## 3.01.00 (this release)
+
+| Field | Value |
+|-------|--------|
+| `WALLET_VERSION_NAME` | `3.01.00` |
+| `WALLET_VERSION_CODE` | `30100800` |
+| Suggested git tag | `v3.01.00` |
+| Fastlane changelog | `fastlane/metadata/android/en-US/changelogs/30100800.txt` |
+| DarkFi pin | `8af61b3f03b47164b4e4e01fcdc84e2744cb8570` (`nighthawk-testnet`, Arti 0.48) |
+
+What's new for testers:
+
+- Default sync is padded trial decryption. Money notes, token mints, and compact DAO calls are found without a UnifOMR clue.
+- Experimental UnifOMR stays in Advanced settings and is off unless you turn it on. It is not maintained until DarkFi mainnet contracts are live.
+- Embedded Tor is Arti 0.48. Needs lightwalletd proto 2.1.0.
+
+## 3.00.027
 
 | Field | Value |
 |-------|--------|

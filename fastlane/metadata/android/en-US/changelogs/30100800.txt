@@ -1,0 +1,1 @@
+Default sync is padded trial decryption for Money notes, token mints, and compact DAO calls. Experimental UnifOMR is off unless you turn it on under Advanced settings. Embedded Tor is Arti 0.48. Needs lightwalletd proto 2.1.0.

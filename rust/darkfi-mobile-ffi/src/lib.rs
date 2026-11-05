@@ -8,6 +8,8 @@ mod birthday;
 pub mod block_cache;
 pub mod bootstrap;
 mod dao;
+mod dao_compact;
+mod note_batch;
 #[cfg(feature = "darkirc")]
 mod darkirc_daemon;
 mod memo;
@@ -963,6 +965,7 @@ impl DarkfiWalletHandle {
         let drk = self.drk.clone();
         let lw_url = self.sync_engine.server_url();
         let tls_pin = self.sync_engine.tls_pin();
+        let experimental_unifomr = self.sync_engine.strict_omr_only();
         block_on(async move {
             // Exclusive lock while building (coin selection / note construction).
             let drk = drk.write().await;
@@ -974,6 +977,7 @@ impl DarkfiWalletHandle {
                 payment_memo.as_deref(),
                 Some(&lw_url),
                 tls_pin,
+                experimental_unifomr,
             )
             .await
         })
@@ -1560,7 +1564,7 @@ mod tests {
             use_nym: false,
             nym_socks_port: 1080,
             darkfid_rpc_url: None,
-            strict_omr_only: true,
+            strict_omr_only: false,
         }
     }
 

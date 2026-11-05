@@ -4,8 +4,8 @@ import android.net.Uri
 import android.widget.Toast
 import androidx.activity.viewModels
 import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
@@ -24,11 +24,13 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ButtonDefaults
@@ -52,10 +54,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.foundation.layout.Box
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.LinkAnnotation
 import androidx.compose.ui.text.SpanStyle
@@ -312,93 +314,98 @@ private fun ChatScreen(
         modifier =
             Modifier
                 .fillMaxSize()
-                .padding(horizontal = 16.dp, vertical = 12.dp)
+                .padding(horizontal = 12.dp, vertical = 4.dp)
                 .imePadding(),
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            Text(
-                text = stringResource(R.string.ns_chat_title),
-                style = MaterialTheme.typography.titleMedium,
-                modifier = Modifier.weight(1f),
+            FilterChip(
+                selected = inboxMode == ChatInboxMode.Channels,
+                onClick = { openRoom { inboxMode = ChatInboxMode.Channels } },
+                label = { Text(stringResource(R.string.ns_chat_mode_channels)) },
             )
-            TextButton(onClick = { fullScreen.onChange(!fullScreen.enabled) }) {
-                Text(
-                    text =
-                        stringResource(
-                            if (fullScreen.enabled) {
-                                R.string.ns_chat_exit_full_screen
-                            } else {
-                                R.string.ns_chat_full_screen
-                            },
-                        ),
-                    color = MaterialTheme.colorScheme.onSurface,
-                )
-            }
+            FilterChip(
+                selected = inboxMode == ChatInboxMode.Direct,
+                onClick = {
+                    openRoom {
+                        inboxMode = ChatInboxMode.Direct
+                        if (selectedDmLabel == null) {
+                            selectedDmLabel = dmLabels.firstOrNull()
+                        }
+                    }
+                },
+                label = { Text(stringResource(R.string.ns_chat_mode_direct)) },
+            )
+            Spacer(modifier = Modifier.weight(1f))
             IconButton(onClick = {
                 newDmInitialPubkey = null
                 showNewDm = true
             }) {
                 Icon(Icons.Default.Add, contentDescription = stringResource(R.string.ns_chat_new_dm))
             }
-            if (meshOn) {
-                Surface(
-                    shape = RoundedCornerShape(8.dp),
-                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.18f),
-                ) {
-                    Row(
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Image(
-                            painter = painterResource(id = R.drawable.ic_nighthawk_mesh),
-                            contentDescription = stringResource(R.string.ns_mesh_on_cd),
-                            modifier = Modifier.size(16.dp),
-                        )
-                        Text(
-                            text = stringResource(R.string.ns_mesh_on_badge),
-                            modifier = Modifier.padding(start = 4.dp),
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.primary,
-                        )
-                    }
-                }
-            }
             IconButton(onClick = onChatSettings) {
                 Icon(Icons.Default.Settings, contentDescription = stringResource(R.string.ns_chat_settings_short))
             }
+            Box(
+                modifier =
+                    Modifier
+                        .size(36.dp)
+                        .clip(CircleShape)
+                        .border(1.dp, MaterialTheme.colorScheme.primary, CircleShape)
+                        .clickable { showNetworkHud = true },
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    Icons.Default.Info,
+                    contentDescription = stringResource(R.string.ns_chat_hud_title),
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(18.dp),
+                )
+            }
         }
-        Spacer(modifier = Modifier.height(6.dp))
-
-        CompactConnectionStatusBlock(
-            nodeStatus = nodeStatus,
-            connectionState = connectionState,
-            diagnostic = diagnostic,
-            nickname = controller.ircNickname,
-            showRetry =
-                connectionState == DarkfiChatConnectionState.Disconnected ||
-                    connectionState == DarkfiChatConnectionState.Error,
-            onRetry = { controller.connectOrRetry() },
-            onToggleHud = { showNetworkHud = !showNetworkHud },
-        )
         if (showNetworkHud) {
-            Spacer(modifier = Modifier.height(4.dp))
-            ChatNetworkHud(
-                slots = outboundSlots,
-                torSelected = useTor,
-                onSelectTor = { controller.applyChatTransport(it) },
+            AlertDialog(
+                onDismissRequest = { showNetworkHud = false },
+                title = { Text(stringResource(R.string.ns_chat_hud_title)) },
+                text = {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        CompactConnectionStatusBlock(
+                            nodeStatus = nodeStatus,
+                            connectionState = connectionState,
+                            diagnostic = diagnostic,
+                            nickname = controller.ircNickname,
+                            showRetry =
+                                connectionState == DarkfiChatConnectionState.Disconnected ||
+                                    connectionState == DarkfiChatConnectionState.Error,
+                            onRetry = { controller.connectOrRetry() },
+                            onToggleHud = {},
+                        )
+                        ChatNetworkHud(
+                            slots = outboundSlots,
+                            torSelected = useTor,
+                            onSelectTor = { controller.applyChatTransport(it) },
+                        )
+                        if (meshOn) {
+                            Text(
+                                text = stringResource(R.string.ns_mesh_on_badge),
+                                style = MaterialTheme.typography.labelSmall,
+                            )
+                        }
+                    }
+                },
+                confirmButton = {
+                    TextButton(onClick = { showNetworkHud = false }) {
+                        Text(stringResource(R.string.ns_done))
+                    }
+                },
             )
         }
 
-        Spacer(modifier = Modifier.height(8.dp))
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            if (inboxMode == ChatInboxMode.Channels && selectedChannel.startsWith("#")) {
+        if (inboxMode == ChatInboxMode.Channels && selectedChannel.startsWith("#")) {
+            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                 TextButton(
                     onClick = { sharePubkeyChannel = selectedChannel },
                     modifier = Modifier.heightIn(max = 32.dp),
@@ -421,35 +428,28 @@ private fun ChatScreen(
                         style = MaterialTheme.typography.labelMedium,
                     )
                 }
+                TextButton(
+                    onClick = { fullScreen.onChange(!fullScreen.enabled) },
+                    modifier = Modifier.heightIn(max = 32.dp),
+                    contentPadding = ButtonDefaults.TextButtonContentPadding,
+                ) {
+                    Text(
+                        text =
+                            stringResource(
+                                if (fullScreen.enabled) {
+                                    R.string.ns_chat_exit_full_screen
+                                } else {
+                                    R.string.ns_chat_full_screen
+                                },
+                            ),
+                        style = MaterialTheme.typography.labelMedium,
+                    )
+                }
             }
         }
 
-        Spacer(modifier = Modifier.height(8.dp))
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            FilterChip(
-                selected = inboxMode == ChatInboxMode.Channels,
-                onClick = { openRoom { inboxMode = ChatInboxMode.Channels } },
-                label = { Text(stringResource(R.string.ns_chat_mode_channels)) },
-            )
-            FilterChip(
-                selected = inboxMode == ChatInboxMode.Direct,
-                onClick = {
-                    openRoom {
-                        inboxMode = ChatInboxMode.Direct
-                        if (selectedDmLabel == null) {
-                            selectedDmLabel = dmLabels.firstOrNull()
-                        }
-                    }
-                },
-                label = { Text(stringResource(R.string.ns_chat_mode_direct)) },
-            )
-        }
-
-        Spacer(modifier = Modifier.height(8.dp))
-
         when (inboxMode) {
             ChatInboxMode.Channels -> {
-                Text(text = stringResource(R.string.ns_chat_channels_header), style = MaterialTheme.typography.labelLarge)
                 LazyRow(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(8.dp),

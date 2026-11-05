@@ -6,19 +6,24 @@
 //!
 //! ## Sync modes
 //!
-//! 1. **OMR (Oblivious Message Retrieval)** — default when server supports it.
-//!    The server performs FHE-based filtering so only relevant compact blocks
-//!    are streamed. Faster sync, lower bandwidth.
+//! 1. **Trial decryption** — production default. Padded compact-output ranges
+//!    are decrypted locally. The server does not learn which notes matched.
 //!
-//! 2. **Trial Decryption** — automatic fallback. Client downloads all compact
-//!    blocks and attempts ChaCha20Poly1305 decryption of each encrypted note
-//!    with its secret keys.
+//! 2. **Experimental UnifOMR** — opt-in. Both sender and receiver must be
+//!    registered on the same lightwalletd, or funds stay invisible.
 //!
-//! The sync engine transparently switches between modes based on server
-//! capability and health.
+//! The sync engine uses trial decryption unless `strict_omr_only` is set.
 
 use std::fmt;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
+
+static EXPERIMENTAL_UNIFOMR: AtomicBool = AtomicBool::new(false);
+
+/// True only while the open wallet has experimental UnifOMR enabled.
+pub fn experimental_unifomr() -> bool {
+    EXPERIMENTAL_UNIFOMR.load(Ordering::Relaxed)
+}
 
 /// The current sync status, exposed to the mobile UI.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -273,10 +278,9 @@ impl SyncEngine {
             server_endpoint,
             tls_pins,
             max_omr_failures: DEFAULT_MAX_OMR_FAILURES,
-            // Default matches the mobile apps: allow supplemental trial-decrypt.
-            // Strict by default: UniFOMR only. Call set_strict_omr_only(false)
-            // to trial-decrypt payments that have no clue.
-            strict_omr_only: std::sync::atomic::AtomicBool::new(true),
+            // Production default is padded-range trial decryption.
+            // set_strict_omr_only(true) opts into experimental UnifOMR.
+            strict_omr_only: std::sync::atomic::AtomicBool::new(false),
             prev_chain_tip: std::sync::atomic::AtomicU32::new(0),
             last_tip_update: std::sync::atomic::AtomicU64::new(0),
             reorg_callback: std::sync::Mutex::new(None),
@@ -444,6 +448,10 @@ impl SyncEngine {
     pub fn set_strict_omr_only(&self, strict: bool) {
         self.strict_omr_only
             .store(strict, std::sync::atomic::Ordering::Relaxed);
+        EXPERIMENTAL_UNIFOMR.store(strict, std::sync::atomic::Ordering::Relaxed);
+        if !strict {
+            crate::lightwallet_client::clear_detection_key_pool();
+        }
     }
 
     /// Local override used by `E2E_FORCE_TRIAL`. This is not a server
@@ -703,7 +711,11 @@ impl SyncEngine {
             }
         }
         state.omr_available = available;
-        if available && state.sync_type == LightSyncType::Idle {
+        if !self.strict_omr_only() {
+            if state.sync_type == LightSyncType::Idle || state.sync_type == LightSyncType::Omr {
+                state.sync_type = LightSyncType::TrialDecryption;
+            }
+        } else if available && state.sync_type == LightSyncType::Idle {
             state.sync_type = LightSyncType::Omr;
         } else if !available && state.sync_type == LightSyncType::Omr {
             if self.strict_omr_only() {
@@ -727,6 +739,12 @@ impl SyncEngine {
     ///    and decrement the counter. When it reaches 0, OMR is retried.
     /// 3. If OMR is available and no active backoff → Omr
     pub fn choose_sync_type(&self) -> LightSyncType {
+        if !self.strict_omr_only() {
+            let mut state = self.state.lock().unwrap();
+            state.sync_type = LightSyncType::TrialDecryption;
+            state.refresh_messages();
+            return LightSyncType::TrialDecryption;
+        }
         let mut state = self.state.lock().unwrap();
 
         // Strict mode halt
@@ -894,7 +912,7 @@ mod tests {
         assert_eq!(snap.omr_failure_count, 0);
         assert_eq!(snap.status_message, "Server unreachable");
         assert_eq!(snap.sync_type_message, "Idle");
-        assert!(engine.strict_omr_only());
+        assert!(!engine.strict_omr_only());
     }
 
     #[test]
@@ -996,7 +1014,7 @@ mod tests {
 
     #[test]
     fn test_set_omr_available_switches_idle_to_omr() {
-        let engine = SyncEngine::new("x".to_string());
+        let engine = SyncEngine::new_strict("x".to_string());
         engine.set_omr_available(true);
         assert_eq!(engine.snapshot().sync_type, LightSyncType::Omr);
         assert!(engine.snapshot().omr_available);
@@ -1031,8 +1049,7 @@ mod tests {
 
     #[test]
     fn test_omr_backoff_after_failure() {
-        let engine = SyncEngine::new("x".to_string());
-        engine.set_strict_omr_only(false);
+        let engine = SyncEngine::new_strict("x".to_string());
         engine.set_omr_available(true);
 
         // First failure (below threshold): backoff applied, still OMR (no leak)
@@ -1100,8 +1117,7 @@ mod tests {
 
     #[test]
     fn test_omr_success_resets_backoff() {
-        let engine = SyncEngine::new("x".to_string());
-        engine.set_strict_omr_only(false);
+        let engine = SyncEngine::new_strict("x".to_string());
         engine.set_omr_available(true);
         engine.record_omr_failure();
         engine.record_omr_failure();
@@ -1121,10 +1137,10 @@ mod tests {
     }
 
     #[test]
-    fn test_default_is_strict_omr_without_trial_decrypt() {
+    fn test_default_is_trial_decrypt() {
         let engine = SyncEngine::new("x".to_string());
-        assert!(engine.strict_omr_only());
-        assert_eq!(engine.choose_sync_type(), LightSyncType::Idle);
+        assert!(!engine.strict_omr_only());
+        assert_eq!(engine.choose_sync_type(), LightSyncType::TrialDecryption);
     }
 
     #[test]
@@ -1147,7 +1163,7 @@ mod tests {
 
     #[test]
     fn test_choose_sync_type_with_omr() {
-        let engine = SyncEngine::new("x".to_string());
+        let engine = SyncEngine::new_strict("x".to_string());
         engine.set_omr_available(true);
         assert_eq!(engine.choose_sync_type(), LightSyncType::Omr);
     }
@@ -1193,26 +1209,12 @@ mod tests {
     fn test_full_sync_lifecycle() {
         let engine = SyncEngine::new("tcp://127.0.0.1:9067".to_string());
         assert_eq!(engine.snapshot().status, LightSyncStatus::Disconnected);
+        assert_eq!(engine.choose_sync_type(), LightSyncType::TrialDecryption);
 
         engine.set_status(LightSyncStatus::Connecting);
-        engine.set_omr_available(true);
-        assert_eq!(engine.choose_sync_type(), LightSyncType::Omr);
-
         engine.set_status(LightSyncStatus::Syncing);
-        engine.set_sync_type(LightSyncType::Omr);
         engine.set_chain_tip(50_000);
-        engine.set_scanned_height(0);
-
-        // First failure triggers backoff but still retries OMR
-        engine.record_omr_failure();
-        assert_eq!(engine.choose_sync_type(), LightSyncType::Omr);
-
-        engine.set_sync_type(LightSyncType::TrialDecryption);
         engine.set_scanned_height(25_000);
-
-        engine.record_omr_success();
-        assert_eq!(engine.choose_sync_type(), LightSyncType::Omr);
-
         engine.set_scanned_height(50_000);
         engine.set_status(LightSyncStatus::Synced);
         let snap = engine.snapshot();
@@ -1222,7 +1224,7 @@ mod tests {
 
     #[test]
     fn test_backoff_recovery_cycle() {
-        let engine = SyncEngine::new("x".to_string());
+        let engine = SyncEngine::new_strict("x".to_string());
         engine.set_omr_available(true);
         engine.set_status(LightSyncStatus::Syncing);
         engine.set_chain_tip(100);
@@ -1239,8 +1241,7 @@ mod tests {
 
     #[test]
     fn test_omr_degraded_state_recovery_after_backoff() {
-        let engine = SyncEngine::new("x".to_string());
-        engine.set_strict_omr_only(false);
+        let engine = SyncEngine::new_strict("x".to_string());
         engine.set_omr_available(true);
 
         // Fail 3 times to build up backoff

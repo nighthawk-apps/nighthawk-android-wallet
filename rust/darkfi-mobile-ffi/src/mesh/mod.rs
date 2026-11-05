@@ -25,6 +25,10 @@ pub use identity::MeshIdentity;
 pub use lwd_ctrl::{decode_mesh_event, encode_mesh_event};
 pub use packet::{decode, encode, CodecError};
 pub use splice::{set_lwd_splice, LwdSpliceFn};
+fn lock_engine() -> std::sync::MutexGuard<'static, MeshEngine> {
+    engine().lock().unwrap_or_else(|poison| poison.into_inner())
+}
+
 pub use types::{
     MeshPacket, PacketType, BLE_ALLOWED_LWD, BLE_FORBIDDEN_LWD, DAG_SYNC_REPLY_MAX, DEFAULT_TTL,
     EVENT_INNER_MAX, FRAGMENT_CHUNK, LOCAL_TTL, LWD_CTRL_MAX, MAX_PAYLOAD, NH_ANNOUNCE,
@@ -49,7 +53,7 @@ fn hold() -> &'static Mutex<VecDeque<Vec<u8>>> {
 
 pub fn start_mesh() -> Result<(), String> {
     crate::panic_fence::catch_string("start_mesh", || {
-        let mut g = engine().lock().map_err(|e| e.to_string())?;
+        let mut g = lock_engine();
         g.set_mesh_on(true);
         Ok(())
     })
@@ -57,7 +61,7 @@ pub fn start_mesh() -> Result<(), String> {
 
 pub fn stop_mesh() -> Result<(), String> {
     crate::panic_fence::catch_string("stop_mesh", || {
-        let mut g = engine().lock().map_err(|e| e.to_string())?;
+        let mut g = lock_engine();
         g.set_mesh_on(false);
         Ok(())
     })
@@ -82,7 +86,7 @@ pub fn mesh_last_gateway_peer() -> Option<[u8; SENDER_LEN]> {
 }
 
 pub fn mesh_set_gateway_eligible(opt_in: bool) -> Result<(), String> {
-    let mut g = engine().lock().map_err(|e| e.to_string())?;
+    let mut g = lock_engine();
     g.set_gateway_opt_in(opt_in);
     Ok(())
 }
@@ -93,7 +97,7 @@ pub fn mesh_wipe() -> Result<(), String> {
             h.clear();
         }
         clear_bulk_tcp_override();
-        let mut g = engine().lock().map_err(|e| e.to_string())?;
+        let mut g = lock_engine();
         g.wipe();
         Ok(())
     })
@@ -123,7 +127,7 @@ pub fn clear_bulk_tcp_override() {
 }
 
 pub fn mesh_submit_bulk_join(dest: [u8; SENDER_LEN]) -> Result<[u8; 16], String> {
-    let mut g = engine().lock().map_err(|e| e.to_string())?;
+    let mut g = lock_engine();
     g.submit_bulk_join(dest).map_err(|e| format!("{e:?}"))
 }
 
@@ -135,7 +139,7 @@ pub fn mesh_submit_bulk_offer(
     psk: &[u8],
     session_id: [u8; 16],
 ) -> Result<(), String> {
-    let mut g = engine().lock().map_err(|e| e.to_string())?;
+    let mut g = lock_engine();
     g.submit_bulk_offer(
         dest,
         BulkOffer {
@@ -161,7 +165,7 @@ pub fn mesh_set_os_power_state(
     charging: bool,
     unmetered: bool,
 ) -> Result<(), String> {
-    let mut g = engine().lock().map_err(|e| e.to_string())?;
+    let mut g = lock_engine();
     g.set_power(OsPowerState {
         foreground,
         charging,
@@ -172,7 +176,7 @@ pub fn mesh_set_os_power_state(
 
 pub fn mesh_ingest_link_bytes(bytes: Vec<u8>) -> Result<(), String> {
     crate::panic_fence::catch_string("mesh_ingest_link_bytes", || {
-        let mut g = engine().lock().map_err(|e| e.to_string())?;
+        let mut g = lock_engine();
         match g.ingest_bytes(&bytes) {
             Ok(()) | Err(EngErr::DroppedDuplicate) => Ok(()),
             Err(e) => Err(format!("{e:?}")),
@@ -214,7 +218,7 @@ pub fn mesh_submit_lwd_ctrl(
     method: &str,
     body: &[u8],
 ) -> Result<[u8; 16], String> {
-    let mut g = engine().lock().map_err(|e| e.to_string())?;
+    let mut g = lock_engine();
     g.submit_lwd_ctrl(dest, method, body)
         .map_err(|e| format!("{e:?}"))
 }
@@ -225,7 +229,7 @@ pub fn mesh_publish_dag(body: Vec<u8>) -> Result<(), String> {
 
 pub fn mesh_publish_event(id: [u8; 16], body: Vec<u8>) -> Result<(), String> {
     crate::panic_fence::catch_string("mesh_publish_event", || {
-        let mut g = engine().lock().map_err(|e| e.to_string())?;
+        let mut g = lock_engine();
         if !g.is_on() {
             return Err("mesh_off".into());
         }
@@ -234,12 +238,12 @@ pub fn mesh_publish_event(id: [u8; 16], body: Vec<u8>) -> Result<(), String> {
 }
 
 pub fn mesh_neighbor_up(dest: [u8; SENDER_LEN]) -> Result<(), String> {
-    let mut g = engine().lock().map_err(|e| e.to_string())?;
+    let mut g = lock_engine();
     g.neighbor_up(dest).map_err(|e| format!("{e:?}"))
 }
 
 pub fn mesh_neighbor_down(dest: [u8; SENDER_LEN]) -> Result<(), String> {
-    let mut g = engine().lock().map_err(|e| e.to_string())?;
+    let mut g = lock_engine();
     g.neighbor_down(dest);
     Ok(())
 }
@@ -263,7 +267,7 @@ fn event_id_from_body(body: &[u8]) -> [u8; 16] {
 }
 
 pub fn mesh_request_dag_sync() -> Result<(), String> {
-    let mut g = engine().lock().map_err(|e| e.to_string())?;
+    let mut g = lock_engine();
     if !g.is_on() {
         return Err("mesh_off".into());
     }

@@ -209,6 +209,7 @@ pub async fn build_transfer(
     payment_memo: Option<&str>,
     lightwallet_server_url: Option<&str>,
     lightwallet_tls_pin: Option<[u8; 32]>,
+    experimental_unifomr: bool,
 ) -> Result<Vec<u8>, String> {
     let recipient = Address::from_str(recipient_address.trim())
         .map_err(|e| format!("recipient address: {e}"))?;
@@ -234,7 +235,19 @@ pub async fn build_transfer(
         darkfi_sdk::crypto::keypair::Network::Testnet => 0x01u8,
     };
 
-    // Fail-closed: require a registered UnifOMR clue public key (verified ownership).
+    if !experimental_unifomr {
+        crate::sync::ensure_spendable_money_tree(drk, lightwallet_server_url, lightwallet_tls_pin)
+            .await
+            .map_err(|e| format!("merkle rebuild for spend: {e}"))?;
+        prefetch_money_zkas(lightwallet_server_url, lightwallet_tls_pin).await?;
+        let tx = drk
+            .transfer(amount, token, *recipient.public_key(), None, None, false)
+            .await
+            .map_err(|e| format!("transfer: {e}"))?;
+        return Ok(serialize_async(&tx).await);
+    }
+
+    // Experimental UnifOMR: require a registered clue public key.
     let (omr_scheme, omr_clue) = resolve_outgoing_omr_clue(
         &recipient_pk_bytes,
         network_byte,
@@ -426,7 +439,7 @@ pub async fn broadcast_transfer(
         .default_secret()
         .await
         .map_err(|e| format!("wallet secret for change clues: {e}"))?;
-    let secret_bytes = secret.inner().to_repr();
+    let secret_bytes = zeroize::Zeroizing::new(secret.inner().to_repr());
     let network_byte = match drk.network {
         darkfi_sdk::crypto::keypair::Network::Mainnet => 0x00u8,
         darkfi_sdk::crypto::keypair::Network::Testnet => 0x01u8,
@@ -436,7 +449,7 @@ pub async fn broadcast_transfer(
             raw_tx.to_vec(),
             unifomr_clue.clone(),
             omr_metadata_enc,
-            &secret_bytes,
+            &*secret_bytes,
             network_byte,
         )
         .await;

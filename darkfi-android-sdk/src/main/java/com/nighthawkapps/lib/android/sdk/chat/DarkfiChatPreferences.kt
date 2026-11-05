@@ -55,7 +55,7 @@ class DarkfiChatPreferences(
      * or a Moonshine `--no-omr` send.
      */
     var strictOmrOnly: Boolean
-        get() = sp.getBoolean(KEY_STRICT_OMR_ONLY, true)
+        get() = sp.getBoolean(KEY_STRICT_OMR_ONLY, false)
         set(value) {
             sp.edit().putBoolean(KEY_STRICT_OMR_ONLY, value).apply()
         }

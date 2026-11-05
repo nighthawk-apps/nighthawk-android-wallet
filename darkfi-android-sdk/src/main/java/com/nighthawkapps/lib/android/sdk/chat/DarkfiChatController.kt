@@ -397,6 +397,28 @@ class DarkfiChatController(
 
     private fun darkircDatastoreDir(): File = File(File(app.filesDir, "darkirc"), "darkirc_db")
 
+    /** Rust reads this file on each DM so saltbox keys match the secure store. */
+    private fun publishDmContactsForDaemon() {
+        val contacts = DarkircCryptoManager.loadContacts(app)
+        val json =
+            buildString {
+                append("{\"contacts\":[")
+                contacts.forEachIndexed { index, contact ->
+                    if (index > 0) append(',')
+                    fun esc(value: String) = value.replace("\\", "\\\\").replace("\"", "\\\"")
+                    append("{\"nick\":\"${esc(contact.nick)}\",")
+                    append("\"myDmChachaSecretBase58\":\"${esc(contact.myDmChachaSecretBase58)}\",")
+                    append("\"dmChachaPublicBase58\":\"${esc(contact.dmChachaPublicBase58)}\"}")
+                }
+                append("]}")
+            }
+        runCatching {
+            val dir = darkircDatastoreDir()
+            if (!dir.exists()) dir.mkdirs()
+            File(dir, "darkirc_crypto_bundle.json").writeText(json)
+        }
+    }
+
     fun refreshOutboundSlots(phase: String? = null) {
         val resolvedPhase =
             phase ?: runCatching { darkircConnectionPhase() }.getOrDefault("stopped")
@@ -494,7 +516,7 @@ class DarkfiChatController(
             DarkfiChatCrypto.decryptMessageIfPossible(
                 app,
                 rawMsg,
-                delegateWireCryptoToDaemon = false,
+                delegateWireCryptoToDaemon = true,
             )
         _messagesByChannel.update { cur ->
             val next = cur.toMutableMap()
@@ -563,9 +585,10 @@ class DarkfiChatController(
                         app,
                         rec.channelNormalized,
                         rec.textSanitized,
-                        delegateWireCryptoToDaemon = false
+                        delegateWireCryptoToDaemon = true
                     )
                 val nick = preferences.ensureIrcNickname()
+                publishDmContactsForDaemon()
                 sendChatMessage(rec.channelNormalized, nick, body)
                 outgoingQueue.remove(rec.id)
             } catch (e: Exception) {
@@ -690,9 +713,15 @@ class DarkfiChatController(
                         val msgContent = msgParts[1].trim()
                         val nick = preferences.ensureIrcNickname()
                         val wireBody =
-                            DarkfiChatCrypto.encryptMessageIfPossible(app, target, msgContent)
+                            DarkfiChatCrypto.encryptMessageIfPossible(
+                                app,
+                                target,
+                                msgContent,
+                                delegateWireCryptoToDaemon = true,
+                            )
                         scope.launch(Dispatchers.IO) {
                             try {
+                                publishDmContactsForDaemon()
                                 sendChatMessage(target, nick, wireBody)
                             } catch (e: Exception) {
                                 Twig.error(e) { "FFI send /msg failed" }
@@ -732,9 +761,10 @@ class DarkfiChatController(
                 app,
                 normalized,
                 body,
-                delegateWireCryptoToDaemon = false
+                delegateWireCryptoToDaemon = true
             )
 
+        publishDmContactsForDaemon()
         if (darkircStatus() == "running") {
             // Optimistic local bubble so public-channel sends are never invisible
             // while waiting for EventGraph self-echo / peer relay.
