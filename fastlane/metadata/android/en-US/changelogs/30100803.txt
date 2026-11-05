@@ -1,0 +1,1 @@
+Remove the Nighthawk logo mark from request, receive, send, PIN, top-up, and transaction detail screens. Keep FLAG_SECURE on seed backup and Tor Retry hardening from 3.01.02.

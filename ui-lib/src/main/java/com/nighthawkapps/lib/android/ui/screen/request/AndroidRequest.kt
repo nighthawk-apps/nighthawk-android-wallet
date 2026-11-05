@@ -111,13 +111,6 @@ internal fun RequestMoneyScreen(
                 contentDescription = stringResource(R.string.receive_back_content_description),
             )
         }
-        Image(
-            painter = painterResource(id = R.drawable.ic_nighthawk_logo),
-            contentDescription = stringResource(id = R.string.ns_logo_desc),
-            contentScale = ContentScale.Inside,
-            modifier = Modifier.align(Alignment.CenterHorizontally),
-        )
-        Spacer(Modifier.height(dimensionResource(id = R.dimen.pageMargin)))
         TitleLarge(
             text = stringResource(id = R.string.ns_request_money),
             textAlign = TextAlign.Center,

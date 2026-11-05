@@ -6,7 +6,6 @@ import android.os.VibrationEffect
 import android.os.Vibrator
 import android.os.VibratorManager
 import androidx.annotation.StringRes
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -30,10 +29,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.dimensionResource
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
@@ -155,13 +152,6 @@ fun AuthenticatePin(
                 contentDescription = stringResource(R.string.receive_back_content_description),
             )
         }
-        Image(
-            painter = painterResource(id = R.drawable.ic_nighthawk_logo),
-            contentDescription = stringResource(id = R.string.ns_logo_desc),
-            contentScale = ContentScale.Inside,
-            modifier = Modifier.align(Alignment.CenterHorizontally),
-        )
-        Spacer(Modifier.height(dimensionResource(id = R.dimen.pageMargin)))
         TitleLarge(
             text = stringResource(id = R.string.ns_nighthawk),
             textAlign = TextAlign.Center,

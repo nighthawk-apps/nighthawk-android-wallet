@@ -1,6 +1,5 @@
 package com.nighthawkapps.lib.android.ui.screen.send.nighthawk.view
 
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -30,7 +29,6 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.dimensionResource
@@ -101,13 +99,6 @@ fun EnterReceiverAddress(
             leading = NighthawkTopBarLeading.Back,
             title = null,
         )
-        Image(
-            painter = painterResource(id = R.drawable.ic_nighthawk_logo),
-            contentDescription = stringResource(id = R.string.ns_logo_desc),
-            contentScale = ContentScale.Inside,
-            modifier = Modifier.align(Alignment.CenterHorizontally)
-        )
-        Spacer(Modifier.height(dimensionResource(id = R.dimen.pageMargin)))
         TitleLarge(
             text = stringResource(id = R.string.ns_nighthawk),
             textAlign = TextAlign.Center,
