@@ -1,4 +1,4 @@
-e47d3f5f26b2786a2062f254d177d0ad3a6de13a
+742ca5458edc75b142a910fd6b4c3ed017f96e12
 # nighthawk24/darkfi branch nighthawk-testnet
 # Upstream is https://git.dark.fi/darkrenaissance/darkfi — do not clone the GitHub mirror.
 # This pin is not on git.dark.fi. It is dark.fi master (0f985c7cf) merged onto the
