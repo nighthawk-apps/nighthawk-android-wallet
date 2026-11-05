@@ -2,7 +2,6 @@ package com.nighthawkapps.lib.android.ui.screen.onboarding.nighthawk.view
 
 import androidx.activity.ComponentActivity
 import androidx.activity.viewModels
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -28,9 +27,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.dimensionResource
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
@@ -43,7 +40,6 @@ import com.nighthawkapps.lib.android.ui.design.component.BodyMedium
 import com.nighthawkapps.lib.android.ui.design.component.NighthawkTopBar
 import com.nighthawkapps.lib.android.ui.design.component.NighthawkTopBarLeading
 import com.nighthawkapps.lib.android.ui.design.component.PrimaryButton
-import com.nighthawkapps.lib.android.ui.design.component.TitleLarge
 import com.nighthawkapps.lib.android.ui.design.component.TitleMedium
 import com.nighthawkapps.lib.android.ui.design.theme.WalletTheme
 import com.nighthawkapps.lib.android.ui.screen.home.viewmodel.WalletViewModel
@@ -126,19 +122,6 @@ internal fun Restore(
             title = null,
             leadingContentDescription = stringResource(R.string.restore_back_content_description),
         )
-        Image(
-            painter = painterResource(id = R.drawable.ic_nighthawk_logo),
-            contentDescription = stringResource(id = R.string.ns_logo_desc),
-            contentScale = ContentScale.Inside,
-            modifier = Modifier.align(Alignment.CenterHorizontally),
-        )
-        Spacer(modifier = Modifier.height(dimensionResource(id = R.dimen.top_margin_back_btn)))
-        TitleLarge(
-            text = stringResource(id = R.string.ns_nighthawk),
-            textAlign = TextAlign.Center,
-            modifier = Modifier.align(Alignment.CenterHorizontally),
-        )
-        Spacer(modifier = Modifier.height(dimensionResource(id = R.dimen.offset)))
         TitleMedium(
             text = stringResource(id = R.string.ns_restore_from_backup),
             textAlign = TextAlign.Center,

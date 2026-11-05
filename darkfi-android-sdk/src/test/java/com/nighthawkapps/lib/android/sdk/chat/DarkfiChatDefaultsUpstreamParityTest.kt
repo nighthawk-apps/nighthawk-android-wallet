@@ -7,12 +7,12 @@ import kotlin.test.assertTrue
 
 /**
  * Guards [DarkfiChatDefaults] against pinned upstream `bin/darkirc/darkirc_config.toml`
- * (`docs/upstream/darkfi-revision.txt`).
+ * (`docs/upstream/darkfi-revision.txt`), plus intentional Nighthawk additives.
  */
 class DarkfiChatDefaultsUpstreamParityTest {
     @Test
-    fun autojoinMatchesPinnedDarkircConfig() {
-        val expected =
+    fun autojoinStartsWithNighthawkThenUpstreamOrder() {
+        val upstreamTail =
             listOf(
                 "#dev",
                 "#media",
@@ -24,7 +24,11 @@ class DarkfiChatDefaultsUpstreamParityTest {
                 "#random",
                 "#lunardao",
             )
-        assertEquals(expected, DarkfiChatDefaults.DEFAULT_PUBLIC_CHANNELS)
+        assertEquals(
+            listOf("#nighthawk") + upstreamTail,
+            DarkfiChatDefaults.DEFAULT_PUBLIC_CHANNELS,
+        )
+        assertEquals("#nighthawk", DarkfiChatDefaults.DEFAULT_PUBLIC_CHANNELS.first())
     }
 
     @Test
@@ -66,8 +70,9 @@ class DarkfiChatDefaultsUpstreamParityTest {
         for ((channel, topic) in upstreamTopics) {
             assertEquals(topic, DarkfiChatDefaults.DEFAULT_CHANNEL_TOPICS[channel], channel)
         }
-        // Intentional Nighthawk fill for autojoin channel with no upstream topic.
+        // Intentional Nighthawk fills.
+        assertEquals("Nighthawk wallet users", DarkfiChatDefaults.DEFAULT_CHANNEL_TOPICS["#nighthawk"])
         assertEquals("Hacker Culture", DarkfiChatDefaults.DEFAULT_CHANNEL_TOPICS["#hackers"])
-        assertEquals(upstreamTopics.size + 1, DarkfiChatDefaults.DEFAULT_CHANNEL_TOPICS.size)
+        assertEquals(upstreamTopics.size + 2, DarkfiChatDefaults.DEFAULT_CHANNEL_TOPICS.size)
     }
 }

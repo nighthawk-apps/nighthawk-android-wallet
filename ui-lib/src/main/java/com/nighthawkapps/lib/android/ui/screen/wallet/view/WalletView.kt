@@ -2,12 +2,10 @@
 
 package com.nighthawkapps.lib.android.ui.screen.wallet.view
 
-import androidx.compose.animation.core.LinearEasing
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -33,14 +31,12 @@ import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -58,7 +54,6 @@ import com.nighthawkapps.lib.android.sdk.wallet.DarkfiTokenBalance
 import com.nighthawkapps.lib.android.sdk.wallet.DarkfiTransactionOverview
 import com.nighthawkapps.lib.android.ui.R
 import com.nighthawkapps.lib.android.ui.common.DisableScreenTimeout
-import com.nighthawkapps.lib.android.ui.common.NighthawkBrandingHeader
 import com.nighthawkapps.lib.android.ui.daemon.DarkfiDaemonStatusIndicator
 import com.nighthawkapps.lib.android.ui.design.component.BalanceText
 import com.nighthawkapps.lib.android.ui.design.component.BodyMedium
@@ -89,7 +84,6 @@ fun WalletPreview() {
                 transactionSnapshot = persistentListOf(),
                 isKeepScreenOnWhileSyncing = true,
                 isFiatCurrencyPreferred = true,
-                isBandit = true,
                 fiatCurrencyUiState = FiatCurrencyUiState(FiatCurrency.USD, 25.8),
                 onAddressQrCodes = {},
                 onTransactionDetail = {},
@@ -138,7 +132,6 @@ fun WalletView(
     isKeepScreenOnWhileSyncing: Boolean?,
     isFiatCurrencyPreferred: Boolean,
     fiatCurrencyUiState: FiatCurrencyUiState,
-    isBandit: Boolean,
     onAddressQrCodes: () -> Unit,
     onTransactionDetail: (String) -> Unit,
     onViewTransactionHistory: () -> Unit,
@@ -167,14 +160,6 @@ fun WalletView(
                 )
     ) {
         var isBalancePrivateMode by remember { mutableStateOf(true) }
-        var rotationTarget by remember {
-            mutableFloatStateOf(0f)
-        }
-        val rotationAngle by animateFloatAsState(
-            targetValue = rotationTarget,
-            animationSpec = tween(durationMillis = 1500, easing = LinearEasing),
-            label = "Logo rotate"
-        )
         // Reorg recovery banner — shown when chain reorganization is detected
         androidx.compose.animation.AnimatedVisibility(
             visible = daemonStatus == DarkfiDaemonStatus.ReorgRecovery,
@@ -207,24 +192,13 @@ fun WalletView(
                 }
             }
         }
-        // Match Transfer/Settings branding Y-position; QR actions overlay the reserved top slot.
+        // QR actions sit in a short top row; the wordmark lives on the wallpaper.
         Box(modifier = Modifier.fillMaxWidth()) {
             Column(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
-                NighthawkBrandingHeader(
-                    bottomSpacing = 16.dp,
-                    logoModifier =
-                        if (isBandit) {
-                            Modifier
-                                .graphicsLayer {
-                                    rotationZ = rotationAngle
-                                }.clickable { rotationTarget += 90 }
-                        } else {
-                            Modifier
-                        },
-                )
+                Spacer(modifier = Modifier.height(48.dp))
                 DarkfiDaemonStatusIndicator(
                     status = daemonStatus,
                     onClick = onDaemonStatusClick,
@@ -451,18 +425,25 @@ private fun WalletActionButton(
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
 ) {
+    val outline =
+        if (enabled) {
+            MaterialTheme.colorScheme.primary
+        } else {
+            MaterialTheme.colorScheme.primary.copy(alpha = 0.35f)
+        }
+    val label =
+        if (enabled) {
+            WalletTheme.colors.onBackgroundHeader
+        } else {
+            WalletTheme.colors.onBackgroundHeader.copy(alpha = 0.4f)
+        }
     Box(
         modifier =
             modifier
                 .heightIn(min = 48.dp)
                 .clip(RoundedCornerShape(8.dp))
-                .background(
-                    if (enabled) {
-                        MaterialTheme.colorScheme.primary
-                    } else {
-                        MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)
-                    },
-                ).clickable(
+                .border(width = 1.5.dp, color = outline, shape = RoundedCornerShape(8.dp))
+                .clickable(
                     enabled = enabled,
                     role = androidx.compose.ui.semantics.Role.Button,
                     onClick = onClick,
@@ -472,7 +453,7 @@ private fun WalletActionButton(
     ) {
         TitleMedium(
             text = text.uppercase(),
-            color = MaterialTheme.colorScheme.onPrimary,
+            color = label,
             textAlign = TextAlign.Center,
         )
     }

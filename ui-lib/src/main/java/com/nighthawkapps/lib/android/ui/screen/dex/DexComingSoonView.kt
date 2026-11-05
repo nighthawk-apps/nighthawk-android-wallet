@@ -13,7 +13,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.nighthawkapps.lib.android.ui.R
-import com.nighthawkapps.lib.android.ui.common.NighthawkBrandingHeader
 import com.nighthawkapps.lib.android.ui.design.component.BodyMedium
 import com.nighthawkapps.lib.android.ui.design.component.TitleMedium
 import com.nighthawkapps.lib.android.ui.design.theme.WalletTheme
@@ -30,13 +29,18 @@ fun DexComingSoonPreview() {
 
 @Composable
 fun DexComingSoonView() {
+    val margin = dimensionResource(id = R.dimen.screen_standard_margin)
     Column(
         modifier =
             Modifier
                 .fillMaxSize()
-                .padding(dimensionResource(id = R.dimen.screen_standard_margin)),
+                .padding(
+                    start = margin,
+                    end = margin,
+                    bottom = margin,
+                    top = margin + dimensionResource(id = R.dimen.wallpaper_wordmark_clearance),
+                ),
     ) {
-        NighthawkBrandingHeader()
         TitleMedium(text = stringResource(id = R.string.ns_dex))
         Spacer(modifier = Modifier.height(13.dp))
         BodyMedium(

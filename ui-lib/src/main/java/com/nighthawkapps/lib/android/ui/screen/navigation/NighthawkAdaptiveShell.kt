@@ -38,15 +38,14 @@ internal val NighthawkExpandedWidth = 600.dp
 @Composable
 internal fun NighthawkAdaptiveShell(
     navController: NavController,
-    chatFullScreen: Boolean,
     content: @Composable (PaddingValues) -> Unit,
 ) {
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
     val showTabChrome = destinationsWithBottomBar.any { it.contentEquals(currentRoute, true) }
     BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
-        val useRail = maxWidth >= NighthawkExpandedWidth && showTabChrome && !chatFullScreen
-        val showBottom = showTabChrome && !useRail && !chatFullScreen
+        val useRail = maxWidth >= NighthawkExpandedWidth && showTabChrome
+        val showBottom = showTabChrome && !useRail
         val cyberpunk = LocalCyberpunkChrome.current
         Scaffold(
             // Transparent so the wallpaper continues under the status bar

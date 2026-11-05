@@ -10,9 +10,10 @@ import kotlin.test.assertTrue
  */
 class DarkfiChatDefaultsAutojoinAlignmentTest {
     @Test
-    fun defaultPublicChannels_matchesUpstreamAutojoinOrderThroughLunardao() {
+    fun defaultPublicChannels_nighthawkFirstThenUpstreamThroughLunardao() {
         assertEquals(
             listOf(
+                "#nighthawk",
                 "#dev",
                 "#media",
                 "#hackers",

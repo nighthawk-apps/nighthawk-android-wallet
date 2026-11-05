@@ -21,9 +21,9 @@ import com.nighthawkapps.lib.android.ui.design.component.TitleLarge
 /**
  * Shared Nighthawk logo + wordmark header.
  *
- * Used by the Wallet, Transfer and Settings hubs so the logo and "Nighthawk" title are
- * rendered identically (same centering and spacing) across screens. The header
- * fills the available width and centers its contents horizontally.
+ * Logo and wordmark. Home tabs and the connecting splash leave this off so the
+ * wallpaper wordmark is the only title. The header fills the available width
+ * and centers its contents horizontally.
  *
  * [logoModifier] is applied to the logo image (e.g. wallet bandit spin).
  * [bottomSpacing] is the gap after the wordmark before following content.

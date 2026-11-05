@@ -293,8 +293,6 @@
     <!-- Chat (DarkIRC-aligned preview; wallet stays independent) -->
     <string name="ns_chat">Chat</string>
     <string name="ns_chat_title">DarkFi chat</string>
-    <string name="ns_chat_full_screen">Full screen</string>
-    <string name="ns_chat_exit_full_screen">Exit full screen</string>
     <string name="ns_chat_hud_title">Network</string>
     <string name="ns_chat_hud_subtitle">Outbound peers · tap status to hide</string>
     <string name="ns_chat_hud_peers">Peers</string>
@@ -517,6 +515,7 @@
 
     <!-- Settings Screen -->
     <string name="ns_settings">Settings</string>
+    <string name="ns_settings_fold_hint">Select a setting on the left to open it here.</string>
     <string name="ns_sync_notifications">Sync notifications</string>
     <string name="ns_sync_notifications_text">Reminding you to keep the wallet up-to-date</string>
     <string name="ns_sync_notifications_body">When the Nighthawk wallet is closed for a long period of time, then it will take longer to start up when you do want to use it.\n\nAllow sync notifications to remind you to open the wallet every week.</string>
@@ -694,7 +693,7 @@
     <string name="theme_variant_midnight">Midnight</string>
     <string name="theme_variant_midnight_detail">Deeper base with violet accent.</string>
     <string name="theme_variant_cyberpunk">Cyberpunk</string>
-    <string name="theme_variant_cyberpunk_detail">Top left of the wallpaper, scaled to this screen.</string>
+    <string name="theme_variant_cyberpunk_detail">Wallpaper scaled from the top left.</string>
     <string name="ns_host">Host</string>
     <string name="ns_port">Port</string>
     <string name="tex_address_support_error">Invalid Address, Tex Address is not supported</string>

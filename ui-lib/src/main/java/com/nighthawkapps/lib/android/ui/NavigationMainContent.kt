@@ -4,9 +4,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
@@ -69,19 +67,15 @@ internal fun MainActivity.NavigationMainContent() {
     }
 
     val navController = rememberNavController()
-    val chatFullScreen = rememberSaveable { mutableStateOf(false) }
     CompositionLocalProvider(
         LocalDarkfiChatController provides chatController,
     ) {
         NighthawkAdaptiveShell(
             navController = navController,
-            chatFullScreen = chatFullScreen.value,
         ) { padding ->
             MainNavigation(
                 navHostController = navController,
                 paddingValues = padding,
-                chatFullScreen = chatFullScreen.value,
-                onChatFullScreenChange = { chatFullScreen.value = it },
             )
         }
     }

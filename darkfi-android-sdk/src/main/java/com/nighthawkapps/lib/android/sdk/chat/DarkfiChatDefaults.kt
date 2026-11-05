@@ -21,9 +21,14 @@ object DarkfiChatDefaults {
     const val MIN_DAGS_COUNT: Int = 1
     const val MAX_DAGS_COUNT: Int = 24
 
-    /** Same ordering as **`autojoin`** in upstream `darkirc_config.toml`. */
+    /**
+     * Fresh-install autojoin / channel chips.
+     * `#nighthawk` is Nighthawk-first (selected by default); the rest follow upstream
+     * `darkirc_config.toml` `autojoin` order.
+     */
     val DEFAULT_PUBLIC_CHANNELS: List<String> =
         listOf(
+            "#nighthawk",
             "#dev",
             "#media",
             "#hackers",
@@ -37,10 +42,11 @@ object DarkfiChatDefaults {
 
     /**
      * Default IRC topics from upstream `[channel."#…"]` blocks in `darkirc_config.toml`,
-     * plus a Nighthawk-only fill for `#hackers` (autojoin upstream, no `[channel]` topic).
+     * plus Nighthawk-only fills for `#nighthawk` and `#hackers`.
      */
     val DEFAULT_CHANNEL_TOPICS: Map<String, String> =
         mapOf(
+            "#nighthawk" to "Nighthawk wallet users",
             "#dev" to "DarkFi Development HQ",
             "#media" to "DarkFi Art, Fashion, Video, Memetics",
             // Nighthawk fill — not present in upstream darkirc_config.toml.

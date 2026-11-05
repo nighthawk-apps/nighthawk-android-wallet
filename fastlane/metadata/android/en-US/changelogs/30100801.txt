@@ -1,0 +1,1 @@
+#nighthawk is the default public chat channel. Foldable layouts expand Wallet and Settings into a second pane. Splash and onboarding no longer show the redundant Nighthawk logo. Chat Request and Pay are icon actions in the top bar.

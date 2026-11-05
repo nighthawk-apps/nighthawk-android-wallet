@@ -53,7 +53,7 @@ Relevant flags include `gen_chacha_keypair`, `gen_channel_secret`, `chacha_secre
 
 ## Default `#channels`
 
-`DarkfiChatDefaults.DEFAULT_PUBLIC_CHANNELS` should stay aligned with **`autojoin`** in upstream **`bin/darkirc/darkirc_config.toml`** when you bump **`docs/upstream/darkfi-revision.txt`** (use **`scripts/fetch-darkfi-upstream-reference.sh`** to pull that file at the pinned SHA).
+`DarkfiChatDefaults.DEFAULT_PUBLIC_CHANNELS` starts with Nighthawk-only **`#nighthawk`**, then matches **`autojoin`** tail from upstream **`bin/darkirc/darkirc_config.toml`** when you bump **`docs/upstream/darkfi-revision.txt`** (use **`scripts/fetch-darkfi-upstream-reference.sh`** to pull that file at the pinned SHA).
 
 ## Testing matrix (this repo)
 

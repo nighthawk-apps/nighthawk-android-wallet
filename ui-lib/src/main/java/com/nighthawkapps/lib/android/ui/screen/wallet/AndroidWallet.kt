@@ -211,7 +211,6 @@ internal fun WrapWallet(
                         isKeepScreenOnWhileSyncing = isKeepScreenOnWhileSyncing,
                         isFiatCurrencyPreferred = isFiatCurrencyPreferred,
                         fiatCurrencyUiState = fiatCurrencyUiState,
-                        isBandit = isBandit,
                         onAddressQrCodes = onAddressQrCodes,
                         onTransactionDetail = { id ->
                             if (expanded) {

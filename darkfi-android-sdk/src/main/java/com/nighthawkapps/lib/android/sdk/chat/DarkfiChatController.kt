@@ -81,7 +81,8 @@ class DarkfiChatController(
     private val _joinedChannels = MutableStateFlow(DarkfiChatDefaults.DEFAULT_PUBLIC_CHANNELS.toMutableList())
     val joinedChannels: StateFlow<List<String>> = _joinedChannels.asStateFlow()
 
-    private val _selectedChannel = MutableStateFlow(DarkfiChatDefaults.DEFAULT_PUBLIC_CHANNELS.firstOrNull() ?: "#dev")
+    private val _selectedChannel =
+        MutableStateFlow(DarkfiChatDefaults.DEFAULT_PUBLIC_CHANNELS.firstOrNull() ?: "#nighthawk")
     val selectedChannel: StateFlow<String> = _selectedChannel.asStateFlow()
 
     private val _dmContacts = MutableStateFlow<List<DarkircContactCryptoConfig>>(emptyList())

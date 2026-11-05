@@ -249,6 +249,16 @@ impl MobileBlockCache {
             .collect()
     }
 
+    /// Delete one compact block after it has been processed.
+    pub fn delete_height(&self, height: u32) -> Result<usize, String> {
+        let conn = self.conn.lock().map_err(|e| e.to_string())?;
+        conn.execute(
+            "DELETE FROM compact_blocks WHERE height = ?1",
+            params![height],
+        )
+        .map_err(|e| e.to_string())
+    }
+
     /// Aggressive prune: delete all blocks at or below scanned_height.
     ///
     /// Used after trial-decrypt scan completes. Unlike `prune_for_sync` which

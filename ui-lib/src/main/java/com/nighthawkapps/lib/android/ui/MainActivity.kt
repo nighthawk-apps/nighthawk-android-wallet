@@ -70,10 +70,8 @@ import com.nighthawkapps.lib.android.sdk.tor.AppTorCoordinator
 import com.nighthawkapps.lib.android.sdk.tor.TorBootstrapUiState
 import com.nighthawkapps.lib.android.spackle.Twig
 import com.nighthawkapps.lib.android.ui.common.BindCompLocalProvider
-import com.nighthawkapps.lib.android.ui.common.NighthawkBrandingHeader
 import com.nighthawkapps.lib.android.ui.common.ShortcutAction
 import com.nighthawkapps.lib.android.ui.configuration.RemoteConfig
-import com.nighthawkapps.lib.android.ui.design.component.Body
 import com.nighthawkapps.lib.android.ui.design.component.BodySmall
 import com.nighthawkapps.lib.android.ui.design.component.ConfigurationOverride
 import com.nighthawkapps.lib.android.ui.design.component.Override
@@ -383,11 +381,6 @@ class MainActivity : FragmentActivity() {
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
                 Spacer(modifier = Modifier.weight(1f))
-                NighthawkBrandingHeader(bottomSpacing = 10.dp)
-                Body(
-                    text = stringResource(R.string.splash_subtitle),
-                    textAlign = TextAlign.Center,
-                )
                 if (label != null) {
                     BodySmall(
                         text = label,
@@ -540,7 +533,8 @@ class MainActivity : FragmentActivity() {
                 WalletTheme(themeVariant = themeVariant) {
                     Box(modifier = Modifier.fillMaxSize()) {
                         if (cyberpunk) {
-                            // Top-left of the wallpaper, scaled to this screen and clipped.
+                            // Scale until the image covers the screen, pinned at the top-left
+                            // so the NIGHTHAWK title stays in frame.
                             Box(Modifier.fillMaxSize().background(Color(0xFF05060A)))
                             Image(
                                 painter = painterResource(R.drawable.cyberpunk_bg),

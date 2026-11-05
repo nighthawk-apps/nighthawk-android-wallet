@@ -22,10 +22,9 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.nighthawkapps.lib.android.ui.R
 import com.nighthawkapps.lib.android.ui.common.AlertDialog
-import com.nighthawkapps.lib.android.ui.common.NighthawkBrandingHeader
 import com.nighthawkapps.lib.android.ui.common.SettingsListItem
 import com.nighthawkapps.lib.android.ui.common.VersionInfo
-import com.nighthawkapps.lib.android.ui.design.component.BodyMedium
+import com.nighthawkapps.lib.android.ui.design.component.TitleMedium
 import com.nighthawkapps.lib.android.ui.design.theme.WalletTheme
 import com.nighthawkapps.lib.android.ui.fixture.VersionInfoFixture
 import com.nighthawkapps.lib.android.ui.screen.settings.nighthawk.model.NighthawkSettingsNavigationCallbacks
@@ -70,14 +69,21 @@ fun SettingsView(
     var showReScanDialog by remember { mutableStateOf(false) }
     var showShareAppDialog by remember { mutableStateOf(false) }
 
+    val margin = dimensionResource(id = R.dimen.screen_standard_margin)
     Column(
         modifier =
             Modifier
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
-                .padding(dimensionResource(id = R.dimen.screen_standard_margin)),
+                .padding(
+                    start = margin,
+                    end = margin,
+                    bottom = margin,
+                    top = margin + dimensionResource(id = R.dimen.wallpaper_wordmark_clearance),
+                ),
     ) {
-        SettingsHubBranding()
+        TitleMedium(text = stringResource(id = R.string.ns_settings).uppercase())
+        Spacer(modifier = Modifier.height(13.dp))
         SettingsHubChatSection(
             onChatSettings = navigation.onChatSettings,
             onMeshSettings = navigation.onMeshSettings,
@@ -127,21 +133,11 @@ fun SettingsView(
 }
 
 @Composable
-private fun SettingsHubBranding() {
-    NighthawkBrandingHeader(bottomSpacing = 24.dp)
-}
-
-@Composable
 private fun SettingsHubChatSection(
     onChatSettings: () -> Unit,
     onMeshSettings: () -> Unit,
 ) {
     Column {
-        BodyMedium(
-            text = stringResource(id = R.string.ns_chat_settings_section_title),
-            color = WalletTheme.colors.secondaryTitleText,
-        )
-        Spacer(modifier = Modifier.height(13.dp))
         SettingsListItem(
             iconRes = R.drawable.ic_icon_chat,
             title = stringResource(id = R.string.ns_chat_settings_row_title),

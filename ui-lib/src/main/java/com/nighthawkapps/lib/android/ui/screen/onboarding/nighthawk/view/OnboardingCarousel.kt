@@ -139,13 +139,6 @@ fun OnboardingPageContent(page: OnboardingPage) {
     ) {
         Spacer(modifier = Modifier.weight(0.2f))
 
-        Image(
-            painter = painterResource(id = R.drawable.ic_nighthawk_logo),
-            contentDescription = null,
-            contentScale = ContentScale.Inside,
-            modifier = Modifier.size(150.dp)
-        )
-        Spacer(modifier = Modifier.height(32.dp))
         TitleLarge(
             text = page.title,
             textAlign = TextAlign.Center,

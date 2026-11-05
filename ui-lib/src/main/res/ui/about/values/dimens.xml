@@ -14,6 +14,8 @@
     <dimen name="text_margin">15dp</dimen>
     <dimen name="screen_bottom_margin">65dp</dimen>
     <dimen name="screen_standard_margin">25dp</dimen>
+    <!-- Clears the wallpaper NIGHTHAWK wordmark under the status bar (chat / dex / settings). -->
+    <dimen name="wallpaper_wordmark_clearance">48dp</dimen>
     <dimen name="back_icon_size">22dp</dimen>
     <dimen name="setting_list_item_min_height">50dp</dimen>
 

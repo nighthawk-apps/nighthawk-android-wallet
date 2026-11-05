@@ -99,16 +99,12 @@ import kotlinx.collections.immutable.persistentListOf
 internal fun MainActivity.MainNavigation(
     navHostController: NavHostController,
     paddingValues: PaddingValues,
-    chatFullScreen: Boolean,
-    onChatFullScreenChange: (Boolean) -> Unit,
 ) {
     val homeViewModel by viewModels<HomeViewModel>()
     NavHost(navController = navHostController, startDestination = BottomNavItem.Wallet.route, modifier = Modifier.padding(paddingValues)) {
         composable(BottomNavItem.Chat.route) {
             AndroidChat(
                 onChatSettings = { navHostController.navigateJustOnce(CHAT_SETTINGS) },
-                chatFullScreen = chatFullScreen,
-                onChatFullScreenChange = onChatFullScreenChange,
                 onPayInvoice = { uri ->
                     homeViewModel.sendDeepLinkData =
                         DeepLinkUtil.getSendDeepLinkData(Uri.parse(uri))
@@ -165,6 +161,17 @@ internal fun MainActivity.MainNavigation(
                         onDaoHub = { navHostController.navigateJustOnce(DAO_HUB) },
                         onTopUp = { navHostController.navigateJustOnce(TOP_UP) },
                     ),
+                onOpenDao = { name ->
+                    navHostController.navigateJustOnce(NavigationTargets.navigationRouteDaoDetail(name))
+                },
+                onSetPin = {
+                    navHostController.navigateJustOnce(NavigationTargets.navigateToPinScreen(isPinSetUp = true))
+                },
+                onDisablePin = {
+                    navHostController.navigateJustOnce(
+                        NavigationTargets.navigateToPinScreen(verifyToDisable = true),
+                    )
+                },
             )
         }
         composable(SEND_MONEY) { backStackEntry ->

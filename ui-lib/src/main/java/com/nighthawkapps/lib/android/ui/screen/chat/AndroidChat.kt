@@ -31,6 +31,8 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Payment
+import androidx.compose.material.icons.filled.RequestQuote
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ButtonDefaults
@@ -43,13 +45,11 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -58,6 +58,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.LinkAnnotation
 import androidx.compose.ui.text.SpanStyle
@@ -126,13 +127,7 @@ private sealed class FudPromptUi {
 internal fun MainActivity.AndroidChat(
     onChatSettings: () -> Unit,
     onPayInvoice: (String) -> Unit,
-    chatFullScreen: Boolean,
-    onChatFullScreenChange: (Boolean) -> Unit,
 ) {
-    val leaveFullScreen by rememberUpdatedState(onChatFullScreenChange)
-    DisposableEffect(Unit) {
-        onDispose { leaveFullScreen(false) }
-    }
     val controller = LocalDarkfiChatController.current
     if (controller == null) {
         Text(
@@ -148,14 +143,8 @@ internal fun MainActivity.AndroidChat(
         onChatSettings = onChatSettings,
         onPayInvoice = onPayInvoice,
         receiveAddress = addresses?.privateAddresses?.firstOrNull().orEmpty(),
-        fullScreen = ChatFullScreenToggle(chatFullScreen, onChatFullScreenChange),
     )
 }
-
-private data class ChatFullScreenToggle(
-    val enabled: Boolean,
-    val onChange: (Boolean) -> Unit,
-)
 
 @Composable
 @Suppress("LongMethod", "CyclomaticComplexMethod")
@@ -164,7 +153,6 @@ private fun ChatScreen(
     onChatSettings: () -> Unit,
     onPayInvoice: (String) -> Unit,
     receiveAddress: String,
-    fullScreen: ChatFullScreenToggle,
 ) {
     val connectionState by controller.connectionState.collectAsStateWithLifecycle()
     val nodeStatus by controller.embeddedNodeStatus.collectAsStateWithLifecycle()
@@ -176,7 +164,7 @@ private fun ChatScreen(
     val drafts = remember { mutableMapOf<String, String>() }
     var inboxMode by remember { mutableStateOf(ChatInboxMode.Channels) }
     var selectedChannel by remember {
-        mutableStateOf(controller.defaultChannels.firstOrNull() ?: "#dev")
+        mutableStateOf(controller.defaultChannels.firstOrNull() ?: "#nighthawk")
     }
     var selectedDmLabel by remember { mutableStateOf<String?>(null) }
 
@@ -314,7 +302,12 @@ private fun ChatScreen(
         modifier =
             Modifier
                 .fillMaxSize()
-                .padding(horizontal = 12.dp, vertical = 4.dp)
+                .padding(
+                    start = 12.dp,
+                    end = 12.dp,
+                    top = dimensionResource(id = R.dimen.wallpaper_wordmark_clearance),
+                    bottom = 4.dp,
+                )
                 .imePadding(),
     ) {
         Row(
@@ -345,6 +338,43 @@ private fun ChatScreen(
                 showNewDm = true
             }) {
                 Icon(Icons.Default.Add, contentDescription = stringResource(R.string.ns_chat_new_dm))
+            }
+            IconButton(
+                onClick = {
+                    val uri = DeepLinkUtil.buildPaymentRequestUri(receiveAddress) ?: return@IconButton
+                    if (inboxMode == ChatInboxMode.Channels && activeThreadKey.startsWith("#")) {
+                        pendingPublicInvoice = uri
+                    } else if (activeThreadKey.isNotBlank()) {
+                        controller.sendToChannel(activeThreadKey, uri)
+                    }
+                },
+                enabled = receiveAddress.isNotBlank() && activeThreadKey.isNotBlank(),
+            ) {
+                Icon(
+                    Icons.Filled.RequestQuote,
+                    contentDescription = stringResource(R.string.ns_chat_attach_request),
+                )
+            }
+            IconButton(
+                onClick = {
+                    val fromDraft = draft.trim().takeIf { it.startsWith("drk:") }
+                    val fromHistory =
+                        messages[activeThreadKey]
+                            .orEmpty()
+                            .asReversed()
+                            .firstOrNull { it.text.startsWith("drk:") }
+                            ?.text
+                    val uri = fromDraft ?: fromHistory
+                    if (uri != null && DeepLinkUtil.getSendDeepLinkData(Uri.parse(uri)) != null) {
+                        onPayInvoice(uri)
+                    }
+                },
+                enabled = activeThreadKey.isNotBlank(),
+            ) {
+                Icon(
+                    Icons.Filled.Payment,
+                    contentDescription = stringResource(R.string.ns_chat_pay_invoice),
+                )
             }
             IconButton(onClick = onChatSettings) {
                 Icon(Icons.Default.Settings, contentDescription = stringResource(R.string.ns_chat_settings_short))
@@ -425,23 +455,6 @@ private fun ChatScreen(
                 ) {
                     Text(
                         text = stringResource(R.string.ns_chat_encrypt_channel),
-                        style = MaterialTheme.typography.labelMedium,
-                    )
-                }
-                TextButton(
-                    onClick = { fullScreen.onChange(!fullScreen.enabled) },
-                    modifier = Modifier.heightIn(max = 32.dp),
-                    contentPadding = ButtonDefaults.TextButtonContentPadding,
-                ) {
-                    Text(
-                        text =
-                            stringResource(
-                                if (fullScreen.enabled) {
-                                    R.string.ns_chat_exit_full_screen
-                                } else {
-                                    R.string.ns_chat_full_screen
-                                },
-                            ),
                         style = MaterialTheme.typography.labelMedium,
                     )
                 }
@@ -623,43 +636,6 @@ private fun ChatScreen(
                         Text(text = emoji)
                     }
                 }
-            }
-        }
-
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            TextButton(
-                onClick = {
-                    val uri = DeepLinkUtil.buildPaymentRequestUri(receiveAddress) ?: return@TextButton
-                    if (inboxMode == ChatInboxMode.Channels && activeThreadKey.startsWith("#")) {
-                        pendingPublicInvoice = uri
-                    } else if (activeThreadKey.isNotBlank()) {
-                        controller.sendToChannel(activeThreadKey, uri)
-                    }
-                },
-                enabled = receiveAddress.isNotBlank() && activeThreadKey.isNotBlank(),
-            ) {
-                Text(stringResource(R.string.ns_chat_attach_request))
-            }
-            TextButton(
-                onClick = {
-                    val fromDraft = draft.trim().takeIf { it.startsWith("drk:") }
-                    val fromHistory =
-                        messages[activeThreadKey]
-                            .orEmpty()
-                            .asReversed()
-                            .firstOrNull { it.text.startsWith("drk:") }
-                            ?.text
-                    val uri = fromDraft ?: fromHistory
-                    if (uri != null && DeepLinkUtil.getSendDeepLinkData(Uri.parse(uri)) != null) {
-                        onPayInvoice(uri)
-                    }
-                },
-                enabled = activeThreadKey.isNotBlank(),
-            ) {
-                Text(stringResource(R.string.ns_chat_pay_invoice))
             }
         }
 

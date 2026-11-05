@@ -36,7 +36,23 @@ srclib SHA edit.
 
 Tagging alone does **not** run this repo’s GitHub `Deploy` workflow (that is branch/`workflow_dispatch` + Play secrets). F-Droid’s scanner is separate.
 
-## 3.01.00 (this release)
+## 3.01.01 (this release)
+
+| Field | Value |
+|-------|--------|
+| `WALLET_VERSION_NAME` | `3.01.01` |
+| `WALLET_VERSION_CODE` | `30100801` |
+| Suggested git tag | `v3.01.01` |
+| Fastlane changelog | `fastlane/metadata/android/en-US/changelogs/30100801.txt` |
+| DarkFi pin | `f6ea803c8c37ee6f062255dff75512473bf97942` (`nighthawk-testnet`) |
+
+What's new for testers:
+
+- `#nighthawk` is the default plaintext public chat channel (first/selected).
+- Unfolded Fold layouts open Wallet companion and Settings detail in the second pane.
+- Splash and onboarding drop the redundant Nighthawk logo; chat Request/Pay are top-bar icons.
+
+## 3.01.00
 
 | Field | Value |
 |-------|--------|

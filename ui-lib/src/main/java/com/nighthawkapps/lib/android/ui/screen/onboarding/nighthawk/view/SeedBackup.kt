@@ -1,6 +1,5 @@
 package com.nighthawkapps.lib.android.ui.screen.onboarding.nighthawk.view
 
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -24,10 +23,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.dimensionResource
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -114,13 +111,6 @@ fun SeedBackupContent(
             } else {
                 Spacer(modifier = Modifier.height(44.dp))
             }
-            Image(
-                painter = painterResource(id = R.drawable.ic_nighthawk_logo),
-                contentDescription = stringResource(id = R.string.ns_logo_desc),
-                contentScale = ContentScale.Inside,
-                modifier = Modifier.align(Alignment.CenterHorizontally),
-            )
-            Spacer(modifier = Modifier.height(dimensionResource(id = R.dimen.screen_standard_margin)))
             BodyMedium(
                 text = stringResource(id = R.string.ns_create_wallet_title),
                 color = WalletTheme.colors.secondaryTitleText,

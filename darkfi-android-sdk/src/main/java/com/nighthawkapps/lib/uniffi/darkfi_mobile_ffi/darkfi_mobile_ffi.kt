@@ -2612,7 +2612,8 @@ data class DrkBootstrapConfig (
     var `darkfidRpcUrl`: kotlin.String?
     , 
     /**
-     * When true, UnifOMR-only (no supplemental/gap trial decrypt). Default true.
+     * Experimental UnifOMR. Not maintained until DarkFi mainnet contracts are live.
+     * Default false: padded trial decryption, the same scan drk uses on full blocks.
      */
     var `strictOmrOnly`: kotlin.Boolean
     
