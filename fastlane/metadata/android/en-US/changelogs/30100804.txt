@@ -1,0 +1,1 @@
+Fix DAO chain context for lightwalletd-only wallets (set_chain_context_fallback). Keeps 3.01.03 logo cleanup and F-Droid FLAG_SECURE / Tor Retry fixes.
