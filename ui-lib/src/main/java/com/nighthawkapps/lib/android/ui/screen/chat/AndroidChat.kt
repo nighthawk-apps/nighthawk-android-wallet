@@ -37,6 +37,7 @@ import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -57,6 +58,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.layout.Box
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalClipboard
+import com.nighthawkapps.lib.android.ui.design.theme.LocalCyberpunkChrome
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.res.stringResource
@@ -103,9 +105,6 @@ import kotlinx.coroutines.withContext
 import java.util.Locale
 
 private const val CONNECTION_STATUS_MAX_LINES = 5
-
-private val CHAT_EMOJI_STRIP =
-    listOf("😀", "😂", "❤️", "🔥", "👍", "🚀", "✅", "👀")
 
 private enum class ChatInboxMode {
     Channels,
@@ -197,7 +196,6 @@ private fun ChatScreen(
     var deleteDmLabel by remember { mutableStateOf<String?>(null) }
     var sharePubkeyChannel by remember { mutableStateOf<String?>(null) }
     var showNetworkHud by remember { mutableStateOf(false) }
-    var showEmojiStrip by remember { mutableStateOf(false) }
     var encryptChannel by remember { mutableStateOf<String?>(null) }
     var generatedChannelSecret by remember { mutableStateOf<String?>(null) }
     var cryptoRevision by remember { mutableStateOf(0) }
@@ -298,6 +296,18 @@ private fun ChatScreen(
 
     SecureScreen()
 
+    // Wallhaven cyberpunk wallpaper magenta — selected channel / conversation chips.
+    val chatSelectionColors =
+        if (LocalCyberpunkChrome.current) {
+            FilterChipDefaults.filterChipColors(
+                selectedContainerColor = Color(0xFF6B1A6B),
+                selectedLabelColor = Color(0xFFFFD6F6),
+                selectedLeadingIconColor = Color(0xFFC94BB8),
+            )
+        } else {
+            FilterChipDefaults.filterChipColors()
+        }
+
     Column(
         modifier =
             Modifier
@@ -319,6 +329,7 @@ private fun ChatScreen(
                 selected = inboxMode == ChatInboxMode.Channels,
                 onClick = { openRoom { inboxMode = ChatInboxMode.Channels } },
                 label = { Text(stringResource(R.string.ns_chat_mode_channels)) },
+                colors = chatSelectionColors,
             )
             FilterChip(
                 selected = inboxMode == ChatInboxMode.Direct,
@@ -331,6 +342,7 @@ private fun ChatScreen(
                     }
                 },
                 label = { Text(stringResource(R.string.ns_chat_mode_direct)) },
+                colors = chatSelectionColors,
             )
             Spacer(modifier = Modifier.weight(1f))
             IconButton(onClick = {
@@ -472,6 +484,7 @@ private fun ChatScreen(
                             selected = ch == selectedChannel,
                             onClick = { openRoom { selectedChannel = ch } },
                             label = { Text(text = ch) },
+                            colors = chatSelectionColors,
                         )
                     }
                 }
@@ -507,6 +520,7 @@ private fun ChatScreen(
                                         }
                                     }
                                 },
+                                colors = chatSelectionColors,
                             )
                         }
                     }
@@ -626,29 +640,10 @@ private fun ChatScreen(
             }
         }
 
-        if (showEmojiStrip) {
-            LazyRow(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(4.dp),
-            ) {
-                items(items = CHAT_EMOJI_STRIP, key = { it }) { emoji ->
-                    TextButton(onClick = { draft += emoji }) {
-                        Text(text = emoji)
-                    }
-                }
-            }
-        }
-
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.Bottom,
         ) {
-            TextButton(
-                onClick = { showEmojiStrip = !showEmojiStrip },
-                modifier = Modifier.heightIn(min = 48.dp),
-            ) {
-                Text(text = stringResource(R.string.ns_chat_emoji))
-            }
             OutlinedTextField(
                 value = draft,
                 onValueChange = { draft = it },

@@ -314,7 +314,6 @@
     <string name="ns_chat_fud_invalid">That fud:// link is not a valid infohash/filename.</string>
     <string name="ns_chat_fud_queue_failed">Could not write the offer to the local sandbox.</string>
     <string name="ns_chat_fud_tap_to_queue">fud offer · tap to queue</string>
-    <string name="ns_chat_emoji">Emoji</string>
     <string name="splash_app_version">v%1$s</string>
     <string name="ns_wallet_tokens_title">Tokens</string>
     <string name="ns_wallet_assets_title">Assets</string>
@@ -693,7 +692,7 @@
     <string name="theme_variant_midnight">Midnight</string>
     <string name="theme_variant_midnight_detail">Deeper base with violet accent.</string>
     <string name="theme_variant_cyberpunk">Cyberpunk</string>
-    <string name="theme_variant_cyberpunk_detail">Wallpaper scaled from the top left.</string>
+    <string name="theme_variant_cyberpunk_detail">enter nighthawk with style</string>
     <string name="ns_host">Host</string>
     <string name="ns_port">Port</string>
     <string name="tex_address_support_error">Invalid Address, Tex Address is not supported</string>

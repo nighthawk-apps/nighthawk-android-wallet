@@ -1,12 +1,10 @@
-//! Local compact block cache for mobile wallet trial decryption fallback.
+//! Local compact block cache for UniFFI light-wallet trial decryption.
 //!
-//! When OMR detection is unavailable or fails, the mobile wallet falls back
-//! to downloading compact blocks and performing trial decryption. This cache
-//! stores serialized CompactBlock protobufs in the app's data directory so
-//! blocks don't need to be re-downloaded on app restart.
-//!
-//! Blocks are pruned after successful sync to prevent storage bloat on
-//! mobile devices. The default retention window keeps 2000 blocks.
+//! Stores short-lived CompactBlock protobufs while a padded trial-decrypt
+//! window is applied against `darkfi-lightwalletd`. Rows use the shared
+//! Nighthawk `NHC1` + XChaCha20-Poly1305 format (same as Moonshine) and are
+//! deleted once Money notes / DAO / auth-token events are written to the
+//! local `drk` wallet database. This is not a darkfid block store.
 
 use rusqlite::{params, Connection};
 use std::path::Path;
@@ -18,7 +16,7 @@ use chacha20poly1305::{
 };
 use rand::RngCore;
 
-/// Default retention: keep cached blocks for this many blocks past sync tip.
+/// Legacy retention constant (unused). Prefer `prune_scanned` / `prune_for_sync`.
 pub const DEFAULT_MOBILE_BLOCK_RETENTION: u32 = 2000;
 
 const CACHE_MAGIC: &[u8] = b"NHC1";
@@ -165,12 +163,11 @@ impl MobileBlockCache {
         .map_err(|e| e.to_string())
     }
 
-    /// Prune for a given sync height using the default retention window.
+    /// Delete compact blocks that sync has already processed.
+    ///
+    /// Matches Moonshine: no retention window once a height is applied.
     pub fn prune_for_sync(&self, sync_height: u32) -> Result<usize, String> {
-        if sync_height <= DEFAULT_MOBILE_BLOCK_RETENTION {
-            return Ok(0);
-        }
-        self.prune_below(sync_height - DEFAULT_MOBILE_BLOCK_RETENTION)
+        self.prune_scanned(sync_height)
     }
 
     /// Approximate cache size in bytes (data column only).

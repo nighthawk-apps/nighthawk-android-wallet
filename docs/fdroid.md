@@ -36,7 +36,13 @@ srclib SHA edit.
 
 Tagging alone does **not** run this repo’s GitHub `Deploy` workflow (that is branch/`workflow_dispatch` + Play secrets). F-Droid’s scanner is separate.
 
-## 3.01.01 (this release)
+## 3.01.05 (this release)
+
+- Default sync is padded trial decryption of Money notes, compact DAO calls, and auth-token events from `darkfi-lightwalletd` into the local UniFFI/`drk` wallet DB (not full-chain `darkfid` validation).
+- Compact-block cache uses encrypted `NHC1` rows and deletes processed heights after scan.
+- Aligned with Moonshine **3.1.5** and `darkfi-lightwalletd` **0.3.3**.
+
+## 3.01.01
 
 | Field | Value |
 |-------|--------|

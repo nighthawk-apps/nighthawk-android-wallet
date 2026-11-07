@@ -249,13 +249,15 @@ internal val LightColorPalette =
 
 internal val CyberpunkColorPalette =
     DarkColorPalette.copy(
+        // Cyan kept for primary CTAs; channel/DM FilterChips use secondaryContainer
+        // dark pink sampled from the Wallhaven cyberpunk wallpaper neon.
         primary = Color(0xFF5CE1FF),
         onPrimary = Color(0xFF041018),
         primaryContainer = Color(0xCC102833),
         onPrimaryContainer = Color(0xFFF4FBFF),
         secondary = Color(0xCC1A1024),
         onSecondary = Color(0xFFF4FBFF),
-        secondaryContainer = Color(0xCC2A1430),
+        secondaryContainer = Color(0xFF6B1A6B),
         onSecondaryContainer = Color(0xFFFFD6F6),
         tertiary = Color(0xB8141824),
         onTertiary = Color(0xFFF4FBFF),
@@ -323,17 +325,19 @@ internal val CyberpunkExtendedColorPalette =
     DarkExtendedColorPalette.copy(
         surfaceEnd = Color(0x99050810),
         onBackgroundHeader = Color(0xFFF7FBFF),
-        reference = Color(0xFFFF4FD8),
-        selectedPageIndicator = Color(0xFF5CE1FF),
+        // Wallpaper magenta for chat selection / reference chrome.
+        reference = Color(0xFFC94BB8),
+        selectedPageIndicator = Color(0xFFC94BB8),
         progressStart = Color(0xFF5CE1FF),
-        progressEnd = Color(0xFFFF4FD8),
+        progressEnd = Color(0xFFC94BB8),
+        highlight = Color(0x336B1A6B),
         navigationIcon = Color(0xFFE7EEF8),
         navigationContainer = Color(0xC0050810),
         secondaryTitleText = Color(0xFFD5DEEA),
         divider = Color(0xFF3D4C5C),
         addressHighlightBorder = Color(0xFF3D4C5C),
         addressHighlightUnified = Color(0xFF5CE1FF),
-        addressHighlightPublic = Color(0xFFFF4FD8),
+        addressHighlightPublic = Color(0xFFC94BB8),
     )
 
 internal val MidnightExtendedColorPalette =
