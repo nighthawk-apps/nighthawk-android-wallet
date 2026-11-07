@@ -1,0 +1,1 @@
+Trial decrypt is the production sync path: UniFFI keeps Money, DAO, and auth-token events in the local wallet DB from darkfi-lightwalletd compact blocks (no full darkfid chain). Compact-block cache uses encrypted NHC1 rows and deletes heights after scan. Ships with Moonshine 3.1.5 and lightwalletd 0.3.3.
