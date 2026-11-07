@@ -1,0 +1,1 @@
+Nav: DAO is a bottom tab (not Settings); DEX placeholder between Wallet and DAO. Wallet actions Request → Receive → Send. iOS matches Android tab order (Chat · Wallet · DEX · DAO · Settings). Desktop aligns nav and deps (Tauri 2.12, UniFFI 0.32.2, DarkFi upstream merge). Ships with desktop 3.1.7.

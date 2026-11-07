@@ -261,15 +261,7 @@ async fn apply_vote(
     };
     let (note, nullifiers): (ElGamalEncryptedNote<4>, Vec<Nullifier>) =
         deserialize(&call.payload).map_err(|e| format!("vote payload: {e}"))?;
-    store_vote(
-        drk,
-        call,
-        &proposal_bulla,
-        &note,
-        &nullifiers,
-        &secret,
-    )
-    .await
+    store_vote(drk, call, &proposal_bulla, &note, &nullifiers, &secret).await
 }
 
 async fn store_vote(
@@ -307,10 +299,8 @@ async fn apply_auth_money_transfer(
     daos: &[drk::dao::DaoRecord],
     call: &CompactDaoCall,
 ) -> Result<(), String> {
-    let (_enc_attrs, change): (
-        Vec<ElGamalEncryptedNote<5>>,
-        ElGamalEncryptedNote<3>,
-    ) = deserialize(&call.payload).map_err(|e| format!("auth transfer payload: {e}"))?;
+    let (_enc_attrs, change): (Vec<ElGamalEncryptedNote<5>>, ElGamalEncryptedNote<3>) =
+        deserialize(&call.payload).map_err(|e| format!("auth transfer payload: {e}"))?;
     for dao in daos {
         let Some(secret) = dao.params.notes_secret_key else {
             continue;
@@ -461,4 +451,3 @@ fn tx_hash(bytes: &[u8]) -> Result<TransactionHash, String> {
         .map_err(|_| "tx hash is not 32 bytes".to_string())?;
     Ok(TransactionHash(bytes))
 }
-

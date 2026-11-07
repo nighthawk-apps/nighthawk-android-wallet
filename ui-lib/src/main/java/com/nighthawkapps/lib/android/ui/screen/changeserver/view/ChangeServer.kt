@@ -140,8 +140,7 @@ fun ChangeServer(
                             selected = isSelected,
                             onClick = { localPresetSelected.value = preset },
                             role = Role.RadioButton,
-                        )
-                        .padding(vertical = 8.dp),
+                        ).padding(vertical = 8.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 RadioButton(
@@ -166,8 +165,7 @@ fun ChangeServer(
                         selected = customSelected,
                         onClick = { localPresetSelected.value = DarkfiEndpointCatalog.incompleteCustom() },
                         role = Role.RadioButton,
-                    )
-                    .padding(vertical = 8.dp),
+                    ).padding(vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             RadioButton(

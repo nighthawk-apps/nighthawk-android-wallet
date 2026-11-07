@@ -406,6 +406,7 @@ class DarkfiChatController(
                 append("{\"contacts\":[")
                 contacts.forEachIndexed { index, contact ->
                     if (index > 0) append(',')
+
                     fun esc(value: String) = value.replace("\\", "\\\\").replace("\"", "\\\"")
                     append("{\"nick\":\"${esc(contact.nick)}\",")
                     append("\"myDmChachaSecretBase58\":\"${esc(contact.myDmChachaSecretBase58)}\",")

@@ -586,8 +586,7 @@ private fun NighthawkBleLink.rememberMeshLocked(
     meshToAtt[meshHex(meshId)] = attKey
 }
 
-private fun NighthawkBleLink.meshHex(id: ByteArray): String =
-    id.joinToString("") { b -> "%02x".format(b.toInt() and UNSIGNED_BYTE_MASK) }
+private fun NighthawkBleLink.meshHex(id: ByteArray): String = id.joinToString("") { b -> "%02x".format(b.toInt() and UNSIGNED_BYTE_MASK) }
 
 @SuppressLint("MissingPermission")
 private fun NighthawkBleLink.writeChunksToAttLocked(

@@ -445,13 +445,11 @@ private fun WalletActionButton(
                     width = 1.dp,
                     color = teal.copy(alpha = strokeAlpha),
                     shape = chipShape,
-                )
-                .clickable(
+                ).clickable(
                     enabled = enabled,
                     role = androidx.compose.ui.semantics.Role.Button,
                     onClick = onClick,
-                )
-                .padding(horizontal = 10.dp, vertical = 10.dp),
+                ).padding(horizontal = 10.dp, vertical = 10.dp),
         contentAlignment = Alignment.Center,
     ) {
         TitleMedium(

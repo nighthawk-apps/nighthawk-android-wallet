@@ -165,12 +165,8 @@ internal fun MainActivity.MainNavigation(
                         onAdvancedSetting = { navHostController.navigateJustOnce(ADVANCED_SETTING) },
                         onChangeServer = { navHostController.navigateJustOnce(CHANGE_SERVER) },
                         onAbout = { navHostController.navigateJustOnce(ABOUT) },
-                        onDaoHub = { navHostController.navigateBottomDestination(BottomNavItem.DaoHub.route) },
                         onTopUp = { navHostController.navigateJustOnce(TOP_UP) },
                     ),
-                onOpenDao = { name ->
-                    navHostController.navigateJustOnce(NavigationTargets.navigationRouteDaoDetail(name))
-                },
                 onSetPin = {
                     navHostController.navigateJustOnce(NavigationTargets.navigateToPinScreen(isPinSetUp = true))
                 },

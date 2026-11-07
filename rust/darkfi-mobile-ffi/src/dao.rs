@@ -238,24 +238,24 @@ async fn broadcast_wallet_tx(
         let network = network_byte(drk);
         let mut recipient_clue = None;
         if crate::lightwallet_sync::experimental_unifomr() {
-        if let Some((public_key, index)) = recipient {
-            if !own_indexes.contains(&index) {
-                match crate::transactions::resolve_outgoing_omr_clue(
-                    &public_key.to_bytes(),
-                    network,
-                    Some(url.as_str()),
-                    lightwallet_tls_pin,
-                )
-                .await
-                {
-                    Ok((_scheme, clue)) => recipient_clue = Some((index, clue)),
-                    Err(e) => tracing::warn!(
-                        target: "wallet-tx",
-                        "recipient has no UnifOMR clue key; strict-OMR wallets will not see output {index}: {e}"
-                    ),
+            if let Some((public_key, index)) = recipient {
+                if !own_indexes.contains(&index) {
+                    match crate::transactions::resolve_outgoing_omr_clue(
+                        &public_key.to_bytes(),
+                        network,
+                        Some(url.as_str()),
+                        lightwallet_tls_pin,
+                    )
+                    .await
+                    {
+                        Ok((_scheme, clue)) => recipient_clue = Some((index, clue)),
+                        Err(e) => tracing::warn!(
+                            target: "wallet-tx",
+                            "recipient has no UnifOMR clue key; strict-OMR wallets will not see output {index}: {e}"
+                        ),
+                    }
                 }
             }
-        }
         }
         let wallet_secret = drk.default_secret().await.map_err(|e| e.to_string())?;
         let wallet_secret = zeroize::Zeroizing::new(wallet_secret.inner().to_repr());

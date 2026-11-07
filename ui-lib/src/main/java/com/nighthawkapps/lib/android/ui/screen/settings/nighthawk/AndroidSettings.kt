@@ -25,11 +25,10 @@ import com.nighthawkapps.lib.android.ui.screen.about.nighthawk.AndroidAboutView
 import com.nighthawkapps.lib.android.ui.screen.advancesetting.AndroidAdvancedSetting
 import com.nighthawkapps.lib.android.ui.screen.changeserver.AndroidChangeServer
 import com.nighthawkapps.lib.android.ui.screen.chat.AndroidChatSettings
-import com.nighthawkapps.lib.android.ui.screen.dao.AndroidDaoHub
 import com.nighthawkapps.lib.android.ui.screen.fiatcurrency.AndroidFiatCurrency
 import com.nighthawkapps.lib.android.ui.screen.home.viewmodel.WalletViewModel
-import com.nighthawkapps.lib.android.ui.screen.navigation.NighthawkExpandedWidth
 import com.nighthawkapps.lib.android.ui.screen.navigation.NavigationTargets
+import com.nighthawkapps.lib.android.ui.screen.navigation.NighthawkExpandedWidth
 import com.nighthawkapps.lib.android.ui.screen.security.AndroidSecurity
 import com.nighthawkapps.lib.android.ui.screen.settingbackupwallet.AndroidSettingBackUpWallet
 import com.nighthawkapps.lib.android.ui.screen.settings.nighthawk.model.NighthawkSettingsNavigationCallbacks
@@ -42,14 +41,12 @@ import com.nighthawkapps.lib.android.ui.screen.topup.AndroidTopUp
 @Composable
 internal fun MainActivity.AndroidSettings(
     navigation: NighthawkSettingsNavigationCallbacks,
-    onOpenDao: (String) -> Unit = {},
     onSetPin: () -> Unit = {},
     onDisablePin: () -> Unit = {},
 ) {
     WrapSettings(
         activity = this,
         navigation = navigation,
-        onOpenDao = onOpenDao,
         onSetPin = onSetPin,
         onDisablePin = onDisablePin,
     )
@@ -59,7 +56,6 @@ internal fun MainActivity.AndroidSettings(
 internal fun WrapSettings(
     activity: ComponentActivity,
     navigation: NighthawkSettingsNavigationCallbacks,
-    onOpenDao: (String) -> Unit = {},
     onSetPin: () -> Unit = {},
     onDisablePin: () -> Unit = {},
 ) {
@@ -128,9 +124,6 @@ internal fun WrapSettings(
                 onAbout = {
                     openOrNavigate(NavigationTargets.ABOUT, navigation.onAbout)
                 },
-                onDaoHub = {
-                    openOrNavigate(NavigationTargets.DAO_HUB, navigation.onDaoHub)
-                },
                 onTopUp = {
                     openOrNavigate(NavigationTargets.TOP_UP, navigation.onTopUp)
                 },
@@ -167,7 +160,6 @@ internal fun WrapSettings(
                         activity = main,
                         route = selectedRoute,
                         onBack = { selectedRoute = null },
-                        onOpenDao = onOpenDao,
                         onSetPin = onSetPin,
                         onDisablePin = onDisablePin,
                         versionInfo = versionInfo,
@@ -183,44 +175,65 @@ private fun SettingsDetailPane(
     activity: MainActivity,
     route: String?,
     onBack: () -> Unit,
-    onOpenDao: (String) -> Unit,
     onSetPin: () -> Unit,
     onDisablePin: () -> Unit,
     versionInfo: VersionInfo,
 ) {
     when (route) {
-        null -> SettingsCompanionHub(versionInfo = versionInfo)
-        NavigationTargets.CHAT_SETTINGS ->
+        null -> {
+            SettingsCompanionHub(versionInfo = versionInfo)
+        }
+
+        NavigationTargets.CHAT_SETTINGS -> {
             activity.AndroidChatSettings(onBack = onBack)
-        NavigationTargets.MESH_SETTINGS ->
+        }
+
+        NavigationTargets.MESH_SETTINGS -> {
             activity.AndroidMeshSettings(onBack = onBack)
-        NavigationTargets.TOR_NETWORK_SETTINGS ->
+        }
+
+        NavigationTargets.TOR_NETWORK_SETTINGS -> {
             activity.AndroidTorNetworkSettings(onBack = onBack)
-        NavigationTargets.SYNC_NOTIFICATION ->
+        }
+
+        NavigationTargets.SYNC_NOTIFICATION -> {
             activity.AndroidSyncNotification(onBack = onBack)
-        NavigationTargets.FIAT_CURRENCY ->
+        }
+
+        NavigationTargets.FIAT_CURRENCY -> {
             activity.AndroidFiatCurrency(onBack = onBack)
-        NavigationTargets.SECURITY ->
+        }
+
+        NavigationTargets.SECURITY -> {
             activity.AndroidSecurity(
                 onBack = onBack,
                 onSetPin = onSetPin,
                 onDisablePin = onDisablePin,
             )
-        NavigationTargets.SETTING_BACK_UP_WALLET ->
+        }
+
+        NavigationTargets.SETTING_BACK_UP_WALLET -> {
             activity.AndroidSettingBackUpWallet(onBack = onBack)
-        NavigationTargets.ABOUT ->
+        }
+
+        NavigationTargets.ABOUT -> {
             activity.AndroidAboutView(onBack = onBack)
-        NavigationTargets.ADVANCED_SETTING ->
+        }
+
+        NavigationTargets.ADVANCED_SETTING -> {
             activity.AndroidAdvancedSetting(onBack = onBack)
-        NavigationTargets.CHANGE_SERVER ->
+        }
+
+        NavigationTargets.CHANGE_SERVER -> {
             activity.AndroidChangeServer(onBack = onBack)
-        NavigationTargets.DAO_HUB ->
-            activity.AndroidDaoHub(
-                onBack = onBack,
-                onOpenDao = onOpenDao,
-            )
-        NavigationTargets.TOP_UP ->
+        }
+
+        NavigationTargets.TOP_UP -> {
             activity.AndroidTopUp(onBack = onBack)
-        else -> SettingsCompanionHub(versionInfo = versionInfo)
+        }
+
+        else -> {
+            SettingsCompanionHub(versionInfo = versionInfo)
+        }
     }
 }

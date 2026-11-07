@@ -1236,8 +1236,7 @@ impl LightwalletClient {
         let start = Instant::now();
         let result = async_compat::Compat::new(async {
             let channel = self.connect_channel().await?;
-            let mut client =
-                lwd_client(channel);
+            let mut client = lwd_client(channel);
 
             match client
                 .get_compact_blocks_at_heights(lightwallet_proto::HeightList {

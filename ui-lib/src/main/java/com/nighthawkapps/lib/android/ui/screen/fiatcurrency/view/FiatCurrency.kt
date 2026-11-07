@@ -77,8 +77,7 @@ fun FiatCurrency(
                             selected = isSelected,
                             onClick = { onPreferredFiatCurrencyUpdated(it) },
                             role = Role.RadioButton,
-                        )
-                        .padding(vertical = 8.dp),
+                        ).padding(vertical = 8.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 RadioButton(

@@ -104,8 +104,7 @@ private object MeshOfflinePlans {
     private fun bulk(
         dest: ByteArray,
         foreground: Boolean,
-    ): MeshOfflineRelay.Plan =
-        if (foreground) MeshOfflineRelay.Plan.BulkJoin(dest) else MeshOfflineRelay.Plan.None
+    ): MeshOfflineRelay.Plan = if (foreground) MeshOfflineRelay.Plan.BulkJoin(dest) else MeshOfflineRelay.Plan.None
 
     private fun ctrl(
         dest: ByteArray,

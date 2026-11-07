@@ -36,14 +36,14 @@ srclib SHA edit.
 
 Tagging alone does **not** run this repo’s GitHub `Deploy` workflow (that is branch/`workflow_dispatch` + Play secrets). F-Droid’s scanner is separate.
 
-## 3.01.06 (this release)
+## 3.01.07 (this release)
 
 | Field | Value |
 |-------|--------|
-| `WALLET_VERSION_NAME` | `3.01.06` |
-| `WALLET_VERSION_CODE` | `30100806` |
-| Suggested git tag | `v3.01.06` |
-| Fastlane changelog | `fastlane/metadata/android/en-US/changelogs/30100806.txt` |
+| `WALLET_VERSION_NAME` | `3.01.07` |
+| `WALLET_VERSION_CODE` | `30100807` |
+| Suggested git tag | `v3.01.07` |
+| Fastlane changelog | `fastlane/metadata/android/en-US/changelogs/30100807.txt` |
 
 - Bottom nav: Chat → Wallet → Dex → **DAO** → Settings. DAO hub title inset matches Dex/Settings.
 - Wallet hub chips: **Request → Receive → Send** (8dp FilterChip corners, teal money accent).
@@ -234,7 +234,7 @@ What's new for testers:
 
 - Strict UniFOMR is the default. Turn it off in settings to trial-decrypt payments that have no clue.
 - PIR limb fetches are rounded up so the matched payload size is not visible from the request count.
-- Gradle 9.8.1 and Android Gradle Plugin 9.4.1. kvdb-overlay is pinned because its latest git HEAD no longer builds with this DarkFi tree.
+- Gradle 9.9.0 and Android Gradle Plugin 9.5.1. kvdb-overlay is pinned because its latest git HEAD no longer builds with this DarkFi tree.
 
 ## 3.00.015
 

@@ -230,9 +230,7 @@ async fn run_socks_proxy(socks_port: u16) -> Result<(), String> {
             }
             Err(e) => {
                 bootstrap_err = e;
-                tracing::warn!(
-                    "nym tunnel bootstrap failed (attempt {attempt}): {bootstrap_err}"
-                );
+                tracing::warn!("nym tunnel bootstrap failed (attempt {attempt}): {bootstrap_err}");
                 tokio::select! {
                     _ = tokio::time::sleep(Duration::from_secs(2)) => {}
                     _ = wait_for_stop() => {
@@ -544,9 +542,7 @@ async fn resolve_over_nym(tunnel: &Tunnel, host: &str) -> Result<Option<IpAddr>,
                 return Ok(answer);
             }
             Err(e) => {
-                tracing::warn!(
-                    "mixnet TCP DNS lookup for {host} failed (attempt {attempt}): {e}"
-                );
+                tracing::warn!("mixnet TCP DNS lookup for {host} failed (attempt {attempt}): {e}");
                 last_err = e;
             }
         }

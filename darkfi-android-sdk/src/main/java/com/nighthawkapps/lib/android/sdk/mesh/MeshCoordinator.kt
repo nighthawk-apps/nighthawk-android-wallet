@@ -144,11 +144,9 @@ private object MeshStartGate {
         return MeshPermissionGate.hasBlePermissions(context)
     }
 
-    private fun toggleAndPersisted(activity: Activity): Boolean =
-        MeshCoordinator.canShowMeshToggle() && MeshPersist.isEnabled(activity)
+    private fun toggleAndPersisted(activity: Activity): Boolean = MeshCoordinator.canShowMeshToggle() && MeshPersist.isEnabled(activity)
 
-    private fun bootPrefs(context: Context): Boolean =
-        MeshPersist.isEnabled(context) && MeshCoordinator.alwaysOn
+    private fun bootPrefs(context: Context): Boolean = MeshPersist.isEnabled(context) && MeshCoordinator.alwaysOn
 
     private fun bleGranted(
         activity: Activity,

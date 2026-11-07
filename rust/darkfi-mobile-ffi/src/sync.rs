@@ -1439,10 +1439,7 @@ async fn contract_records_for_range(
         crate::note_batch::MONEY_FUNC_AUTH_TOKEN_MINT,
         crate::note_batch::MONEY_FUNC_AUTH_TOKEN_FREEZE,
     ] {
-        for body in client
-            .get_compact_outputs_by_func(start, end, code)
-            .await?
-        {
+        for body in client.get_compact_outputs_by_func(start, end, code).await? {
             if body.encrypted_note.is_empty() {
                 func_events.push(crate::dao_compact::CompactFuncEvent {
                     height: body.height,
@@ -1485,7 +1482,11 @@ async fn trial_decrypt_range(
             prepare_trial_batch(client, batch_start, batch_end, tip).await?
         };
         let Some(reached) = prepared.reached else {
-            return Ok(if cursor == start { None } else { Some(cursor - 1) });
+            return Ok(if cursor == start {
+                None
+            } else {
+                Some(cursor - 1)
+            });
         };
         let next_start = batch_end.saturating_add(1);
         let apply_fut = async {
@@ -1510,7 +1511,11 @@ async fn trial_decrypt_range(
         cursor = reached.saturating_add(1);
         batch_start = next_start;
     }
-    Ok(if cursor == start { None } else { Some(cursor - 1) })
+    Ok(if cursor == start {
+        None
+    } else {
+        Some(cursor - 1)
+    })
 }
 
 /// One OMR window after the network reads have finished.
@@ -1936,8 +1941,13 @@ fn window_note_hits(
     birthday: u32,
     trial_decrypt_all: bool,
     matching: &std::collections::HashSet<u32>,
-) -> std::collections::HashMap<Vec<u8>, (darkfi_money_contract::client::MoneyNote, darkfi_sdk::crypto::SecretKey)>
-{
+) -> std::collections::HashMap<
+    Vec<u8>,
+    (
+        darkfi_money_contract::client::MoneyNote,
+        darkfi_sdk::crypto::SecretKey,
+    ),
+> {
     let mut jobs = Vec::new();
     for block in blocks.values() {
         if block.height < birthday {

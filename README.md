@@ -6,7 +6,7 @@
 
 Privacy-preserving wallet (work-in-progress) by [Nighthawk Apps](https://nighthawkapps.com). This tree ships as a **new Android application id** on the DarkFi network (DRK). The app integrates a native DarkFi wallet API via **UniFFI** (`rust/darkfi-mobile-ffi` → generated Kotlin + `DarkfiMobileFfiApi`) for chain sync, broadcast, and chat.
 
-**3.01.06** (`WALLET_VERSION_CODE=30100806`). Cyberpunk is the default theme on a light or dark system. The Void wallpaper stays anchored at the top left and continues under the status bar and the navigation bar. Body text uses DejaVu Sans Mono. Light and Paper use graphite and grey instead of teal. Sync uses lightwalletd proto 2.1.0. The default is padded trial decryption of Money notes, token mints, and compact DAO calls. UnifOMR is an experimental Advanced setting and is not maintained until DarkFi mainnet contracts are live. Embedded Tor is Arti 0.48. The wallet opens without waiting for Nym or Tor; the sync thread dials lightwalletd only once the tunnel is up. Nym is the default network for the wallet, DarkIRC, and the embedded node. The splash shows mixnet progress and **Continue without Nym** after 20 seconds or a failed bootstrap. Bottom nav is **Chat · Wallet · Dex · DAO · Settings**. Wallet actions are **Request · Receive · Send**. Settings → **Share Nighthawk** sends the APK to another Android device (zipped for Bluetooth, raw APK for other share targets). Toolchain: Gradle **9.8.1**, AGP **9.4.1**, Kotlin **2.2.21**, Compose UI **1.12.1**, Material3 **1.4.0**, Material icons **1.7.8**, AndroidX Lifecycle **2.11.0**, Navigation Compose **2.10.1**, JNA **5.19.1**, UniFFI **0.32**, NDK **26.1.10909125**, minSdk **27**, compile SDK **37.2**, target SDK **37** (Android 17). DarkFi pin `8af61b3f0` (Arti 0.47, upstream `0f985c7cf` tx-local fees, public `scan_block`, darkfid sync hardening). Native sent-tx session cache is FIFO-capped (10,000). Reorg “transactions affected” is counted from `drk.get_txs_history()` (`block_height > rewind`), not from CLI log lines.
+**3.01.07** (`WALLET_VERSION_CODE=30100807`). Cyberpunk is the default theme on a light or dark system. The Void wallpaper stays anchored at the top left and continues under the status bar and the navigation bar. Body text uses DejaVu Sans Mono. Light and Paper use graphite and grey instead of teal. Sync uses lightwalletd proto 2.1.0. The default is padded trial decryption of Money notes, token mints, and compact DAO calls. UnifOMR is an experimental Advanced setting and is not maintained until DarkFi mainnet contracts are live. Embedded Tor is Arti 0.48. The wallet opens without waiting for Nym or Tor; the sync thread dials lightwalletd only once the tunnel is up. Nym is the default network for the wallet, DarkIRC, and the embedded node. The splash shows mixnet progress and **Continue without Nym** after 20 seconds or a failed bootstrap. Bottom nav is **Chat · Wallet · Dex · DAO · Settings**. Wallet actions are **Request · Receive · Send**. Settings → **Share Nighthawk** sends the APK to another Android device (zipped for Bluetooth, raw APK for other share targets). Toolchain: Gradle **9.9.0**, AGP **9.5.1**, Kotlin **2.3.21**, Compose UI **1.12.1**, Material3 **1.4.0**, Material icons **1.7.8**, AndroidX Lifecycle **2.11.0**, Navigation Compose **2.10.2**, JNA **5.19.1**, UniFFI **0.32**, NDK **30.0.16248370**, minSdk **27**, compile SDK **37.2**, target SDK **37** (Android 17). DarkFi pin `8af61b3f0` (Arti 0.47, upstream `0f985c7cf` tx-local fees, public `scan_block`, darkfid sync hardening). Native sent-tx session cache is FIFO-capped (10,000). Reorg “transactions affected” is counted from `drk.get_txs_history()` (`block_height > rewind`), not from CLI log lines.
 
 ## Contents
 
@@ -29,7 +29,7 @@ Privacy-preserving wallet (work-in-progress) by [Nighthawk Apps](https://nightha
 
 Store listings are **not finalized** for `com.nighthawkwallet.android`. Placeholder targets until publishing completes:
 
-- **F-Droid:** DarkFi **testnet** package `com.nighthawkwallet.android.testnet` / flavor `darkfitestnet` (see [docs/fdroid.md](docs/fdroid.md); listing pending fdroiddata merge). **3.01.06** (`WALLET_VERSION_CODE=30100806`) — Fastlane changelog `fastlane/metadata/android/en-US/changelogs/30100806.txt`, tag `v3.01.06`. Local unsigned APK: `bundle exec fastlane fdroid`.
+- **F-Droid:** DarkFi **testnet** package `com.nighthawkwallet.android.testnet` / flavor `darkfitestnet` (see [docs/fdroid.md](docs/fdroid.md); listing pending fdroiddata merge). **3.01.07** (`WALLET_VERSION_CODE=30100807`) — Fastlane changelog `fastlane/metadata/android/en-US/changelogs/30100807.txt`, tag `v3.01.07`. Local unsigned APK: `bundle exec fastlane fdroid`.
 - **Google Play:** `https://PLACEHOLDER_PLAY_STORE_LISTING_URL`
 
 Replace these URLs when production listings exist—do not invent live links prematurely.
@@ -50,7 +50,7 @@ From the repository root (first-time or after vendored DarkFi / native code chan
 
 # 2) Android SDK + NDK
 export ANDROID_HOME="$HOME/Library/Android/sdk"
-export ANDROID_NDK_HOME="$ANDROID_HOME/ndk/26.1.10909125"
+export ANDROID_NDK_HOME="$ANDROID_HOME/ndk/30.0.16248370"
 export PATH="$PATH:$ANDROID_HOME/platform-tools"
 
 # 3) UniFFI wallet native lib + Kotlin bindings
@@ -108,7 +108,7 @@ symlink or copy it to a sibling directory named `darkfi-mobile-ffi`.
 |-------------|--------|
 | **JDK 17+** | Temurin common; Gradle may use toolchains — see [Setup](docs/Setup.md) |
 | **Android SDK** | SDK Manager → set `ANDROID_HOME`; add `platform-tools` to `PATH` for `adb` |
-| **Android NDK** | **Exactly `26.1.10909125`** (`gradle.properties` `ANDROID_NDK_VERSION`). NDK 27/30 will not satisfy Gradle. `sdkmanager --install "ndk;26.1.10909125"` then `export ANDROID_NDK_HOME="$ANDROID_HOME/ndk/26.1.10909125"` |
+| **Android NDK** | **`30.0.16248370`** (`gradle.properties` `ANDROID_NDK_VERSION`). `sdkmanager --install "ndk;30.0.16248370"` then `export ANDROID_NDK_HOME="$ANDROID_HOME/ndk/30.0.16248370"` |
 | **Rust + Cargo** | [rustup](https://rustup.rs/) stable |
 | **`cargo-ndk`** | Pin `4.1.2` (F-Droid). The FFI script defaults `CARGO_HOME` to the repo `.cargo-home`, so `cargo install cargo-ndk@4.1.2` into `~/.cargo` is easy to miss. Either `CARGO_HOME=$PWD/.cargo-home cargo install cargo-ndk@4.1.2` or keep `~/.cargo/bin` on `PATH` (the script now searches both). |
 | **Android Rust targets** | See command below |
@@ -127,7 +127,7 @@ rustup target add aarch64-linux-android armv7-linux-androideabi i686-linux-andro
 Produces `libdarkfi_mobile_ffi.so` per ABI, copies into `artifacts/mobile-ffi/` and `darkfi-android-sdk/src/main/jniLibs/`, and regenerates Kotlin bindings from `rust/darkfi-mobile-ffi/src/darkfi_mobile_ffi.udl`.
 
 ```bash
-export ANDROID_NDK_HOME=/path/to/ndk   # e.g. ~/Library/Android/sdk/ndk/26.1.10909125
+export ANDROID_NDK_HOME=/path/to/ndk   # e.g. ~/Library/Android/sdk/ndk/30.0.16248370
 ./scripts/build-darkfi-mobile-ffi-android.sh
 
 # Emulator + device only:

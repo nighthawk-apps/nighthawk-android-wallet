@@ -45,9 +45,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.colorResource
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -545,29 +545,29 @@ class MainActivity : FragmentActivity() {
                             )
                             Box(Modifier.fillMaxSize().background(Color(0x80050810)))
                         }
-                    Surface(
-                        modifier =
-                            Modifier
-                                .fillMaxWidth()
-                                .fillMaxHeight(),
-                        color =
-                            if (cyberpunk) {
-                                Color.Transparent
-                            } else {
-                                MaterialTheme.colorScheme.background
-                            },
-                    ) {
-                        BindCompLocalProvider {
-                            val isEnoughSpace by storageCheckViewModel.isEnoughSpace.collectAsStateWithLifecycle()
-                            if (isEnoughSpace == false) {
-                                Box(modifier = Modifier.fillMaxSize().safeDrawingPadding()) {
-                                    WrapNotEnoughSpace()
+                        Surface(
+                            modifier =
+                                Modifier
+                                    .fillMaxWidth()
+                                    .fillMaxHeight(),
+                            color =
+                                if (cyberpunk) {
+                                    Color.Transparent
+                                } else {
+                                    MaterialTheme.colorScheme.background
+                                },
+                        ) {
+                            BindCompLocalProvider {
+                                val isEnoughSpace by storageCheckViewModel.isEnoughSpace.collectAsStateWithLifecycle()
+                                if (isEnoughSpace == false) {
+                                    Box(modifier = Modifier.fillMaxSize().safeDrawingPadding()) {
+                                        WrapNotEnoughSpace()
+                                    }
+                                } else {
+                                    MainContent()
                                 }
-                            } else {
-                                MainContent()
                             }
                         }
-                    }
                     }
                 }
             }

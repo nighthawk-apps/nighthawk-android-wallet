@@ -347,7 +347,9 @@ fn present_privmsg(privmsg: Privmsg) -> PresentedPrivmsg {
             is_outgoing: false,
         };
     };
-    let channel_ct = bs58::decode(&privmsg.channel).into_vec().unwrap_or_default();
+    let channel_ct = bs58::decode(&privmsg.channel)
+        .into_vec()
+        .unwrap_or_default();
     let nick_ct = bs58::decode(&privmsg.nick).into_vec().unwrap_or_default();
     let msg_ct = bs58::decode(&privmsg.msg).into_vec().unwrap_or_default();
     for (name, contact) in contacts.iter() {

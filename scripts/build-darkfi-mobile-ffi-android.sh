@@ -11,7 +11,7 @@ RUST="$ROOT/rust"
 ANDROID_API="${ANDROID_API:-27}"
 
 pinned_ndk_version() {
-  # gradle.properties ANDROID_NDK_VERSION=26.1.10909125 — do not pick NDK 27/30.
+  # Prefer gradle.properties ANDROID_NDK_VERSION (currently 30.0.16248370).
   if [[ -n "${ANDROID_NDK_VERSION:-}" ]]; then
     printf '%s' "$ANDROID_NDK_VERSION"
     return
@@ -24,7 +24,7 @@ pinned_ndk_version() {
       return
     fi
   fi
-  printf '%s' "26.1.10909125"
+  printf '%s' "30.0.16248370"
 }
 
 resolve_ndk_home() {

@@ -9,11 +9,11 @@ pub mod block_cache;
 pub mod bootstrap;
 mod dao;
 mod dao_compact;
-mod note_batch;
 #[cfg(feature = "darkirc")]
 mod darkirc_daemon;
 mod memo;
 pub mod mnemonic;
+mod note_batch;
 #[cfg(feature = "nym")]
 mod nym;
 mod omr_envelope;

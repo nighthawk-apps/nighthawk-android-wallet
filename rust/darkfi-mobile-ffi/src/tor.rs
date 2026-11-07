@@ -202,13 +202,10 @@ async fn run_socks_proxy(socks_port: u16) -> Result<(), String> {
             return Ok(());
         }
         let tick = smol::Timer::after(std::time::Duration::from_millis(500));
-        match smol::future::race(
-            async { Some(bootstrap.as_mut().await) },
-            async {
-                tick.await;
-                None
-            },
-        )
+        match smol::future::race(async { Some(bootstrap.as_mut().await) }, async {
+            tick.await;
+            None
+        })
         .await
         {
             Some(result) => break result?,

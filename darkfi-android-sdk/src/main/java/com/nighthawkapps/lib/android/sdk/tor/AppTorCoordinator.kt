@@ -193,8 +193,14 @@ object AppTorCoordinator {
         // Re-read prefs: splash may have disabled Tor while we were waiting.
         val stillWantsTor = DarkfiChatPreferences(app).routeOutboundThroughTor
         when {
-            !stillWantsTor -> _bootstrapState.value = TorBootstrapUiState.Disabled
-            port != null -> _bootstrapState.value = TorBootstrapUiState.Ready
+            !stillWantsTor -> {
+                _bootstrapState.value = TorBootstrapUiState.Disabled
+            }
+
+            port != null -> {
+                _bootstrapState.value = TorBootstrapUiState.Ready
+            }
+
             else -> {
                 // Abandon a hung bootstrap so Retry starts clean.
                 if (prefs.useEmbeddedTor) {

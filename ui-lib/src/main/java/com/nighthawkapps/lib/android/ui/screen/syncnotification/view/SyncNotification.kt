@@ -110,8 +110,7 @@ fun SyncNotification(
                             selected = isSelected,
                             onClick = { onSyncOptionSelected(it) },
                             role = Role.RadioButton,
-                        )
-                        .padding(vertical = 8.dp),
+                        ).padding(vertical = 8.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 RadioButton(

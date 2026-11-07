@@ -176,8 +176,7 @@ fun AdvanceSetting(
                                 selected = isSelected,
                                 onClick = { onLogoPreferenceChanged(logo) },
                                 role = Role.RadioButton,
-                            )
-                            .padding(vertical = 8.dp),
+                            ).padding(vertical = 8.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     RadioButton(
@@ -300,8 +299,7 @@ private fun ThemeVariantRow(
                     selected = selected,
                     onClick = onClick,
                     role = Role.RadioButton,
-                )
-                .padding(vertical = 8.dp),
+                ).padding(vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         RadioButton(selected = selected, onClick = null)
