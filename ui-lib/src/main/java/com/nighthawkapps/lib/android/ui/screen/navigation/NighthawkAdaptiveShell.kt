@@ -19,19 +19,24 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import com.nighthawkapps.lib.android.ui.design.theme.LocalCyberpunkChrome
 import androidx.navigation.NavController
 import androidx.navigation.compose.currentBackStackEntryAsState
+import com.nighthawkapps.lib.android.ui.R
 import com.nighthawkapps.lib.android.ui.design.component.BodySmall
+import com.nighthawkapps.lib.android.ui.design.theme.LocalCyberpunkChrome
 import com.nighthawkapps.lib.android.ui.design.theme.WalletTheme
 
 /**
  * Folded width keeps the bottom bar. Width at or above [NighthawkExpandedWidth]
- * uses a navigation rail. material3-adaptive and androidx.window are not in the
- * version catalog, so this measures the window with [BoxWithConstraints].
+ * uses a navigation rail (iOS Duo / landscape uses the same 600pt gate).
+ * Rail items are inset by [R.dimen.wallpaper_wordmark_clearance] so Chat aligns
+ * with the Channels tab and the wallpaper wordmark stays readable.
+ * material3-adaptive and androidx.window are not in the version catalog, so
+ * this measures the window with [BoxWithConstraints].
  */
 internal val NighthawkExpandedWidth = 600.dp
 
@@ -93,14 +98,12 @@ private val NavigationRailWidth = 80.dp
 private fun NighthawkNavigationRail(navController: NavController) {
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
-    val cyberpunk = LocalCyberpunkChrome.current
     NavigationRail(
-        containerColor =
-            if (cyberpunk) {
-                Color(0x6610141C)
-            } else {
-                WalletTheme.colors.navigationContainer
-            },
+        // Always inset like iOS Duo rail — clears wallpaper wordmark (48dp) and
+        // lines Chat up with Channels regardless of theme.
+        modifier =
+            Modifier.padding(top = dimensionResource(id = R.dimen.wallpaper_wordmark_clearance)),
+        containerColor = WalletTheme.colors.navigationContainer,
         windowInsets = WindowInsets(0, 0, 0, 0),
     ) {
         navItemList.forEach { item ->

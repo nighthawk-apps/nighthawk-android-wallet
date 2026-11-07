@@ -1,75 +1,18 @@
-@file:Suppress("UnusedPrivateProperty")
-
 package com.nighthawkapps.lib.android.ui.design.theme.internal
 
 import androidx.compose.material3.Typography
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.compositionLocalOf
-import androidx.compose.ui.text.ExperimentalTextApi
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontVariation
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.googlefonts.Font
-import androidx.compose.ui.text.googlefonts.GoogleFont
 import androidx.compose.ui.text.style.BaselineShift
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.TextUnitType
 import androidx.compose.ui.unit.sp
 import com.nighthawkapps.lib.android.ui.design.R
-
-@OptIn(ExperimentalTextApi::class)
-private val provider =
-    GoogleFont.Provider(
-        providerAuthority = "com.google.android.gms.fonts",
-        providerPackage = "com.google.android.gms",
-        certificates = R.array.com_google_android_gms_fonts_certs
-    )
-
-// We use bestEffort here to be able to get the closest font weight, if accidentally use
-// an unspecified font weight and not the default one.
-@OptIn(ExperimentalTextApi::class)
-private val RubikFont = GoogleFont(name = "Rubik", bestEffort = true)
-
-@OptIn(ExperimentalTextApi::class)
-private val RubikFontFamily =
-    FontFamily(
-        Font(googleFont = RubikFont, fontProvider = provider, weight = FontWeight.Normal), // W400
-        Font(googleFont = RubikFont, fontProvider = provider, weight = FontWeight.Medium), // W500
-        Font(googleFont = RubikFont, fontProvider = provider, weight = FontWeight.SemiBold), // W600
-        Font(googleFont = RubikFont, fontProvider = provider, weight = FontWeight.Bold) // W700
-    )
-
-private val Zboto =
-    FontFamily(
-        Font(R.font.zboto, FontWeight.Normal)
-    )
-
-@OptIn(ExperimentalTextApi::class)
-private val OrbitronFont = GoogleFont(name = "Orbitron", bestEffort = true)
-
-@OptIn(ExperimentalTextApi::class)
-private val PulpDisplay =
-    FontFamily(
-        Font(googleFont = OrbitronFont, fontProvider = provider, weight = FontWeight.Normal), // W400
-        Font(googleFont = OrbitronFont, fontProvider = provider, weight = FontWeight.Medium), // W500
-        Font(googleFont = OrbitronFont, fontProvider = provider, weight = FontWeight.SemiBold), // W600
-        Font(googleFont = OrbitronFont, fontProvider = provider, weight = FontWeight.Bold) // W700
-    )
-
-@OptIn(ExperimentalTextApi::class)
-private val ShareTechMonoFont = GoogleFont(name = "Share Tech Mono", bestEffort = true)
-
-@OptIn(ExperimentalTextApi::class)
-private val ShareTechMonoFontFamily =
-    FontFamily(
-        Font(googleFont = ShareTechMonoFont, fontProvider = provider, weight = FontWeight.Normal), // W400
-        Font(googleFont = ShareTechMonoFont, fontProvider = provider, weight = FontWeight.Medium), // W500
-        Font(googleFont = ShareTechMonoFont, fontProvider = provider, weight = FontWeight.SemiBold), // W600
-        Font(googleFont = ShareTechMonoFont, fontProvider = provider, weight = FontWeight.Bold) // W700
-    )
 
 private fun variableFamily(resId: Int): FontFamily {
     fun face(
@@ -128,9 +71,6 @@ private val TerminalFamily =
 /** Paper headings. Source Serif 4 is a text serif, not a display face. */
 private val SourceSerifFamily = serifFamily(R.font.source_serif_4)
 
-private val IbmPlexMonoFamily =
-    FontFamily(Font(R.font.ibm_plex_mono, FontWeight.Normal))
-
 // If you change this definition of our Typography, don't forget to check if you use only
 // the defined font weights above, otherwise the closest one will be used.
 internal val Typography =
@@ -150,6 +90,14 @@ internal val Typography =
                 fontSize = 28.sp,
                 letterSpacing = TextUnit(value = 0.3f, TextUnitType.Sp),
                 lineHeight = TextUnit(value = 34f, TextUnitType.Sp)
+            ),
+        headlineSmall =
+            TextStyle(
+                fontFamily = OutfitFamily,
+                fontWeight = FontWeight.Normal,
+                fontSize = 24.sp,
+                letterSpacing = TextUnit(value = 0.3f, TextUnitType.Sp),
+                lineHeight = TextUnit(value = 30f, TextUnitType.Sp)
             ),
         bodyLarge =
             TextStyle(
@@ -181,6 +129,20 @@ internal val Typography =
                 fontWeight = FontWeight.Normal,
                 fontSize = 16.sp
             ),
+        labelMedium =
+            TextStyle(
+                fontFamily = TerminalFamily,
+                fontWeight = FontWeight.Medium,
+                fontSize = 12.sp,
+                lineHeight = TextUnit(value = 16f, TextUnitType.Sp)
+            ),
+        labelSmall =
+            TextStyle(
+                fontFamily = TerminalFamily,
+                fontWeight = FontWeight.Normal,
+                fontSize = 11.sp,
+                lineHeight = TextUnit(value = 16f, TextUnitType.Sp)
+            ),
         titleLarge =
             TextStyle(
                 fontFamily = OutfitFamily,
@@ -208,6 +170,7 @@ internal fun paperTypography(): Typography {
     return Typography.copy(
         headlineLarge = Typography.headlineLarge.asSerif(),
         headlineMedium = Typography.headlineMedium.asSerif(),
+        headlineSmall = Typography.headlineSmall.asSerif(),
         titleLarge = Typography.titleLarge.asSerif(),
         titleMedium = Typography.titleMedium.asSerif(),
         titleSmall = Typography.titleSmall.asSerif(),
@@ -215,6 +178,8 @@ internal fun paperTypography(): Typography {
         bodyMedium = Typography.bodyMedium.asText(),
         bodySmall = Typography.bodySmall.asText(),
         labelLarge = Typography.labelLarge.asText(),
+        labelMedium = Typography.labelMedium.asText(),
+        labelSmall = Typography.labelSmall.asText(),
     )
 }
 

@@ -13,6 +13,7 @@ use std::sync::Arc;
 
 use darkfi_mobile_ffi::{
     darkirc_status, send_chat_message, start_darkirc, stop_darkirc, DarkircEventCallback,
+    DarkircTransport,
 };
 
 struct CountingCallback {
@@ -64,7 +65,11 @@ fn main() {
     );
     start_darkirc(
         datastore.display().to_string(),
-        use_tor,
+        if use_tor {
+            DarkircTransport::Tor
+        } else {
+            DarkircTransport::Direct
+        },
         socks_port,
         Some(cb),
     )

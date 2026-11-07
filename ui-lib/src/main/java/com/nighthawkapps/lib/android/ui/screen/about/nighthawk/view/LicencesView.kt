@@ -9,17 +9,16 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
 import com.mikepenz.aboutlibraries.ui.compose.LibrariesContainer
 import com.mikepenz.aboutlibraries.ui.compose.LibraryDefaults
 import com.nighthawkapps.lib.android.ui.R
-import com.nighthawkapps.lib.android.ui.design.component.TitleMedium
+import com.nighthawkapps.lib.android.ui.design.component.NighthawkTopBar
+import com.nighthawkapps.lib.android.ui.design.component.NighthawkTopBarLeading
 import com.nighthawkapps.lib.android.ui.design.theme.WalletTheme
 
 @Preview
@@ -33,25 +32,28 @@ fun LicenceViewPreview() {
 }
 
 @Composable
-fun LicencesView() {
+fun LicencesView(onBack: () -> Unit = {}) {
     Box {
-        Column(modifier = Modifier.fillMaxSize()) {
-            Spacer(modifier = Modifier.height(dimensionResource(id = R.dimen.screen_standard_margin)))
-            TitleMedium(
-                text = stringResource(id = R.string.ns_view_license),
-                color = WalletTheme.colors.secondaryTitleText,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.align(Alignment.CenterHorizontally)
+        Column(
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = WalletTheme.dimens.spacingDefault)
+                    .padding(vertical = dimensionResource(id = R.dimen.screen_standard_margin)),
+        ) {
+            NighthawkTopBar(
+                onLeadingClick = onBack,
+                leading = NighthawkTopBarLeading.Back,
+                title = stringResource(id = R.string.ns_view_license),
+                leadingContentDescription = stringResource(R.string.about_back_content_description),
             )
+            Spacer(modifier = Modifier.height(16.dp))
             LibrariesContainer(
-                modifier =
-                    Modifier
-                        .fillMaxSize()
-                        .padding(dimensionResource(id = R.dimen.screen_standard_margin)),
+                modifier = Modifier.fillMaxSize(),
                 colors =
                     LibraryDefaults.libraryColors(
                         backgroundColor = MaterialTheme.colorScheme.surface,
-                        contentColor = Color.White
+                        contentColor = MaterialTheme.colorScheme.onSurface,
                     )
             )
         }

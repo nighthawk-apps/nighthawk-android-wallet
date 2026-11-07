@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -47,7 +48,7 @@ fun ReviewSend(
         NighthawkTopBar(
             onLeadingClick = onBack,
             leading = NighthawkTopBarLeading.Back,
-            title = stringResource(id = R.string.ns_review_and_send),
+            title = null,
         )
         Spacer(modifier = Modifier.height(WalletTheme.dimens.spacingLarge))
         TitleLarge(
@@ -78,7 +79,7 @@ fun ReviewSend(
 
         errorMessage?.let { msg ->
             Spacer(modifier = Modifier.height(WalletTheme.dimens.spacingSmall))
-            BodyMedium(text = msg, color = WalletTheme.colors.secondaryTitleText)
+            BodyMedium(text = msg, color = MaterialTheme.colorScheme.error)
         }
 
         Spacer(modifier = Modifier.height(WalletTheme.dimens.spacingDefault))

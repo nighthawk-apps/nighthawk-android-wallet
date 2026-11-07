@@ -92,12 +92,18 @@ fun SecondaryButton(
         onClick = onClick,
         modifier = if (outerPaddingValues != null) modifier.padding(outerPaddingValues) else modifier,
         enabled = enabled,
-        colors = buttonColors(containerColor = MaterialTheme.colorScheme.secondary)
+        colors =
+            buttonColors(
+                containerColor = MaterialTheme.colorScheme.secondary,
+                contentColor = MaterialTheme.colorScheme.onSecondary,
+                disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                disabledContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+            ),
+        shape = RoundedCornerShape(8.dp),
     ) {
         Text(
-            style = MaterialTheme.typography.labelLarge,
+            style = MaterialTheme.typography.bodyMedium,
             text = text,
-            color = MaterialTheme.colorScheme.onSecondary
         )
     }
 }
@@ -120,9 +126,16 @@ fun NavigationButton(
                 Modifier
                     .padding(outerPaddingValues)
             ),
-        colors = buttonColors(containerColor = MaterialTheme.colorScheme.secondary)
+        colors =
+            buttonColors(
+                containerColor = MaterialTheme.colorScheme.secondary,
+                contentColor = MaterialTheme.colorScheme.onSecondary,
+                disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                disabledContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+            ),
+        shape = RoundedCornerShape(8.dp),
     ) {
-        Text(style = MaterialTheme.typography.labelLarge, text = text, color = MaterialTheme.colorScheme.onSecondary)
+        Text(style = MaterialTheme.typography.bodyMedium, text = text)
     }
 }
 
@@ -139,13 +152,18 @@ fun TertiaryButton(
         modifier = if (outerPaddingValues != null) modifier.padding(outerPaddingValues) else modifier,
         enabled = enabled,
         elevation = ButtonDefaults.buttonElevation(0.dp, 0.dp, 0.dp),
-        colors = buttonColors(containerColor = WalletTheme.colors.tertiary),
+        colors =
+            buttonColors(
+                containerColor = WalletTheme.colors.tertiary,
+                contentColor = WalletTheme.colors.onTertiary,
+                disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                disabledContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+            ),
         shape = RoundedCornerShape(8.dp)
     ) {
         Text(
             style = MaterialTheme.typography.bodyMedium,
             text = text,
-            color = WalletTheme.colors.onTertiary
         )
     }
 }
@@ -172,26 +190,25 @@ fun DangerousButton(
     onClick: () -> Unit,
     text: String,
     modifier: Modifier = Modifier,
-    outerPaddingValues: PaddingValues =
-        PaddingValues(
-            horizontal = WalletTheme.dimens.spacingDefault,
-            vertical = WalletTheme.dimens.spacingSmall
-        ),
+    outerPaddingValues: PaddingValues? = null,
+    enabled: Boolean = true,
 ) {
     Button(
         onClick = onClick,
-        modifier =
-            modifier.then(
-                Modifier
-                    .fillMaxWidth()
-                    .padding(outerPaddingValues)
+        modifier = if (outerPaddingValues != null) modifier.padding(outerPaddingValues) else modifier,
+        enabled = enabled,
+        colors =
+            buttonColors(
+                containerColor = WalletTheme.colors.dangerous,
+                contentColor = WalletTheme.colors.onDangerous,
+                disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                disabledContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
             ),
-        colors = buttonColors(containerColor = WalletTheme.colors.dangerous)
+        shape = RoundedCornerShape(8.dp),
     ) {
         Text(
-            style = MaterialTheme.typography.labelLarge,
+            style = MaterialTheme.typography.bodyMedium,
             text = text,
-            color = WalletTheme.colors.onDangerous
         )
     }
 }

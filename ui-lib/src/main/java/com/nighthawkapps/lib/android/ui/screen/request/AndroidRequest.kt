@@ -21,10 +21,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.runtime.Composable
@@ -36,12 +32,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.dimensionResource
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
@@ -55,6 +49,8 @@ import com.nighthawkapps.lib.android.ui.common.DisableScreenTimeout
 import com.nighthawkapps.lib.android.ui.common.setPlainText
 import com.nighthawkapps.lib.android.ui.design.component.BodyMedium
 import com.nighthawkapps.lib.android.ui.design.component.BodySmall
+import com.nighthawkapps.lib.android.ui.design.component.NighthawkTopBar
+import com.nighthawkapps.lib.android.ui.design.component.NighthawkTopBarLeading
 import com.nighthawkapps.lib.android.ui.design.component.PrimaryButton
 import com.nighthawkapps.lib.android.ui.design.component.TitleLarge
 import com.nighthawkapps.lib.android.ui.design.theme.WalletTheme
@@ -102,15 +98,13 @@ internal fun RequestMoneyScreen(
                 .padding(dimensionResource(id = R.dimen.screen_standard_margin))
                 .verticalScroll(rememberScrollState()),
     ) {
-        IconButton(
-            onClick = onBack,
-            modifier = Modifier.size(dimensionResource(id = R.dimen.back_icon_size)),
-        ) {
-            Icon(
-                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                contentDescription = stringResource(R.string.receive_back_content_description),
-            )
-        }
+        NighthawkTopBar(
+            onLeadingClick = onBack,
+            leading = NighthawkTopBarLeading.Back,
+            title = null,
+            leadingContentDescription = stringResource(R.string.receive_back_content_description),
+        )
+        Spacer(modifier = Modifier.height(16.dp))
         TitleLarge(
             text = stringResource(id = R.string.ns_request_money),
             textAlign = TextAlign.Center,
@@ -165,8 +159,8 @@ internal fun RequestMoneyScreen(
 @Composable
 private fun RequestQr(
     data: String,
-    @DrawableRes logoId: Int,
-    backGroundColor: Color,
+    @Suppress("UNUSED_PARAMETER") @DrawableRes logoId: Int,
+    @Suppress("UNUSED_PARAMETER") backGroundColor: Color,
 ) {
     val size = 180.dp
     Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
@@ -179,21 +173,5 @@ private fun RequestQr(
             bitmap = qrCodeImage,
             contentDescription = stringResource(R.string.receive_qr_code_content_description),
         )
-        Box(
-            modifier =
-                Modifier
-                    .size(50.dp)
-                    .background(color = backGroundColor, shape = CircleShape)
-                    .border(width = 4.dp, shape = CircleShape, color = Color.White),
-        ) {
-            Image(
-                painter = painterResource(id = logoId),
-                contentDescription = null,
-                modifier =
-                    Modifier
-                        .size(24.dp)
-                        .align(Alignment.Center),
-            )
-        }
     }
 }

@@ -15,6 +15,7 @@ import androidx.compose.ui.unit.dp
 import com.nighthawkapps.lib.android.ui.R
 import com.nighthawkapps.lib.android.ui.design.component.BodyMedium
 import com.nighthawkapps.lib.android.ui.design.component.TitleMedium
+import com.nighthawkapps.lib.android.ui.design.theme.LocalCyberpunkChrome
 import com.nighthawkapps.lib.android.ui.design.theme.WalletTheme
 
 @Preview
@@ -30,6 +31,12 @@ fun DexComingSoonPreview() {
 @Composable
 fun DexComingSoonView() {
     val margin = dimensionResource(id = R.dimen.screen_standard_margin)
+    val wordmarkClearance =
+        if (LocalCyberpunkChrome.current) {
+            dimensionResource(id = R.dimen.wallpaper_wordmark_clearance)
+        } else {
+            0.dp
+        }
     Column(
         modifier =
             Modifier
@@ -38,7 +45,7 @@ fun DexComingSoonView() {
                     start = margin,
                     end = margin,
                     bottom = margin,
-                    top = margin + dimensionResource(id = R.dimen.wallpaper_wordmark_clearance),
+                    top = margin + wordmarkClearance,
                 ),
     ) {
         TitleMedium(text = stringResource(id = R.string.ns_dex))

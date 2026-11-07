@@ -144,6 +144,13 @@ internal fun MainActivity.MainNavigation(
         composable(BottomNavItem.Dex.route) {
             DexComingSoonView()
         }
+        composable(BottomNavItem.DaoHub.route) {
+            AndroidDaoHub(
+                onOpenDao = { name ->
+                    navHostController.navigateJustOnce(NavigationTargets.navigationRouteDaoDetail(name))
+                },
+            )
+        }
         composable(BottomNavItem.Settings.route) {
             AndroidSettings(
                 navigation =
@@ -158,7 +165,7 @@ internal fun MainActivity.MainNavigation(
                         onAdvancedSetting = { navHostController.navigateJustOnce(ADVANCED_SETTING) },
                         onChangeServer = { navHostController.navigateJustOnce(CHANGE_SERVER) },
                         onAbout = { navHostController.navigateJustOnce(ABOUT) },
-                        onDaoHub = { navHostController.navigateJustOnce(DAO_HUB) },
+                        onDaoHub = { navHostController.navigateBottomDestination(BottomNavItem.DaoHub.route) },
                         onTopUp = { navHostController.navigateJustOnce(TOP_UP) },
                     ),
                 onOpenDao = { name ->
@@ -208,6 +215,7 @@ internal fun MainActivity.MainNavigation(
             )
         }
         composable(DAO_HUB) {
+            // Legacy stack entry — prefer DaoHub tab; keep for deep links.
             AndroidDaoHub(
                 onBack = { navHostController.popBackStackJustOnce(DAO_HUB) },
                 onOpenDao = { name ->
@@ -401,12 +409,7 @@ internal fun BottomNavigation(navController: NavController) {
     if (showBottomNavBar) {
         val cyberpunk = LocalCyberpunkChrome.current
         NavigationBar(
-            containerColor =
-                if (cyberpunk) {
-                    Color(0x6610141C)
-                } else {
-                    WalletTheme.colors.navigationContainer
-                },
+            containerColor = WalletTheme.colors.navigationContainer,
             tonalElevation = if (cyberpunk) 0.dp else NavigationBarDefaults.Elevation,
             windowInsets = NavigationBarDefaults.windowInsets,
         ) {
@@ -443,6 +446,8 @@ sealed class BottomNavItem(
 
     object Dex : BottomNavItem("Dex", R.string.ns_dex, R.drawable.ic_icon_transfer)
 
+    object DaoHub : BottomNavItem("DaoHub", R.string.ns_dao_hub, R.drawable.ic_icon_dao_hub)
+
     object Settings : BottomNavItem("Settings", R.string.ns_settings, R.drawable.ic_icon_settings)
 }
 
@@ -468,19 +473,33 @@ fun isBottomNavItemSelected(
             currentRoute == bottomNavItemRoute
         }
 
+        BottomNavItem.DaoHub.route -> {
+            currentRoute == bottomNavItemRoute ||
+                DAO_HUB == currentRoute ||
+                currentRoute?.startsWith("dao_detail/") == true ||
+                currentRoute?.startsWith("dao_proposal/") == true
+        }
+
         else -> {
             currentRoute == bottomNavItemRoute
         }
     }
 
 internal val navItemList =
-    persistentListOf(BottomNavItem.Chat, BottomNavItem.Wallet, BottomNavItem.Dex, BottomNavItem.Settings)
+    persistentListOf(
+        BottomNavItem.Chat,
+        BottomNavItem.Wallet,
+        BottomNavItem.Dex,
+        BottomNavItem.DaoHub,
+        BottomNavItem.Settings,
+    )
 
 internal val destinationsWithBottomBar =
     persistentListOf(
         BottomNavItem.Chat.route,
         BottomNavItem.Wallet.route,
         BottomNavItem.Dex.route,
+        BottomNavItem.DaoHub.route,
         BottomNavItem.Settings.route,
         RECEIVE_QR_CODES,
     )

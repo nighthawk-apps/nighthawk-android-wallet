@@ -31,22 +31,17 @@ internal fun WrapAboutView(
     BackHandler(onViewLicences.value) {
         onViewLicences.value = false
     }
-    AboutView(
-        onBack = {
-            if (onViewLicences.value) {
-                onViewLicences.value = false
-            } else {
-                onBack()
-            }
-        },
-        onViewSource = {
-            activity.onLaunchUrl(activity.getString(R.string.ns_source_code_link))
-        },
-        onViewLicence = {
-            onViewLicences.value = true
-        }
-    )
     if (onViewLicences.value) {
-        LicencesView()
+        LicencesView(onBack = { onViewLicences.value = false })
+    } else {
+        AboutView(
+            onBack = onBack,
+            onViewSource = {
+                activity.onLaunchUrl(activity.getString(R.string.ns_source_code_link))
+            },
+            onViewLicence = {
+                onViewLicences.value = true
+            }
+        )
     }
 }

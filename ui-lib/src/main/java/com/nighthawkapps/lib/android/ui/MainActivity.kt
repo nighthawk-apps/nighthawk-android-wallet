@@ -549,8 +549,7 @@ class MainActivity : FragmentActivity() {
                         modifier =
                             Modifier
                                 .fillMaxWidth()
-                                .fillMaxHeight()
-                                .then(if (cyberpunk) Modifier else Modifier.safeDrawingPadding()),
+                                .fillMaxHeight(),
                         color =
                             if (cyberpunk) {
                                 Color.Transparent
@@ -561,7 +560,9 @@ class MainActivity : FragmentActivity() {
                         BindCompLocalProvider {
                             val isEnoughSpace by storageCheckViewModel.isEnoughSpace.collectAsStateWithLifecycle()
                             if (isEnoughSpace == false) {
-                                WrapNotEnoughSpace()
+                                Box(modifier = Modifier.fillMaxSize().safeDrawingPadding()) {
+                                    WrapNotEnoughSpace()
+                                }
                             } else {
                                 MainContent()
                             }
@@ -606,7 +607,7 @@ class MainActivity : FragmentActivity() {
                 splash.isPending
         if (waitingOnWallet) {
             Box(
-                modifier = Modifier.fillMaxSize(),
+                modifier = Modifier.fillMaxSize().safeDrawingPadding(),
                 contentAlignment = Alignment.BottomCenter,
             ) {
                 Column(modifier = Modifier.padding(bottom = 24.dp)) {
@@ -614,7 +615,9 @@ class MainActivity : FragmentActivity() {
                 }
             }
         } else if (holdForTor) {
-            SplashConnectingScreen(splash)
+            Box(modifier = Modifier.fillMaxSize().safeDrawingPadding()) {
+                SplashConnectingScreen(splash)
+            }
         } else {
             // Note that the deeply nested child views will probably receive arguments derived from
             // the configuration.  The CompositionLocalProvider is helpful for passing the configuration
@@ -626,29 +629,37 @@ class MainActivity : FragmentActivity() {
                     }
 
                     SecretState.NeedAuthentication -> {
-                        AndroidPin(onBack = { this.finish() })
+                        Box(modifier = Modifier.fillMaxSize().safeDrawingPadding()) {
+                            AndroidPin(onBack = { this@MainActivity.finish() })
+                        }
                     }
 
                     SecretState.None -> {
-                        WrapOnBoarding()
+                        Box(modifier = Modifier.fillMaxSize().safeDrawingPadding()) {
+                            WrapOnBoarding()
+                        }
                     }
 
                     is SecretState.NeedsBackup -> {
-                        SeedBackup(
-                            persistableWallet = secretState.persistableWallet,
-                            onBackupComplete = { walletViewModel.persistBackupComplete() }
-                        )
+                        Box(modifier = Modifier.fillMaxSize().safeDrawingPadding()) {
+                            SeedBackup(
+                                persistableWallet = secretState.persistableWallet,
+                                onBackupComplete = { walletViewModel.persistBackupComplete() }
+                            )
+                        }
                     }
 
                     is SecretState.Ready -> {
                         Twig.info { "EndPoint ${secretState.persistableWallet.endpoint}" }
                         if (!onboardingDone) {
-                            OnboardingCarousel(
-                                onComplete = {
-                                    onboardingPrefs.edit().putBoolean("has_completed_onboarding", true).apply()
-                                    onboardingDone = true
-                                }
-                            )
+                            Box(modifier = Modifier.fillMaxSize().safeDrawingPadding()) {
+                                OnboardingCarousel(
+                                    onComplete = {
+                                        onboardingPrefs.edit().putBoolean("has_completed_onboarding", true).apply()
+                                        onboardingDone = true
+                                    }
+                                )
+                            }
                         } else {
                             NavigationMainContent()
                         }

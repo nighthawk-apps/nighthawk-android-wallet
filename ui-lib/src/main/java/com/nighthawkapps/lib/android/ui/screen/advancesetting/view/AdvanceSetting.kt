@@ -16,9 +16,9 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Icon
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
@@ -34,15 +34,16 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.res.vectorResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.nighthawkapps.lib.android.ui.R
 import com.nighthawkapps.lib.android.ui.common.AlertDialog
 import com.nighthawkapps.lib.android.ui.design.component.BodyMedium
 import com.nighthawkapps.lib.android.ui.design.component.BodySmall
+import com.nighthawkapps.lib.android.ui.design.component.DangerousButton
 import com.nighthawkapps.lib.android.ui.design.component.NighthawkTopBar
 import com.nighthawkapps.lib.android.ui.design.component.NighthawkTopBarLeading
-import com.nighthawkapps.lib.android.ui.design.component.PrimaryButton
 import com.nighthawkapps.lib.android.ui.design.component.TitleMedium
 import com.nighthawkapps.lib.android.ui.design.theme.AppThemeVariant
 import com.nighthawkapps.lib.android.ui.design.theme.WalletTheme
@@ -102,15 +103,9 @@ fun AdvanceSetting(
         NighthawkTopBar(
             onLeadingClick = onBack,
             leading = NighthawkTopBarLeading.Back,
-            title = null,
+            title = stringResource(id = R.string.advanced),
         )
-        Spacer(modifier = Modifier.height(dimensionResource(id = R.dimen.offset)))
-        TitleMedium(
-            text = stringResource(id = R.string.advanced),
-            color =
-                WalletTheme.colors.secondaryTitleText
-        )
-        Spacer(modifier = Modifier.height(24.dp))
+        Spacer(modifier = Modifier.height(16.dp))
         TitleMedium(
             text = stringResource(id = R.string.keep_screen_on),
             color =
@@ -171,13 +166,25 @@ fun AdvanceSetting(
             )
 
             allAvailableLogo.forEach { logo ->
-                Spacer(modifier = Modifier.height(8.dp))
-                Row(verticalAlignment = Alignment.CenterVertically) {
+                val isSelected = logo == preferredLogo
+                Row(
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .heightIn(min = 48.dp)
+                            .selectable(
+                                selected = isSelected,
+                                onClick = { onLogoPreferenceChanged(logo) },
+                                role = Role.RadioButton,
+                            )
+                            .padding(vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
                     RadioButton(
-                        selected = logo == preferredLogo,
-                        onClick = { onLogoPreferenceChanged(logo) }
+                        selected = isSelected,
+                        onClick = null,
                     )
-                    Spacer(modifier = Modifier.width(8.dp))
+                    Spacer(modifier = Modifier.width(12.dp))
                     Image(
                         imageVector = ImageVector.vectorResource(id = logo.logoId),
                         contentDescription = null,
@@ -191,7 +198,7 @@ fun AdvanceSetting(
                                     shape = RoundedCornerShape(4.dp)
                                 ).padding(vertical = 3.dp)
                     )
-                    Spacer(modifier = Modifier.width(8.dp))
+                    Spacer(modifier = Modifier.width(12.dp))
                     BodyMedium(text = stringResource(id = logo.nameId))
                 }
             }
@@ -247,7 +254,7 @@ fun AdvanceSetting(
             color = WalletTheme.colors.dangerous
         )
         Spacer(modifier = Modifier.height(8.dp))
-        PrimaryButton(
+        DangerousButton(
             onClick = { showNukeWalletDialog = true },
             text = stringResource(id = R.string.delete_wallet).uppercase(),
             modifier =
@@ -289,11 +296,16 @@ private fun ThemeVariantRow(
             Modifier
                 .fillMaxWidth()
                 .heightIn(min = 48.dp)
-                .padding(vertical = 4.dp),
+                .selectable(
+                    selected = selected,
+                    onClick = onClick,
+                    role = Role.RadioButton,
+                )
+                .padding(vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        RadioButton(selected = selected, onClick = onClick)
-        Spacer(modifier = Modifier.width(8.dp))
+        RadioButton(selected = selected, onClick = null)
+        Spacer(modifier = Modifier.width(12.dp))
         Column(modifier = Modifier.weight(1f)) {
             BodyMedium(text = label)
             BodySmall(text = detail)

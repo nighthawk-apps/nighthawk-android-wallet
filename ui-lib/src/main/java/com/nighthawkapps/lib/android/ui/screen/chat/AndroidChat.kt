@@ -296,11 +296,12 @@ private fun ChatScreen(
 
     SecureScreen()
 
-    // Wallhaven cyberpunk wallpaper magenta — selected channel / conversation chips.
+    val cyberpunkChrome = LocalCyberpunkChrome.current
+    // Wallhaven magenta, translucent so Channels / Direct / #channel chips don't dominate.
     val chatSelectionColors =
-        if (LocalCyberpunkChrome.current) {
+        if (cyberpunkChrome) {
             FilterChipDefaults.filterChipColors(
-                selectedContainerColor = Color(0xFF6B1A6B),
+                selectedContainerColor = Color(0xFF6B1A6B).copy(alpha = 0.38f),
                 selectedLabelColor = Color(0xFFFFD6F6),
                 selectedLeadingIconColor = Color(0xFFC94BB8),
             )
@@ -315,7 +316,7 @@ private fun ChatScreen(
                 .padding(
                     start = 12.dp,
                     end = 12.dp,
-                    top = dimensionResource(id = R.dimen.wallpaper_wordmark_clearance),
+                    top = if (cyberpunkChrome) dimensionResource(id = R.dimen.wallpaper_wordmark_clearance) else 8.dp,
                     bottom = 4.dp,
                 )
                 .imePadding(),
@@ -391,21 +392,22 @@ private fun ChatScreen(
             IconButton(onClick = onChatSettings) {
                 Icon(Icons.Default.Settings, contentDescription = stringResource(R.string.ns_chat_settings_short))
             }
-            Box(
-                modifier =
-                    Modifier
-                        .size(36.dp)
-                        .clip(CircleShape)
-                        .border(1.dp, MaterialTheme.colorScheme.primary, CircleShape)
-                        .clickable { showNetworkHud = true },
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(
-                    Icons.Default.Info,
-                    contentDescription = stringResource(R.string.ns_chat_hud_title),
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(18.dp),
-                )
+            IconButton(onClick = { showNetworkHud = true }) {
+                Box(
+                    modifier =
+                        Modifier
+                            .size(32.dp)
+                            .clip(CircleShape)
+                            .border(1.dp, MaterialTheme.colorScheme.primary, CircleShape),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(
+                        Icons.Default.Info,
+                        contentDescription = stringResource(R.string.ns_chat_hud_title),
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(18.dp),
+                    )
+                }
             }
         }
         if (showNetworkHud) {
@@ -995,9 +997,18 @@ private fun ChatMessageLine(
 ) {
     // Trust FFI isOutgoing only — nick string compare is spoofable (Fable 5.1 Fix 3).
     val isOwn = line.isOutgoing
-    val nickColor = Color(ChatChrome.nickArgb(line.nick, myNick))
+    val surfaceColor = MaterialTheme.colorScheme.surface
+    val isDarkSurface =
+        (surfaceColor.red * 0.299f + surfaceColor.green * 0.587f + surfaceColor.blue * 0.114f) < 0.5f
+    val nickColor = Color(ChatChrome.nickArgb(line.nick, myNick, dark = isDarkSurface))
     val bodyColor =
-        if (isOwn) {
+        if (isEncryptedThread) {
+            if (isOwn) {
+                MaterialTheme.colorScheme.onPrimaryContainer
+            } else {
+                MaterialTheme.colorScheme.onSurface
+            }
+        } else if (isOwn) {
             MaterialTheme.colorScheme.primary
         } else {
             MaterialTheme.colorScheme.onBackground

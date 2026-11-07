@@ -38,13 +38,14 @@ import com.nighthawkapps.lib.android.ui.design.component.NighthawkTopBarLeading
 import com.nighthawkapps.lib.android.ui.design.component.PrimaryButton
 import com.nighthawkapps.lib.android.ui.design.component.TitleLarge
 import com.nighthawkapps.lib.android.ui.design.component.TitleMedium
+import com.nighthawkapps.lib.android.ui.design.theme.LocalCyberpunkChrome
 import com.nighthawkapps.lib.android.ui.design.theme.WalletTheme
 import com.nighthawkapps.lib.android.ui.screen.dao.viewmodel.DaoViewModel
 
 @Composable
 fun DaoHubScreen(
     viewModel: DaoViewModel,
-    onBack: () -> Unit,
+    onBack: (() -> Unit)? = null,
     onSelectDao: (String) -> Unit,
 ) {
     val loading by viewModel.loading.collectAsStateWithLifecycle()
@@ -251,42 +252,64 @@ internal fun ActionResultBanner(
             is DaoViewModel.ActionResult.Success -> MaterialTheme.colorScheme.secondary
             is DaoViewModel.ActionResult.Error -> MaterialTheme.colorScheme.error
         }
+    val contentColor =
+        when (result) {
+            is DaoViewModel.ActionResult.Success -> MaterialTheme.colorScheme.onSecondary
+            is DaoViewModel.ActionResult.Error -> MaterialTheme.colorScheme.onError
+        }
     Snackbar(
         action = {
             TextButton(onClick = onDismiss) {
                 Text(
                     stringResource(R.string.ns_dao_dismiss),
-                    color = MaterialTheme.colorScheme.onSecondary,
+                    color = contentColor,
                 )
             }
         },
         containerColor = bgColor,
     ) {
-        Text(text, color = MaterialTheme.colorScheme.onSecondary)
+        Text(text, color = contentColor)
     }
 }
 
 @Composable
 private fun DaoScaffold(
     title: String,
-    onBack: () -> Unit,
+    onBack: (() -> Unit)? = null,
     content: @Composable () -> Unit,
 ) {
+    val margin = dimensionResource(id = R.dimen.screen_standard_margin)
+    // Root DAO hub matches Dex / Settings title inset (standard margin + wordmark clearance).
+    val wordmarkClearance =
+        if (onBack == null && LocalCyberpunkChrome.current) {
+            dimensionResource(id = R.dimen.wallpaper_wordmark_clearance)
+        } else {
+            0.dp
+        }
     Column(
         modifier =
             Modifier
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
-                .padding(horizontal = WalletTheme.dimens.spacingDefault)
-                .padding(vertical = dimensionResource(R.dimen.screen_standard_margin)),
+                .padding(
+                    start = margin,
+                    end = margin,
+                    bottom = margin,
+                    top = margin + wordmarkClearance,
+                ),
     ) {
-        NighthawkTopBar(
-            onLeadingClick = onBack,
-            leading = NighthawkTopBarLeading.Back,
-            title = null,
-        )
-        TitleLarge(text = title)
-        Spacer(modifier = Modifier.height(16.dp))
+        if (onBack != null) {
+            NighthawkTopBar(
+                onLeadingClick = onBack,
+                leading = NighthawkTopBarLeading.Back,
+                title = title,
+            )
+            Spacer(modifier = Modifier.height(16.dp))
+        } else {
+            // Same TitleMedium placement as DexComingSoonView / SettingsView.
+            TitleMedium(text = title.uppercase())
+            Spacer(modifier = Modifier.height(12.dp))
+        }
         content()
     }
 }

@@ -105,7 +105,7 @@ internal object Dark {
     val reference = StealthTokens.accentMuted
     val divider = StealthTokens.steelBorder
     val navigationContainer = StealthTokens.moonlit
-    val selectedPageIndicator = StealthTokens.accent
+    val selectedPageIndicator = StealthTokens.textHeader
     val secondaryTitleText = StealthTokens.textMuted
 }
 
@@ -157,7 +157,7 @@ internal object Light {
     val primaryButtonPressed = LightStealthTokens.accentPressed
     val primaryButtonDisabled = LightStealthTokens.accentDeep.copy(alpha = 0.45f)
 
-    val primaryContainer = LightStealthTokens.surfaceVariant
+    val primaryContainer = LightStealthTokens.secondaryFill
     val onPrimaryContainer = LightStealthTokens.ink
 
     val secondaryButton = LightStealthTokens.secondaryFill
@@ -167,12 +167,12 @@ internal object Light {
     val secondaryContainer = LightStealthTokens.secondaryFillHighlight
     val onSecondaryContainer = LightStealthTokens.ink
 
-    val tertiaryButton = LightStealthTokens.tertiaryPanel
-    val tertiaryButtonPressed = LightStealthTokens.ink
+    val tertiaryButton = LightStealthTokens.surfaceVariant
+    val tertiaryButtonPressed = LightStealthTokens.secondaryFill
 
     val navigationButton = LightStealthTokens.secondaryFill
     val navigationButtonPressed = LightStealthTokens.secondaryFillHighlight
-    val navigationIcon = LightStealthTokens.ink
+    val navigationIcon = LightStealthTokens.inkMuted
 
     val progressStart = LightStealthTokens.accent
     val progressEnd = LightStealthTokens.accentDeep
@@ -194,8 +194,8 @@ internal object Light {
 
     val reference = LightStealthTokens.ink
     val divider = LightStealthTokens.outline
-    val navigationContainer = LightStealthTokens.tertiaryPanel
-    val selectedPageIndicator = LightStealthTokens.accent
+    val navigationContainer = LightStealthTokens.surfaceVariant
+    val selectedPageIndicator = LightStealthTokens.inkMuted
     val secondaryTitleText = LightStealthTokens.inkMuted
 }
 
@@ -344,7 +344,7 @@ internal val MidnightExtendedColorPalette =
     DarkExtendedColorPalette.copy(
         surfaceEnd = Color(0xFF090E17),
         reference = Color(0xFFB8A8FF),
-        selectedPageIndicator = Color(0xFF9B87F5),
+        selectedPageIndicator = Color(0xFFEAE4FF),
         progressStart = Color(0xFF9B87F5),
         progressEnd = Color(0xFF6B55C4),
         navigationContainer = Color(0xFF05060B),
@@ -414,7 +414,7 @@ internal object Paper {
     val reference = PaperTokens.accent
     val divider = PaperTokens.outline
     val navigationContainer = PaperTokens.paper
-    val selectedPageIndicator = PaperTokens.accent
+    val selectedPageIndicator = PaperTokens.inkMuted
     val secondaryTitleText = PaperTokens.inkMuted
 }
 

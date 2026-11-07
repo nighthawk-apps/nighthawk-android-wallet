@@ -20,7 +20,6 @@ import com.nighthawkapps.lib.android.ui.design.component.BodyMedium
 import com.nighthawkapps.lib.android.ui.design.component.NighthawkTopBar
 import com.nighthawkapps.lib.android.ui.design.component.NighthawkTopBarLeading
 import com.nighthawkapps.lib.android.ui.design.component.PrimaryButton
-import com.nighthawkapps.lib.android.ui.design.component.TitleMedium
 import com.nighthawkapps.lib.android.ui.design.theme.WalletTheme
 import com.nighthawkapps.lib.android.ui.screen.chat.view.MeshSettingsSection
 
@@ -35,8 +34,6 @@ internal fun MeshSettingsScreen(onBack: () -> Unit) {
                 .padding(vertical = dimensionResource(id = R.dimen.screen_standard_margin)),
     ) {
         MeshSettingsTopBar(onBack)
-        TitleMedium(text = stringResource(R.string.ns_mesh_settings_screen_title))
-        Spacer(modifier = Modifier.height(8.dp))
         BodyMedium(
             text = stringResource(R.string.ns_mesh_settings_screen_body),
             color = WalletTheme.colors.secondaryTitleText,
@@ -59,6 +56,6 @@ private fun ColumnScope.MeshSettingsTopBar(onBack: () -> Unit) {
             leading = NighthawkTopBarLeading.Back,
             title = stringResource(R.string.ns_mesh_settings_screen_title),
         )
-        Spacer(modifier = Modifier.height(dimensionResource(id = R.dimen.offset)))
+        Spacer(modifier = Modifier.height(16.dp))
     }
 }

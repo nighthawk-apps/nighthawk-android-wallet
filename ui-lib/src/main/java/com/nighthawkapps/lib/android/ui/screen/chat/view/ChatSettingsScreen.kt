@@ -13,10 +13,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Switch
@@ -46,6 +42,8 @@ import com.nighthawkapps.lib.android.ui.R
 import com.nighthawkapps.lib.android.ui.common.AlertDialog
 import com.nighthawkapps.lib.android.ui.common.SecureScreen
 import com.nighthawkapps.lib.android.ui.common.setSensitivePlainText
+import com.nighthawkapps.lib.android.ui.design.component.NighthawkTopBar
+import com.nighthawkapps.lib.android.ui.design.component.NighthawkTopBarLeading
 import com.nighthawkapps.lib.android.ui.design.component.PrimaryButton
 import com.nighthawkapps.lib.android.ui.design.component.TitleMedium
 import kotlinx.coroutines.Dispatchers
@@ -109,19 +107,12 @@ internal fun ChatSettingsScreen(
                 .verticalScroll(rememberScrollState())
                 .padding(dimensionResource(id = R.dimen.screen_standard_margin)),
     ) {
-        IconButton(
-            onClick = onBack,
-            modifier = Modifier.align(Alignment.Start),
-        ) {
-            Icon(
-                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                contentDescription = stringResource(R.string.receive_back_content_description),
-            )
-        }
-        Spacer(modifier = Modifier.height(dimensionResource(id = R.dimen.offset)))
-
-        TitleMedium(text = stringResource(R.string.ns_chat_settings_screen_title))
-
+        NighthawkTopBar(
+            onLeadingClick = onBack,
+            leading = NighthawkTopBarLeading.Back,
+            title = stringResource(R.string.ns_chat_settings_screen_title),
+            leadingContentDescription = stringResource(R.string.receive_back_content_description),
+        )
         Spacer(modifier = Modifier.height(16.dp))
         TitleMedium(text = stringResource(R.string.ns_chat_three_secrets_title))
         Text(

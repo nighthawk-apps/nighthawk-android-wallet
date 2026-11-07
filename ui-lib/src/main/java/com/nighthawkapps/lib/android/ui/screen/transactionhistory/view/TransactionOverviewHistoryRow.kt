@@ -72,8 +72,13 @@ fun TransactionOverviewHistoryRow(
                     onLongClick = { onItemLongClick(transactionOverview) },
                 ),
     ) {
-        Spacer(modifier = Modifier.height(10.dp))
-        Row {
+        Row(
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
             Icon(
                 imageVector = ImageVector.vectorResource(id = R.drawable.ic_icon_downloading),
                 contentDescription = null,
@@ -123,7 +128,6 @@ fun TransactionOverviewHistoryRow(
                 }
             }
         }
-        Spacer(modifier = Modifier.height(15.dp))
         MaxWidthHorizontalDivider()
     }
 }

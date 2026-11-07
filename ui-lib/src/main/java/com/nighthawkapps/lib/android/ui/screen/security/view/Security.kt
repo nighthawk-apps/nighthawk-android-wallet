@@ -35,7 +35,6 @@ import com.nighthawkapps.lib.android.ui.design.component.BodyMedium
 import com.nighthawkapps.lib.android.ui.design.component.NighthawkTopBar
 import com.nighthawkapps.lib.android.ui.design.component.NighthawkTopBarLeading
 import com.nighthawkapps.lib.android.ui.design.component.PrimaryButton
-import com.nighthawkapps.lib.android.ui.design.component.TitleMedium
 import com.nighthawkapps.lib.android.ui.design.theme.WalletTheme
 
 @Preview
@@ -84,20 +83,17 @@ fun Security(
         NighthawkTopBar(
             onLeadingClick = onBack,
             leading = NighthawkTopBarLeading.Back,
-            title = null,
+            title = stringResource(id = R.string.ns_security_text),
         )
-        Spacer(modifier = Modifier.height(dimensionResource(id = R.dimen.offset)))
-        TitleMedium(
-            text = stringResource(id = R.string.ns_security_text),
-            color = WalletTheme.colors.secondaryTitleText
-        )
-        Spacer(modifier = Modifier.height(24.dp))
+        Spacer(modifier = Modifier.height(16.dp))
+        HorizontalDivider(thickness = 1.dp, color = WalletTheme.colors.divider)
         Row(
             modifier =
                 Modifier
                     .fillMaxWidth()
-                    .heightIn(min = 40.dp)
-                    .clickable { onSetPin() },
+                    .heightIn(min = dimensionResource(id = R.dimen.setting_list_item_min_height))
+                    .clickable { onSetPin() }
+                    .padding(vertical = 12.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -111,17 +107,16 @@ fun Security(
             PrimaryButton(
                 onClick = onDisablePin,
                 text = stringResource(id = R.string.ns_disable_pin).uppercase(),
-                modifier = Modifier.align(Alignment.End)
+                modifier = Modifier.align(Alignment.End).padding(bottom = 12.dp)
             )
         }
-        Spacer(modifier = Modifier.height(10.dp))
         HorizontalDivider(thickness = 1.dp, color = WalletTheme.colors.divider)
-        Spacer(modifier = Modifier.height(10.dp))
         Row(
             modifier =
                 Modifier
                     .fillMaxWidth()
-                    .heightIn(min = 40.dp),
+                    .heightIn(min = dimensionResource(id = R.dimen.setting_list_item_min_height))
+                    .padding(vertical = 12.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -147,6 +142,7 @@ fun Security(
                 }
             )
         }
+        HorizontalDivider(thickness = 1.dp, color = WalletTheme.colors.divider)
 
         if (isTouchIdErrorDialogShown.value) {
             AlertDialog(

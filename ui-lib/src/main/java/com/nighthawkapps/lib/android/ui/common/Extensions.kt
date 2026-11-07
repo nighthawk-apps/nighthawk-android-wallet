@@ -47,9 +47,9 @@ internal fun TextFieldDefaults.customColors(): TextFieldColors {
     return this.colors(
         focusedTextColor = textColor,
         unfocusedTextColor = textColor,
-        cursorColor = textColor,
-        focusedIndicatorColor = textColor,
-        unfocusedIndicatorColor = textColor,
+        cursorColor = MaterialTheme.colorScheme.primary,
+        focusedIndicatorColor = MaterialTheme.colorScheme.primary,
+        unfocusedIndicatorColor = MaterialTheme.colorScheme.outline,
         focusedContainerColor = Color.Transparent,
         unfocusedContainerColor = Color.Transparent,
     )

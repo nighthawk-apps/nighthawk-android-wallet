@@ -21,12 +21,8 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
@@ -34,14 +30,12 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -53,8 +47,9 @@ import com.nighthawkapps.lib.android.ui.common.DisableScreenTimeout
 import com.nighthawkapps.lib.android.ui.common.setPlainText
 import com.nighthawkapps.lib.android.ui.design.component.BodyMedium
 import com.nighthawkapps.lib.android.ui.design.component.BodySmall
+import com.nighthawkapps.lib.android.ui.design.component.NighthawkTopBar
+import com.nighthawkapps.lib.android.ui.design.component.NighthawkTopBarLeading
 import com.nighthawkapps.lib.android.ui.design.component.PrimaryButton
-import com.nighthawkapps.lib.android.ui.design.component.TitleLarge
 import com.nighthawkapps.lib.android.ui.design.theme.WalletTheme
 import com.nighthawkapps.lib.android.ui.screen.receive.util.AndroidQrCodeImageGenerator
 import com.nighthawkapps.lib.android.ui.screen.receive.util.JvmQrCodeGenerator
@@ -119,21 +114,13 @@ fun ReceiveQrCodes(
                 .fillMaxSize()
                 .padding(dimensionResource(id = R.dimen.screen_standard_margin))
     ) {
-        IconButton(
-            onClick = onBack,
-            modifier = Modifier.size(dimensionResource(id = R.dimen.back_icon_size))
-        ) {
-            Icon(
-                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                contentDescription = stringResource(R.string.receive_back_content_description)
-            )
-        }
-        TitleLarge(
-            text = stringResource(id = R.string.ns_nighthawk),
-            textAlign = TextAlign.Center,
-            modifier = Modifier.align(Alignment.CenterHorizontally)
+        NighthawkTopBar(
+            onLeadingClick = onBack,
+            leading = NighthawkTopBarLeading.Back,
+            title = null,
+            leadingContentDescription = stringResource(R.string.receive_back_content_description),
         )
-        Spacer(modifier = Modifier.height(27.dp))
+        Spacer(modifier = Modifier.height(16.dp))
 
         // Single default address card — no pager
         Card(
@@ -216,8 +203,8 @@ fun QrAddressCardUi(
 @Composable
 private fun QrCode(
     data: String,
-    @DrawableRes logoId: Int,
-    backGroundColor: Color,
+    @Suppress("UNUSED_PARAMETER") @DrawableRes logoId: Int,
+    @Suppress("UNUSED_PARAMETER") backGroundColor: Color,
     size: Dp,
     modifier: Modifier = Modifier
 ) {
@@ -239,7 +226,6 @@ private fun QrCode(
                 Box(modifier = Modifier.size(size))
             }
         }
-        QrLogo(logoId = logoId, backGroundColor = backGroundColor)
     }
 }
 

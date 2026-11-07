@@ -10,6 +10,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.nighthawkapps.lib.android.sdk.wallet.DarkfiAmountFormatter
@@ -18,6 +19,7 @@ import com.nighthawkapps.lib.android.sdk.wallet.SendBalanceCheck
 import com.nighthawkapps.lib.android.sdk.wallet.maxSpendableAtomic
 import com.nighthawkapps.lib.android.ui.MainActivity
 import com.nighthawkapps.lib.android.ui.R
+import com.nighthawkapps.lib.android.ui.design.theme.LocalCyberpunkChrome
 import com.nighthawkapps.lib.android.ui.screen.home.viewmodel.HomeViewModel
 import com.nighthawkapps.lib.android.ui.screen.home.viewmodel.WalletViewModel
 import com.nighthawkapps.lib.android.ui.screen.send.model.SendArgumentsWrapper
@@ -160,7 +162,14 @@ private fun NighthawkSendFlow(
 
     BackHandler { goBackStage() }
 
-    Surface(color = MaterialTheme.colorScheme.background) {
+    Surface(
+        color =
+            if (LocalCyberpunkChrome.current) {
+                Color.Transparent
+            } else {
+                MaterialTheme.colorScheme.background
+            },
+    ) {
         when (stage) {
             SendStage.Amount -> {
                 val unit =

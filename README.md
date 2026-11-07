@@ -6,7 +6,7 @@
 
 Privacy-preserving wallet (work-in-progress) by [Nighthawk Apps](https://nighthawkapps.com). This tree ships as a **new Android application id** on the DarkFi network (DRK). The app integrates a native DarkFi wallet API via **UniFFI** (`rust/darkfi-mobile-ffi` → generated Kotlin + `DarkfiMobileFfiApi`) for chain sync, broadcast, and chat.
 
-**3.01.01** (`WALLET_VERSION_CODE=30100801`). Cyberpunk is the default theme on a light or dark system. The Void wallpaper stays anchored at the top left and continues under the status bar and the navigation bar. Body text uses DejaVu Sans Mono. Light and Paper use graphite and grey instead of teal. Sync uses lightwalletd proto 2.1.0. The default is padded trial decryption of Money notes, token mints, and compact DAO calls. UnifOMR is an experimental Advanced setting and is not maintained until DarkFi mainnet contracts are live. Embedded Tor is Arti 0.48. The wallet opens without waiting for Nym or Tor; the sync thread dials lightwalletd only once the tunnel is up. Nym is the default network for the wallet, DarkIRC, and the embedded node. The splash shows mixnet progress and **Continue without Nym** after 20 seconds or a failed bootstrap. Settings → **Share Nighthawk** sends the APK to another Android device (zipped for Bluetooth, raw APK for other share targets). Toolchain: Gradle **9.8.1**, AGP **9.4.1**, Kotlin **2.2.21**, Compose UI **1.12.1**, Material3 **1.4.0**, Material icons **1.7.8**, AndroidX Lifecycle **2.11.0**, Navigation Compose **2.10.1**, JNA **5.19.1**, UniFFI **0.32**, NDK **26.1.10909125**, minSdk **27**, compile SDK **37.2**, target SDK **37** (Android 17). DarkFi pin `8af61b3f0` (Arti 0.47, upstream `0f985c7cf` tx-local fees, public `scan_block`, darkfid sync hardening). Native sent-tx session cache is FIFO-capped (10,000). Reorg “transactions affected” is counted from `drk.get_txs_history()` (`block_height > rewind`), not from CLI log lines.
+**3.01.06** (`WALLET_VERSION_CODE=30100806`). Cyberpunk is the default theme on a light or dark system. The Void wallpaper stays anchored at the top left and continues under the status bar and the navigation bar. Body text uses DejaVu Sans Mono. Light and Paper use graphite and grey instead of teal. Sync uses lightwalletd proto 2.1.0. The default is padded trial decryption of Money notes, token mints, and compact DAO calls. UnifOMR is an experimental Advanced setting and is not maintained until DarkFi mainnet contracts are live. Embedded Tor is Arti 0.48. The wallet opens without waiting for Nym or Tor; the sync thread dials lightwalletd only once the tunnel is up. Nym is the default network for the wallet, DarkIRC, and the embedded node. The splash shows mixnet progress and **Continue without Nym** after 20 seconds or a failed bootstrap. Bottom nav is **Chat · Wallet · Dex · DAO · Settings**. Wallet actions are **Request · Receive · Send**. Settings → **Share Nighthawk** sends the APK to another Android device (zipped for Bluetooth, raw APK for other share targets). Toolchain: Gradle **9.8.1**, AGP **9.4.1**, Kotlin **2.2.21**, Compose UI **1.12.1**, Material3 **1.4.0**, Material icons **1.7.8**, AndroidX Lifecycle **2.11.0**, Navigation Compose **2.10.1**, JNA **5.19.1**, UniFFI **0.32**, NDK **26.1.10909125**, minSdk **27**, compile SDK **37.2**, target SDK **37** (Android 17). DarkFi pin `8af61b3f0` (Arti 0.47, upstream `0f985c7cf` tx-local fees, public `scan_block`, darkfid sync hardening). Native sent-tx session cache is FIFO-capped (10,000). Reorg “transactions affected” is counted from `drk.get_txs_history()` (`block_height > rewind`), not from CLI log lines.
 
 ## Contents
 
@@ -29,7 +29,7 @@ Privacy-preserving wallet (work-in-progress) by [Nighthawk Apps](https://nightha
 
 Store listings are **not finalized** for `com.nighthawkwallet.android`. Placeholder targets until publishing completes:
 
-- **F-Droid:** DarkFi **testnet** package `com.nighthawkwallet.android.testnet` / flavor `darkfitestnet` (see [docs/fdroid.md](docs/fdroid.md); listing pending fdroiddata merge). **3.01.01** (`WALLET_VERSION_CODE=30100801`) — Fastlane changelog `fastlane/metadata/android/en-US/changelogs/30100801.txt`, tag `v3.01.01`. Local unsigned APK: `bundle exec fastlane fdroid`.
+- **F-Droid:** DarkFi **testnet** package `com.nighthawkwallet.android.testnet` / flavor `darkfitestnet` (see [docs/fdroid.md](docs/fdroid.md); listing pending fdroiddata merge). **3.01.06** (`WALLET_VERSION_CODE=30100806`) — Fastlane changelog `fastlane/metadata/android/en-US/changelogs/30100806.txt`, tag `v3.01.06`. Local unsigned APK: `bundle exec fastlane fdroid`.
 - **Google Play:** `https://PLACEHOLDER_PLAY_STORE_LISTING_URL`
 
 Replace these URLs when production listings exist—do not invent live links prematurely.
@@ -217,9 +217,9 @@ Optional nearby BLE hop for **encrypted DarkIRC DAG** frames (Noise per GATT nei
 
 ## Architecture
 
-- **UI:** `ui-lib` Compose — onboarding, backup, restore, send, receive, settings, chat, groups. Bottom nav: **Chat, Wallet, Dex, Settings**. The app opens on **Wallet**. Send, Receive, scan-to-send, and send-again are on the Wallet screen.
+- **UI:** `ui-lib` Compose — onboarding, backup, restore, send, receive, settings, chat, DAO hub. Bottom nav: **Chat, Wallet, Dex, DAO, Settings**. The app opens on **Wallet**. Request, Receive, Send, scan-to-send, and send-again are on the Wallet screen.
 - **Themes:** Stealth (default dark), Light (mist), Paper (white; a light system theme with nothing stored resolves to Paper), Midnight. Light and Paper accents are graphite and grey, not teal (`APP_THEME_VARIANT`).
-- **Settings:** identity (IRC nickname / chat public ID / gated secret), Network privacy (Nym / Tor / Direct), Share Nighthawk, Groups, chat, server, security, about.
+- **Settings:** identity (IRC nickname / chat public ID / gated secret), Network privacy (Nym / Tor / Direct), Share Nighthawk, DAO, chat, server, security, about.
 - **Wallet SDK:** `darkfi-android-sdk` — `PersistableDarkfiWallet`, `DarkfiMnemonic` (22-word), `DarkfiWalletCoordinator`, `DarkfiSynchronizer`.
 - **Balance:** single confirmed/spendable DRK tally (no transparent/shielded split).
 - **RPC presets:** `DarkfiEndpoint` defaults to lightwalletd **`tcp://127.0.0.1:9067`** (both networks). Network identity is enforced via `GetLightInfo.chain_name`.
@@ -235,24 +235,6 @@ Optional nearby BLE hop for **encrypted DarkIRC DAG** frames (Noise per GATT nei
 | **`rust/darkfi-android-bridge`** | Legacy minimal bridge — prefer `darkfi-mobile-ffi` |
 | **JNA** | UniFFI **0.32** Kotlin bindings (`net.java.dev.jna:jna` **5.19.1**) |
 | **`jniLibs/`** | Per-ABI `.so` — Gradle does **not** invoke Cargo automatically |
-
-### Recent changes
-
-In **3.01.01**:
-
-- Default sync is padded trial decryption. Money notes, token mints, and compact DAO calls do not need a UnifOMR clue.
-- Experimental UnifOMR is off under Advanced settings. It is not maintained until DarkFi mainnet contracts are live.
-- Embedded Tor is Arti 0.48. The client speaks lightwalletd proto 2.1.0.
-
-In **3.00.027**:
-
-- **Cyberpunk** is the default theme for a light or dark system. The Void wallpaper is anchored at the top left, one image pixel per screen pixel, and shows through the status bar and the navigation bar.
-- Body text uses DejaVu Sans Mono. Titles stay Outfit, or Source Serif 4 on Paper.
-- Home opens on **Wallet**. Send and Receive stay on that screen.
-- **Settings → Groups** is the DAO hub. Create a group with a proposer minimum, a quorum, an optional early-exec quorum (blank means the same as the quorum), and an approval ratio. Import a group from drk TOML. Fund the treasury, propose a payment, vote, and pay from the treasury. The wallet chooses early or normal execution from the chain tip. Issue a token, mint more, freeze supply, and export a role (`proposer`, `voter`, `executor`, or `all`) as drk TOML.
-- Clue-key registration sends `key_version = 1` every time. The key is derived from the wallet secret and does not rotate, so the directory does not learn when the app was last opened.
-- `GetLightInfo.block_target` is kept. DAO voting windows use that target (4 hours per window at the current 120-second target).
-- The spendable Money tree is rebuilt only through the wallet's last scanned height, so a spend does not skip coins that arrive before the server tip.
 
 ---
 

@@ -13,11 +13,13 @@ import com.nighthawkapps.lib.android.ui.screen.dao.viewmodel.DaoViewModel
 
 @Composable
 internal fun MainActivity.AndroidDaoHub(
-    onBack: () -> Unit,
-    onOpenDao: (String) -> Unit
+    onOpenDao: (String) -> Unit,
+    onBack: (() -> Unit)? = null,
 ) {
     val viewModel by viewModels<DaoViewModel>()
-    BackHandler(onBack = onBack)
+    if (onBack != null) {
+        BackHandler(onBack = onBack)
+    }
     LaunchedEffect(Unit) { viewModel.loadHub() }
     DaoHubScreen(viewModel = viewModel, onBack = onBack, onSelectDao = onOpenDao)
 }

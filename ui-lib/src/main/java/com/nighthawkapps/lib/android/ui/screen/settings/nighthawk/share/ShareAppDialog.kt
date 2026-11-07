@@ -21,7 +21,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -77,10 +76,11 @@ fun ShareAppDialog(onDismiss: () -> Unit) {
 
     AlertDialog(
         onDismissRequest = { if (!preparing) onDismiss() },
-        title = { Body(text = stringResource(id = R.string.ns_share_app_title), color = MaterialTheme.colorScheme.onBackground) },
+        title = { Body(text = stringResource(id = R.string.ns_share_app_title), color = MaterialTheme.colorScheme.onSurface) },
         text = {
+            val contentColor = MaterialTheme.colorScheme.onSurface
             Column {
-                BodyMedium(text = stringResource(id = R.string.ns_share_app_body), color = Color.White)
+                BodyMedium(text = stringResource(id = R.string.ns_share_app_body), color = contentColor)
                 Spacer(modifier = Modifier.height(12.dp))
                 val current = summary
                 if (current == null) {
@@ -94,18 +94,18 @@ fun ShareAppDialog(onDismiss: () -> Unit) {
                                 Formatter.formatShortFileSize(context, current.apk.totalBytes),
                                 current.abis.ifEmpty { setOf("any") }.joinToString(", "),
                             ),
-                        color = Color.White,
+                        color = contentColor,
                     )
                     Spacer(modifier = Modifier.height(12.dp))
-                    BodyMedium(text = stringResource(id = R.string.ns_share_app_receiver_hint), color = Color.White)
+                    BodyMedium(text = stringResource(id = R.string.ns_share_app_receiver_hint), color = contentColor)
                     if (current.apk.isSplit) {
                         Spacer(modifier = Modifier.height(12.dp))
-                        BodyMedium(text = stringResource(id = R.string.ns_share_app_split_warning), color = Color.White)
+                        BodyMedium(text = stringResource(id = R.string.ns_share_app_split_warning), color = contentColor)
                     }
                 }
                 if (preparing) {
                     Spacer(modifier = Modifier.height(12.dp))
-                    BodyMedium(text = stringResource(id = R.string.ns_share_app_preparing), color = Color.White)
+                    BodyMedium(text = stringResource(id = R.string.ns_share_app_preparing), color = contentColor)
                 }
             }
         },

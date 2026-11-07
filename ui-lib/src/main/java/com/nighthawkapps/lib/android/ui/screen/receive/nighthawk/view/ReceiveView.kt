@@ -23,7 +23,6 @@ import com.nighthawkapps.lib.android.ui.common.SettingsListItem
 import com.nighthawkapps.lib.android.ui.design.component.BodyMedium
 import com.nighthawkapps.lib.android.ui.design.component.NighthawkTopBar
 import com.nighthawkapps.lib.android.ui.design.component.NighthawkTopBarLeading
-import com.nighthawkapps.lib.android.ui.design.component.TitleLarge
 import com.nighthawkapps.lib.android.ui.design.theme.WalletTheme
 
 @Preview
@@ -61,24 +60,19 @@ fun ReceiveView(
             title = null,
             leadingContentDescription = stringResource(R.string.receive_back_content_description),
         )
-        TitleLarge(
-            text = stringResource(id = R.string.ns_nighthawk),
-            textAlign = TextAlign.Center,
-            modifier = Modifier.align(Alignment.CenterHorizontally)
-        )
-        Spacer(modifier = Modifier.height(dimensionResource(id = R.dimen.pageMargin)))
+        Spacer(modifier = Modifier.height(16.dp))
         BodyMedium(
             text = stringResource(id = R.string.ns_send_and_receive_drk),
             textAlign = TextAlign.Center,
             modifier = Modifier.align(Alignment.CenterHorizontally),
             color = WalletTheme.colors.secondaryTitleText
         )
-        Spacer(modifier = Modifier.height(40.dp))
+        Spacer(modifier = Modifier.height(32.dp))
         BodyMedium(
             text = stringResource(id = R.string.ns_receive_money_securely),
             color = WalletTheme.colors.secondaryTitleText
         )
-        Spacer(modifier = Modifier.height(13.dp))
+        Spacer(modifier = Modifier.height(12.dp))
         SettingsListItem(
             iconRes = R.drawable.ic_icon_scan_qr,
             title = stringResource(id = R.string.ns_show_qr_code),
@@ -88,7 +82,6 @@ fun ReceiveView(
                     .heightIn(min = dimensionResource(id = R.dimen.setting_list_item_min_height))
                     .clickable { onShowQrCode() }
         )
-        Spacer(modifier = Modifier.height(10.dp))
         SettingsListItem(
             iconRes = R.drawable.ic_content_copy,
             title = stringResource(id = R.string.ns_copy_private_address),
@@ -98,7 +91,6 @@ fun ReceiveView(
                     .heightIn(min = dimensionResource(id = R.dimen.setting_list_item_min_height))
                     .clickable { onCopyPrivateAddress() }
         )
-        Spacer(modifier = Modifier.height(10.dp))
         SettingsListItem(
             iconRes = R.drawable.ic_icon_top_up,
             title = stringResource(id = R.string.ns_top_up_your_wallet),

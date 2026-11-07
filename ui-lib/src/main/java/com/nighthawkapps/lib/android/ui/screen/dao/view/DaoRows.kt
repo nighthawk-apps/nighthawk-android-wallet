@@ -5,6 +5,7 @@ import android.content.ClipboardManager
 import android.content.Context
 import android.widget.Toast
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -51,22 +52,24 @@ internal fun DaoRow(
     openVotes: Int,
     onClick: () -> Unit,
 ) {
-    Column(
-        modifier =
-            Modifier
-                .fillMaxWidth()
-                .clickable(onClick = onClick)
-                .heightIn(min = dimensionResource(R.dimen.setting_list_item_min_height))
-                .padding(vertical = 8.dp),
-    ) {
-        BodyMedium(text = dao.name, modifier = Modifier.fillMaxWidth())
-        Spacer(modifier = Modifier.height(4.dp))
-        BodySmall(
-            text = stringResource(R.string.ns_dao_hub_row_desc, dao.roleLine(), openVotes),
-            color = WalletTheme.colors.secondaryTitleText,
-        )
-        Spacer(modifier = Modifier.height(8.dp))
-        HorizontalDivider(thickness = 1.dp, color = MaterialTheme.colorScheme.outline)
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Column(
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = dimensionResource(R.dimen.setting_list_item_min_height))
+                    .clickable(onClick = onClick)
+                    .padding(vertical = 12.dp),
+            verticalArrangement = Arrangement.Center,
+        ) {
+            BodyMedium(text = dao.name, modifier = Modifier.fillMaxWidth())
+            Spacer(modifier = Modifier.height(4.dp))
+            BodySmall(
+                text = stringResource(R.string.ns_dao_hub_row_desc, dao.roleLine(), openVotes),
+                color = WalletTheme.colors.secondaryTitleText,
+            )
+        }
+        HorizontalDivider(thickness = 1.dp, color = WalletTheme.colors.divider)
     }
 }
 

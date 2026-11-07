@@ -61,28 +61,28 @@ fun chatIrcStatusColor(state: DarkfiChatConnectionState): Color =
         DarkfiChatConnectionState.ConnectedDirect,
         DarkfiChatConnectionState.ConnectedViaTor,
         DarkfiChatConnectionState.ConnectedViaNym,
-        -> Color(0xFF2E7D32)
+        -> Color(0xFF3DDC97)
 
         DarkfiChatConnectionState.Connecting,
         DarkfiChatConnectionState.Degraded,
-        -> Color(0xFFF9A825)
+        -> Color(0xFFFFB340)
 
         DarkfiChatConnectionState.Disconnected,
         DarkfiChatConnectionState.Error,
-        -> Color(0xFFC62828)
+        -> Color(0xFFFF5C6C)
     }
 
 fun embeddedNodeStatusColor(status: EmbeddedDarkircNodeStatus): Color =
     when (status) {
-        EmbeddedDarkircNodeStatus.Running -> Color(0xFF2E7D32)
+        EmbeddedDarkircNodeStatus.Running -> Color(0xFF3DDC97)
 
-        EmbeddedDarkircNodeStatus.Starting -> Color(0xFFF9A825)
+        EmbeddedDarkircNodeStatus.Starting -> Color(0xFFFFB340)
 
-        EmbeddedDarkircNodeStatus.NotUsed -> Color(0xFF9E9E9E)
+        EmbeddedDarkircNodeStatus.NotUsed -> Color(0xFF7A8694)
 
         EmbeddedDarkircNodeStatus.MissingBinary,
         EmbeddedDarkircNodeStatus.Failed,
-        -> Color(0xFFC62828)
+        -> Color(0xFFFF5C6C)
     }
 
 private fun chatIrcStatusContentDescriptionRes(state: DarkfiChatConnectionState): Int =

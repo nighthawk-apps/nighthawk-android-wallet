@@ -5,11 +5,6 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -22,7 +17,8 @@ import androidx.compose.ui.unit.dp
 import com.nighthawkapps.lib.android.sdk.wallet.DarkfiWalletAddresses
 import com.nighthawkapps.lib.android.ui.R
 import com.nighthawkapps.lib.android.ui.design.component.BodyMedium
-import com.nighthawkapps.lib.android.ui.design.component.TitleLarge
+import com.nighthawkapps.lib.android.ui.design.component.NighthawkTopBar
+import com.nighthawkapps.lib.android.ui.design.component.NighthawkTopBarLeading
 import com.nighthawkapps.lib.android.ui.design.theme.WalletTheme
 
 @Preview
@@ -46,21 +42,13 @@ fun TopUp(
                 .fillMaxSize()
                 .padding(dimensionResource(id = R.dimen.screen_standard_margin)),
     ) {
-        IconButton(
-            onClick = onBack,
-            modifier = Modifier.size(dimensionResource(id = R.dimen.back_icon_size)),
-        ) {
-            Icon(
-                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                contentDescription = stringResource(R.string.receive_back_content_description),
-            )
-        }
-        TitleLarge(
-            text = stringResource(id = R.string.ns_nighthawk),
-            textAlign = TextAlign.Center,
-            modifier = Modifier.align(Alignment.CenterHorizontally),
+        NighthawkTopBar(
+            onLeadingClick = onBack,
+            leading = NighthawkTopBarLeading.Back,
+            title = null,
+            leadingContentDescription = stringResource(R.string.receive_back_content_description),
         )
-        Spacer(modifier = Modifier.height(dimensionResource(id = R.dimen.pageMargin)))
+        Spacer(modifier = Modifier.height(16.dp))
         BodyMedium(
             text = stringResource(id = R.string.ns_send_and_receive_drk),
             textAlign = TextAlign.Center,

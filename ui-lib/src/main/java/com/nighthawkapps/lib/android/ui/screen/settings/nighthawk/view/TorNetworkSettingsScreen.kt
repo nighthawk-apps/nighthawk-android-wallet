@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
@@ -43,7 +44,6 @@ import com.nighthawkapps.lib.android.ui.design.component.BodyMedium
 import com.nighthawkapps.lib.android.ui.design.component.NighthawkTopBar
 import com.nighthawkapps.lib.android.ui.design.component.NighthawkTopBarLeading
 import com.nighthawkapps.lib.android.ui.design.component.PrimaryButton
-import com.nighthawkapps.lib.android.ui.design.component.TitleMedium
 import com.nighthawkapps.lib.android.ui.design.theme.WalletTheme
 import kotlinx.coroutines.launch
 
@@ -160,15 +160,13 @@ private fun ColumnScope.TorNetworkSettingsTopBar(onBack: () -> Unit) {
             leading = NighthawkTopBarLeading.Back,
             title = stringResource(R.string.ns_tor_network_screen_title),
         )
-        Spacer(modifier = Modifier.height(dimensionResource(id = R.dimen.offset)))
+        Spacer(modifier = Modifier.height(16.dp))
     }
 }
 
 @Composable
 private fun TorNetworkSettingsIntro() {
     Column {
-        TitleMedium(text = stringResource(R.string.ns_tor_network_screen_title))
-        Spacer(modifier = Modifier.height(8.dp))
         BodyMedium(
             text = stringResource(R.string.ns_tor_network_screen_body),
             color = WalletTheme.colors.secondaryTitleText,
@@ -232,8 +230,9 @@ private fun PrivacyNetworkOption(
         modifier =
             Modifier
                 .fillMaxWidth()
+                .heightIn(min = 48.dp)
                 .selectable(selected = selected, onClick = onClick, role = Role.RadioButton)
-                .padding(vertical = 6.dp),
+                .padding(vertical = 8.dp),
     ) {
         RadioButton(selected = selected, onClick = null)
         Column(modifier = Modifier.padding(start = 12.dp)) {

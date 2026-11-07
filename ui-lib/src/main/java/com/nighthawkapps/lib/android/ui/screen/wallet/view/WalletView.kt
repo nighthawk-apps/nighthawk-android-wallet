@@ -171,10 +171,7 @@ fun WalletView(
                         .padding(vertical = 4.dp),
                 colors =
                     androidx.compose.material3.CardDefaults.cardColors(
-                        containerColor =
-                            androidx.compose.ui.graphics
-                                .Color(0xFFFFF3E0),
-                        // amber 50
+                        containerColor = WalletTheme.colors.callout,
                     ),
             ) {
                 Row(
@@ -184,21 +181,20 @@ fun WalletView(
                     androidx.compose.material3.Text(
                         text = stringResource(R.string.daemon_status_reorg_recovery),
                         style = MaterialTheme.typography.labelSmall,
-                        color =
-                            androidx.compose.ui.graphics
-                                .Color(0xFFE65100),
-                        // deep orange 900
+                        color = WalletTheme.colors.onCallout,
                     )
                 }
             }
         }
-        // QR actions sit in a short top row; the wordmark lives on the wallpaper.
+        // QR stack sits at the content top — parent already applies screen_standard_margin
+        // on top and end, so top inset matches the right inset (no extra wordmark clearance).
         Box(modifier = Modifier.fillMaxWidth()) {
             Column(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
-                Spacer(modifier = Modifier.height(48.dp))
+                // Reserve vertical room for the 48+48dp QR / Scan stack.
+                Spacer(modifier = Modifier.height(96.dp))
                 DarkfiDaemonStatusIndicator(
                     status = daemonStatus,
                     onClick = onDaemonStatusClick,
@@ -223,37 +219,45 @@ fun WalletView(
                     )
                 }
             }
-            Row(
-                modifier =
-                    Modifier
-                        .fillMaxWidth()
-                        .align(Alignment.TopCenter),
-                horizontalArrangement = Arrangement.SpaceBetween,
+            // Receive QR stacked above Scan on the top-right.
+            Column(
+                modifier = Modifier.align(Alignment.TopEnd),
+                horizontalAlignment = Alignment.End,
             ) {
-                Image(
-                    painter = painterResource(id = R.drawable.ic_icon_scan_qr),
-                    contentDescription = stringResource(id = R.string.home_action_show_qr_content_description),
-                    contentScale = ContentScale.Inside,
+                Box(
                     modifier =
                         Modifier
-                            .sizeIn(minWidth = 48.dp, minHeight = 48.dp)
+                            .size(48.dp)
                             .clickable(
                                 role = androidx.compose.ui.semantics.Role.Button,
                                 onClick = { onAddressQrCodes() },
                             ),
-                )
-                Image(
-                    painter = painterResource(id = R.drawable.ic_qr_scan),
-                    contentDescription = stringResource(id = R.string.home_action_scan_qr_content_description),
-                    contentScale = ContentScale.Inside,
+                    contentAlignment = Alignment.TopEnd,
+                ) {
+                    Image(
+                        painter = painterResource(id = R.drawable.ic_icon_scan_qr),
+                        contentDescription = stringResource(id = R.string.home_action_show_qr_content_description),
+                        contentScale = ContentScale.Fit,
+                        modifier = Modifier.size(24.dp),
+                    )
+                }
+                Box(
                     modifier =
                         Modifier
-                            .sizeIn(minWidth = 48.dp, minHeight = 48.dp)
+                            .size(48.dp)
                             .clickable(
                                 role = androidx.compose.ui.semantics.Role.Button,
                                 onClick = { onScanToSend() },
                             ),
-                )
+                    contentAlignment = Alignment.TopEnd,
+                ) {
+                    Image(
+                        painter = painterResource(id = R.drawable.ic_qr_scan),
+                        contentDescription = stringResource(id = R.string.home_action_scan_qr_content_description),
+                        contentScale = ContentScale.Fit,
+                        modifier = Modifier.size(24.dp),
+                    )
+                }
             }
         }
 
@@ -301,9 +305,7 @@ fun WalletView(
                         }
                     }
                     val balanceViewType = pages.getOrElse(state.currentPage) { BalanceViewType.SWIPE }
-                    if (balanceViewType != BalanceViewType.SWIPE) {
-                        PageIndicator(pageCount = pages.size, pagerState = state)
-                    }
+                    PageIndicator(pageCount = pages.size, pagerState = state)
                     LaunchedEffect(balanceViewType) {
                         isBalancePrivateMode = balanceViewType == BalanceViewType.SWIPE
                     }
@@ -318,7 +320,7 @@ fun WalletView(
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Image(
                         painter = painterResource(id = walletDisplayValues.statusIconDrawable),
-                        contentDescription = stringResource(id = R.string.ns_logo_desc),
+                        contentDescription = null,
                         contentScale = ContentScale.Inside,
                     )
                     Spacer(modifier = Modifier.height(8.dp))
@@ -385,39 +387,36 @@ private fun WalletActionRow(
     onSendMoney: () -> Unit,
     onRequestMoney: () -> Unit,
 ) {
-    Column(
+    Row(
         modifier =
             Modifier
                 .fillMaxWidth()
                 .padding(bottom = 8.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            WalletActionButton(
-                text = stringResource(id = R.string.ns_receive_money),
-                onClick = onReceiveMoney,
-                modifier = Modifier.weight(1f),
-            )
-            WalletActionButton(
-                text = stringResource(id = R.string.ns_send_money),
-                enabled = !sendDisabled,
-                onClick = onSendMoney,
-                modifier = Modifier.weight(1f),
-            )
-        }
-        Spacer(modifier = Modifier.height(8.dp))
-        TitleMedium(
-            text = stringResource(id = R.string.ns_request_money),
-            color = MaterialTheme.colorScheme.primary,
-            textAlign = TextAlign.Center,
-            modifier = Modifier.clickable(onClick = onRequestMoney),
+        WalletActionButton(
+            text = stringResource(id = R.string.ns_wallet_action_request),
+            onClick = onRequestMoney,
+            modifier = Modifier.weight(1f),
+        )
+        WalletActionButton(
+            text = stringResource(id = R.string.ns_wallet_action_receive),
+            onClick = onReceiveMoney,
+            modifier = Modifier.weight(1f),
+        )
+        WalletActionButton(
+            text = stringResource(id = R.string.ns_wallet_action_send),
+            enabled = !sendDisabled,
+            onClick = onSendMoney,
+            modifier = Modifier.weight(1f),
         )
     }
 }
 
+/**
+ * Money action chip — same selected-chip language as Chat Channels / Direct
+ * (FilterChip ~8dp corners, translucent fill), but **teal/cyan** instead of magenta.
+ */
 @Composable
 private fun WalletActionButton(
     text: String,
@@ -425,34 +424,38 @@ private fun WalletActionButton(
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
 ) {
-    val outline =
-        if (enabled) {
-            MaterialTheme.colorScheme.primary
-        } else {
-            MaterialTheme.colorScheme.primary.copy(alpha = 0.35f)
-        }
+    // Match Material3 FilterChip / chat Channels·Direct corner radius (not capsule).
+    val chipShape = RoundedCornerShape(8.dp)
+    val teal = MaterialTheme.colorScheme.primary
+    val fillAlpha = if (enabled) 0.38f else 0.18f
+    val strokeAlpha = if (enabled) 0.55f else 0.28f
     val label =
         if (enabled) {
-            WalletTheme.colors.onBackgroundHeader
+            MaterialTheme.colorScheme.onPrimaryContainer
         } else {
-            WalletTheme.colors.onBackgroundHeader.copy(alpha = 0.4f)
+            MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.45f)
         }
     Box(
         modifier =
             modifier
-                .heightIn(min = 48.dp)
-                .clip(RoundedCornerShape(8.dp))
-                .border(width = 1.5.dp, color = outline, shape = RoundedCornerShape(8.dp))
+                .heightIn(min = 44.dp)
+                .clip(chipShape)
+                .background(teal.copy(alpha = fillAlpha))
+                .border(
+                    width = 1.dp,
+                    color = teal.copy(alpha = strokeAlpha),
+                    shape = chipShape,
+                )
                 .clickable(
                     enabled = enabled,
                     role = androidx.compose.ui.semantics.Role.Button,
                     onClick = onClick,
                 )
-                .padding(horizontal = 14.dp, vertical = 12.dp),
+                .padding(horizontal = 10.dp, vertical = 10.dp),
         contentAlignment = Alignment.Center,
     ) {
         TitleMedium(
-            text = text.uppercase(),
+            text = text,
             color = label,
             textAlign = TextAlign.Center,
         )
@@ -473,7 +476,11 @@ fun PageIndicator(
     ) {
         repeat(pageCount) { iteration ->
             val color =
-                if (pagerState.currentPage == iteration) WalletTheme.colors.selectedPageIndicator else MaterialTheme.colorScheme.primary
+                if (pagerState.currentPage == iteration) {
+                    WalletTheme.colors.selectedPageIndicator
+                } else {
+                    MaterialTheme.colorScheme.outline
+                }
             Box(
                 modifier =
                     Modifier
@@ -509,7 +516,7 @@ fun BalanceView(
         ) {
             Image(
                 painter = painterResource(id = balanceDisplayValues.iconDrawableRes),
-                contentDescription = stringResource(id = R.string.ns_logo_desc),
+                contentDescription = null,
                 contentScale = ContentScale.Inside,
                 modifier = Modifier.align(Alignment.CenterHorizontally)
             )

@@ -45,7 +45,6 @@ import com.nighthawkapps.lib.android.ui.design.component.DottedBorderTextButton
 import com.nighthawkapps.lib.android.ui.design.component.NighthawkTopBar
 import com.nighthawkapps.lib.android.ui.design.component.NighthawkTopBarLeading
 import com.nighthawkapps.lib.android.ui.design.component.PrimaryButton
-import com.nighthawkapps.lib.android.ui.design.component.TitleLarge
 import com.nighthawkapps.lib.android.ui.design.theme.WalletTheme
 import com.nighthawkapps.lib.android.ui.screen.addressbook.AddressBookEntry
 import com.nighthawkapps.lib.android.ui.screen.addressbook.DeviceAddressBook
@@ -99,12 +98,7 @@ fun EnterReceiverAddress(
             leading = NighthawkTopBarLeading.Back,
             title = null,
         )
-        TitleLarge(
-            text = stringResource(id = R.string.ns_nighthawk),
-            textAlign = TextAlign.Center,
-            modifier = Modifier.align(Alignment.CenterHorizontally)
-        )
-        Spacer(modifier = Modifier.height(dimensionResource(id = R.dimen.pageMargin)))
+        Spacer(modifier = Modifier.height(16.dp))
         BodyMedium(
             text = stringResource(id = R.string.ns_choose_who),
             textAlign = TextAlign.Center,

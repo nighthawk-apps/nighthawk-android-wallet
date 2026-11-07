@@ -188,7 +188,7 @@ fun SeedBackupContent(
 
         if (showEncryptedPdfDialog.value) {
             val context = LocalContext.current
-            Box(modifier = Modifier.background(color = MaterialTheme.colorScheme.background)) {
+            Box(modifier = Modifier.background(color = WalletTheme.colors.overlay)) {
                 EncryptedPdfDialog(
                     onDismissRequest = {
                         showEncryptedPdfDialog.value = false

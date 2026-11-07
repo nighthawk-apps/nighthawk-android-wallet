@@ -36,7 +36,20 @@ srclib SHA edit.
 
 Tagging alone does **not** run this repo’s GitHub `Deploy` workflow (that is branch/`workflow_dispatch` + Play secrets). F-Droid’s scanner is separate.
 
-## 3.01.05 (this release)
+## 3.01.06 (this release)
+
+| Field | Value |
+|-------|--------|
+| `WALLET_VERSION_NAME` | `3.01.06` |
+| `WALLET_VERSION_CODE` | `30100806` |
+| Suggested git tag | `v3.01.06` |
+| Fastlane changelog | `fastlane/metadata/android/en-US/changelogs/30100806.txt` |
+
+- Bottom nav: Chat → Wallet → Dex → **DAO** → Settings. DAO hub title inset matches Dex/Settings.
+- Wallet hub chips: **Request → Receive → Send** (8dp FilterChip corners, teal money accent).
+- Receive QR stacked above Scan at the standard screen margin (top = trailing).
+
+## 3.01.05
 
 - Default sync is padded trial decryption of Money notes, compact DAO calls, and auth-token events from `darkfi-lightwalletd` into the local UniFFI/`drk` wallet DB (not full-chain `darkfid` validation).
 - Compact-block cache uses encrypted `NHC1` rows and deletes processed heights after scan.
@@ -269,7 +282,7 @@ After tagging, update the fdroiddata recipe only if the checkout branch / submod
 
 What's new for testers:
 
-- Send, Receive, and Request live on the Wallet tab (Transfer hub removed).
+- Request, Receive, and Send live on the Wallet tab (Transfer hub removed).
 - Fourth tab is DEX (coming soon). DAO Hub stays in Settings; Top-up moved there.
 - Tab bar hides on send/receive/request. Send stays enabled unless sync failed.
 

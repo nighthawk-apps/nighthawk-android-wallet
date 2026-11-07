@@ -11,11 +11,6 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -38,7 +33,8 @@ import androidx.compose.ui.unit.dp
 import com.nighthawkapps.lib.android.ui.R
 import com.nighthawkapps.lib.android.ui.common.WALLET_PASSWORD_LENGTH
 import com.nighthawkapps.lib.android.ui.common.WRONG_VIBRATION_PATTERN
-import com.nighthawkapps.lib.android.ui.design.component.TitleLarge
+import com.nighthawkapps.lib.android.ui.design.component.NighthawkTopBar
+import com.nighthawkapps.lib.android.ui.design.component.NighthawkTopBarLeading
 import com.nighthawkapps.lib.android.ui.design.theme.WalletTheme
 import com.nighthawkapps.lib.android.ui.screen.send.nighthawk.model.NumberPadValueTypes
 import com.nighthawkapps.lib.android.ui.security.WalletPinSecureStore
@@ -143,21 +139,13 @@ fun AuthenticatePin(
             lockoutSeconds -= 1
         }
 
-        IconButton(
-            onClick = onBack,
-            modifier = Modifier.size(dimensionResource(id = R.dimen.back_icon_size)),
-        ) {
-            Icon(
-                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                contentDescription = stringResource(R.string.receive_back_content_description),
-            )
-        }
-        TitleLarge(
-            text = stringResource(id = R.string.ns_nighthawk),
-            textAlign = TextAlign.Center,
-            modifier = Modifier.align(Alignment.CenterHorizontally),
+        NighthawkTopBar(
+            onLeadingClick = onBack,
+            leading = NighthawkTopBarLeading.Back,
+            title = null,
+            leadingContentDescription = stringResource(R.string.receive_back_content_description),
         )
-        Spacer(modifier = Modifier.height(35.dp))
+        Spacer(modifier = Modifier.height(16.dp))
 
         if (lockoutSeconds > 0) {
             Text(

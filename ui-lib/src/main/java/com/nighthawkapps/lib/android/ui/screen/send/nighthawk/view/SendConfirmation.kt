@@ -28,7 +28,6 @@ import com.airbnb.lottie.compose.rememberLottieComposition
 import com.nighthawkapps.lib.android.ui.R
 import com.nighthawkapps.lib.android.ui.design.component.BodyMedium
 import com.nighthawkapps.lib.android.ui.design.component.PrimaryButton
-import com.nighthawkapps.lib.android.ui.design.component.TitleLarge
 import com.nighthawkapps.lib.android.ui.design.theme.WalletTheme
 import com.nighthawkapps.lib.android.ui.screen.send.nighthawk.model.SendConfirmationState
 
@@ -60,13 +59,7 @@ fun SendConfirmation(
     ) {
         val composition by rememberLottieComposition(LottieCompositionSpec.RawRes(sendConfirmationState.animRes))
 
-        Spacer(modifier = Modifier.height(dimensionResource(id = R.dimen.back_icon_size)))
-        TitleLarge(
-            text = stringResource(id = R.string.ns_nighthawk),
-            textAlign = TextAlign.Center,
-            modifier = Modifier.align(Alignment.CenterHorizontally)
-        )
-        Spacer(modifier = Modifier.height(dimensionResource(id = R.dimen.pageMargin)))
+        Spacer(modifier = Modifier.height(16.dp))
         BodyMedium(
             text = stringResource(id = sendConfirmationState.titleResId),
             textAlign = TextAlign.Center,

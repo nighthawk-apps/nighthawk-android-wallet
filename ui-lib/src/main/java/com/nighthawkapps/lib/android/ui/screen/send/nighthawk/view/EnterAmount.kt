@@ -155,7 +155,7 @@ fun EnterAmount(
 
         errorMessage?.let { msg ->
             Spacer(modifier = Modifier.height(WalletTheme.dimens.spacingSmall))
-            BodyMedium(text = msg, color = WalletTheme.colors.secondaryTitleText)
+            BodyMedium(text = msg, color = MaterialTheme.colorScheme.error)
         }
 
         Spacer(modifier = Modifier.height(WalletTheme.dimens.spacingLarge))

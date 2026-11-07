@@ -10,10 +10,12 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.OutlinedTextField
@@ -29,6 +31,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
@@ -44,7 +47,6 @@ import com.nighthawkapps.lib.android.ui.design.component.MaxWidthHorizontalDivid
 import com.nighthawkapps.lib.android.ui.design.component.NighthawkTopBar
 import com.nighthawkapps.lib.android.ui.design.component.NighthawkTopBarLeading
 import com.nighthawkapps.lib.android.ui.design.component.PrimaryButton
-import com.nighthawkapps.lib.android.ui.design.component.TitleMedium
 import com.nighthawkapps.lib.android.ui.design.theme.WalletTheme
 import com.nighthawkapps.lib.android.ui.screen.changeserver.model.CUSTOM_DARKFI_ENDPOINT_LABEL
 import com.nighthawkapps.lib.android.ui.screen.changeserver.model.DarkfiEndpointCatalog
@@ -120,38 +122,59 @@ fun ChangeServer(
         NighthawkTopBar(
             onLeadingClick = onBack,
             leading = NighthawkTopBarLeading.Back,
-            title = null,
+            title = stringResource(id = R.string.ns_change_server),
         )
-        Spacer(modifier = Modifier.height(dimensionResource(id = R.dimen.offset)))
-        TitleMedium(
-            text = stringResource(id = R.string.ns_change_server),
-            color = WalletTheme.colors.secondaryTitleText,
-        )
-        Spacer(modifier = Modifier.height(dimensionResource(id = R.dimen.screen_standard_margin)))
+        Spacer(modifier = Modifier.height(16.dp))
         BodyMedium(text = stringResource(id = R.string.ns_change_server_body))
 
-        Spacer(modifier = Modifier.height(dimensionResource(id = R.dimen.screen_standard_margin)))
+        Spacer(modifier = Modifier.height(16.dp))
 
         presetOptionList.forEach { preset ->
-            Row(verticalAlignment = Alignment.CenterVertically) {
+            val isSelected = localPresetSelected.value == preset
+            Row(
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .heightIn(min = 48.dp)
+                        .selectable(
+                            selected = isSelected,
+                            onClick = { localPresetSelected.value = preset },
+                            role = Role.RadioButton,
+                        )
+                        .padding(vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
                 RadioButton(
-                    selected = localPresetSelected.value == preset,
-                    onClick = { localPresetSelected.value = preset },
+                    selected = isSelected,
+                    onClick = null,
                 )
-                Spacer(modifier = Modifier.width(8.dp))
+                Spacer(modifier = Modifier.width(12.dp))
                 BodyMedium(text = preset.label)
             }
         }
 
-        Spacer(modifier = Modifier.height(dimensionResource(id = R.dimen.screen_standard_margin)))
+        Spacer(modifier = Modifier.height(12.dp))
         MaxWidthHorizontalDivider()
-        Spacer(modifier = Modifier.height(dimensionResource(id = R.dimen.screen_standard_margin)))
-        Row(verticalAlignment = Alignment.CenterVertically) {
+        Spacer(modifier = Modifier.height(12.dp))
+        val customSelected = localPresetSelected.value?.label == CUSTOM_DARKFI_ENDPOINT_LABEL
+        Row(
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = 48.dp)
+                    .selectable(
+                        selected = customSelected,
+                        onClick = { localPresetSelected.value = DarkfiEndpointCatalog.incompleteCustom() },
+                        role = Role.RadioButton,
+                    )
+                    .padding(vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
             RadioButton(
-                selected = localPresetSelected.value?.label == CUSTOM_DARKFI_ENDPOINT_LABEL,
-                onClick = { localPresetSelected.value = DarkfiEndpointCatalog.incompleteCustom() },
+                selected = customSelected,
+                onClick = null,
             )
-            Spacer(modifier = Modifier.width(8.dp))
+            Spacer(modifier = Modifier.width(12.dp))
             BodyMedium(text = CUSTOM_DARKFI_ENDPOINT_LABEL)
         }
 

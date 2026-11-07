@@ -2,9 +2,9 @@
 
 Kotlin bindings for the DarkFi mobile wallet, generated from `rust/darkfi-mobile-ffi` via UniFFI.
 
-The app opens these calls from **Settings → Groups** and from the Wallet screen. Default methods on `DarkfiSynchronizer` fail closed until `NativeDarkfiSynchronizer` is installed.
+The app opens these calls from the **DAO** tab (and Settings → DAO) and from the Wallet screen. Default methods on `DarkfiSynchronizer` fail closed until `NativeDarkfiSynchronizer` is installed.
 
-## Groups, treasury, and tokens
+## DAO hub, treasury, and tokens
 
 `DarkfiSynchronizer` (`wallet/DarkfiSynchronizer.kt`):
 

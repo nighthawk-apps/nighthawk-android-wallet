@@ -42,8 +42,8 @@ internal fun WrapAndroidPin(
 
     SecureScreen()
 
-    BackHandler(true) {
-        // Stop acting on back press
+    BackHandler(enabled = !isPinSetup && !verifyPinToDisable) {
+        // Stop acting on back press when unlocking the app
     }
 
     if (isPinSetup) {

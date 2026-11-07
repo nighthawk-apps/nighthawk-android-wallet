@@ -2,19 +2,24 @@ package com.nighthawkapps.lib.android.ui.common
 
 import androidx.annotation.DrawableRes
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
@@ -33,7 +38,7 @@ fun SettingListItemPreview() {
                 iconRes = R.drawable.ic_icon_transparent,
                 title = stringResource(id = R.string.ns_send_money),
                 desc = stringResource(id = R.string.ns_send_money_desc),
-                modifier = Modifier.heightIn(min = 50.dp)
+                modifier = Modifier.heightIn(min = 56.dp)
             )
         }
     }
@@ -50,21 +55,34 @@ fun SettingsListItem(
 ) {
     Column {
         Row(
+            verticalAlignment = Alignment.CenterVertically,
             modifier =
                 Modifier
                     .fillMaxWidth()
+                    .heightIn(min = dimensionResource(id = R.dimen.setting_list_item_min_height))
                     .then(modifier)
+                    .padding(vertical = 12.dp)
         ) {
-            Image(
-                painter = painterResource(id = iconRes),
-                contentDescription = stringResource(id = R.string.ns_logo_desc),
-                modifier = Modifier.size(24.dp).rotate(rotateByDegree)
-            )
-            Spacer(modifier = Modifier.width(14.dp))
-            Column(modifier = Modifier.weight(1f)) {
+            Box(
+                modifier = Modifier.size(24.dp),
+                contentAlignment = Alignment.Center,
+            ) {
+                Image(
+                    painter = painterResource(id = iconRes),
+                    contentDescription = null,
+                    modifier = Modifier.size(24.dp).rotate(rotateByDegree)
+                )
+            }
+            Spacer(modifier = Modifier.width(16.dp))
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.Center,
+            ) {
                 TitleMedium(text = title)
-                Spacer(modifier = Modifier.height(5.dp))
-                BodySmall(text = desc)
+                if (desc.isNotBlank()) {
+                    Spacer(modifier = Modifier.height(4.dp))
+                    BodySmall(text = desc)
+                }
             }
         }
         if (showDivider) {

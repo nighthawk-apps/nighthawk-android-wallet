@@ -59,4 +59,4 @@ Index for the Nighthawk Android DarkFi wallet.
 
 | Document | Description |
 |----------|-------------|
-| [README.md](../README.md) | Overview, **3.00.027**, toolchain. Recent notes: Cyberpunk default theme, DejaVu Sans Mono body text, Wallet-first home, Settings → Groups, clue-key version `1` |
+| [README.md](../README.md) | Overview, **3.01.06**, toolchain. Cyberpunk default, Wallet-first home, DAO hub tab |

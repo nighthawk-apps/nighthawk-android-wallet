@@ -87,6 +87,7 @@ fun GetStarted(
                 if (createWalletError != null) {
                     BodySmall(
                         text = createWalletError,
+                        color = MaterialTheme.colorScheme.error,
                         modifier = Modifier.fillMaxWidth(0.8f).padding(bottom = 8.dp),
                         textAlign = TextAlign.Center
                     )
@@ -128,7 +129,7 @@ fun GetStarted(
                     shape = RoundedCornerShape(8.dp),
                     colors =
                         CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.onPrimary
+                            containerColor = MaterialTheme.colorScheme.surfaceVariant
                         ),
                     elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
                 ) {

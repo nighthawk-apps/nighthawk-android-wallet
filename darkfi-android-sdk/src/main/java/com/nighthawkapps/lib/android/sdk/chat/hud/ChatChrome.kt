@@ -17,13 +17,19 @@ import java.util.Locale
  */
 object ChatChrome {
     const val OWN_NICK: Int = 0xFF5E9BAF.toInt()
+    const val OWN_NICK_LIGHT: Int = 0xFF1F2832.toInt()
     const val LINK: Int = 0xFF7DADB9.toInt()
     const val FUD: Int = 0xFF8F98A3.toInt()
     const val BODY_INCOMING: Int = 0xFFC4CBD4.toInt()
     const val BODY_OUTGOING: Int = 0xFFE8EBEF.toInt()
+    const val BODY_INCOMING_LIGHT: Int = 0xFF1F2832.toInt()
+    const val BODY_OUTGOING_LIGHT: Int = 0xFF12171C.toInt()
     const val TIMESTAMP: Int = 0xFF8F98A3.toInt()
+    const val TIMESTAMP_LIGHT: Int = 0xFF5C6570.toInt()
     const val BUBBLE_INCOMING: Int = 0xFF171C22.toInt()
     const val BUBBLE_OUTGOING: Int = 0xFF243038.toInt()
+    const val BUBBLE_INCOMING_LIGHT: Int = 0xFFEEF1F5.toInt()
+    const val BUBBLE_OUTGOING_LIGHT: Int = 0xFFD7DEE6.toInt()
 
     /** Peer nick hues — cool slate family, no neon magenta. */
     val PEER_NICKS: IntArray =
@@ -36,6 +42,19 @@ object ChatChrome {
             0xFF9C5776.toInt(), // plum
             0xFF4F8799.toInt(), // accent pressed
             0xFFC5CED6.toInt(), // parmaviolet
+        )
+
+    /** High-contrast dark peer nick hues for Light and Paper themes. */
+    val PEER_NICKS_LIGHT: IntArray =
+        intArrayOf(
+            0xFF1F5F72.toInt(), // deep steel teal
+            0xFF1D4ED8.toInt(), // deep royal blue
+            0xFF2B546A.toInt(), // dark slate blue
+            0xFF1E6F3D.toInt(), // forest green
+            0xFF3E4C59.toInt(), // dark charcoal slate
+            0xFF7A2852.toInt(), // deep plum
+            0xFF235A6C.toInt(), // deep cyan-slate
+            0xFF475467.toInt(), // dark cool gray
         )
 
     fun isOwnNick(
@@ -51,11 +70,16 @@ object ChatChrome {
     fun nickArgb(
         nick: String,
         myNick: String,
+        dark: Boolean = true,
     ): Int {
         if (nick.equals("System", ignoreCase = true)) {
-            return TIMESTAMP
+            return if (dark) TIMESTAMP else TIMESTAMP_LIGHT
         }
-        return if (isOwnNick(nick, myNick)) OWN_NICK else peerNickArgb(nick)
+        return if (isOwnNick(nick, myNick)) {
+            if (dark) OWN_NICK else OWN_NICK_LIGHT
+        } else {
+            peerNickArgb(nick, dark = dark)
+        }
     }
 
     fun peerNickIndex(nick: String): Int {
@@ -66,11 +90,33 @@ object ChatChrome {
         return hash % PEER_NICKS.size
     }
 
-    fun peerNickArgb(nick: String): Int = PEER_NICKS[peerNickIndex(nick)]
+    fun peerNickArgb(
+        nick: String,
+        dark: Boolean = true,
+    ): Int {
+        val palette = if (dark) PEER_NICKS else PEER_NICKS_LIGHT
+        return palette[peerNickIndex(nick)]
+    }
 
-    fun bodyArgb(isOwn: Boolean): Int = if (isOwn) BODY_OUTGOING else BODY_INCOMING
+    fun bodyArgb(
+        isOwn: Boolean,
+        dark: Boolean = true,
+    ): Int =
+        if (dark) {
+            if (isOwn) BODY_OUTGOING else BODY_INCOMING
+        } else {
+            if (isOwn) BODY_OUTGOING_LIGHT else BODY_INCOMING_LIGHT
+        }
 
-    fun bubbleArgb(isOwn: Boolean): Int = if (isOwn) BUBBLE_OUTGOING else BUBBLE_INCOMING
+    fun bubbleArgb(
+        isOwn: Boolean,
+        dark: Boolean = true,
+    ): Int =
+        if (dark) {
+            if (isOwn) BUBBLE_OUTGOING else BUBBLE_INCOMING
+        } else {
+            if (isOwn) BUBBLE_OUTGOING_LIGHT else BUBBLE_INCOMING_LIGHT
+        }
 
     /**
      * Direct inbox is always E2E. A `#channel` is encrypted when it has a stored

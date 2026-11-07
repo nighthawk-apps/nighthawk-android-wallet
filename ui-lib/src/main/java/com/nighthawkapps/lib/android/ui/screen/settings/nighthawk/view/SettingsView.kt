@@ -4,11 +4,13 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -25,6 +27,7 @@ import com.nighthawkapps.lib.android.ui.common.AlertDialog
 import com.nighthawkapps.lib.android.ui.common.SettingsListItem
 import com.nighthawkapps.lib.android.ui.common.VersionInfo
 import com.nighthawkapps.lib.android.ui.design.component.TitleMedium
+import com.nighthawkapps.lib.android.ui.design.theme.LocalCyberpunkChrome
 import com.nighthawkapps.lib.android.ui.design.theme.WalletTheme
 import com.nighthawkapps.lib.android.ui.fixture.VersionInfoFixture
 import com.nighthawkapps.lib.android.ui.screen.settings.nighthawk.model.NighthawkSettingsNavigationCallbacks
@@ -70,6 +73,12 @@ fun SettingsView(
     var showShareAppDialog by remember { mutableStateOf(false) }
 
     val margin = dimensionResource(id = R.dimen.screen_standard_margin)
+    val wordmarkClearance =
+        if (LocalCyberpunkChrome.current) {
+            dimensionResource(id = R.dimen.wallpaper_wordmark_clearance)
+        } else {
+            0.dp
+        }
     Column(
         modifier =
             Modifier
@@ -79,11 +88,16 @@ fun SettingsView(
                     start = margin,
                     end = margin,
                     bottom = margin,
-                    top = margin + dimensionResource(id = R.dimen.wallpaper_wordmark_clearance),
+                    top = margin + wordmarkClearance,
                 ),
     ) {
         TitleMedium(text = stringResource(id = R.string.ns_settings).uppercase())
-        Spacer(modifier = Modifier.height(13.dp))
+        Spacer(modifier = Modifier.height(12.dp))
+        HorizontalDivider(
+            modifier = Modifier.fillMaxWidth(),
+            thickness = 1.dp,
+            color = WalletTheme.colors.divider,
+        )
         SettingsHubChatSection(
             onChatSettings = navigation.onChatSettings,
             onMeshSettings = navigation.onMeshSettings,
@@ -147,7 +161,6 @@ private fun SettingsHubChatSection(
                     .heightIn(min = dimensionResource(id = R.dimen.setting_list_item_min_height))
                     .clickable { onChatSettings() },
         )
-        Spacer(modifier = Modifier.height(10.dp))
         SettingsListItem(
             iconRes = R.drawable.ic_icon_connecting,
             title = stringResource(id = R.string.ns_mesh_settings_row_title),
@@ -157,7 +170,6 @@ private fun SettingsHubChatSection(
                     .heightIn(min = dimensionResource(id = R.dimen.setting_list_item_min_height))
                     .clickable { onMeshSettings() },
         )
-        Spacer(modifier = Modifier.height(16.dp))
     }
 }
 
@@ -173,7 +185,6 @@ private fun SettingsHubNotificationsSection(navigation: NighthawkSettingsNavigat
                     .heightIn(min = dimensionResource(id = R.dimen.setting_list_item_min_height))
                     .clickable { navigation.onSyncNotifications() },
         )
-        Spacer(modifier = Modifier.height(10.dp))
         SettingsListItem(
             iconRes = R.drawable.ic_icon_fiat_currency,
             title = stringResource(id = R.string.ns_fiat_currency),
@@ -183,7 +194,6 @@ private fun SettingsHubNotificationsSection(navigation: NighthawkSettingsNavigat
                     .heightIn(min = dimensionResource(id = R.dimen.setting_list_item_min_height))
                     .clickable { navigation.onFiatCurrency() },
         )
-        Spacer(modifier = Modifier.height(10.dp))
         SettingsListItem(
             iconRes = R.drawable.ic_icon_external_services,
             title = stringResource(id = R.string.ns_tor_network_settings_row_title),
@@ -203,7 +213,6 @@ private fun SettingsHubWalletRowsUpper(
     onRescanTap: () -> Unit,
 ) {
     Column {
-        Spacer(modifier = Modifier.height(10.dp))
         SettingsListItem(
             iconRes = R.drawable.ic_icon_security,
             title = stringResource(id = R.string.ns_security),
@@ -213,7 +222,6 @@ private fun SettingsHubWalletRowsUpper(
                     .heightIn(min = dimensionResource(id = R.dimen.setting_list_item_min_height))
                     .clickable { navigation.onSecurity() },
         )
-        Spacer(modifier = Modifier.height(10.dp))
         SettingsListItem(
             iconRes = R.drawable.ic_icon_backup,
             title = stringResource(id = R.string.ns_backup_wallet),
@@ -223,7 +231,6 @@ private fun SettingsHubWalletRowsUpper(
                     .heightIn(min = dimensionResource(id = R.dimen.setting_list_item_min_height))
                     .clickable { onBackupTap() },
         )
-        Spacer(modifier = Modifier.height(10.dp))
         SettingsListItem(
             iconRes = R.drawable.ic_icon_rescan_wallet,
             title = stringResource(id = R.string.ns_rescan_wallet),
@@ -233,7 +240,6 @@ private fun SettingsHubWalletRowsUpper(
                     .heightIn(min = dimensionResource(id = R.dimen.setting_list_item_min_height))
                     .clickable { onRescanTap() },
         )
-        Spacer(modifier = Modifier.height(10.dp))
         SettingsListItem(
             iconRes = R.drawable.ic_icon_change_server,
             title = stringResource(id = R.string.ns_change_server),
@@ -243,9 +249,8 @@ private fun SettingsHubWalletRowsUpper(
                     .heightIn(min = dimensionResource(id = R.dimen.setting_list_item_min_height))
                     .clickable { navigation.onChangeServer() },
         )
-        Spacer(modifier = Modifier.height(10.dp))
         SettingsListItem(
-            iconRes = R.drawable.ic_icon_total,
+            iconRes = R.drawable.ic_icon_dao_hub,
             title = stringResource(id = R.string.ns_dao_hub),
             desc = stringResource(id = R.string.ns_dao_hub_text),
             modifier =
@@ -253,7 +258,6 @@ private fun SettingsHubWalletRowsUpper(
                     .heightIn(min = dimensionResource(id = R.dimen.setting_list_item_min_height))
                     .clickable { navigation.onDaoHub() },
         )
-        Spacer(modifier = Modifier.height(10.dp))
         SettingsListItem(
             iconRes = R.drawable.ic_icon_top_up,
             title = stringResource(id = R.string.ns_top_up),
@@ -273,7 +277,6 @@ private fun SettingsHubWalletRowsLower(
     onShareAppTap: () -> Unit,
 ) {
     Column {
-        Spacer(modifier = Modifier.height(10.dp))
         SettingsListItem(
             iconRes = R.drawable.ic_icon_transfer,
             title = stringResource(id = R.string.ns_share_app_row_title),
@@ -283,7 +286,6 @@ private fun SettingsHubWalletRowsLower(
                     .heightIn(min = dimensionResource(id = R.dimen.setting_list_item_min_height))
                     .clickable { onShareAppTap() },
         )
-        Spacer(modifier = Modifier.height(10.dp))
         SettingsListItem(
             iconRes = R.drawable.ic_icon_settings,
             title = stringResource(id = R.string.advanced),
@@ -293,7 +295,6 @@ private fun SettingsHubWalletRowsLower(
                     .heightIn(min = dimensionResource(id = R.dimen.setting_list_item_min_height))
                     .clickable { navigation.onAdvancedSetting() },
         )
-        Spacer(modifier = Modifier.height(10.dp))
         SettingsListItem(
             iconRes = R.drawable.ic_icon_about,
             title = stringResource(id = R.string.ns_about),
@@ -303,6 +304,5 @@ private fun SettingsHubWalletRowsLower(
                     .heightIn(min = dimensionResource(id = R.dimen.setting_list_item_min_height))
                     .clickable { navigation.onAbout() },
         )
-        Spacer(modifier = Modifier.height(10.dp))
     }
 }

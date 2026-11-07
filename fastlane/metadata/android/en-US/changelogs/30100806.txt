@@ -1,0 +1,1 @@
+DAO hub is a bottom-nav tab (label DAO) between Dex and Settings. Wallet actions are Request → Receive → Send with FilterChip-style corners; QR/Scan sit at the standard top-right margin. Screen titles for DAO match Dex/Settings inset. Ships with desktop 3.1.6.

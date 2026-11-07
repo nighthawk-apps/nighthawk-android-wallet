@@ -26,7 +26,6 @@ import com.nighthawkapps.lib.android.ui.design.component.NighthawkTopBar
 import com.nighthawkapps.lib.android.ui.design.component.NighthawkTopBarLeading
 import com.nighthawkapps.lib.android.ui.design.component.PrimaryButton
 import com.nighthawkapps.lib.android.ui.design.component.Reference
-import com.nighthawkapps.lib.android.ui.design.component.TitleMedium
 import com.nighthawkapps.lib.android.ui.design.theme.WalletTheme
 
 @Composable
@@ -59,12 +58,7 @@ fun AboutView(
             title = stringResource(id = R.string.ns_about),
             leadingContentDescription = stringResource(R.string.about_back_content_description),
         )
-        Spacer(modifier = Modifier.height(40.dp))
-        TitleMedium(
-            text = stringResource(id = R.string.ns_about),
-            color = WalletTheme.colors.secondaryTitleText
-        )
-        Spacer(modifier = Modifier.height(24.dp))
+        Spacer(modifier = Modifier.height(16.dp))
         BodyMedium(text = stringResource(id = R.string.ns_about_message))
         Spacer(modifier = Modifier.height(24.dp))
         Reference(
