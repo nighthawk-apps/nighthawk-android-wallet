@@ -1,7 +1,9 @@
 # Nighthawk Wallet (DarkFi Edition) — Android
 
 <p align="center">
-  <img src="docs/images/android-testnet.png" alt="Nighthawk Android — DarkFi chat connected on testnet" width="320">
+  <img src="docs/images/android-phone.png" alt="Nighthawk Android — phone (portrait)" height="420">
+  &nbsp;&nbsp;
+  <img src="docs/images/android-fold.png" alt="Nighthawk Android — fold (inner display)" height="420">
 </p>
 
 Privacy-preserving wallet (work-in-progress) by [Nighthawk Apps](https://nighthawkapps.com). This tree ships as a **new Android application id** on the DarkFi network (DRK). The app integrates a native DarkFi wallet API via **UniFFI** (`rust/darkfi-mobile-ffi` → generated Kotlin + `DarkfiMobileFfiApi`) for chain sync, broadcast, and chat.
