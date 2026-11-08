@@ -1,6 +1,7 @@
-157768f6678a17ec60a896197c729855e43fe107
+44ec78b6efbf1d3e797f99bffe95195994b2488d
 # nighthawk24/darkfi branch nighthawk-testnet (same pin as iOS / Moonshine).
 # git.dark.fi returns HTTP 504 and does not contain this SHA. Do not clone it.
-# Includes set_chain_context_fallback for lightwalletd-only DAO propose.
+# Includes set_chain_context_fallback, batched Sapling KA, upstream 0f985c7cf
+# tx-local fees, and upstream net hosts/refinery fixes (225d6857d).
 # Tor stays on Arti 0.48. Cargo deps: kvdb-overlay from gitlab.com/nighthawk24/kvdb-overlay,
 # RandomX from codeberg.org/darkrenaissance/RandomX, rust-url from github.com/darkrenaissance/rust-url.
