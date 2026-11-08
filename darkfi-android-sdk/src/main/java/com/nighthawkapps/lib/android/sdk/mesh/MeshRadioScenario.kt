@@ -1,42 +1,63 @@
 package com.nighthawkapps.lib.android.sdk.mesh
 
 /**
- * Sans-I/O two- and three-phone radio lab. Frames are byte pipes, not a
- * live GATT stack — emulator BLE is not dual-role. Hardware two-phone
- * checks live in [MeshTwoPhoneInstrumentedTest].
+ * Sans-I/O two- and three-phone **radio / OS policy** lab.
+ *
+ * Frames move through byte pipes (not a live GATT stack). Emulator BLE is not
+ * dual-role, so this is the Android-side virtual multi-phone path. Crypto
+ * handshake, reseal, and EventPut delivery live in Rust
+ * `darkfi-mobile-ffi` `three_device_*` mesh tests (`hop_star`).
+ *
+ * Ingest policy matches production [MeshFrameInbox]: only Noise HS/ENC,
+ * Fragment, Ping, and Pong are admitted. Plaintext `NH_DAG_EVENT` /
+ * `NH_DAG_SYNC` are dropped (same as air).
+ *
+ * Hardware two-phone GATT checks: [MeshTwoPhoneInstrumentedTest].
  */
 object MeshRadioScenario {
-    enum class Step {
-        Connect,
-        Chat,
-        DagSync,
-        Lost,
-        Reconnect,
-        Reset,
-    }
-
     data class Phone(
         val id: String,
         val peers: MeshPeerTable = MeshPeerTable(),
         val inbox: ArrayList<ByteArray> = ArrayList(),
         var meshOn: Boolean = true,
+        val frameInbox: MeshFrameInbox = MeshFrameInbox(),
     )
 
-    fun chatFrame(
+    /** Sealed EventPut stand-in (Noise ENC) — what the OS layer may ingest. */
+    fun sealedChatFrame(
         from: ByteArray,
-        body: String
+        payload: ByteArray,
     ): ByteArray =
         MeshWireCodec.encode(
             MeshWirePacket(
-                type = MeshWireCodec.NH_DAG_EVENT,
+                type = MeshWireCodec.NH_NOISE_ENC,
                 ttl = 7,
                 flags = 0,
                 timestampMs = 0L,
                 sender = from,
                 recipient = null,
-                payload = body.toByteArray(),
+                payload = payload,
             ),
         ) ?: error("mesh frame encode")
+
+    fun pingFrame(from: ByteArray): ByteArray =
+        MeshWireCodec.encode(
+            MeshWirePacket(
+                type = MeshWireCodec.NH_PING,
+                ttl = 0,
+                flags = 0,
+                timestampMs = 0L,
+                sender = from,
+                recipient = null,
+                payload = ByteArray(0),
+            ),
+        ) ?: error("mesh frame encode")
+
+    /** Legacy helper name used by unit tests for a sealed chat-shaped frame. */
+    fun chatFrame(
+        from: ByteArray,
+        body: String,
+    ): ByteArray = sealedChatFrame(from, body.toByteArray())
 
     fun deliver(
         from: Phone,
@@ -72,10 +93,18 @@ object MeshRadioScenario {
         if (pkt.type == MeshWireCodec.NH_LWD_CTRL && !MeshLwdAllowlist.isAllowed(pkt.payload)) {
             return false
         }
+        // Match NighthawkMeshService: drop plaintext DAG / sync / LWD before native.
+        if (!to.frameInbox.shouldIngest(frame)) {
+            return false
+        }
         to.inbox.add(frame)
         return true
     }
 
+    /**
+     * Star topology A—R—G: connect, sealed chat hop, ping, link loss,
+     * reconnect, relay peer-table reset.
+     */
     fun runThreePhoneScript(): List<String> {
         val log = ArrayList<String>()
         val a = Phone("a")
@@ -89,43 +118,39 @@ object MeshRadioScenario {
         g.peers.admit(r.id, now)
         log.add("connect a-r-g")
 
-        val chat = chatFrame(idA, "#dev ping")
+        val chat = sealedChatFrame(idA, "#dev ping".toByteArray())
         check(deliver(a, r, chat, now + 1))
         check(deliver(r, g, chat, now + 2))
         log.add("chat")
 
-        val sync =
-            MeshWireCodec.encode(
-                MeshWirePacket(
-                    type = MeshWireCodec.NH_DAG_SYNC,
-                    ttl = 7,
-                    flags = 0,
-                    timestampMs = 0L,
-                    sender = idA,
-                    recipient = null,
-                    payload = byteArrayOf(0x01, 0, 0, 0, 1, 0, 0),
-                ),
-            ) ?: error("mesh frame encode")
-        check(deliver(a, r, sync, now + 2))
-        check(deliver(r, g, sync, now + DAG_RELAY_OFFSET_MS))
+        val syncPing = pingFrame(idA)
+        check(deliver(a, r, syncPing, now + 2))
+        check(deliver(r, g, syncPing, now + DAG_RELAY_OFFSET_MS))
         log.add("dag-sync")
 
         r.meshOn = false
-        check(!deliver(a, r, chatFrame(idA, "lost"), now + LOST_OFFSET_MS))
+        check(!deliver(a, r, sealedChatFrame(idA, "lost".toByteArray()), now + LOST_OFFSET_MS))
         log.add("lost")
 
         r.meshOn = true
         r.peers.clear()
         r.peers.admit(a.id, now + LOST_OFFSET_MS)
         r.peers.admit(g.id, now + LOST_OFFSET_MS)
-        check(deliver(a, r, chatFrame(idA, "rejoin"), now + REJOIN_OFFSET_MS))
+        check(deliver(a, r, sealedChatFrame(idA, "rejoin".toByteArray()), now + REJOIN_OFFSET_MS))
         log.add("reconnect")
 
         r.peers.clear()
         r.peers.admit(a.id, now + RESET_ADMIT_OFFSET_MS)
         r.peers.admit(g.id, now + RESET_ADMIT_OFFSET_MS)
         val resetId = ByteArray(MeshWireCodec.SENDER_LEN) { PHONE_RESET_ID }
-        check(deliver(g, r, chatFrame(resetId, "after-reset"), now + RESET_DELIVER_OFFSET_MS))
+        check(
+            deliver(
+                g,
+                r,
+                sealedChatFrame(resetId, "after-reset".toByteArray()),
+                now + RESET_DELIVER_OFFSET_MS,
+            ),
+        )
         log.add("reset")
         return log
     }

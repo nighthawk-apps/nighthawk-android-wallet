@@ -10,8 +10,12 @@ import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
+import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.nighthawkapps.lib.android.sdk.wallet.DarkfiAmountFormatter
 import com.nighthawkapps.lib.android.sdk.wallet.DarkfiAmountParser
@@ -19,9 +23,12 @@ import com.nighthawkapps.lib.android.sdk.wallet.SendBalanceCheck
 import com.nighthawkapps.lib.android.sdk.wallet.maxSpendableAtomic
 import com.nighthawkapps.lib.android.ui.MainActivity
 import com.nighthawkapps.lib.android.ui.R
+import com.nighthawkapps.lib.android.ui.common.authenticate
 import com.nighthawkapps.lib.android.ui.design.theme.LocalCyberpunkChrome
 import com.nighthawkapps.lib.android.ui.screen.home.viewmodel.HomeViewModel
 import com.nighthawkapps.lib.android.ui.screen.home.viewmodel.WalletViewModel
+import com.nighthawkapps.lib.android.ui.screen.pin.view.AuthenticatePin
+import com.nighthawkapps.lib.android.ui.screen.pin.viewmodel.PinViewModel
 import com.nighthawkapps.lib.android.ui.screen.send.model.SendArgumentsWrapper
 import com.nighthawkapps.lib.android.ui.screen.send.model.SendStage
 import com.nighthawkapps.lib.android.ui.screen.send.nighthawk.model.SendConfirmationState
@@ -68,6 +75,7 @@ private fun NighthawkSendFlow(
     val homeViewModel by activity.viewModels<HomeViewModel>()
     val walletViewModel by activity.viewModels<WalletViewModel>()
     val sendViewModel by activity.viewModels<SendViewModel>()
+    val pinViewModel by activity.viewModels<PinViewModel>()
     val walletSnapshot by walletViewModel.walletSnapshot.collectAsStateWithLifecycle()
     val synchronizer by sendViewModel.synchronizer.collectAsStateWithLifecycle()
     val feeAtomic by sendViewModel.feeAtomic.collectAsStateWithLifecycle()
@@ -81,6 +89,9 @@ private fun NighthawkSendFlow(
     val memoText by sendViewModel.memoText.collectAsStateWithLifecycle()
     val selectedTokenIdRaw by sendViewModel.selectedTokenId.collectAsStateWithLifecycle()
     val pendingDeepLink by homeViewModel.sendDeepLinkDataFlow.collectAsStateWithLifecycle()
+    val isPinConfigured by pinViewModel.isPinConfigured.collectAsStateWithLifecycle()
+    val isTouchIdOrFaceIdEnabled by pinViewModel.isTouchIdOrFaceIdEnabled.collectAsStateWithLifecycle()
+    var isAuthenticatingToSend by remember { mutableStateOf(false) }
     val tokenBalances by (
         synchronizer?.tokenBalances
             ?: kotlinx.coroutines.flow.flowOf(emptyList())
@@ -243,55 +254,103 @@ private fun NighthawkSendFlow(
             }
 
             SendStage.Review -> {
-                val balanceCheck =
-                    if (fieldsReady) {
-                        sendViewModel.evaluateBalance(balanceAtomic, amountText)
-                    } else {
-                        null
-                    }
-                val canSend = fieldsReady && balanceCheck == SendBalanceCheck.Ok && !isSubmitting
-                val unit =
-                    tokenBalances.firstOrNull { it.tokenId == selectedTokenId }?.displayName
-                        ?: "DRK"
-                ReviewSend(
-                    amountLabel = "$amountText $unit",
-                    recipient = recipient,
-                    memo = memoText.ifBlank { null },
-                    feeLabel = sendViewModel.formatFeeAtomic(feeAtomic)?.let { "$it $unit" },
-                    isEstimatingFee = isEstimatingFee,
-                    isSendEnabled = canSend,
-                    errorMessage =
-                        when {
-                            !nativeAvailable -> {
-                                stringResource(R.string.ns_send_ffi_unavailable)
-                            }
-
-                            balanceCheck is SendBalanceCheck.Insufficient -> {
-                                stringResource(
-                                    R.string.send_insufficient_balance,
-                                    DarkfiAmountFormatter.formatAtomic(balanceCheck.requiredAtomic),
-                                    DarkfiAmountFormatter.formatAtomic(balanceCheck.availableAtomic),
-                                )
-                            }
-
-                            else -> {
-                                errorMessage
+                if (isAuthenticatingToSend) {
+                    AuthenticatePin(
+                        verifyPin = pinViewModel::verifyPin,
+                        onBack = { isAuthenticatingToSend = false },
+                        onAuthentication = { success ->
+                            if (success) {
+                                isAuthenticatingToSend = false
+                                sendViewModel.setStage(SendStage.Sending)
+                                sendViewModel.submitTransfer(
+                                    recipientAddress = recipient,
+                                    amountDisplay = amountText,
+                                    confirmedBalanceAtomic = balanceAtomic,
+                                    tokenId = selectedTokenId,
+                                    paymentMemo = memoText.ifBlank { null },
+                                ) {
+                                    sendViewModel.setStage(SendStage.Success)
+                                }
                             }
                         },
-                    onBack = { goBackStage() },
-                    onSend = {
-                        sendViewModel.setStage(SendStage.Sending)
-                        sendViewModel.submitTransfer(
-                            recipientAddress = recipient,
-                            amountDisplay = amountText,
-                            confirmedBalanceAtomic = balanceAtomic,
-                            tokenId = selectedTokenId,
-                            paymentMemo = memoText.ifBlank { null },
-                        ) {
-                            sendViewModel.setStage(SendStage.Success)
+                        pinPromptResId = R.string.enter_six_digit_pin_code,
+                    )
+
+                    LaunchedEffect(isTouchIdOrFaceIdEnabled) {
+                        if (isTouchIdOrFaceIdEnabled == true && pinViewModel.isBioMetricEnabledOnMobile()) {
+                            (activity as? FragmentActivity)?.authenticate(
+                                "",
+                                activity.getString(R.string.biometric_backup_phrase_title),
+                            ) {
+                                isAuthenticatingToSend = false
+                                sendViewModel.setStage(SendStage.Sending)
+                                sendViewModel.submitTransfer(
+                                    recipientAddress = recipient,
+                                    amountDisplay = amountText,
+                                    confirmedBalanceAtomic = balanceAtomic,
+                                    tokenId = selectedTokenId,
+                                    paymentMemo = memoText.ifBlank { null },
+                                ) {
+                                    sendViewModel.setStage(SendStage.Success)
+                                }
+                            }
                         }
-                    },
-                )
+                    }
+                } else {
+                    val balanceCheck =
+                        if (fieldsReady) {
+                            sendViewModel.evaluateBalance(balanceAtomic, amountText)
+                        } else {
+                            null
+                        }
+                    val canSend = fieldsReady && balanceCheck == SendBalanceCheck.Ok && !isSubmitting
+                    val unit =
+                        tokenBalances.firstOrNull { it.tokenId == selectedTokenId }?.displayName
+                            ?: "DRK"
+                    ReviewSend(
+                        amountLabel = "$amountText $unit",
+                        recipient = recipient,
+                        memo = memoText.ifBlank { null },
+                        feeLabel = sendViewModel.formatFeeAtomic(feeAtomic)?.let { "$it $unit" },
+                        isEstimatingFee = isEstimatingFee,
+                        isSendEnabled = canSend,
+                        errorMessage =
+                            when {
+                                !nativeAvailable -> {
+                                    stringResource(R.string.ns_send_ffi_unavailable)
+                                }
+
+                                balanceCheck is SendBalanceCheck.Insufficient -> {
+                                    stringResource(
+                                        R.string.send_insufficient_balance,
+                                        DarkfiAmountFormatter.formatAtomic(balanceCheck.requiredAtomic),
+                                        DarkfiAmountFormatter.formatAtomic(balanceCheck.availableAtomic),
+                                    )
+                                }
+
+                                else -> {
+                                    errorMessage
+                                }
+                            },
+                        onBack = { goBackStage() },
+                        onSend = {
+                            if (isPinConfigured == true) {
+                                isAuthenticatingToSend = true
+                            } else {
+                                sendViewModel.setStage(SendStage.Sending)
+                                sendViewModel.submitTransfer(
+                                    recipientAddress = recipient,
+                                    amountDisplay = amountText,
+                                    confirmedBalanceAtomic = balanceAtomic,
+                                    tokenId = selectedTokenId,
+                                    paymentMemo = memoText.ifBlank { null },
+                                ) {
+                                    sendViewModel.setStage(SendStage.Success)
+                                }
+                            }
+                        },
+                    )
+                }
             }
 
             SendStage.Sending -> {

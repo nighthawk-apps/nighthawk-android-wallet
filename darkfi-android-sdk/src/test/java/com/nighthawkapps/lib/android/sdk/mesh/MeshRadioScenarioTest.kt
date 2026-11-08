@@ -43,4 +43,39 @@ class MeshRadioScenarioTest {
         assertFalse(MeshRadioScenario.deliver(a, r, frame, 1L))
         assertTrue(r.inbox.isEmpty())
     }
+
+    @Test
+    fun plaintextDagEventIsDroppedLikeProductionInbox() {
+        val a = MeshRadioScenario.Phone("a")
+        val r = MeshRadioScenario.Phone("r")
+        val frame =
+            MeshWireCodec.encode(
+                MeshWirePacket(
+                    type = MeshWireCodec.NH_DAG_EVENT,
+                    ttl = 7,
+                    flags = 0,
+                    timestampMs = 0L,
+                    sender = ByteArray(8) { 3 },
+                    recipient = null,
+                    payload = "#dev\nnick\nbody".toByteArray(),
+                ),
+            ) ?: error("encode")
+        assertFalse(MeshRadioScenario.deliver(a, r, frame, 1L))
+        assertTrue(r.inbox.isEmpty())
+    }
+
+    @Test
+    fun sealedChatHopsAcrossThreePhones() {
+        val a = MeshRadioScenario.Phone("a")
+        val r = MeshRadioScenario.Phone("r")
+        val g = MeshRadioScenario.Phone("g")
+        val from = ByteArray(8) { 0x0A }
+        val payload = "nh-mesh-payload-3phone".toByteArray()
+        val frame = MeshRadioScenario.sealedChatFrame(from, payload)
+        assertTrue(MeshRadioScenario.deliver(a, r, frame, 10L))
+        assertTrue(MeshRadioScenario.deliver(r, g, frame, 11L))
+        assertEquals(1, r.inbox.size)
+        assertEquals(1, g.inbox.size)
+        assertTrue(g.inbox[0].contentEquals(frame))
+    }
 }

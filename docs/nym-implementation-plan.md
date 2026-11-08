@@ -1,58 +1,52 @@
-# Nym Mixnet / NymVPN Integration Plan
+# Nym Mixnet — shipped architecture (status)
 
-## 1. Executive Summary
+Nighthawk routes **clearnet** wallet and DarkIRC traffic through an **in-process Nym SOCKS5** proxy. This document replaces the older “future integration plan” with what is actually shipping.
 
-With Tor increasingly viewed as compromised for high-level threat models, transitioning Nighthawk's network layer to the Nym Mixnet offers a robust alternative. Nym provides both a decentralized VPN (dVPN) and a full mixnet (with dummy traffic and timing obfuscation).
+Mesh BLE is **orthogonal** — see [nighthawk-mesh.md](./nighthawk-mesh.md). Mixnet never carries BLE frames; BLE never tunnels through Nym.
 
-This proposal outlines a phased implementation plan for integrating the Nym SDK/NymVPN stack into both the iOS and Android Nighthawk wallets, focusing on app-level networking, mobile architecture, and user experience.
+## Planes
 
-## 2. Architectural Baseline & Integration Strategy
+| Plane | Underlay | Carries |
+|-------|----------|---------|
+| **Nym SOCKS** | `nym_smolmix` tunnel → IPR exit | Remote lightwalletd TLS, DarkIRC P2P when transport = Nym |
+| **Tor (Arti)** | Local SOCKS | Same as above when privacy network = Tor |
+| **Direct** | Clearnet | Loopback LWD; optional remote without privacy hop |
+| **Nighthawk Mesh** | BLE GATT | Encrypted EventGraph hops only (offline/nearby) |
 
-Nym's developer documentation specifies that integration depends heavily on the host architecture. Since Nighthawk already has a robust pattern for embedding proxy daemons (currently Guardian's `tor-android` and embedded `arti` on iOS) and routing traffic via SOCKS5, the most viable path is **integrating Nym at the app networking layer via a local SOCKS5 proxy**, mirroring the existing Tor integration pattern.
+```
+Wallet LWD / DarkIRC P2P
+        │
+        ├─ PrivacyNetwork.Nym ──► AppNymCoordinator ──► 127.0.0.1:1080 SOCKS
+        │                              │
+        │                              └─ nym_smolmix Tunnel (ephemeral client)
+        │
+        ├─ PrivacyNetwork.Tor ──► Arti SOCKS
+        │
+        └─ Direct ──────────────► clearnet / loopback
 
-### Option A: Embedded Nym Client SDK (Recommended)
-Instead of forcing users to install a separate NymVPN app, we will embed the Nym Rust client (`nym-client` / Nym mobile SDK) directly into the app using UniFFI bindings.
-*   **Android:** Compile the Nym Rust client to an `.aar` using `uniffi-rs`. Expose a local SOCKS5 listener.
-*   **iOS:** Compile the Nym Rust client to an `XCFramework`. Expose a local SOCKS5 listener.
-*   **Routing:** The existing `AppTorCoordinator` and `DarkfiChatPreferences` logic will be extended to route traffic (Wallet RPC and DarkIRC P2P) through this new Nym SOCKS5 listener.
+Nearby EventGraph (independent):
+  DarkIRC insert ──► mesh_publish_event ──► MeshEngine ──► NighthawkBleLink
+```
 
-### Option B: External NymVPN App (Fallback)
-If embedded compilation proves unstable on mobile, Nighthawk will instruct users to install the official NymVPN app and configure Nighthawk's "External SOCKS" settings to point to the local proxy port exposed by the NymVPN app.
+## What shipped
 
-## 3. Mixnet vs. dVPN Mode
+- **Embedded SOCKS** (`rust/darkfi-mobile-ffi/src/nym.rs`): localhost listener (default **1080**), DNS over the mixnet tunnel, no bandwidth credential (ephemeral client).
+- **Android coordinator** (`AppNymCoordinator`): warm-start at app launch; status for splash / HUD.
+- **Wallet open**: when `use_nym` and LWD host is not loopback, start Nym and set the default SOCKS proxy before sync.
+- **DarkIRC**: `DarkircTransport::Nym` dials seeds through the same SOCKS.
+- **Instrumented**: `NymDarkircCoexistenceInstrumentedTest` (Nym HTTPS + DarkIRC coexist).
 
-NymVPN supports two modes:
-1.  **Fast Mode (dVPN):** 2-hop route. Faster, suitable for high-bandwidth tasks (like downloading chain blocks or syncing wallet state).
-2.  **Anonymous Mode (Mixnet):** 5-hop route with Sphinx packet formatting and timing obfuscation. Slower, but provides metadata anonymity.
+## What did **not** ship (backlog)
 
-**Recommendation:** 
-*   Use **Fast Mode (dVPN)** for standard Wallet RPC synchronization where latency is noticeable.
-*   Use **Mixnet Mode** for DarkIRC P2P messages and transaction broadcasting, where latency (a few seconds) is acceptable in exchange for maximum metadata protection.
+- Separate Fast dVPN vs 5-hop Mixnet UX toggle (current path is the embedded `nym_smolmix` tunnel).
+- User-imported zk-nym bandwidth credentials / shared credential pool UX.
+- External NymVPN app as the primary path (SOCKS-to-external remains a Tor-era pattern if needed).
 
-## 4. zk-nym Credentials
+## BitChat
 
-Nym network usage requires bandwidth credentials (zk-nyms). 
-*   **Initial Phase:** Nighthawk apps can utilize a shared pool of zk-nym credentials provided by the Nighthawk project (funded via the dev fund) to abstract this complexity away from the user.
-*   **Future Phase:** Users can import their own zk-nyms generated from the Nym desktop wallet, or Nighthawk could implement an in-app purchase/crypto swap mechanism to purchase bandwidth.
+Nym integration does **not** involve BitChat. Nearby radio is Nighthawk Mesh only (anti-interop wire magic / GATT UUIDs). See mesh doc.
 
-## 5. Settings UX Changes
+## Ops notes
 
-The Tor Settings UX will be rebranded and expanded to a general "Network Privacy" screen.
-
-**New UX Flow:**
-*   **Privacy Routing Toggle:** "Route wallet and chat traffic through privacy networks."
-*   **Network Selection (Radio Buttons):**
-    *   ( ) **Built-in Tor (Arti)** (Legacy fallback)
-    *   (x) **Nym Mixnet** (Recommended)
-    *   ( ) **External SOCKS Proxy**
-*   **Nym Configuration (when selected):**
-    *   Toggle: "Max Anonymity Mode (Slower) vs Fast dVPN Mode"
-    *   Text field: "Custom zk-nym credential (Optional)"
-*   **Status Indicator:** "Nym Client: Connected / Bootstrapping / Offline"
-
-## 6. Implementation Phases
-
-*   **Phase 1: Research & Rust Bindings (1-2 weeks):** Compile the `nym-client` for iOS/Android using UniFFI and ensure it can expose a local SOCKS5 port.
-*   **Phase 2: Android Integration (2 weeks):** Replace/Augment the `tor-android` coordinator with the Nym client coordinator. Update network interceptors to use the Nym SOCKS port.
-*   **Phase 3: iOS Integration (2 weeks):** Wrap the Nym client in the `DarkfiFfiSafe` layer alongside Arti.
-*   **Phase 4: UX & Credential Management (1 week):** Build the new Settings UI and implement the zk-nym credential injection mechanism.
+- First bootstrap can take ~tens of seconds; splash / HUD should wait on `nym_status`, not assume Connected.
+- Loopback lightwalletd stays **direct** so local labs are not blocked on mixnet bootstrap.

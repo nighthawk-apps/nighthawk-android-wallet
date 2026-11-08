@@ -1,0 +1,1 @@
+DarkFi pin 44ec78b6e (upstream net hosts/refinery). Sync progress no longer races into Fjall. Fee path prefers tx-local change. Aligns with iOS 3.01.08, desktop 3.1.8, Moonshine 3.1.7, lightwalletd 0.3.4.

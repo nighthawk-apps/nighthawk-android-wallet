@@ -5,7 +5,6 @@ import android.widget.Toast
 import androidx.activity.viewModels
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
@@ -19,13 +18,11 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
@@ -345,67 +342,59 @@ private fun ChatScreen(
                 colors = chatSelectionColors,
             )
             Spacer(modifier = Modifier.weight(1f))
-            IconButton(onClick = {
-                newDmInitialPubkey = null
-                showNewDm = true
-            }) {
-                Icon(Icons.Default.Add, contentDescription = stringResource(R.string.ns_chat_new_dm))
-            }
-            IconButton(
-                onClick = {
-                    val uri = DeepLinkUtil.buildPaymentRequestUri(receiveAddress) ?: return@IconButton
-                    if (inboxMode == ChatInboxMode.Channels && activeThreadKey.startsWith("#")) {
-                        pendingPublicInvoice = uri
-                    } else if (activeThreadKey.isNotBlank()) {
-                        controller.sendToChannel(activeThreadKey, uri)
-                    }
-                },
-                enabled = receiveAddress.isNotBlank() && activeThreadKey.isNotBlank(),
-            ) {
-                Icon(
-                    Icons.Filled.RequestQuote,
-                    contentDescription = stringResource(R.string.ns_chat_attach_request),
-                )
-            }
-            IconButton(
-                onClick = {
-                    val fromDraft = draft.trim().takeIf { it.startsWith("drk:") }
-                    val fromHistory =
-                        messages[activeThreadKey]
-                            .orEmpty()
-                            .asReversed()
-                            .firstOrNull { it.text.startsWith("drk:") }
-                            ?.text
-                    val uri = fromDraft ?: fromHistory
-                    if (uri != null && DeepLinkUtil.getSendDeepLinkData(Uri.parse(uri)) != null) {
-                        onPayInvoice(uri)
-                    }
-                },
-                enabled = activeThreadKey.isNotBlank(),
-            ) {
-                Icon(
-                    Icons.Filled.Payment,
-                    contentDescription = stringResource(R.string.ns_chat_pay_invoice),
-                )
-            }
-            IconButton(onClick = onChatSettings) {
-                Icon(Icons.Default.Settings, contentDescription = stringResource(R.string.ns_chat_settings_short))
-            }
-            IconButton(onClick = { showNetworkHud = true }) {
-                Box(
-                    modifier =
-                        Modifier
-                            .size(32.dp)
-                            .clip(CircleShape)
-                            .border(1.dp, MaterialTheme.colorScheme.primary, CircleShape),
-                    contentAlignment = Alignment.Center,
+            // Equal-pitch trailing actions: identical IconButtons so + / request / pay / info / settings share one spacing.
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                IconButton(onClick = {
+                    newDmInitialPubkey = null
+                    showNewDm = true
+                }) {
+                    Icon(Icons.Default.Add, contentDescription = stringResource(R.string.ns_chat_new_dm))
+                }
+                IconButton(
+                    onClick = {
+                        val uri = DeepLinkUtil.buildPaymentRequestUri(receiveAddress) ?: return@IconButton
+                        if (inboxMode == ChatInboxMode.Channels && activeThreadKey.startsWith("#")) {
+                            pendingPublicInvoice = uri
+                        } else if (activeThreadKey.isNotBlank()) {
+                            controller.sendToChannel(activeThreadKey, uri)
+                        }
+                    },
+                    enabled = receiveAddress.isNotBlank() && activeThreadKey.isNotBlank(),
                 ) {
+                    Icon(
+                        Icons.Filled.RequestQuote,
+                        contentDescription = stringResource(R.string.ns_chat_attach_request),
+                    )
+                }
+                IconButton(
+                    onClick = {
+                        val fromDraft = draft.trim().takeIf { it.startsWith("drk:") }
+                        val fromHistory =
+                            messages[activeThreadKey]
+                                .orEmpty()
+                                .asReversed()
+                                .firstOrNull { it.text.startsWith("drk:") }
+                                ?.text
+                        val uri = fromDraft ?: fromHistory
+                        if (uri != null && DeepLinkUtil.getSendDeepLinkData(Uri.parse(uri)) != null) {
+                            onPayInvoice(uri)
+                        }
+                    },
+                    enabled = activeThreadKey.isNotBlank(),
+                ) {
+                    Icon(
+                        Icons.Filled.Payment,
+                        contentDescription = stringResource(R.string.ns_chat_pay_invoice),
+                    )
+                }
+                IconButton(onClick = { showNetworkHud = true }) {
                     Icon(
                         Icons.Default.Info,
                         contentDescription = stringResource(R.string.ns_chat_hud_title),
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(18.dp),
                     )
+                }
+                IconButton(onClick = onChatSettings) {
+                    Icon(Icons.Default.Settings, contentDescription = stringResource(R.string.ns_chat_settings_short))
                 }
             }
         }

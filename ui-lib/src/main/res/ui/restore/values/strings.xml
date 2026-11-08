@@ -347,7 +347,7 @@
     <string name="ns_chat_settings_section_title">Chat</string>
     <string name="ns_chat_settings_row_title">DarkFi chat &amp; identity</string>
     <string name="ns_chat_settings_row_desc">Secret phrase, public ID, and IRC endpoint</string>
-    <string name="ns_chat_settings_screen_title">Chat settings</string>
+    <string name="ns_chat_settings_screen_title">Chat Settings</string>
     <string name="ns_chat_identity_section_title">Your chat identity</string>
     <string name="ns_chat_identity_section_body">Generate a private phrase unique to chat (not your wallet seed). Share only your public ID so contacts can recognize you for direct messaging workflows.</string>
     <string name="ns_chat_generate_identity">Generate new phrase</string>

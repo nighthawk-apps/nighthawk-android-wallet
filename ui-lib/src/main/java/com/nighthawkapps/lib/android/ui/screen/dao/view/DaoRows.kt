@@ -1,9 +1,8 @@
 package com.nighthawkapps.lib.android.ui.screen.dao.view
 
-import android.content.ClipData
-import android.content.ClipboardManager
 import android.content.Context
 import android.widget.Toast
+import com.nighthawkapps.lib.android.ui.common.copySensitiveToClipboard
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -252,8 +251,7 @@ private fun copyToClipboard(
     label: String,
     value: String,
 ) {
-    val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-    clipboard.setPrimaryClip(ClipData.newPlainText(label, value))
+    context.copySensitiveToClipboard(value, label)
     Toast.makeText(context, context.getString(R.string.ns_dao_copied, label), Toast.LENGTH_SHORT).show()
 }
 

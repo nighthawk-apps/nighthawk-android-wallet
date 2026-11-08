@@ -79,3 +79,19 @@ suspend fun Clipboard.setSensitivePlainText(
     setClipEntry(ClipEntry(clipData))
     SensitiveClipboardRegistry.scheduleTimedClear(context, text)
 }
+
+fun Context.copySensitiveToClipboard(
+    text: String,
+    label: String = "",
+) {
+    val clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
+    val clipData = ClipData.newPlainText(label, text)
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+        clipData.description.extras =
+            PersistableBundle().apply {
+                putBoolean(ClipDescription.EXTRA_IS_SENSITIVE, true)
+            }
+    }
+    clipboard.setPrimaryClip(clipData)
+    SensitiveClipboardRegistry.scheduleTimedClear(this, text)
+}

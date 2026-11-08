@@ -405,15 +405,18 @@ class NativeDarkfiSynchronizer internal constructor(
     }
 
     private fun applySyncSnapshotBestEffort() {
-        try {
-            applySyncSnapshot(handle.syncSnapshot())
-        } catch (_: Throwable) {
-            // destroyed handle / transient FFI
-        }
-
-        // Also read the light sync state for OMR/sync type info
+        // Use lightSyncSnapshot only. syncSnapshot() smol::block_on's into Drk/Fjall
+        // while the background sync thread already owns a long-lived block_on; that
+        // race SIGSEGV'd the process on emulator (null deref in libdarkfi_mobile_ffi).
+        // Light state is mutex-backed, updated by the sync thread, and already drives status.
         try {
             val lightState = handle.lightSyncSnapshot()
+            applySyncSnapshot(
+                DrkSyncSnapshot(
+                    scannedBlocks = lightState.scannedHeight,
+                    chainTip = lightState.chainTip,
+                ),
+            )
             _syncType.value = DarkfiSyncType.fromRustString(lightState.syncType)
             _syncMethod.value = DarkfiSyncMethod.fromRust(lightState.syncMethod)
             _omrAvailable.value = lightState.omrAvailable

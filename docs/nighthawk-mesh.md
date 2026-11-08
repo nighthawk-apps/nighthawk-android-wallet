@@ -4,6 +4,32 @@ Nearby phones can carry **DarkIRC EventGraph** traffic when Tor/clearnet P2P is 
 
 This pass is **EventGraph-only**. SoftAP internet sharing, BLE lightwalletd control, unsigned gateway announce/caps, and UnifOMR bulk over radio are **disabled**.
 
+## Architecture vs Nym and BitChat
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                     Nighthawk Android                         │
+│                                                               │
+│  Chat UI ──► DarkIRC EventGraph                               │
+│                 │                    │                        │
+│                 │ online             │ nearby                 │
+│                 ▼                    ▼                        │
+│         P2P (Nym / Tor / Direct)   MeshEngine (Rust)          │
+│                 │                    │ Noise HS/ENC + frag    │
+│                 ▼                    ▼                        │
+│            clearnet / SOCKS     NighthawkBleLink (Kotlin)     │
+│                                      │ GATT dual-role         │
+└──────────────────────────────────────┼────────────────────────┘
+                                       ▼
+                                  peer phones (NH magic)
+```
+
+| Stack | Role | Interop |
+|-------|------|---------|
+| **Nym mixnet** | Online privacy SOCKS for LWD + DarkIRC | Independent of BLE |
+| **Nighthawk Mesh** | Offline/nearby encrypted EventGraph hop | Nighthawk-only |
+| **BitChat** | **Not used** | Wire magic `NH`, opcodes `0xA*`, GATT `6e686d73-…` deliberately **reject** BitChat (`F47B5E2D-…`, opcodes `0x01`/`0x21`). GCS math is inspired by BitChat; packets are not compatible. “Share APK” UX is similar in spirit only. |
+
 ## What a sniffer sees
 
 BLE advertisements carry a Nighthawk-only GATT UUID plus a rotating 8-byte link id (`blake3(secret‖epoch)[0..8]`). After neighbor handshake, payloads are `NoiseEnc` ciphertext. An observer does not see plaintext `NH_DAG_EVENT` / `NH_DAG_SYNC`, IRC `channel\nnick\nbody`, announce caps, or LWD JSON.
@@ -42,19 +68,45 @@ Chat UI must not grow a second mesh parser. Daemon path:
 - JNA: new C symbols (`neighbor_up` / `neighbor_down` / `peer_id`) load via **`NhMeshNeighborLib`** so an older `.so` still loads `NhMeshLib`. Do not add those symbols to the main JNA interface until every shipped ABI includes them.
 - Do not log Bluetooth addresses.
 
+## Lab / multi-device testing (virtual Bluetooth)
+
+There is **no** Android Virtual BLE / 3-AVD GATT harness (emulator radio is not honest dual-role). Use these labs instead:
+
+### 1. Rust — authoritative 3-phone encrypted payloads (preferred)
+
+In-process star topology `A — relay — G` with real handshake, reseal, EventPut, DagSync, link loss, and relay wipe:
+
+```bash
+cd rust && cargo test -p darkfi-mobile-ffi --release --all-features --lib mesh::tests::three_device
+```
+
+Covers: `three_device_connect_handshake`, `three_device_chat_via_relay`, `three_device_relay_reseals_not_forwards_ciphertext`, `three_device_periodic_dag_sync`, `three_device_link_lost_and_reconnect`, `three_device_relay_reset`.
+
+### 2. Kotlin — OS / policy byte-pipe (“virtual radio”)
+
+`MeshRadioScenario` moves **Noise ENC / Ping** frames across three in-memory phones and applies the same `MeshFrameInbox` gate as production (plaintext DAG dropped):
+
+```bash
+./gradlew :darkfi-android-sdk:testDebugUnitTest --tests '*MeshRadioScenario*'
+```
+
+This does **not** prove crypto reseal — that is the Rust suite.
+
+### 3. Hardware
+
+`MeshTwoPhoneInstrumentedTest` gates live two-adapter radio; it skips on emulator. Physical phones (≥2, ideally 3 in a star) remain required for GATT.
+
 ## Rebuild native lib (mesh C ABI, no UniFFI regen)
 
 Mesh neighbor APIs are C ABI, not UniFFI UDL. After `rust/darkfi-mobile-ffi/src/mesh/` changes:
 
 ```bash
 SKIP_UNIFFI_BINDGEN=1 MOBILE_FFI_ABIS=arm64-v8a ./scripts/build-darkfi-mobile-ffi-android.sh
-# emulator mesh (M-1): rebuild x86_64 so neighbor symbols exist
+# emulator mesh: rebuild x86_64 so neighbor symbols exist
 SKIP_UNIFFI_BINDGEN=1 MOBILE_FFI_ABIS=x86_64 ./scripts/build-darkfi-mobile-ffi-android.sh
 ```
 
 Keep Android and iOS `rust/darkfi-mobile-ffi/src/mesh/` **lockstep** (`rsync` after edits). Do not regenerate UniFFI Kotlin/Swift unless `darkfi_mobile_ffi.udl` changed.
-
-**Native artifacts (this pass):** `jniLibs/arm64-v8a/libdarkfi_mobile_ffi.so` includes `nh_mesh_neighbor_up` / `down`. Emulator `x86_64` `.so` is older — `NhMeshNeighborLib` fails closed (mesh neighbors off) until that ABI is rebuilt.
 
 Host tests (after `make contracts` / proofs once in the vendored DarkFi tree):
 
@@ -62,7 +114,7 @@ Host tests (after `make contracts` / proofs once in the vendored DarkFi tree):
 cd rust && cargo test -p darkfi-mobile-ffi --release --all-features --lib mesh
 ```
 
-Gradle: `./gradlew :darkfi-android-sdk:testDebugUnitTest` (inbox ingest, plaintext DAG ignored, `publishChat` no-op).
+Gradle: `./gradlew :darkfi-android-sdk:testDebugUnitTest` (inbox ingest, plaintext DAG ignored, `publishChat` no-op, `MeshRadioScenario`).
 
 ## Out of scope this pass
 
@@ -71,3 +123,4 @@ Gradle: `./gradlew :darkfi-android-sdk:testDebugUnitTest` (inbox ingest, plainte
 - Public identifiers on air
 - Mobile RLN proofs
 - Inventing chat when DarkIRC is stopped
+- BitChat wire compatibility

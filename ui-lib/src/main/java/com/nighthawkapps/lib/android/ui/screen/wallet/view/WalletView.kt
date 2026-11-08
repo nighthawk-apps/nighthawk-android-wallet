@@ -269,9 +269,7 @@ fun WalletView(
                     .fillMaxWidth(),
             contentAlignment = Alignment.Center,
         ) {
-            if (walletSnapshot.status == DarkfiSyncStatus.SYNCED ||
-                walletSnapshot.status == DarkfiSyncStatus.SCANNING
-            ) {
+            if (walletSnapshot.status == DarkfiSyncStatus.SYNCED) {
                 val pages = remember { BalanceViewType.pages() }
                 val state = rememberPagerState(initialPage = 0) { pages.size }
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
