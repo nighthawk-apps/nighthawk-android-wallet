@@ -1,6 +1,8 @@
 # UnifOMR Security & Integration Guide
 
-This guide documents the UnifOMR implementation, security mitigations, key delivery architecture, and cross-wallet compatibility for the Nighthawk/Moonshine DarkFi mobile wallets.
+**Status:** historical integration notes. Production sync is padded trial decryption. UnifOMR is experimental, off by default, and served only by a lightwalletd build with `fhe-omr`. Current limits are in [`unifomr_mvp_limits.md`](unifomr_mvp_limits.md). The degree and key sizes below are the older profile, not Param2.
+
+This guide documents an earlier UnifOMR implementation, its security mitigations, key delivery, and cross-wallet compatibility notes.
 
 ---
 

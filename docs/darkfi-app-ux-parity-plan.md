@@ -35,7 +35,7 @@ Themes: Stealth (default), Light, Midnight still apply; HUD uses surface + outli
 |------|-----|
 | Miniquad engine + forest / CRT video background | Battery, GPU, not Nighthawk chrome |
 | Hardcoded wallet password / keys on external storage | Keep PIN vault, encrypted DB, UniFFI `drk` |
-| Direct `darkfid` JSON-RPC as default sync | Keep **UnifOMR → darkfi-lightwalletd** |
+| Direct `darkfid` JSON-RPC as default sync | Keep trial decryption through **darkfi-lightwalletd**. UnifOMR stays opt-in |
 
 ---
 

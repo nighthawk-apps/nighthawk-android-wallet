@@ -1,5 +1,7 @@
 # UnifOMR limits (darkfi-lightwalletd)
 
+**Current product (Android/iOS 3.01.09, desktop 3.1.9, Moonshine 3.1.8, lightwalletd 0.3.5):** wallet sync is padded trial decryption. This document describes the experimental `fhe-omr` server build and the opt-in client flag. The default lightwalletd binary does not advertise UnifOMR. Android and iOS network privacy defaults to Nym. Moonshine and desktop Tor prefs default on. DarkFi pin `44ec78b6e`, Arti 0.48.
+
 **Active crypto profile:** paper Table-1 **Param2** (ePrint 2026/910), fully wired:
 discrete Gaussian σ=0.5 errors, digest modulus-switch, all ℓ=2 plaintext bits
 evaluated, `r′ = 149`.
@@ -118,7 +120,7 @@ Detection keys are larger than MVP (~2× BFV degree); gRPC decode/encode limits 
 | Supplemental trial on empty OMR | — | ✓ | ✓ | ✓ | via FFI |
 | PIR-failure fallback = full padded window (never sparse match-set fetch) | n/a | ✓ | ✓ | ✓ | via FFI |
 | Power-of-2 padded digest windows, tip-clamped (min bucket 1024) | n/a | ✓ | ✓ | ✓ | via FFI |
-| Tor (arti) routing for remote LWD traffic, default ON | n/a | ✓ (embedded arti) | socks5 route via bootstrap `use_tor` | socks5 route via bootstrap `use_tor` | ✓ (`use_tor` pref, default true) |
+| Network privacy | n/a | Tor pref defaults on | Nym by default; Tor is in-process Arti | Nym by default; Tor is in-process Arti | Tor pref defaults on |
 
 Malformed UnifOMR clues are rejected at validation; clients fall back to trial decrypt over the window when OMR returns no matches (including decoy-directory / unregistered receivers).
 
@@ -133,9 +135,8 @@ decrypt ranges that are not the OMR match set.
 chunk_count]…`), the `OmrDigestResponse.slot_heights` map, v2 ownership proofs,
 and the `key_version` proto field are lockstep changes — server and clients must
 be deployed from the same revision. The 1-byte digest version (`0x01`) makes a
-mismatched client fail fast rather than misparse a stale layout. Nothing is
-shipped to users yet, so no live wire compatibility is claimed with earlier dev
-builds.
+mismatched client fail fast rather than misparse a stale layout. Testnet
+wallets ship this layout with proto 2.1.0.
 
 ## TLS for funded / remote e2e
 

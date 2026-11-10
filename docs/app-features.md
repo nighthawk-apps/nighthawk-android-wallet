@@ -11,7 +11,8 @@ Canonical list of **Android** capabilities for the DarkFi wallet APK (`com.night
 | ❌ | Not implemented |
 
 **Build flavors:** `darkfimainnet` · `darkfitestnet`  
-**Light client path:** wallets → **`darkfi-lightwalletd` gRPC `:9067`** (UnifOMR) → `darkfid` (not direct darkfid for sync/scan).  
+**Light client path:** wallets → **`darkfi-lightwalletd` gRPC `:9067`** → `darkfid`. Default sync is padded trial decryption. Experimental UnifOMR is off unless Advanced settings turn it on.  
+**Network privacy:** Nym mixnet by default. Tor is in-process Arti. Direct uses the device network.  
 **Chat:** DarkIRC on **both** platforms is in-process UniFFI (`start_darkirc`). Optional Android `darkirc_exec` is a legacy IRC subprocess. Nearby **Nighthawk Mesh** is an encrypted EventGraph hop over BLE (share-internet off).
 
 ---
@@ -41,7 +42,7 @@ Canonical list of **Android** capabilities for the DarkFi wallet APK (`com.night
 | Confirmed balance (DRK) | ✅ | `confirmedBalanceAtomic` via native `drk` when `.so` loaded |
 | Transparent vs shielded split | | **N/A** — DarkFi transfers are private; show single balance |
 | Fiat conversion display | 🟡 | Fiat currency setting exists; rate source project-specific |
-| Sync progress (% / blocks) | 🟡 | UI hooks exist; stub shows placeholder until scan wired (P1-5) |
+| Sync progress (% / blocks) | ✅ | `syncSnapshot()` from the sync engine. A stale served tip says lightwalletd has not reached darkfid recently |
 | Pull-to-refresh / rescan | ✅ | Settings → rescan; `refreshNow()` |
 | Embedded `darkfid` fullnode | 🟡 | Foreground service when `darkfid_exec` bundled; prefs toggle |
 | Remote `darkfid` JSON-RPC | ✅ | Loopback, emulator `10.0.2.2`, custom host:port |
@@ -59,12 +60,12 @@ Canonical list of **Android** capabilities for the DarkFi wallet APK (`com.night
 | Send without native lib | 🟡 | Stub synchronizer; transfer disabled with message |
 | Fee estimate before send | ✅ | `estimateTransferFee` |
 | Send confirmation dialog | ✅ | Amount, recipient, fee, memo |
-| Payment memo (private, UnifOMR metadata) | ✅ | Up to 255 UTF-8 bytes (`u8` length in OMR envelope; FFI `MAX_PAYMENT_MEMO_BYTES`) |
+| Payment memo | ✅ | Up to 255 UTF-8 bytes. Experimental UnifOMR puts it in `omr_metadata_enc`. The default send leaves `MoneyNote.memo` empty |
 | Memo on transaction details | ✅ | Decrypt incoming / stored outgoing (P0) |
 | QR scan recipient / amount | ✅ | SCAN route; deep link `drk:…?amount=&memo=` |
 | Receive QR display | ✅ | Receive money + QR codes screens |
 | Request specific amount (payment URI) | ✅ | Request money QR uses this wallet’s single `drk:` address |
-| Multi-token / custom assets send | ❌ | DRK default only (P1-1, P1-2) |
+| Multi-token / custom assets send | ✅ | Send screen token picker. DRK is the default token |
 
 ---
 
@@ -77,7 +78,7 @@ Canonical list of **Android** capabilities for the DarkFi wallet APK (`com.night
 | Recipient address on tx | 🟡 | `getRecipients` empty (P1-4) |
 | Mined / pending status | 🟡 | Status string from `drk` history |
 | Export tx / block explorer link | ✅ | `DarkfiExplorer` — `/tx/{id}` only (testnet or mainnet) |
-| Rich contract call breakdown | ❌ | DAO / Deploy labels (P1-3) |
+| Rich contract call breakdown | ✅ | `contractSummary` on transaction details |
 
 ---
 
@@ -89,7 +90,7 @@ Canonical list of **Android** capabilities for the DarkFi wallet APK (`com.night
 | In-process EventGraph | ✅ | `libdarkfi_mobile_ffi.so` |
 | Optional `darkirc_exec` | 🟡 | Legacy IRC subprocess; not the default message path |
 | Tor for chat / P2P | ✅ | In-process Arti SOCKS for native daemon |
-| Connection status | ✅ | `darkirc_status()` → ConnectedDirect / ConnectedViaTor |
+| Connection status | ✅ | `darkirc_status()` → direct, Tor, or Nym |
 | Chat settings (DAG, fast mode) | ✅ | Settings → Chat |
 | E2E encrypted DMs | ✅ | ChaCha UniFFI; daemon refuses plaintext DMs |
 | DM key generation | ✅ | `generate_dm_keypair` UniFFI (not CLI) |
@@ -125,7 +126,7 @@ Canonical list of **Android** capabilities for the DarkFi wallet APK (`com.night
 | Embedded darkfid P2P seeds (lilith) | ✅ | Clearnet + Tor SOCKS seeds per network |
 | Mainnet confirmation threshold 11 | ✅ | Embedded TOML (P0-4) |
 | Stratum / mining UI | ❌ | Desktop `darkfid` + xmrig |
-| DAO / contract admin UI | ❌ | P2 |
+| DAO / contract admin UI | 🟡 | Read-only DAO hub tab. Signing stays off the hub |
 
 ---
 
@@ -147,13 +148,13 @@ Canonical list of **Android** capabilities for the DarkFi wallet APK (`com.night
 |--------------------------|-------------------|
 | ZEC transparent + shielded pools | Single private DRK balance |
 | Unified address / uview | `drk` deposit address |
-| Memo field (512 bytes) | UnifOMR user memo, max **255 UTF-8 bytes** (off-chain `omr_metadata_enc`; on-chain `MoneyNote.memo` is unbounded `Vec<u8>` and left empty by `drk.transfer`) |
-| Lightwalletd | `darkfi-lightwalletd` gRPC **:9067** (UnifOMR) → `darkfid` |
-| Embedded Tor | tor-android SOCKS + optional daemon Tor |
-| `drk:` payment URI | Payment URI `drk:address?amount=&memo=` |
+| Memo field (512 bytes) | Payment memo, max **255 UTF-8 bytes**. Default send leaves the on-chain note memo empty |
+| Lightwalletd | `darkfi-lightwalletd` gRPC **:9067**. Default sync is trial decryption. UnifOMR is an `fhe-omr` server build and an opt-in client setting |
+| Embedded Tor | In-process Arti. The app default network is Nym, not Tor |
+| `drk:` payment URI | `drk:address?amount=&memo=` with memo as standard base64 |
 | Orchard / Sapling | Money contract `TransferV1` |
-| — | DarkIRC chat (new) |
-| — | DAO / custom tokens (chain; app UI pending) |
+| — | DarkIRC chat, in-process on Android and iOS |
+| — | DAO hub (read-only) and custom-token send |
 
 ---
 
