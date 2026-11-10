@@ -8,7 +8,7 @@
 
 Privacy-preserving wallet (work-in-progress) by [Nighthawk Apps](https://nighthawkapps.com). This tree ships as a **new Android application id** on the DarkFi network (DRK). The app integrates a native DarkFi wallet API via **UniFFI** (`rust/darkfi-mobile-ffi` → generated Kotlin + `DarkfiMobileFfiApi`) for chain sync, broadcast, and chat.
 
-**3.01.08** (`WALLET_VERSION_CODE=30100808`). Cyberpunk is the default theme on a light or dark system. The Void wallpaper stays anchored at the top left and continues under the status bar and the navigation bar. Body text uses DejaVu Sans Mono. Light and Paper use graphite and grey instead of teal. Sync uses lightwalletd proto 2.1.0. The default is padded trial decryption of Money notes, token mints, and compact DAO calls. UnifOMR is an experimental Advanced setting and is not maintained until DarkFi mainnet contracts are live. Embedded Tor is Arti 0.48. The wallet opens without waiting for Nym or Tor; the sync thread dials lightwalletd only once the tunnel is up. Nym is the default network for the wallet, DarkIRC, and the embedded node. The splash shows mixnet progress and **Continue without Nym** after 20 seconds or a failed bootstrap. Bottom nav is **Chat · Wallet · Dex · DAO · Settings**. Wallet actions are **Request · Receive · Send**. Settings → **Share Nighthawk** sends the APK to another Android device (zipped for Bluetooth, raw APK for other share targets). Toolchain: Gradle **9.9.0**, AGP **9.5.1**, Kotlin **2.3.21**, Compose UI **1.12.1**, Material3 **1.4.0**, Material icons **1.7.8**, AndroidX Lifecycle **2.11.0**, Navigation Compose **2.10.2**, JNA **5.19.1**, UniFFI **0.32**, NDK **30.0.16248370**, minSdk **27**, compile SDK **37.2**, target SDK **37** (Android 17). DarkFi pin `44ec78b6e` (Arti 0.47, upstream `0f985c7cf` tx-local fees, public `scan_block`, darkfid sync hardening). Native sent-tx session cache is FIFO-capped (10,000). Reorg “transactions affected” is counted from `drk.get_txs_history()` (`block_height > rewind`), not from CLI log lines.
+**3.01.09** (`WALLET_VERSION_CODE=30100809`). Default sync trial-decrypts notes in parallel. A synced wallet says when lightwalletd has not reached darkfid recently. Experimental UnifOMR stays off unless you turn it on. DarkFi pin `44ec78b6e`, Arti 0.48. Aligns with iOS 3.01.09, desktop 3.1.9, Moonshine 3.1.8, and lightwalletd 0.3.5.
 
 ## Contents
 
@@ -31,7 +31,7 @@ Privacy-preserving wallet (work-in-progress) by [Nighthawk Apps](https://nightha
 
 Store listings are **not finalized** for `com.nighthawkwallet.android`. Placeholder targets until publishing completes:
 
-- **F-Droid:** DarkFi **testnet** package `com.nighthawkwallet.android.testnet` / flavor `darkfitestnet` (see [docs/fdroid.md](docs/fdroid.md); listing pending fdroiddata merge). **3.01.08** (`WALLET_VERSION_CODE=30100808`) — Fastlane changelog `fastlane/metadata/android/en-US/changelogs/30100807.txt`, tag `v3.01.07`. Local unsigned APK: `bundle exec fastlane fdroid`.
+- **F-Droid:** DarkFi **testnet** package `com.nighthawkwallet.android.testnet` / flavor `darkfitestnet` (see [docs/fdroid.md](docs/fdroid.md); listing pending fdroiddata merge). **3.01.09** (`WALLET_VERSION_CODE=30100809`) — Fastlane changelog `fastlane/metadata/android/en-US/changelogs/30100809.txt`, tag `v3.01.09`. Local unsigned APK: `bundle exec fastlane fdroid`.
 - **Google Play:** `https://PLACEHOLDER_PLAY_STORE_LISTING_URL`
 
 Replace these URLs when production listings exist—do not invent live links prematurely.

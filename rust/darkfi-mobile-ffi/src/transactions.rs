@@ -369,6 +369,28 @@ pub(crate) async fn resolve_outgoing_omr_clue(
     Ok((SCHEME_UNIFOMR, clue))
 }
 
+/// Compact output that this wallet cannot decrypt. That is the payment.
+/// Several foreign outputs, or none, keep the historical index 0.
+async fn payment_output_index(drk: &Drk, tx: &Transaction) -> Result<u32, String> {
+    use darkfi_money_contract::client::MoneyNote;
+
+    let secrets = drk
+        .get_money_secrets()
+        .await
+        .map_err(|e| e.to_string())?;
+    let visible = crate::lightwallet_client::visible_money_outputs(tx).await?;
+    let mut foreign = Vec::new();
+    for output in &visible {
+        let ours = secrets
+            .iter()
+            .any(|secret| output.note.decrypt::<MoneyNote>(secret).is_ok());
+        if !ours {
+            foreign.push(output.index);
+        }
+    }
+    Ok(if foreign.len() == 1 { foreign[0] } else { 0 })
+}
+
 pub async fn broadcast_transfer(
     drk: &Drk,
     tx_bytes: &[u8],
@@ -444,6 +466,7 @@ pub async fn broadcast_transfer(
         darkfi_sdk::crypto::keypair::Network::Mainnet => 0x00u8,
         darkfi_sdk::crypto::keypair::Network::Testnet => 0x01u8,
     };
+    let payment_index = payment_output_index(drk, &tx).await?;
     let send_result = client
         .send_transaction_with_wallet_clues(
             raw_tx.to_vec(),
@@ -451,6 +474,7 @@ pub async fn broadcast_transfer(
             omr_metadata_enc,
             &*secret_bytes,
             network_byte,
+            payment_index,
         )
         .await;
 

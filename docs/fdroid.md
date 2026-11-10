@@ -36,7 +36,24 @@ srclib SHA edit.
 
 Tagging alone does **not** run this repo’s GitHub `Deploy` workflow (that is branch/`workflow_dispatch` + Play secrets). F-Droid’s scanner is separate.
 
-## 3.01.07 (this release)
+## 3.01.09 (this release)
+
+| Field | Value |
+|-------|--------|
+| `WALLET_VERSION_NAME` | `3.01.09` |
+| `WALLET_VERSION_CODE` | `30100809` |
+| Suggested git tag | `v3.01.09` |
+| Fastlane changelog | `fastlane/metadata/android/en-US/changelogs/30100809.txt` |
+| DarkFi pin | `44ec78b6efbf1d3e797f99bffe95195994b2488d` (`nighthawk-testnet`, Arti 0.48) |
+
+What's new for testers:
+
+- Default sync trial-decrypts notes in parallel on several cores.
+- A synced wallet says when lightwalletd has not reached darkfid recently.
+- Experimental UnifOMR stays off unless you turn it on.
+- Aligns with iOS 3.01.09, desktop 3.1.9, Moonshine 3.1.8, and lightwalletd 0.3.5.
+
+## 3.01.07
 
 | Field | Value |
 |-------|--------|

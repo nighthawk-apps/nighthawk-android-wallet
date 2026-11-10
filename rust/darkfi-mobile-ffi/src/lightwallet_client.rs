@@ -10,14 +10,14 @@
 //!
 //! Used by `sync.rs` when the lightwallet path is active.
 //!
-//! ## Design lessons from zcash/lightwalletd
+//! ## Client behavior
 //!
-//! - **Semantic gRPC error codes** (PR #various): classify errors by
-//!   retryability so the sync loop can make smart retry decisions.
-//! - **Startup health-check** (PR #490): probe the server before
-//!   accepting wallet sync requests.
-//! - **Debug logging at gRPC entrypoints** (logging commit): every RPC
-//!   call is logged at DEBUG level with method name and timing.
+//! - **Semantic gRPC error codes**: classify errors by retryability so the
+//!   sync loop can decide whether to retry.
+//! - **Startup health-check**: probe the server before accepting wallet
+//!   sync requests.
+//! - **Debug logging at gRPC entrypoints**: every RPC call is logged at
+//!   DEBUG level with method name and timing.
 
 use std::collections::{BTreeMap, VecDeque};
 use std::sync::atomic::{AtomicU64, Ordering};
@@ -115,10 +115,9 @@ fn lwd_client(
 
 /// Semantic classification of gRPC errors.
 ///
-/// Adopted from zcash/lightwalletd's systematic error code audit: the
-/// server should return `codes.Unavailable` for transient failures vs.
-/// `codes.InvalidArgument` for permanent ones, and the client should
-/// use this to decide whether to retry.
+/// The server returns Unavailable for transient failures and
+/// InvalidArgument for permanent ones. The client uses that to decide
+/// whether to retry.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum GrpcErrorKind {
     /// Server or backend node is temporarily unreachable.
@@ -290,6 +289,8 @@ pub struct LightServerInfo {
     pub proto_version: String,
     /// Whether server proto version is incompatible with client.
     pub proto_version_mismatch: bool,
+    /// Unix seconds of the server's last successful darkfid tip poll. 0 if unknown.
+    pub tip_fetched_unix: u64,
 }
 
 /// Authenticated Merkle tree state returned by GetTreeState.
@@ -616,6 +617,22 @@ pub fn clues_for_indexes(
         .map(|output_index| lightwallet_proto::OutputOmrClue {
             output_index,
             omr_clue: wallet_clue.to_vec(),
+        })
+        .collect()
+}
+
+/// One fresh clue ciphertext per output. Identical bytes are dropped by older
+/// lightwalletd builds, which then omit the fee output from the digest.
+pub fn fresh_clues_for_indexes(
+    indexes: &[u32],
+    pk: &crate::unifomr::RlwePublicKey,
+) -> Vec<lightwallet_proto::OutputOmrClue> {
+    indexes
+        .iter()
+        .copied()
+        .map(|output_index| lightwallet_proto::OutputOmrClue {
+            output_index,
+            omr_clue: crate::unifomr::build_omr_clue_from_pk(pk),
         })
         .collect()
 }
@@ -995,8 +1012,7 @@ impl LightwalletClient {
     /// Startup health-check: verify the server is reachable and the
     /// backend node (darkfid) has synced past genesis.
     ///
-    /// Adopted from zcash/lightwalletd's `FirstRPC()` pattern (finding 1.1/1.3):
-    /// probe the server up to `max_retries` times with backoff before
+    /// Probe the server up to `max_retries` times with backoff before
     /// accepting wallet sync requests. Returns the server info on success.
     ///
     /// This prevents the wallet from entering a sync loop against a
@@ -1097,6 +1113,7 @@ impl LightwalletClient {
                 directory_attest_pubkey: info.directory_attest_pubkey,
                 proto_version,
                 proto_version_mismatch,
+                tip_fetched_unix: info.tip_fetched_unix,
             })
         })
         .await;
@@ -1422,7 +1439,8 @@ impl LightwalletClient {
     }
 
     /// Broadcast `tx_data` and attach wallet clues on every output except the
-    /// payment output. The recipient clue stays on `omr_clue_output_index` 0.
+    /// payment output. `payment_index` is where the recipient clue and metadata
+    /// are stored. Change and fee outputs get their own clues.
     pub async fn send_transaction_with_wallet_clues(
         &self,
         tx_data: Vec<u8>,
@@ -1430,20 +1448,34 @@ impl LightwalletClient {
         omr_metadata_enc: Vec<u8>,
         wallet_secret: &[u8],
         network: u8,
+        payment_index: u32,
     ) -> Result<Vec<u8>, String> {
-        let extra =
-            match self_change_omr_clues(&tx_data, wallet_secret, network, 0, &omr_clue).await {
-                Ok(clues) => clues,
-                Err(e) => {
-                    tracing::warn!(
-                        target: "lightwallet-client",
-                        "sender change clues not attached: {e}"
-                    );
-                    Vec::new()
-                }
-            };
-        self.send_transaction_inner(tx_data, omr_clue, 0, omr_metadata_enc, extra)
-            .await
+        let extra = match self_change_omr_clues(
+            &tx_data,
+            wallet_secret,
+            network,
+            payment_index,
+            &omr_clue,
+        )
+        .await
+        {
+            Ok(clues) => clues,
+            Err(e) => {
+                tracing::warn!(
+                    target: "lightwallet-client",
+                    "sender change clues not attached: {e}"
+                );
+                Vec::new()
+            }
+        };
+        self.send_transaction_inner(
+            tx_data,
+            omr_clue,
+            payment_index,
+            omr_metadata_enc,
+            extra,
+        )
+        .await
     }
 
     /// Broadcast a wallet-built contract transaction (DAO, token) with the
@@ -1458,8 +1490,7 @@ impl LightwalletClient {
         network: u8,
     ) -> Result<Vec<u8>, String> {
         let (_sk, pk) = crate::unifomr::clue_keypair_from_wallet(wallet_secret, network)?;
-        let own_clue = crate::unifomr::build_omr_clue_from_pk(&pk);
-        let mut extra = clues_for_indexes(own_indexes, &own_clue);
+        let mut extra = fresh_clues_for_indexes(own_indexes, &pk);
         let (clue, clue_index) = match recipient_clue {
             Some((index, clue)) => {
                 extra.retain(|c| c.output_index != index);
@@ -1932,6 +1963,7 @@ impl LightwalletClient {
                     backend_version: info.backend_version,
                     directory_attest_pubkey: info.directory_attest_pubkey,
                     proto_version: info.proto_version,
+                    tip_fetched_unix: info.tip_fetched_unix,
                 }
                 .encode_to_vec())
             }
@@ -2228,9 +2260,8 @@ const MIN_ENCRYPTED_NOTE_LEN: usize = 48;
 
 /// Validate a compact block's structural integrity (finding 5.1).
 ///
-/// Adopted from zcash/lightwalletd PR #278: deserialize and validate blocks
-/// at ingest time instead of discovering corruption when a wallet requests
-/// them.
+/// Deserialize and validate blocks at ingest time instead of discovering
+/// corruption when a wallet requests them.
 ///
 /// Returns `Ok(())` if the block passes all checks, `Err(description)` if
 /// any field has an invalid length or value.
@@ -2365,8 +2396,7 @@ pub fn validate_compact_block_batch(blocks: &[LightCompactBlock]) -> Result<(), 
 
 /// Validate a block range request before sending to the server (finding 5.4).
 ///
-/// Adopted from zcash/lightwalletd's null-argument segfault fix: check
-/// inputs on the client side to avoid sending invalid requests.
+/// Check inputs on the client side before sending a range request.
 pub fn validate_block_range(start: u32, end: u32) -> Result<(), String> {
     if start > end {
         return Err(format!(
@@ -2498,10 +2528,9 @@ pub async fn self_change_omr_clues(
     }
     let indexes = money_compact_output_indexes(tx_data).await?;
     let (_sk, pk) = crate::unifomr::clue_keypair_from_wallet(wallet_secret, network)?;
-    let clue = crate::unifomr::build_omr_clue_from_pk(&pk);
-    Ok(clues_for_indexes(
+    Ok(fresh_clues_for_indexes(
         &non_payment_output_indexes(indexes.len() as u32, payment_index),
-        &clue,
+        &pk,
     ))
 }
 
@@ -3277,6 +3306,7 @@ mod tests {
             directory_attest_pubkey: vec![0xBB; 32],
             proto_version: CLIENT_PROTO_VERSION.into(),
             proto_version_mismatch: false,
+            tip_fetched_unix: 0,
         };
         assert_eq!(info.best_block_hash.len(), 32);
         assert_eq!(info.backend_version, "darkfid 0.5.0");
@@ -3297,6 +3327,7 @@ mod tests {
             directory_attest_pubkey: vec![],
             proto_version: String::new(),
             proto_version_mismatch: false,
+            tip_fetched_unix: 0,
         };
         assert!(info.best_block_hash.is_empty());
         assert!(info.backend_version.is_empty());

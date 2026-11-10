@@ -1,0 +1,1 @@
+Default sync trial-decrypts notes in parallel. A synced wallet says when lightwalletd has not reached darkfid recently. Experimental UnifOMR stays off unless you turn it on. Aligns with iOS 3.01.09, desktop 3.1.9, Moonshine 3.1.8, and lightwalletd 0.3.5.

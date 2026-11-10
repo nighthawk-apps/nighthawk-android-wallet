@@ -1,8 +1,10 @@
 //! Batched Sapling trial decrypt for a sync window.
 //!
-//! One secret against many notes is the common case. The Jubjub multiply stays
-//! the windowed multiply in `sapling_ka_agree`, and the affine inversion is
-//! shared across the batch. SQLite stays on the caller.
+//! This is the production trial-decrypt path for Android and for desktop,
+//! which links this crate. UnifOMR is not involved.
+//!
+//! Chunks of 48 notes run Diffie-Hellman and AEAD together on the Rayon pool,
+//! then the caller writes SQLite. Smaller windows stay on the caller.
 
 use std::io::Cursor;
 
@@ -47,40 +49,47 @@ pub fn decrypt_money_notes(
         if pending.is_empty() {
             break;
         }
-        let epks: Vec<PublicKey> = pending
-            .iter()
-            .map(|index| decoded[*index].as_ref().unwrap().ephem_public)
-            .collect();
-        let shared = shared_secrets(secret, &epks);
-        for (index, shared) in pending.into_iter().zip(shared) {
-            let Ok(shared) = shared else {
-                continue;
-            };
-            let Some(enc) = decoded[index].as_ref() else {
-                continue;
-            };
-            let Ok(note) = enc.decrypt_with_shared::<MoneyNote>(&shared) else {
-                continue;
-            };
-            if !note_matches_coin(&note, secret, &notes[index].0) {
-                continue;
-            }
+        let hits = if pending.len() <= BATCH_CHUNK {
+            open_chunk(secret, &decoded, notes, &pending)
+        } else {
+            pending
+                .par_chunks(BATCH_CHUNK)
+                .flat_map_iter(|chunk| open_chunk(secret, &decoded, notes, chunk))
+                .collect::<Vec<_>>()
+        };
+        for (index, note) in hits {
             found[index] = Some((note, *secret));
         }
     }
     found
 }
 
-fn shared_secrets(
+/// One Rayon task: batched Diffie-Hellman, then AEAD and the coin check.
+fn open_chunk(
     secret: &SecretKey,
-    epks: &[PublicKey],
-) -> Vec<Result<[u8; 32], darkfi_sdk::error::ContractError>> {
+    decoded: &[Option<AeadEncryptedNote>],
+    notes: &[(Vec<u8>, Vec<u8>)],
+    indexes: &[usize],
+) -> Vec<(usize, MoneyNote)> {
     use darkfi_sdk::crypto::diffie_hellman::sapling_ka_agree_batch;
-    if epks.len() <= BATCH_CHUNK {
-        return sapling_ka_agree_batch(secret, epks);
-    }
-    epks.par_chunks(BATCH_CHUNK)
-        .flat_map(|chunk| sapling_ka_agree_batch(secret, chunk))
+
+    let epks: Vec<PublicKey> = indexes
+        .iter()
+        .map(|index| decoded[*index].as_ref().unwrap().ephem_public)
+        .collect();
+    let shared = sapling_ka_agree_batch(secret, &epks);
+    indexes
+        .iter()
+        .zip(shared)
+        .filter_map(|(index, shared)| {
+            let shared = shared.ok()?;
+            let enc = decoded[*index].as_ref()?;
+            let note = enc.decrypt_with_shared::<MoneyNote>(&shared).ok()?;
+            if !note_matches_coin(&note, secret, &notes[*index].0) {
+                return None;
+            }
+            Some((*index, note))
+        })
         .collect()
 }
 

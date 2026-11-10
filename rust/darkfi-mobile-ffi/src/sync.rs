@@ -71,15 +71,13 @@ const RETRY_BASE_SECS: u64 = 5;
 const RETRY_MAX_SECS: u64 = 300;
 
 /// Maximum consecutive failures before resetting the gRPC channel.
-/// Adopted from zcash/lightwalletd's `FirstRPC()` pattern (finding 1.2/1.3):
-/// prevents infinite retry loops by forcing a channel teardown + reconnect
-/// after too many consecutive errors.
+/// Prevents an infinite retry loop by tearing down the channel and
+/// reconnecting after too many consecutive errors.
 const MAX_CONSECUTIVE_FAILURES: u32 = 15;
 
 /// Maximum time (seconds) for a single sync cycle before it's considered stalled.
 /// If a `try_lightwallet_sync` call takes longer than this, we abort and retry.
-/// Adopted from the pattern in zcash/lightwalletd's streaming timeout fix.
-/// Must exceed the 1800s UniFOMR digest RPC timeout.
+/// Must exceed the 1800s UnifOMR digest RPC timeout.
 const MAX_SYNC_CYCLE_SECS: u64 = 2100;
 
 /// Number of startup health probes before entering the sync loop.
@@ -121,10 +119,14 @@ fn jittered_sleep_secs(base_secs: u64) -> u64 {
 pub async fn sync_once_via_lightwallet(drk: DrkPtr, url: &str) -> Result<(), String> {
     let engine = Arc::new(crate::lightwallet_sync::SyncEngine::new(url.to_string()));
     let force_trial = std::env::var("E2E_FORCE_TRIAL").ok().as_deref() == Some("1");
+    let strict = std::env::var("E2E_STRICT").ok().as_deref() == Some("1");
     if force_trial {
         // Own change is not covered by the recipient clue. Clear strict and
         // OMR together, without recording a server downgrade.
         engine.force_local_trial();
+    } else if strict {
+        // Headless E2E: bootstrap_drk has no SyncEngine, so honor E2E_STRICT here.
+        engine.set_strict_omr_only(true);
     }
     if let Ok(info) = engine
         .lightwallet_client()
@@ -142,6 +144,17 @@ pub async fn sync_once_via_lightwallet(drk: DrkPtr, url: &str) -> Result<(), Str
         .await
         .map(|_| ())
         .map_err(|e| redact_sync_error(&e))
+}
+
+/// Localnet E2E: DAOs this wallet observed in compact calls but does not own.
+pub fn e2e_print_discovered_daos(drk: &drk::Drk) {
+    for dao in crate::dao_compact::discovered_daos(drk) {
+        println!(
+            "DAO_SEEN height={} bulla={}",
+            dao.height,
+            bs58::encode(dao.bulla).into_string()
+        );
+    }
 }
 
 /// Anonymity route the lightwalletd client dials through.
@@ -228,9 +241,8 @@ pub fn start_background_sync(
                 // ========================================================
                 // Startup health probe (finding 1.1/1.3)
                 // ========================================================
-                // Adopted from zcash/lightwalletd's FirstRPC() pattern:
-                // verify the server is reachable and darkfid has synced
-                // past genesis before entering the main sync loop.
+                // Verify the server is reachable and darkfid has synced past
+                // genesis before entering the main sync loop.
                 // The stop side lets handle close abort a long probe and
                 // drop `drk` so the Fjall cache can be reopened.
                 if !wait_for_route(&sync_engine, route).await {
@@ -618,6 +630,7 @@ async fn try_lightwallet_sync(drk: &DrkPtr, sync_engine: &SyncEngine) -> Result<
         sync_engine.set_chain_tip(server_info.chain_tip_height);
     }
 
+    sync_engine.note_server_tip_age(server_info.tip_fetched_unix);
     let backend_syncing = sync_engine.is_backend_catching_up(server_info.chain_tip_height);
     if backend_syncing {
         tracing::info!(
@@ -2122,7 +2135,7 @@ const WALLET_MERKLE_META_TREE: &str = "wallet_merkle_meta";
 const KEY_MERKLE_FROM_GENESIS: &[u8] = b"merkle_from_genesis";
 
 /// True when this wallet's Money tree was built from genesis (not dummy+post-birthday).
-pub(crate) fn merkle_from_genesis(drk: &drk::Drk) -> bool {
+pub fn merkle_from_genesis(drk: &drk::Drk) -> bool {
     let Ok(tree) = drk.cache.kvdb.open_tree_default(WALLET_MERKLE_META_TREE) else {
         return false;
     };
@@ -2729,7 +2742,12 @@ pub(crate) async fn ensure_spendable_money_tree(
     if std::env::var("E2E_REBUILD_MERKLE").ok().as_deref() == Some("1") {
         let _ = set_merkle_from_genesis(drk, false);
     }
-    if merkle_from_genesis(drk) {
+    // Incremental sync / broadcast change notes can leave leaf positions or the
+    // tree height behind the scan cursor. Skipping the rebuild then publishes a
+    // Money root that is not on chain (`Custom(5)`).
+    let (scanned, _) = drk.get_last_scanned_block().map_err(|e| e.to_string())?;
+    let tree_lagging = merkle_tree_height(drk).is_none_or(|h| h < scanned);
+    if merkle_from_genesis(drk) && !tree_lagging {
         return Ok(());
     }
     rebuild_spendable_money_tree(drk, lightwallet_server_url, lightwallet_tls_pin).await
@@ -2830,6 +2848,9 @@ pub async fn remember_own_outputs_from_tx(
             }
         }
     }
+    // Change/fee rows carry placeholder leaf positions until the next genesis
+    // commitment walk. Clear the spend-ready flag so the following spend rebuilds.
+    let _ = set_merkle_from_genesis(drk, false);
     Ok(())
 }
 

@@ -149,7 +149,7 @@ Canonical list of **Android** capabilities for the DarkFi wallet APK (`com.night
 | Unified address / uview | `drk` deposit address |
 | Memo field (512 bytes) | UnifOMR user memo, max **255 UTF-8 bytes** (off-chain `omr_metadata_enc`; on-chain `MoneyNote.memo` is unbounded `Vec<u8>` and left empty by `drk.transfer`) |
 | Lightwalletd | `darkfi-lightwalletd` gRPC **:9067** (UnifOMR) → `darkfid` |
-| Tor via librustzcash | tor-android SOCKS + optional daemon Tor |
+| Embedded Tor | tor-android SOCKS + optional daemon Tor |
 | `drk:` payment URI | Payment URI `drk:address?amount=&memo=` |
 | Orchard / Sapling | Money contract `TransferV1` |
 | — | DarkIRC chat (new) |

@@ -339,6 +339,11 @@ pub struct LightInfo {
     /// Clients compare against their compiled proto version.
     #[prost(string, tag = "10")]
     pub proto_version: ::prost::alloc::string::String,
+    /// Unix seconds of the last successful darkfid tip poll.
+    /// 0 means this server build did not report it, or the poll has not succeeded.
+    /// A large gap means the served tip may be frozen while gRPC is still up.
+    #[prost(uint64, tag = "11")]
+    pub tip_fetched_unix: u64,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct OmrDigestResponse {

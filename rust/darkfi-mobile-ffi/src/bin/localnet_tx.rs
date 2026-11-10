@@ -47,9 +47,8 @@ async fn open_wallet() -> Result<DrkWalletPtr, String> {
         use_nym: false,
         nym_socks_port: 0,
         darkfid_rpc_url: None,
-        // Sends stay UnifOMR. Receiving must trial-decrypt: the sender's
-        // change note is not covered by the recipient clue. E2E_STRICT=1
-        // opts into the strict path so a clue-less payment stays invisible.
+        // E2E_STRICT=1 → UnifOMR-only receive (clue-less payments stay invisible).
+        // E2E_UNIFOMR=1 → attach UnifOMR clues on send (see build_transfer flag).
         strict_omr_only: std::env::var("E2E_STRICT").ok().as_deref() == Some("1"),
     };
     bootstrap::bootstrap_drk(&config, &ex).await
@@ -197,14 +196,11 @@ async fn sync_wallet(wallet: &DrkWalletPtr) -> Result<u64, String> {
     balance_atomic(&drk).await
 }
 
-/// One genesis replay per wallet directory. An earlier sync could mark the
-/// Money tree complete after a birthday window, and spend proofs then fail
-/// with Money `Custom(5)` (TransferMerkleRoot).
+/// Genesis replay when the stamp is missing or behind the scan cursor.
+/// An earlier birthday-window tree makes spend proofs fail with Money
+/// `Custom(5)` (TransferMerkleRoot).
 async fn ensure_genesis_tree(wallet: &DrkWalletPtr) -> Result<(), String> {
     let stamp = env_dir().join("merkle-rebuilt");
-    if stamp.exists() {
-        return Ok(());
-    }
     let _ = sync_wallet(wallet).await?;
     let client = darkfi_mobile_ffi::lightwallet_client::LightwalletClient::from_endpoint_and_pin(
         &lwd(),
@@ -213,6 +209,14 @@ async fn ensure_genesis_tree(wallet: &DrkWalletPtr) -> Result<(), String> {
     let tip = client.get_light_info().await?.chain_tip_height;
     let drk = wallet.read().await;
     let height = sync::spendable_rebuild_height(&drk, tip)?;
+    let stamped = stamp
+        .exists()
+        .then(|| std::fs::read_to_string(&stamp).ok())
+        .flatten()
+        .and_then(|s| s.trim().parse::<u32>().ok());
+    if stamped.is_some_and(|h| h >= height) && sync::merkle_from_genesis(&drk) {
+        return Ok(());
+    }
     println!("REBUILD tree 0..={height}");
     sync::rebuild_money_tree_to_height(&drk, &client, height).await?;
     drop(drk);
@@ -271,6 +275,17 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             };
             println!("ADDRESS={addr}");
             println!("BALANCE={bal}");
+            let rows = {
+                let drk = wallet.read().await;
+                drk.money_balance().await.map_err(|e| e.to_string())?
+            };
+            for (token, amount) in &rows {
+                println!("TOKEN {token}={amount}");
+            }
+            {
+                let drk = wallet.read().await;
+                sync::e2e_print_discovered_daos(&drk);
+            }
             return Ok(());
         }
 
@@ -295,15 +310,18 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     let _ = sync_wallet(&wallet).await;
                     let result = {
                         let drk = wallet.read().await;
+                        let use_unifomr =
+                            std::env::var("E2E_UNIFOMR").ok().as_deref() == Some("1");
+                        let token = arg("--token").unwrap_or_else(|| "DRK".into());
                         let built = transactions::build_transfer(
                             &drk,
                             &to,
                             &amount,
-                            Some("DRK"),
+                            Some(&token),
                             Some(&format!("localnet-{i}")),
                             Some(&lwd()),
                             None,
-                            false,
+                            use_unifomr,
                         )
                         .await;
                         match built {

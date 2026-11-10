@@ -374,6 +374,10 @@ message LightInfo {
   // Protocol version for forward-compatible version negotiation.
   // Clients compare against their compiled proto version.
   string proto_version = 10;
+  // Unix seconds of the last successful darkfid tip poll.
+  // 0 means this server build did not report it, or the poll has not succeeded.
+  // A large gap means the served tip may be frozen while gRPC is still up.
+  uint64 tip_fetched_unix = 11;
 }
 
 // === OMR Messages ===
