@@ -582,8 +582,31 @@ private fun NighthawkBleLink.rememberMeshLocked(
     meshId: ByteArray,
 ) {
     if (meshId.size != MeshWireCodec.SENDER_LEN) return
+    val hex = meshHex(meshId)
+    val stale = MeshRedundantLink.radioToRetire(meshToAtt[hex], attKey)
+    if (stale != null) {
+        retireStaleRadioLocked(stale)
+        MeshNative.neighborDown(meshId)
+        MeshNative.neighborUp(meshId)
+    }
     attToMesh[attKey] = meshId
-    meshToAtt[meshHex(meshId)] = attKey
+    meshToAtt[hex] = attKey
+}
+
+/** Disconnect a rotated address without treating the neighbor as gone. */
+@SuppressLint("MissingPermission")
+private fun NighthawkBleLink.retireStaleRadioLocked(id: String) {
+    attToMesh.remove(id)
+    clientGatts.remove(id)?.let { gatt ->
+        try {
+            gatt.disconnect()
+            gatt.close()
+        } catch (_: Exception) {
+        }
+    }
+    serverDevices.remove(id)
+    peers.forget(id)
+    inboxAssemblers.remove(id)
 }
 
 private fun NighthawkBleLink.meshHex(id: ByteArray): String = id.joinToString("") { b -> "%02x".format(b.toInt() and UNSIGNED_BYTE_MASK) }

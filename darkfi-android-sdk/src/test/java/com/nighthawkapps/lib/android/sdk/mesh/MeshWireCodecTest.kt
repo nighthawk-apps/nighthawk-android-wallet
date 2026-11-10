@@ -9,6 +9,13 @@ import kotlin.test.assertTrue
 
 class MeshWireCodecTest {
     @Test
+    fun newestRadioReplacesARotatedAddress() {
+        assertNull(MeshRedundantLink.radioToRetire(null, "AA:BB"))
+        assertNull(MeshRedundantLink.radioToRetire("AA:BB", "AA:BB"))
+        assertEquals("AA:BB", MeshRedundantLink.radioToRetire("AA:BB", "CC:DD"))
+    }
+
+    @Test
     fun goldenAnnounceMatchesRust() {
         val frame =
             byteArrayOf(

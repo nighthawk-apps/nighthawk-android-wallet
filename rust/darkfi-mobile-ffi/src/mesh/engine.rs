@@ -679,19 +679,23 @@ impl MeshEngine {
         self.dag_payloads.insert(id, body);
     }
 
+    /// A fragment train is admitted whole. One rejected piece must not leave
+    /// the rest of the train on the air.
     fn queue_maybe_fragment(&mut self, pkt: MeshPacket) {
-        match split(&pkt, FRAGMENT_CHUNK) {
-            Ok(parts) => {
-                for p in parts {
-                    if let Ok(bytes) = encode(&p) {
-                        if bytes.len() <= EVENT_INNER_MAX {
-                            self.outbound.push(bytes);
-                        }
-                    }
-                }
+        let Ok(parts) = split(&pkt, FRAGMENT_CHUNK) else {
+            return;
+        };
+        let mut encoded = Vec::with_capacity(parts.len());
+        for part in parts {
+            let Ok(bytes) = encode(&part) else {
+                return;
+            };
+            if bytes.len() > EVENT_INNER_MAX {
+                return;
             }
-            Err(_) => {}
+            encoded.push(bytes);
         }
+        self.outbound.extend(encoded);
     }
 
     fn is_duplicate(&mut self, pkt: &MeshPacket, now: u64) -> bool {

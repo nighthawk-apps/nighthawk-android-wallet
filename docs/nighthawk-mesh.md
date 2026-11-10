@@ -64,6 +64,8 @@ Chat UI must not grow a second mesh parser. Daemon path:
 - Ingest only `NH_NOISE_HS` / `NH_NOISE_ENC` / `NH_FRAGMENT` / `NH_PING` / `NH_PONG` (`MeshFrameInbox.shouldIngest`).
 - GATT: no characteristic **READ** (CCCD still READ+WRITE). `onCharacteristicReadRequest` denied.
 - Unicast GATT by mesh-id map; session hint from `MeshNative.peerId()`.
+- A mesh identity that speaks from a new Bluetooth address replaces the old radio. The newest connection is kept. The stale address is disconnected and the Noise session is opened again. Cancelling the new address instead reconnects in a loop.
+- A fragment train is queued only when every piece encodes. One rejected piece drops the train.
 - Settings hide “Share internet over Wi-Fi”; `gatewayOptIn` forced **false**.
 - JNA: new C symbols (`neighbor_up` / `neighbor_down` / `peer_id`) load via **`NhMeshNeighborLib`** so an older `.so` still loads `NhMeshLib`. Do not add those symbols to the main JNA interface until every shipped ABI includes them.
 - Do not log Bluetooth addresses.
