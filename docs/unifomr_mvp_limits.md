@@ -1,6 +1,6 @@
 # UnifOMR limits (darkfi-lightwalletd)
 
-**Current product (Android/iOS 3.01.09, desktop 3.1.9, Moonshine 3.1.8, lightwalletd 0.3.5):** wallet sync is padded trial decryption. This document describes the experimental `fhe-omr` server build and the opt-in client flag. The default lightwalletd binary does not advertise UnifOMR. Android and iOS network privacy defaults to Nym. Moonshine and desktop Tor prefs default on. DarkFi pin `44ec78b6e`, Arti 0.48.
+**Current product (Android/iOS 3.01.10, desktop 3.1.10, Moonshine 3.1.8, lightwalletd 0.3.5):** wallet sync is padded trial decryption. This document describes the experimental `fhe-omr` server build and the opt-in client flag. The default lightwalletd binary does not advertise UnifOMR. Android and iOS network privacy defaults to Nym. Moonshine and desktop Tor prefs default on. DarkFi pin `44ec78b6e`, Arti 0.48.
 
 **Active crypto profile:** paper Table-1 **Param2** (ePrint 2026/910), fully wired:
 discrete Gaussian σ=0.5 errors, digest modulus-switch, all ℓ=2 plaintext bits

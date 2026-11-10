@@ -101,7 +101,7 @@ internal fun MainActivity.MainNavigation(
     paddingValues: PaddingValues,
 ) {
     val homeViewModel by viewModels<HomeViewModel>()
-    NavHost(navController = navHostController, startDestination = BottomNavItem.Wallet.route, modifier = Modifier.padding(paddingValues)) {
+    NavHost(navController = navHostController, startDestination = BottomNavItem.Chat.route, modifier = Modifier.padding(paddingValues)) {
         composable(BottomNavItem.Chat.route) {
             AndroidChat(
                 onChatSettings = { navHostController.navigateJustOnce(CHAT_SETTINGS) },

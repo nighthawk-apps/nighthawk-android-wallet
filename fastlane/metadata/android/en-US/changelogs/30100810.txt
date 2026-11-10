@@ -1,0 +1,1 @@
+Chat is the tab selected when you open the app. Aligns with iOS 3.01.10 and desktop 3.1.10. Moonshine 3.1.8 and lightwalletd 0.3.5 are unchanged.

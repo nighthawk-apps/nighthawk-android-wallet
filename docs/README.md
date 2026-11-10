@@ -59,4 +59,4 @@ Index for the Nighthawk Android DarkFi wallet.
 
 | Document | Description |
 |----------|-------------|
-| [README.md](../README.md) | Overview, **3.01.09**, toolchain. Trial-decrypt sync, Nym default, DAO hub tab |
+| [README.md](../README.md) | Overview, **3.01.10**, toolchain. Trial-decrypt sync, Nym default, Chat opens first |
