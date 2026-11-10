@@ -62,7 +62,7 @@ What's new for testers:
 | Suggested git tag | `v3.01.07` |
 | Fastlane changelog | `fastlane/metadata/android/en-US/changelogs/30100807.txt` |
 
-- Bottom nav: Chat → Wallet → Dex → **DAO** → Settings. DAO hub title inset matches Dex/Settings.
+- Bottom nav: Chat → Wallet → DEX → **DAO** → Settings. DAO hub title inset matches DEX/Settings.
 - Wallet hub chips: **Request → Receive → Send** (8dp FilterChip corners, teal money accent).
 - Receive QR stacked above Scan at the standard screen margin (top = trailing).
 
