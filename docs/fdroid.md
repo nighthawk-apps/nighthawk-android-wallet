@@ -36,7 +36,19 @@ srclib SHA edit.
 
 Tagging alone does **not** run this repo’s GitHub `Deploy` workflow (that is branch/`workflow_dispatch` + Play secrets). F-Droid’s scanner is separate.
 
-## 3.01.10 (this release)
+## 3.01.11 (this release)
+
+| Field | Value |
+|-------|--------|
+| `WALLET_VERSION_NAME` | `3.01.11` |
+| `WALLET_VERSION_CODE` | `30100811` |
+| Suggested git tag | `v3.01.11` |
+| Fastlane changelog | `fastlane/metadata/android/en-US/changelogs/30100811.txt` |
+| DarkFi pin | `44ec78b6efbf1d3e797f99bffe95195994b2488d` (`nighthawk-testnet`, Arti 0.48) |
+
+`FDROID_BUILD=1` compiles the native library with one codegen unit, no build id, and path remaps (`/buildroot`, `/cargo`, `/sysroot`, `/home`). F-Droid's build is unsigned. The APK linked from `Binaries` is that unsigned APK signed with the testnet upload key. `AllowedAPKSigningKeys` is the SHA-256 of that certificate.
+
+## 3.01.10
 
 | Field | Value |
 |-------|--------|

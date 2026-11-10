@@ -16,20 +16,26 @@ platform :android do
 
   # ── F-Droid ────────────────────────────────────────────────────────────
   #
-  # F-Droid builds are unsigned — F-Droid signs with its own key.
-  # This lane produces the testnet release APK without signing, ready for
-  # F-Droid's build server to pick up (Studio ngrok LWD defaults).
+  # The recipe runs scripts/build-darkfi-mobile-ffi-android.sh with
+  # FDROID_BUILD=1, then assembleDarkfitestnetRelease. That APK is unsigned.
+  # F-Droid publishes a reproducible build only when that unsigned APK matches
+  # the file at Binaries (signature excluded). We sign the buildserver APK
+  # with the testnet upload key and publish that file; F-Droid does not
+  # create its own signing key for this app.
+  #
+  # Native libdarkfi_mobile_ffi.so must already be built. Local:
+  #   export FDROID_BUILD=1 ANDROID_NDK_HOME="$ANDROID_SDK_ROOT/ndk/26.1.10909125"
+  #   rustup default 1.94.0
+  #   ./scripts/build-darkfi-mobile-ffi-android.sh
 
   desc "Build unsigned DarkFi testnet release APK for F-Droid"
   lane :fdroid do
     # Matches package com.nighthawkwallet.android.testnet / flavor darkfitestnet.
-    # Native libdarkfi_mobile_ffi.so must already be in jniLibs (see
-    # ./scripts/build-darkfi-mobile-ffi-android.sh). F-Droid's server recipe
-    # runs that script in prebuild; local `fastlane fdroid` expects a prior build.
     gradle(
       task: "clean assembleDarkfitestnetRelease",
       properties: {
-        # F-Droid builds without signing; their server applies their own key.
+        # Leave the APK unsigned. Signing happens after the buildserver
+        # output is the one we publish.
         "IS_SIGN_RELEASE_BUILD_WITH_DEBUG_KEY" => "false",
       }
     )

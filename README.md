@@ -8,7 +8,7 @@
 
 Privacy-preserving wallet (work-in-progress) by [Nighthawk Apps](https://nighthawkapps.com). This tree ships as a **new Android application id** on the DarkFi network (DRK). The app integrates a native DarkFi wallet API via **UniFFI** (`rust/darkfi-mobile-ffi` → generated Kotlin + `DarkfiMobileFfiApi`) for chain sync, broadcast, and chat.
 
-**3.01.10** (`WALLET_VERSION_CODE=30100810`). Chat is the tab selected when you open the app. Default sync trial-decrypts notes in parallel. A synced wallet says when lightwalletd has not reached darkfid recently. Experimental UnifOMR stays off unless you turn it on. DarkFi pin `44ec78b6e`, Arti 0.48. Aligns with iOS 3.01.10, desktop 3.1.10, Moonshine 3.1.8, and lightwalletd 0.3.5.
+**3.01.11** (`WALLET_VERSION_CODE=30100811`). The F-Droid native build strips machine paths so the APK can be rebuilt bit for bit. Chat is the tab selected when you open the app. Default sync trial-decrypts notes in parallel. DarkFi pin `44ec78b6e`, Arti 0.48. Aligns with iOS 3.01.10, desktop 3.1.10, Moonshine 3.1.8, and lightwalletd 0.3.6.
 
 ## Contents
 
@@ -31,7 +31,7 @@ Privacy-preserving wallet (work-in-progress) by [Nighthawk Apps](https://nightha
 
 Store listings are **not finalized** for `com.nighthawkwallet.android`. Placeholder targets until publishing completes:
 
-- **F-Droid:** DarkFi **testnet** package `com.nighthawkwallet.android.testnet` / flavor `darkfitestnet` (see [docs/fdroid.md](docs/fdroid.md); listing pending fdroiddata merge). **3.01.10** (`WALLET_VERSION_CODE=30100810`) — Fastlane changelog `fastlane/metadata/android/en-US/changelogs/30100810.txt`, tag `v3.01.10`. Local unsigned APK: `bundle exec fastlane fdroid`.
+- **F-Droid:** DarkFi **testnet** package `com.nighthawkwallet.android.testnet` / flavor `darkfitestnet` (see [docs/fdroid.md](docs/fdroid.md); listing pending fdroiddata merge). **3.01.11** (`WALLET_VERSION_CODE=30100811`) — Fastlane changelog `fastlane/metadata/android/en-US/changelogs/30100811.txt`, tag `v3.01.11`. Local unsigned APK: `FDROID_BUILD=1 bundle exec fastlane fdroid`.
 - **Google Play:** `https://PLACEHOLDER_PLAY_STORE_LISTING_URL`
 
 Replace these URLs when production listings exist—do not invent live links prematurely.

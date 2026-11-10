@@ -116,7 +116,22 @@ configure_ndk_link_for_abi() {
   export "CXX_${target_prefix}=${bin_dir}/${clang_triple}${ANDROID_API}-clang++"
 
   # NDK sysroot for -laaudio (rodio/drk); 16KB ELF segment alignment for modern Android.
-  export "CARGO_TARGET_${target_prefix}_RUSTFLAGS=-L native=${ndk_lib_dir} -C link-arg=-Wl,-z,max-page-size=16384"
+  local flags="-L native=${ndk_lib_dir} -C link-arg=-Wl,-z,max-page-size=16384"
+  if [[ "${FDROID_BUILD:-0}" == "1" ]]; then
+    # Same placeholders on every machine. Panic locations and crate metadata
+    # otherwise embed the build directory, so F-Droid's rebuild would differ.
+    local root_real cargo_home sysroot
+    root_real="$(cd "$ROOT" && pwd -P)"
+    cargo_home="${CARGO_HOME}"
+    sysroot="$(rustc --print sysroot)"
+    flags+=" -C codegen-units=1"
+    flags+=" -C link-arg=-Wl,--build-id=none"
+    flags+=" --remap-path-prefix=${cargo_home}=/cargo"
+    flags+=" --remap-path-prefix=${sysroot}=/sysroot"
+    flags+=" --remap-path-prefix=${root_real}=/buildroot"
+    flags+=" --remap-path-prefix=${HOME}=/home"
+  fi
+  export "CARGO_TARGET_${target_prefix}_RUSTFLAGS=${flags}"
 }
 
 if [[ "$(id -u)" -eq 0 ]]; then
@@ -136,6 +151,15 @@ export ANDROID_NDK_ROOT="$ANDROID_NDK_HOME"
 export NDK="$ANDROID_NDK_HOME"
 export CARGO_HOME="${CARGO_HOME:-$ROOT/.cargo-home}"
 mkdir -p "$CARGO_HOME"
+if [[ "${FDROID_BUILD:-0}" == "1" ]]; then
+  export CARGO_INCREMENTAL=0
+  export CARGO_PROFILE_RELEASE_INCREMENTAL=false
+  export CARGO_PROFILE_RELEASE_CODEGEN_UNITS=1
+  if [[ -z "${SOURCE_DATE_EPOCH:-}" ]]; then
+    SOURCE_DATE_EPOCH="$(git -C "$ROOT" log -1 --format=%ct 2>/dev/null || echo 0)"
+    export SOURCE_DATE_EPOCH
+  fi
+fi
 # `cargo ndk` is a PATH subcommand. `cargo install cargo-ndk@4.1.2` into the
 # default ~/.cargo is invisible if we only search repo-local $CARGO_HOME/bin.
 export PATH="${CARGO_HOME}/bin:${HOME}/.cargo/bin:${PATH}"

@@ -1,0 +1,1 @@
+Native build no longer records the machine path, so F-Droid can rebuild this APK. Chat is still the tab selected when you open the app.
