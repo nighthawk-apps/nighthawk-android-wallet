@@ -36,7 +36,18 @@ srclib SHA edit.
 
 Tagging alone does **not** run this repo’s GitHub `Deploy` workflow (that is branch/`workflow_dispatch` + Play secrets). F-Droid’s scanner is separate.
 
-## 3.01.11 (this release)
+## 3.01.12 (this release)
+
+| Field | Value |
+|-------|--------|
+| `WALLET_VERSION_NAME` | `3.01.12` |
+| `WALLET_VERSION_CODE` | `30100812` |
+| Suggested git tag | `v3.01.12` |
+| Fastlane changelog | `fastlane/metadata/android/en-US/changelogs/30100812.txt` |
+
+`FDROID_BUILD=1` also sets `CARGO_PROFILE_RELEASE_LTO=off`. 3.01.11 still differed in `libdarkfi_mobile_ffi.so` between two buildserver runs while thin LTO was on.
+
+## 3.01.11
 
 | Field | Value |
 |-------|--------|

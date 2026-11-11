@@ -155,6 +155,8 @@ if [[ "${FDROID_BUILD:-0}" == "1" ]]; then
   export CARGO_INCREMENTAL=0
   export CARGO_PROFILE_RELEASE_INCREMENTAL=false
   export CARGO_PROFILE_RELEASE_CODEGEN_UNITS=1
+  # Thin LTO codegen is not stable across two otherwise identical builds.
+  export CARGO_PROFILE_RELEASE_LTO=off
   if [[ -z "${SOURCE_DATE_EPOCH:-}" ]]; then
     SOURCE_DATE_EPOCH="$(git -C "$ROOT" log -1 --format=%ct 2>/dev/null || echo 0)"
     export SOURCE_DATE_EPOCH
