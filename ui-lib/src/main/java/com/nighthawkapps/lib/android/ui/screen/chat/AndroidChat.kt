@@ -341,9 +341,13 @@ private fun ChatScreen(
                 label = { Text(stringResource(R.string.ns_chat_mode_direct)) },
                 colors = chatSelectionColors,
             )
-            Spacer(modifier = Modifier.weight(1f))
-            // Equal-pitch trailing actions: identical IconButtons so + / request / pay / info / settings share one spacing.
-            Row(verticalAlignment = Alignment.CenterVertically) {
+        }
+        // Own row so five IconButtons are not squeezed beside the chips on a phone.
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.End,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
                 IconButton(onClick = {
                     newDmInitialPubkey = null
                     showNewDm = true
@@ -396,7 +400,6 @@ private fun ChatScreen(
                 IconButton(onClick = onChatSettings) {
                     Icon(Icons.Default.Settings, contentDescription = stringResource(R.string.ns_chat_settings_short))
                 }
-            }
         }
         if (showNetworkHud) {
             AlertDialog(
