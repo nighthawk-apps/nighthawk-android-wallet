@@ -172,16 +172,18 @@ if ! command -v cargo-ndk >/dev/null 2>&1; then
   exit 1
 fi
 
-# F-Droid / release default: all four ABIs. Override locally with MOBILE_FFI_ABIS.
-abis="${MOBILE_FFI_ABIS:-arm64-v8a armeabi-v7a x86_64 x86}"
+# Release / F-Droid / Play default: 64-bit ABIs (arm64-v8a device, x86_64 emulator/Chromebook).
+# Override locally with MOBILE_FFI_ABIS if a specific slice is needed.
+abis="${MOBILE_FFI_ABIS:-arm64-v8a x86_64}"
 
 for abi in $abis; do
   configure_ndk_link_for_abi "$abi"
 done
 
 mkdir -p "$CARGO_HOME"
-mkdir -p "$ARTIFACTS/arm64-v8a" "$ARTIFACTS/armeabi-v7a" "$ARTIFACTS/x86" "$ARTIFACTS/x86_64"
-mkdir -p "$JNILIBS/arm64-v8a" "$JNILIBS/armeabi-v7a" "$JNILIBS/x86" "$JNILIBS/x86_64"
+for abi in $abis; do
+  mkdir -p "$ARTIFACTS/$abi" "$JNILIBS/$abi"
+done
 
 ndk_args=()
 for abi in $abis; do
@@ -231,18 +233,8 @@ if [[ "${SKIP_UNIFFI_BINDGEN:-0}" != "1" && "${FDROID_BUILD:-0}" != "1" ]]; then
   echo "Regenerating Kotlin UniFFI bindings..."
   (
     cd "$RUST"
-    cargo build -p darkfi-mobile-ffi >/dev/null
-    # Cargo 1.99+ only runs workspace bins for `cargo run --bin`. The
-    # uniffi-bindgen binary lives in the uniffi 0.32 crate (feature `cli`).
-    cargo_home="${CARGO_HOME:-$HOME/.cargo}"
-    uniffi_src="$(find "${cargo_home}/registry/src" -maxdepth 2 -type d -name 'uniffi-0.32.0' 2>/dev/null | head -1)"
-    if [[ -z "${uniffi_src}" ]]; then
-      echo "error: uniffi 0.32.0 sources not in the cargo registry" >&2
-      exit 1
-    fi
-    # Keep the bindgen build out of the Cargo registry source tree.
-    CARGO_TARGET_DIR="${RUST}/target/uniffi-bindgen" \
-      cargo run --manifest-path "${uniffi_src}/Cargo.toml" --features cli --bin uniffi-bindgen -- generate \
+    cargo build -p darkfi-mobile-ffi --lib >/dev/null
+    cargo run -p darkfi-mobile-ffi --bin uniffi-bindgen -- generate \
       darkfi-mobile-ffi/src/darkfi_mobile_ffi.udl \
       --language kotlin \
       --crate darkfi_mobile_ffi \

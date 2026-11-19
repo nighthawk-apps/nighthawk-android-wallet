@@ -2,7 +2,6 @@ package com.nighthawkapps.lib.android.ui.screen.dao.view
 
 import android.content.Context
 import android.widget.Toast
-import com.nighthawkapps.lib.android.ui.common.copySensitiveToClipboard
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -39,6 +38,7 @@ import com.nighthawkapps.lib.android.sdk.dao.DarkfiDaoProposalDetail
 import com.nighthawkapps.lib.android.sdk.dao.DarkfiDaoProposalSummary
 import com.nighthawkapps.lib.android.sdk.dao.DarkfiDaoSummary
 import com.nighthawkapps.lib.android.ui.R
+import com.nighthawkapps.lib.android.ui.common.copySensitiveToClipboard
 import com.nighthawkapps.lib.android.ui.design.component.BodyMedium
 import com.nighthawkapps.lib.android.ui.design.component.BodySmall
 import com.nighthawkapps.lib.android.ui.design.component.PrimaryButton

@@ -31,11 +31,14 @@ class SyncWorker(
             .get(applicationContext)
             .synchronizer
             .flatMapLatest { sync ->
-                sync?.let { s ->
-                    combine(s.status, s.progress) { status, progress ->
+                if (sync == null) {
+                    emptyFlow()
+                } else {
+                    sync.refreshNow()
+                    combine(sync.status, sync.progress) { status, progress ->
                         StatusAndProgress(status, progress)
                     }
-                } ?: emptyFlow()
+                }
             }.takeWhile {
                 it.status != DarkfiSyncStatus.DISCONNECTED && it.progress.isLessThanHundredPercent()
             }.collect()

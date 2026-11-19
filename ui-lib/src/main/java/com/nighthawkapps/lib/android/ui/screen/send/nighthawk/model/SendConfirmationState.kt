@@ -12,5 +12,5 @@ sealed class SendConfirmationState(
 
     data object Failed : SendConfirmationState(R.string.ns_failed, R.raw.lottie_send_failure)
 
-    data object Success : SendConfirmationState(R.string.ns_success, R.raw.lottie_send_success)
+    data object Success : SendConfirmationState(R.string.ns_broadcasted, R.raw.lottie_send_success)
 }

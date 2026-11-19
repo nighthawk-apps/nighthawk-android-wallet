@@ -4,7 +4,7 @@ Use this checklist when shipping or exercising **mainnet** builds of Nighthawk (
 
 ## Build prerequisites
 
-1. **NDK** — Set `ANDROID_NDK_HOME` to your NDK root (e.g. `~/Library/Android/sdk/ndk/29.0.14206865`).
+1. **NDK** — Set `ANDROID_NDK_HOME` to your NDK root (`~/Library/Android/sdk/ndk/30.0.16248370`, matching `ANDROID_NDK_VERSION` in `gradle.properties`).
 2. **Native FFI** — Rebuild after any `rust/darkfi-mobile-ffi` or UDL change:
 
    ```bash

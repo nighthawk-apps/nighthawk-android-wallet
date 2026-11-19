@@ -24,8 +24,7 @@ platform :android do
   # create its own signing key for this app.
   #
   # Native libdarkfi_mobile_ffi.so must already be built. Local:
-  #   export FDROID_BUILD=1 ANDROID_NDK_HOME="$ANDROID_SDK_ROOT/ndk/26.1.10909125"
-  #   rustup default 1.94.0
+  #   export FDROID_BUILD=1 ANDROID_NDK_HOME="$ANDROID_SDK_ROOT/ndk/30.0.16248370"
   #   ./scripts/build-darkfi-mobile-ffi-android.sh
 
   desc "Build unsigned DarkFi testnet release APK for F-Droid"

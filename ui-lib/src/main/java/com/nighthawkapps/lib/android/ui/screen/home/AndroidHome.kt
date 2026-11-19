@@ -13,7 +13,6 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.nighthawkapps.lib.android.spackle.EmulatorWtfUtil
-import com.nighthawkapps.lib.android.spackle.FirebaseTestLabUtil
 import com.nighthawkapps.lib.android.ui.BuildConfig
 import com.nighthawkapps.lib.android.ui.MainActivity
 import com.nighthawkapps.lib.android.ui.common.closeDrawerMenu
@@ -78,7 +77,6 @@ internal fun WrapHome(
         // of relying on BuildConfig.
         val isDebugMenuEnabled =
             BuildConfig.DEBUG &&
-                !FirebaseTestLabUtil.isFirebaseTestLab(context) &&
                 !EmulatorWtfUtil.isEmulatorWtf(context)
 
         val drawerValues = drawerBackHandler()

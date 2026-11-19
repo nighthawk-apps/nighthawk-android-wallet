@@ -15,8 +15,7 @@ object AndroidConfigurationFactory {
 
     fun getInstance(context: Context): ConfigurationProvider = instance.getInstance(context)
 
-    // Context will be needed for most cloud providers, e.g. to integrate with Firebase or other
-    // remote configuration providers.
+    // Context parameter reserved for environment-backed configuration providers.
     private fun new(
         @Suppress("UNUSED_PARAMETER") context: Context
     ): ConfigurationProvider {

@@ -8,9 +8,10 @@
 | Gradle flavor | `zcashmainnet` | **`darkfitestnet`** |
 | Version props | `ZCASH_VERSION_*` | **`WALLET_VERSION_*`** |
 | F-Droid metadata | existing `fdroiddata` recipe | **`metadata/com.nighthawkwallet.android.testnet.yml`** |
-| Default LWD | (Zcash) | Local `127.0.0.1:9067`. Studio ngrok is an optional Change-server preset only. |
+| Native ABIs | 32+64 bit | **64-bit only (`arm64-v8a`, `x86_64`), NDK `30.0.16248370`** (Play 64-bit / 16 KB alignment & F-Droid APK size) |
+| Default LWD | (Zcash) | Mac Studio ngrok TLS (`https://epidermis-sandbox-marshland.ngrok-free.dev:443`) with pinned leaf cert (`c02faee2...`). Loopback `127.0.0.1:9067` / custom server presets remain selectable in Settings. |
 
-This is a **testnet** listing for alpha / Studio ngrok lightwalletd — not mainnet.
+This is a **testnet** listing for alpha / Studio ngrok lightwalletd — not mainnet. Zero Firebase/Crashlytics or proprietary analytics SDKs are included in any build.
 A future mainnet F-Droid app would use `com.nighthawkwallet.android` / `darkfimainnet`.
 
 ## Local unsigned APK (same task F-Droid runs)

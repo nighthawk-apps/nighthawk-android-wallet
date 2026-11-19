@@ -5,7 +5,6 @@ import android.content.pm.ApplicationInfo
 import com.nighthawkapps.lib.android.build.gitCommitCount
 import com.nighthawkapps.lib.android.build.gitSha
 import com.nighthawkapps.lib.android.spackle.EmulatorWtfUtil
-import com.nighthawkapps.lib.android.spackle.FirebaseTestLabUtil
 import com.nighthawkapps.lib.android.spackle.getPackageInfoCompat
 import com.nighthawkapps.lib.android.spackle.versionCodeCompat
 
@@ -26,7 +25,6 @@ data class VersionInfo(
                 versionCode = packageInfo.versionCodeCompat, // Should only be 0 during tests
                 isDebuggable = (
                     (0 != applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE) &&
-                        !FirebaseTestLabUtil.isFirebaseTestLab(context.applicationContext) &&
                         !EmulatorWtfUtil.isEmulatorWtf(context.applicationContext)
                 ),
                 gitSha = gitSha,

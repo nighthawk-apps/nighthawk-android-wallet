@@ -10,7 +10,7 @@ Product direction for expanding this crate—embedded **`drk`**-equivalent walle
 - **DAO.** `dao_create` takes proposer limit, quorum, early-exec quorum, and approval ratio, and keeps all six role keys. `dao_import` reads drk TOML. `dao_export_role` writes drk TOML for `proposer`, `voter`, `executor`, or `all`. `dao_exec` has no early flag; the wallet chooses early or normal execution from the tip. Treasury, fund, propose, vote, and token generate/mint/freeze are on the same handle.
 - **`block_target`.** `LightServerInfo` keeps `GetLightInfo.block_target`. DAO voting windows use it.
 - **Money tree.** A rebuild stops at the wallet's last scanned height, not the server tip, so coins between the scan cursor and the tip are not skipped after a spend.
-- **Android binaries.** `arm64-v8a` and `x86_64` were rebuilt on 2026-11-03 with `SKIP_UNIFFI_BINDGEN=1` (Kotlin bindings left as generated). `armeabi-v7a` and `x86` were not.
+- **Android binaries.** `arm64-v8a` and `x86_64` only (64-bit, NDK `30.0.16248370`; 32-bit `armeabi-v7a` and `x86` are dropped).
 
 ## Sync Architecture — UnifOMR
 

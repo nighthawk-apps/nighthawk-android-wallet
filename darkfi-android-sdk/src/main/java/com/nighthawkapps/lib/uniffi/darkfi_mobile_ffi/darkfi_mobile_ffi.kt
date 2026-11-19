@@ -717,6 +717,8 @@ internal object IntegrityCheckingUniffiLib {
         uniffiCheckContractApiVersion(this)
         uniffiCheckApiChecksums(this)
     }
+
+    internal fun ensureInitialized() = Unit
     external fun uniffi_darkfi_mobile_ffi_checksum_func_bridge_ping(
     ): Int
     external fun uniffi_darkfi_mobile_ffi_checksum_func_bridge_version(
@@ -855,6 +857,8 @@ internal object UniffiLib {
         uniffiCallbackInterfaceReorgEventCallback.register(this)
         
     }
+
+    internal fun ensureInitialized() = Unit
     external fun uniffi_darkfi_mobile_ffi_fn_clone_darkfiwallethandle(`handle`: Long,uniffi_out_err: UniffiRustCallStatus, 
     ): Long
     external fun uniffi_darkfi_mobile_ffi_fn_free_darkfiwallethandle(`handle`: Long,uniffi_out_err: UniffiRustCallStatus, 
@@ -1096,181 +1100,181 @@ private fun uniffiCheckContractApiVersion(lib: IntegrityCheckingUniffiLib) {
 }
 @Suppress("UNUSED_PARAMETER")
 private fun uniffiCheckApiChecksums(lib: IntegrityCheckingUniffiLib) {
-    if (lib.uniffi_darkfi_mobile_ffi_checksum_func_bridge_ping() != 23250) {
+    if ((lib.uniffi_darkfi_mobile_ffi_checksum_func_bridge_ping() and 0xFFFF) != 23250) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_darkfi_mobile_ffi_checksum_func_bridge_version() != 4310) {
+    if ((lib.uniffi_darkfi_mobile_ffi_checksum_func_bridge_version() and 0xFFFF) != 4310) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_darkfi_mobile_ffi_checksum_func_chacha_decrypt_dm() != 30210) {
+    if ((lib.uniffi_darkfi_mobile_ffi_checksum_func_chacha_decrypt_dm() and 0xFFFF) != 30210) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_darkfi_mobile_ffi_checksum_func_chacha_encrypt_dm() != 37407) {
+    if ((lib.uniffi_darkfi_mobile_ffi_checksum_func_chacha_encrypt_dm() and 0xFFFF) != 37407) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_darkfi_mobile_ffi_checksum_func_darkirc_connection_phase() != 60093) {
+    if ((lib.uniffi_darkfi_mobile_ffi_checksum_func_darkirc_connection_phase() and 0xFFFF) != 60093) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_darkfi_mobile_ffi_checksum_func_darkirc_outbound_slots() != 49871) {
+    if ((lib.uniffi_darkfi_mobile_ffi_checksum_func_darkirc_outbound_slots() and 0xFFFF) != 49871) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_darkfi_mobile_ffi_checksum_func_darkirc_status() != 29954) {
+    if ((lib.uniffi_darkfi_mobile_ffi_checksum_func_darkirc_status() and 0xFFFF) != 29954) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_darkfi_mobile_ffi_checksum_func_decode_chat_entropy() != 57193) {
+    if ((lib.uniffi_darkfi_mobile_ffi_checksum_func_decode_chat_entropy() and 0xFFFF) != 57193) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_darkfi_mobile_ffi_checksum_func_generate_bip39_chat_mnemonic() != 52715) {
+    if ((lib.uniffi_darkfi_mobile_ffi_checksum_func_generate_bip39_chat_mnemonic() and 0xFFFF) != 52715) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_darkfi_mobile_ffi_checksum_func_generate_darkfi_mnemonic() != 48186) {
+    if ((lib.uniffi_darkfi_mobile_ffi_checksum_func_generate_darkfi_mnemonic() and 0xFFFF) != 48186) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_darkfi_mobile_ffi_checksum_func_generate_dm_keypair() != 60508) {
+    if ((lib.uniffi_darkfi_mobile_ffi_checksum_func_generate_dm_keypair() and 0xFFFF) != 60508) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_darkfi_mobile_ffi_checksum_func_is_arti_running() != 33624) {
+    if ((lib.uniffi_darkfi_mobile_ffi_checksum_func_is_arti_running() and 0xFFFF) != 33624) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_darkfi_mobile_ffi_checksum_func_is_nym_running() != 15495) {
+    if ((lib.uniffi_darkfi_mobile_ffi_checksum_func_is_nym_running() and 0xFFFF) != 15495) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_darkfi_mobile_ffi_checksum_func_nym_status() != 41601) {
+    if ((lib.uniffi_darkfi_mobile_ffi_checksum_func_nym_status() and 0xFFFF) != 41601) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_darkfi_mobile_ffi_checksum_func_send_chat_message() != 4769) {
+    if ((lib.uniffi_darkfi_mobile_ffi_checksum_func_send_chat_message() and 0xFFFF) != 4769) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_darkfi_mobile_ffi_checksum_func_set_network_storage_dir() != 64557) {
+    if ((lib.uniffi_darkfi_mobile_ffi_checksum_func_set_network_storage_dir() and 0xFFFF) != 64557) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_darkfi_mobile_ffi_checksum_func_start_arti_proxy() != 48169) {
+    if ((lib.uniffi_darkfi_mobile_ffi_checksum_func_start_arti_proxy() and 0xFFFF) != 48169) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_darkfi_mobile_ffi_checksum_func_start_darkirc() != 798) {
+    if ((lib.uniffi_darkfi_mobile_ffi_checksum_func_start_darkirc() and 0xFFFF) != 798) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_darkfi_mobile_ffi_checksum_func_start_nym_proxy() != 34512) {
+    if ((lib.uniffi_darkfi_mobile_ffi_checksum_func_start_nym_proxy() and 0xFFFF) != 34512) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_darkfi_mobile_ffi_checksum_func_stop_arti_proxy() != 38081) {
+    if ((lib.uniffi_darkfi_mobile_ffi_checksum_func_stop_arti_proxy() and 0xFFFF) != 38081) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_darkfi_mobile_ffi_checksum_func_stop_darkirc() != 44306) {
+    if ((lib.uniffi_darkfi_mobile_ffi_checksum_func_stop_darkirc() and 0xFFFF) != 44306) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_darkfi_mobile_ffi_checksum_func_stop_nym_proxy() != 27552) {
+    if ((lib.uniffi_darkfi_mobile_ffi_checksum_func_stop_nym_proxy() and 0xFFFF) != 27552) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_darkfi_mobile_ffi_checksum_func_validate_darkfi_mnemonic() != 33875) {
+    if ((lib.uniffi_darkfi_mobile_ffi_checksum_func_validate_darkfi_mnemonic() and 0xFFFF) != 33875) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_darkfi_mobile_ffi_checksum_method_darkfiwallethandle_broadcast_transfer() != 31867) {
+    if ((lib.uniffi_darkfi_mobile_ffi_checksum_method_darkfiwallethandle_broadcast_transfer() and 0xFFFF) != 31867) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_darkfi_mobile_ffi_checksum_method_darkfiwallethandle_build_transfer() != 46602) {
+    if ((lib.uniffi_darkfi_mobile_ffi_checksum_method_darkfiwallethandle_build_transfer() and 0xFFFF) != 46602) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_darkfi_mobile_ffi_checksum_method_darkfiwallethandle_confirmed_balance_atomic() != 48819) {
+    if ((lib.uniffi_darkfi_mobile_ffi_checksum_method_darkfiwallethandle_confirmed_balance_atomic() and 0xFFFF) != 48819) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_darkfi_mobile_ffi_checksum_method_darkfiwallethandle_dao_create() != 14392) {
+    if ((lib.uniffi_darkfi_mobile_ffi_checksum_method_darkfiwallethandle_dao_create() and 0xFFFF) != 14392) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_darkfi_mobile_ffi_checksum_method_darkfiwallethandle_dao_exec() != 5409) {
+    if ((lib.uniffi_darkfi_mobile_ffi_checksum_method_darkfiwallethandle_dao_exec() and 0xFFFF) != 5409) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_darkfi_mobile_ffi_checksum_method_darkfiwallethandle_dao_export_role() != 2019) {
+    if ((lib.uniffi_darkfi_mobile_ffi_checksum_method_darkfiwallethandle_dao_export_role() and 0xFFFF) != 2019) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_darkfi_mobile_ffi_checksum_method_darkfiwallethandle_dao_fund() != 603) {
+    if ((lib.uniffi_darkfi_mobile_ffi_checksum_method_darkfiwallethandle_dao_fund() and 0xFFFF) != 603) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_darkfi_mobile_ffi_checksum_method_darkfiwallethandle_dao_import() != 11109) {
+    if ((lib.uniffi_darkfi_mobile_ffi_checksum_method_darkfiwallethandle_dao_import() and 0xFFFF) != 11109) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_darkfi_mobile_ffi_checksum_method_darkfiwallethandle_dao_propose_transfer() != 39787) {
+    if ((lib.uniffi_darkfi_mobile_ffi_checksum_method_darkfiwallethandle_dao_propose_transfer() and 0xFFFF) != 39787) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_darkfi_mobile_ffi_checksum_method_darkfiwallethandle_dao_treasury() != 42940) {
+    if ((lib.uniffi_darkfi_mobile_ffi_checksum_method_darkfiwallethandle_dao_treasury() and 0xFFFF) != 42940) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_darkfi_mobile_ffi_checksum_method_darkfiwallethandle_dao_vote() != 28282) {
+    if ((lib.uniffi_darkfi_mobile_ffi_checksum_method_darkfiwallethandle_dao_vote() and 0xFFFF) != 28282) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_darkfi_mobile_ffi_checksum_method_darkfiwallethandle_estimate_transfer_fee() != 53987) {
+    if ((lib.uniffi_darkfi_mobile_ffi_checksum_method_darkfiwallethandle_estimate_transfer_fee() and 0xFFFF) != 53987) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_darkfi_mobile_ffi_checksum_method_darkfiwallethandle_generate_new_address() != 60300) {
+    if ((lib.uniffi_darkfi_mobile_ffi_checksum_method_darkfiwallethandle_generate_new_address() and 0xFFFF) != 60300) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_darkfi_mobile_ffi_checksum_method_darkfiwallethandle_get_proposal() != 62881) {
+    if ((lib.uniffi_darkfi_mobile_ffi_checksum_method_darkfiwallethandle_get_proposal() and 0xFFFF) != 62881) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_darkfi_mobile_ffi_checksum_method_darkfiwallethandle_handle_reorg_recovery() != 42149) {
+    if ((lib.uniffi_darkfi_mobile_ffi_checksum_method_darkfiwallethandle_handle_reorg_recovery() and 0xFFFF) != 42149) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_darkfi_mobile_ffi_checksum_method_darkfiwallethandle_light_sync_snapshot() != 6168) {
+    if ((lib.uniffi_darkfi_mobile_ffi_checksum_method_darkfiwallethandle_light_sync_snapshot() and 0xFFFF) != 6168) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_darkfi_mobile_ffi_checksum_method_darkfiwallethandle_list_addresses() != 441) {
+    if ((lib.uniffi_darkfi_mobile_ffi_checksum_method_darkfiwallethandle_list_addresses() and 0xFFFF) != 441) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_darkfi_mobile_ffi_checksum_method_darkfiwallethandle_list_daos() != 41886) {
+    if ((lib.uniffi_darkfi_mobile_ffi_checksum_method_darkfiwallethandle_list_daos() and 0xFFFF) != 41886) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_darkfi_mobile_ffi_checksum_method_darkfiwallethandle_list_mint_authorities() != 11513) {
+    if ((lib.uniffi_darkfi_mobile_ffi_checksum_method_darkfiwallethandle_list_mint_authorities() and 0xFFFF) != 11513) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_darkfi_mobile_ffi_checksum_method_darkfiwallethandle_list_proposals() != 42935) {
+    if ((lib.uniffi_darkfi_mobile_ffi_checksum_method_darkfiwallethandle_list_proposals() and 0xFFFF) != 42935) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_darkfi_mobile_ffi_checksum_method_darkfiwallethandle_list_token_balances() != 41120) {
+    if ((lib.uniffi_darkfi_mobile_ffi_checksum_method_darkfiwallethandle_list_token_balances() and 0xFFFF) != 41120) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_darkfi_mobile_ffi_checksum_method_darkfiwallethandle_list_transactions() != 20689) {
+    if ((lib.uniffi_darkfi_mobile_ffi_checksum_method_darkfiwallethandle_list_transactions() and 0xFFFF) != 20689) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_darkfi_mobile_ffi_checksum_method_darkfiwallethandle_primary_deposit_address() != 18714) {
+    if ((lib.uniffi_darkfi_mobile_ffi_checksum_method_darkfiwallethandle_primary_deposit_address() and 0xFFFF) != 18714) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_darkfi_mobile_ffi_checksum_method_darkfiwallethandle_refresh_now() != 57567) {
+    if ((lib.uniffi_darkfi_mobile_ffi_checksum_method_darkfiwallethandle_refresh_now() and 0xFFFF) != 57567) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_darkfi_mobile_ffi_checksum_method_darkfiwallethandle_set_reorg_callback() != 19199) {
+    if ((lib.uniffi_darkfi_mobile_ffi_checksum_method_darkfiwallethandle_set_reorg_callback() and 0xFFFF) != 19199) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_darkfi_mobile_ffi_checksum_method_darkfiwallethandle_set_strict_omr_only() != 57332) {
+    if ((lib.uniffi_darkfi_mobile_ffi_checksum_method_darkfiwallethandle_set_strict_omr_only() and 0xFFFF) != 57332) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_darkfi_mobile_ffi_checksum_method_darkfiwallethandle_strict_omr_only() != 1580) {
+    if ((lib.uniffi_darkfi_mobile_ffi_checksum_method_darkfiwallethandle_strict_omr_only() and 0xFFFF) != 1580) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_darkfi_mobile_ffi_checksum_method_darkfiwallethandle_sync_snapshot() != 34731) {
+    if ((lib.uniffi_darkfi_mobile_ffi_checksum_method_darkfiwallethandle_sync_snapshot() and 0xFFFF) != 34731) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_darkfi_mobile_ffi_checksum_method_darkfiwallethandle_token_freeze() != 2602) {
+    if ((lib.uniffi_darkfi_mobile_ffi_checksum_method_darkfiwallethandle_token_freeze() and 0xFFFF) != 2602) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_darkfi_mobile_ffi_checksum_method_darkfiwallethandle_token_generate() != 36230) {
+    if ((lib.uniffi_darkfi_mobile_ffi_checksum_method_darkfiwallethandle_token_generate() and 0xFFFF) != 36230) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_darkfi_mobile_ffi_checksum_method_darkfiwallethandle_token_mint() != 3320) {
+    if ((lib.uniffi_darkfi_mobile_ffi_checksum_method_darkfiwallethandle_token_mint() and 0xFFFF) != 3320) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_darkfi_mobile_ffi_checksum_method_darkfiwallethandle_transaction_payment_memo() != 24617) {
+    if ((lib.uniffi_darkfi_mobile_ffi_checksum_method_darkfiwallethandle_transaction_payment_memo() and 0xFFFF) != 24617) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_darkfi_mobile_ffi_checksum_method_darkfiwallethandle_transaction_recipient() != 54355) {
+    if ((lib.uniffi_darkfi_mobile_ffi_checksum_method_darkfiwallethandle_transaction_recipient() and 0xFFFF) != 54355) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_darkfi_mobile_ffi_checksum_constructor_darkfiwallethandle_new() != 8185) {
+    if ((lib.uniffi_darkfi_mobile_ffi_checksum_constructor_darkfiwallethandle_new() and 0xFFFF) != 8185) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_darkfi_mobile_ffi_checksum_method_darkirceventcallback_on_message() != 10857) {
+    if ((lib.uniffi_darkfi_mobile_ffi_checksum_method_darkirceventcallback_on_message() and 0xFFFF) != 10857) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_darkfi_mobile_ffi_checksum_method_reorgeventcallback_on_reorg() != 9856) {
+    if ((lib.uniffi_darkfi_mobile_ffi_checksum_method_reorgeventcallback_on_reorg() and 0xFFFF) != 9856) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
 }
@@ -1279,10 +1283,10 @@ private fun uniffiCheckApiChecksums(lib: IntegrityCheckingUniffiLib) {
  * @suppress
  */
 public fun uniffiEnsureInitialized() {
-    IntegrityCheckingUniffiLib
-    // UniffiLib() initialized as objects are used, but we still need to explicitly
-    // reference it so initialization across crates works as expected.
-    UniffiLib
+    // Call arbitrary methods on IntegrityCheckingUniffiLib and UniffiLib to ensure that
+    // their init blocks run. This ensures initialization across crates works as expected.
+    IntegrityCheckingUniffiLib.ensureInitialized()
+    UniffiLib.ensureInitialized()
 }
 
 // Async support

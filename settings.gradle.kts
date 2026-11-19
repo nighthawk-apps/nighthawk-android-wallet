@@ -59,7 +59,6 @@ pluginManagement {
         id("com.android.library") version (androidGradlePluginVersion) apply false
         id("com.android.test") version (androidGradlePluginVersion) apply false
         id("io.github.ben-manes.versions") version (extra["GRADLE_VERSIONS_PLUGIN_VERSION"].toString()) apply false
-        id("com.osacky.fulladle") version (extra["FULLADLE_VERSION"].toString()) apply false
         id("org.jetbrains.kotlinx.kover") version (extra["KOVER_VERSION"].toString()) apply false
 //        id("wtf.emulator.gradle") version (extra["EMULATOR_WTF_GRADLE_PLUGIN_VERSION"].toString()) apply false
         id("com.mikepenz.aboutlibraries.plugin") version (extra["ABOUT_LIBRARIES_VERSION"].toString()) apply (false)
@@ -85,10 +84,7 @@ dependencyResolutionManagement {
             "androidx.benchmark",
             "androidx.navigation",
             "com.android.tools",
-            "com.google.android.datatransport",
-            "com.google.android.gms",
             "com.google.android.material",
-            "com.google.android.play",
             "com.google.testing.platform",
             "com.google.android.apps.common.testing.accessibility.framework"
         )
@@ -166,7 +162,6 @@ dependencyResolutionManagement {
             val androidxUiAutomatorVersion = extra["ANDROIDX_UI_AUTOMATOR_VERSION"].toString()
             val androidxWorkManagerVersion = extra["ANDROIDX_WORK_MANAGER_VERSION"].toString()
             val coreLibraryDesugaringVersion = extra["CORE_LIBRARY_DESUGARING_VERSION"].toString()
-            val flankVersion = extra["FLANK_VERSION"].toString()
             val jacocoVersion = extra["JACOCO_VERSION"].toString()
             val javaVersion = extra["ANDROID_JVM_TARGET"].toString()
             val kotlinVersion = extra["KOTLIN_VERSION"].toString()
@@ -184,7 +179,6 @@ dependencyResolutionManagement {
             val jnaVersion = extra["JNA_VERSION"].toString()
 
             // Standalone versions
-            version("flank", flankVersion)
             version("jacoco", jacocoVersion)
             version("java", javaVersion)
 
@@ -204,7 +198,6 @@ dependencyResolutionManagement {
             library("androidx-compose-tooling", "androidx.compose.ui:ui-tooling:$androidxComposeVersion")
             library("androidx-compose-ui", "androidx.compose.ui:ui:$androidxComposeVersion")
             library("androidx-compose-ui-util", "androidx.compose.ui:ui-util:$androidxComposeVersion")
-            library("androidx-compose-ui-fonts", "androidx.compose.ui:ui-text-google-fonts:$androidxComposeVersion")
             //library("androidx-compose-compiler", "androidx.compose.compiler:compiler:$androidxComposeCompilerVersion")
             library("androidx-core", "androidx.core:core-ktx:$androidxCoreVersion")
             library("androidx-constraintlayout", "androidx.constraintlayout:constraintlayout-compose:$androidxConstraintLayoutVersion")
@@ -270,8 +263,7 @@ dependencyResolutionManagement {
                     "androidx-compose-material3",
                     "androidx-compose-tooling",
                     "androidx-compose-ui",
-                    "androidx-compose-ui-util",
-                    "androidx-compose-ui-fonts"
+                    "androidx-compose-ui-util"
                 )
             )
             bundle(

@@ -12,19 +12,43 @@ OUT="$ROOT/artifacts/darkirc"
 DARKIRC_CRATE="$DARKFI_SRC/bin/darkirc"
 ANDROID_API="${ANDROID_API:-27}"
 
+pinned_ndk_version() {
+  if [[ -n "${ANDROID_NDK_VERSION:-}" ]]; then
+    printf '%s' "$ANDROID_NDK_VERSION"
+    return
+  fi
+  local gp="$ROOT/gradle.properties" v
+  if [[ -f "$gp" ]]; then
+    v="$(awk -F= '/^[[:space:]]*ANDROID_NDK_VERSION=/{gsub(/\r/,"",$2); gsub(/ /,"",$2); print $2; exit}' "$gp")"
+    if [[ -n "$v" ]]; then
+      printf '%s' "$v"
+      return
+    fi
+  fi
+  printf '%s' "30.0.16248370"
+}
+
 resolve_ndk_home() {
-  local base="${ANDROID_NDK_HOME:-$HOME/Library/Android/sdk/ndk}"
-  if [[ -f "$base/source.properties" ]]; then
-    printf '%s' "$base"
-    return
-  fi
-  local newest
-  newest="$(find "$base" -maxdepth 1 -mindepth 1 -type d 2>/dev/null | sort -V | tail -1)"
-  if [[ -n "$newest" && -f "$newest/source.properties" ]]; then
-    printf '%s' "$newest"
-    return
-  fi
-  printf '%s' "$base"
+  local pinned sdk c
+  pinned="$(pinned_ndk_version)"
+  for c in ${ANDROID_NDK_HOME:+"$ANDROID_NDK_HOME"} ${ANDROID_NDK_ROOT:+"$ANDROID_NDK_ROOT"}; do
+    if [[ -f "$c/source.properties" ]]; then
+      printf '%s' "$c"
+      return
+    fi
+    if [[ -f "$c/$pinned/source.properties" ]]; then
+      printf '%s' "$c/$pinned"
+      return
+    fi
+  done
+  for sdk in ${ANDROID_HOME:+"$ANDROID_HOME"} ${ANDROID_SDK_ROOT:+"$ANDROID_SDK_ROOT"} "$HOME/Library/Android/sdk"; do
+    if [[ -f "$sdk/ndk/$pinned/source.properties" ]]; then
+      printf '%s' "$sdk/ndk/$pinned"
+      return
+    fi
+  done
+  echo "error: Android NDK ${pinned} not found (gradle.properties ANDROID_NDK_VERSION)." >&2
+  exit 1
 }
 
 target_env_prefix() {

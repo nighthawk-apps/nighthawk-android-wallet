@@ -275,7 +275,6 @@
     <ID>TooGenericExceptionCaught:SettingsViewModel.kt$SettingsViewModel$e: Exception</ID>
     <ID>TooManyFunctions:Text.kt$com.nighthawkapps.lib.android.ui.design.component.Text.kt</ID>
     <ID>UnusedPrivateProperty:CrashInfo.kt$// If you change this, be sure to update the test case under /docs/testing/manual_testing/Contact Support.md private const val MAX_EXCEPTIONS_TO_REPORT = 5</ID>
-    <ID>UnusedPrivateProperty:Typography.kt$@OptIn(ExperimentalTextApi::class) private val RubikFontFamily = FontFamily( Font(googleFont = RubikFont, fontProvider = provider, weight = FontWeight.Normal), // W400 Font(googleFont = RubikFont, fontProvider = provider, weight = FontWeight.Medium), // W500 Font(googleFont = RubikFont, fontProvider = provider, weight = FontWeight.SemiBold), // W600 Font(googleFont = RubikFont, fontProvider = provider, weight = FontWeight.Bold) // W700 )</ID>
     <ID>ViewModelInjection:AndroidAdvancedSetting.kt$settingsViewModel</ID>
     <ID>ViewModelInjection:AndroidChangeServer.kt$changeServerViewModel</ID>
     <ID>ViewModelInjection:AndroidFiatCurrency.kt$fiatCurrencyViewModel</ID>

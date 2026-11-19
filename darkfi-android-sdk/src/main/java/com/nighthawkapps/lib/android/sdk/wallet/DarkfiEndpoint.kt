@@ -42,17 +42,17 @@ data class DarkfiEndpoint(
         const val STUDIO_TESTNET_LWD_HOST: String = "epidermis-sandbox-marshland.ngrok-free.dev"
 
         /**
-         * Local lightwalletd. Users pick a remote server in Change server, including the
-         * optional Studio ngrok preset. Network match is enforced at sync via chain_name.
+         * Testnet defaults to the Mac Studio lightwalletd over TLS (with pinned cert).
+         * Mainnet keeps an explicit local endpoint until a dedicated mainnet LWD is configured.
+         * Network match is enforced at sync via chain_name.
          */
-        @Suppress("UNUSED_PARAMETER")
         fun defaultForNetwork(network: DarkfiNetwork): DarkfiEndpoint =
             when (network) {
                 DarkfiNetwork.Testnet -> {
                     DarkfiEndpoint(
-                        host = "127.0.0.1",
-                        port = LIGHTWALLET_GRPC_PORT,
-                        isTls = false,
+                        host = STUDIO_TESTNET_LWD_HOST,
+                        port = 443,
+                        isTls = true,
                     )
                 }
 

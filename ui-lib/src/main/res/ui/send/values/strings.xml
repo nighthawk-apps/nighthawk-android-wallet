@@ -19,8 +19,8 @@
     <string name="send_confirm">Send</string>
     <string name="send_cancel">Cancel</string>
     <string name="send_fee_unknown">unknown</string>
-    <string name="send_success_title">Transfer submitted</string>
-    <string name="send_success_message" formatted="true">Transaction id:\n%1$s</string>
+    <string name="send_success_title">Broadcasted</string>
+    <string name="send_success_message" formatted="true">Confirmed in lightwalletd mempool. Awaiting block confirmation.\nTransaction id:\n%1$s</string>
     <string name="send_success_ok">Done</string>
     <string name="send_omr_scheme_label">UnifOMR (default)</string>
     <string name="send_omr_default_hint">This transfer embeds a UnifOMR detection clue so the recipient can sync privately via lightwalletd. No scheme toggle — UnifOMR is always on.</string>

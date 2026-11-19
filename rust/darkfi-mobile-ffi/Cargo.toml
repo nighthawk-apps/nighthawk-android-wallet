@@ -14,7 +14,12 @@ localnet = []
 
 [lib]
 name = "darkfi_mobile_ffi"
-crate-type = ["lib", "cdylib"]
+# cdylib for Android JNI/JNA; staticlib for iOS XCFramework.
+crate-type = ["lib", "cdylib", "staticlib"]
+
+[[bin]]
+name = "uniffi-bindgen"
+path = "src/bin/uniffi-bindgen.rs"
 
 [[bin]]
 name = "localnet_tx"

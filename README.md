@@ -8,7 +8,7 @@
 
 Privacy-preserving wallet (work-in-progress) by [Nighthawk Apps](https://nighthawkapps.com). This tree ships as a **new Android application id** on the DarkFi network (DRK). The app integrates a native DarkFi wallet API via **UniFFI** (`rust/darkfi-mobile-ffi` → generated Kotlin + `DarkfiMobileFfiApi`) for chain sync, broadcast, and chat.
 
-**3.01.12** (`WALLET_VERSION_CODE=30100812`). The F-Droid native build turns off thin LTO so two rebuilds match. It also strips machine paths. Chat is the tab selected when you open the app. Default sync trial-decrypts notes in parallel. DarkFi pin `44ec78b6e`, Arti 0.48. Aligns with iOS 3.01.10, desktop 3.1.10, Moonshine 3.1.8, and lightwalletd 0.3.6.
+**3.01.12** (`WALLET_VERSION_CODE=30100812`). The F-Droid native build turns off thin LTO so two rebuilds match. It also strips machine paths. Chat is the tab selected when you open the app. Default sync trial-decrypts notes in parallel. DarkFi pin `44ec78b6e`, Arti 0.48, UniFFI 0.32.2 (`darkfi-mobile-ffi` 0.2.3). Aligns with iOS 3.01.13 (build 17), desktop 3.1.10, Moonshine 3.1.9, and lightwalletd 0.3.6 (see [docs/VERSION_LOCKSTEP.md](docs/VERSION_LOCKSTEP.md)).
 
 ## Contents
 
@@ -43,6 +43,11 @@ Replace these URLs when production listings exist—do not invent live links pre
 From the repository root (first-time or after vendored DarkFi / native code changes):
 
 ```bash
+# 0) JDK 17 (e.g. Homebrew OpenJDK 17 on macOS)
+brew install openjdk@17
+export JAVA_HOME="/opt/homebrew/opt/openjdk@17/libexec/openjdk.jdk/Contents/Home"
+export PATH="$JAVA_HOME/bin:$PATH"
+
 # 1) Pin upstream DarkFi (nighthawk24/darkfi — git.dark.fi returns HTTP 504
 #    and does not have this pin). Cargo then fetches:
 #    kvdb-overlay  https://gitlab.com/nighthawk24/kvdb-overlay  (accd2689)
@@ -68,12 +73,12 @@ export PATH="$PATH:$ANDROID_HOME/platform-tools"
 # ./gradlew :app:installDarkfitestnetDebug
 
 # 5) Quick checks
-./gradlew :darkfi-android-sdk:testDebugUnitTest
+./gradlew checkProperties :darkfi-android-sdk:testDebugUnitTest :ui-lib:testDebugUnitTest
 ```
 
-**Local lightwalletd:** run sibling [`darkfi-lightwalletd`](../darkfi-lightwalletd) on `127.0.0.1:9067` (cleartext loopback OK without pin). Public servers need TLS + pin — see [Privacy & security](#privacy--security) and [`../darkfi-lightwalletd/docs/TLS_PINNING.md`](../darkfi-lightwalletd/docs/TLS_PINNING.md).
+**Lightwalletd:** Testnet defaults to the Mac Studio ngrok TLS server (`https://epidermis-sandbox-marshland.ngrok-free.dev:443`) with pinned leaf certificate (`c02faee24a8cf271aa91c28b942949ba10ec4413c6d427a598b15a5467978824`). Mainnet defaults to local `127.0.0.1:9067`; you can also run sibling [`darkfi-lightwalletd`](../darkfi-lightwalletd) locally or pick presets in Settings — see [Privacy & security](#privacy--security) and [`../darkfi-lightwalletd/docs/TLS_PINNING.md`](../darkfi-lightwalletd/docs/TLS_PINNING.md).
 
-**Chat:** open the **Chat** tab — DarkIRC runs **in-process** via UniFFI (`start_darkirc`), not a desktop IRC server. First launch: splash (version + Tor connecting) → Create/Restore → seed backup → educational carousel → Home. First P2P/DAG sync can take several minutes. Watch `adb logcat -s darkfi-mobile-ffi darkfi-net`. Enable **Tor** in chat settings for SOCKS-routed P2P.
+**Chat:** open the **Chat** tab (the app opens on **Chat**) — DarkIRC runs **in-process** via UniFFI (`start_darkirc`), not a desktop IRC server. First launch: splash (**Nym** mixnet default) → Create/Restore → seed backup with 3-word confirmation → educational carousel → Home (Chat). Switch between **Nym**, **Tor** (Arti), and **Direct** in Settings → Network privacy. Watch `adb logcat -s darkfi-mobile-ffi darkfi-net`.
 
 **After editing `darkfi_mobile_ffi.udl`:** re-run `./scripts/build-darkfi-mobile-ffi-android.sh` (do **not** set `SKIP_UNIFFI_BINDGEN`). A UDL mismatch often shows as `Unresolved reference 'SyncMethod'`. After mesh-engine C ABI changes only, use `SKIP_UNIFFI_BINDGEN=1`.
 
@@ -145,15 +150,13 @@ Re-run whenever Rust sources or the UDL change. If matching `.so` files already 
 export ANDROID_NDK_HOME
 cd rust
 cargo ndk \
-  -t arm64-v8a -t armeabi-v7a -t x86 -t x86_64 \
+  -t arm64-v8a -t x86_64 \
   build --release -p darkfi-mobile-ffi
 
 JNILIBS=../darkfi-android-sdk/src/main/jniLibs
 T=target
-mkdir -p "$JNILIBS/arm64-v8a" "$JNILIBS/armeabi-v7a" "$JNILIBS/x86" "$JNILIBS/x86_64"
+mkdir -p "$JNILIBS/arm64-v8a" "$JNILIBS/x86_64"
 cp "$T/aarch64-linux-android/release/libdarkfi_mobile_ffi.so"   "$JNILIBS/arm64-v8a/"
-cp "$T/armv7-linux-androideabi/release/libdarkfi_mobile_ffi.so" "$JNILIBS/armeabi-v7a/"
-cp "$T/i686-linux-android/release/libdarkfi_mobile_ffi.so"       "$JNILIBS/x86/"
 cp "$T/x86_64-linux-android/release/libdarkfi_mobile_ffi.so"   "$JNILIBS/x86_64/"
 cd ..
 ```
@@ -219,13 +222,13 @@ Optional nearby BLE hop for **encrypted DarkIRC DAG** frames (Noise per GATT nei
 
 ## Architecture
 
-- **UI:** `ui-lib` Compose — onboarding, backup, restore, send, receive, settings, chat, DAO hub. Bottom nav: **Chat, Wallet, Dex, DAO, Settings**. The app opens on **Wallet**. Request, Receive, Send, scan-to-send, and send-again are on the Wallet screen.
+- **UI:** `ui-lib` Compose — onboarding, backup (with 3-word verification), restore, send (reports **Broadcasted** only after lightwalletd mempool confirmation), receive, settings, chat, DAO hub. Bottom nav: **Chat, Wallet, Dex, DAO, Settings**. The app opens on **Chat**. Request, Receive, Send, scan-to-send, and send-again are on the Wallet screen. Zero Firebase, Crashlytics, or third-party telemetry SDKs exist in any build.
 - **Themes:** Stealth (default dark), Light (mist), Paper (white; a light system theme with nothing stored resolves to Paper), Midnight. Light and Paper accents are graphite and grey, not teal (`APP_THEME_VARIANT`).
-- **Settings:** identity (IRC nickname / chat public ID / gated secret), Network privacy (Nym / Tor / Direct), Share Nighthawk, DAO, chat, server, security, about.
+- **Settings:** identity (IRC nickname / chat public ID / gated secret), Network privacy (Nym default / Tor / Direct), Share Nighthawk, DAO, chat, server, security, about.
 - **Wallet SDK:** `darkfi-android-sdk` — `PersistableDarkfiWallet`, `DarkfiMnemonic` (22-word), `DarkfiWalletCoordinator`, `DarkfiSynchronizer`.
 - **Balance:** single confirmed/spendable DRK tally (no transparent/shielded split).
-- **RPC presets:** `DarkfiEndpoint` defaults to lightwalletd **`tcp://127.0.0.1:9067`** (both networks). Network identity is enforced via `GetLightInfo.chain_name`.
-- **Native:** UniFFI + JNA → `libdarkfi_mobile_ffi.so` in `jniLibs/<abi>/`. Mesh C ABI: `SKIP_UNIFFI_BINDGEN=1`. **arm64-v8a** and **x86_64** were rebuilt on 2026-11-03 and export `dao_create`, `dao_exec`, and `dao_import`. **armeabi-v7a** and **x86** were not part of that rebuild.
+- **RPC presets:** `DarkfiEndpoint` defaults to `https://epidermis-sandbox-marshland.ngrok-free.dev:443` (with pinned leaf SHA-256) on testnet and `http://127.0.0.1:9067` on mainnet. Network identity is enforced via `GetLightInfo.chain_name`.
+- **Native:** 64-bit only (**arm64-v8a** and **x86_64** — aligned with Google Play 64-bit / 16 KB page alignment and F-Droid APK size limits) compiled with NDK **`30.0.16248370`** into `libdarkfi_mobile_ffi.so` under `jniLibs/<abi>/`. Mesh C ABI: `SKIP_UNIFFI_BINDGEN=1`.
 
 ### UniFFI & native bridge
 
@@ -379,7 +382,7 @@ Notes:
 3. `IS_ANDROID_INSTRUMENTATION_TEST_COVERAGE_ENABLED` prevents interactive debugging of the debug APK (CI-only).
 4. Compose + Jacoco coverage remains limited upstream.
 5. DarkIRC over Nym dials the public clearnet seeds through the mixnet. Those port-9600 handshakes can stall; switch to Tor, or use **Continue without Nym**, if chat stays on "waiting for peers".
-6. **armeabi-v7a** and **x86** `libdarkfi_mobile_ffi.so` do not yet include the DAO entry points. Phone (`arm64-v8a`) and emulator (`x86_64`) libraries were rebuilt on 2026-11-03.
+6. Android targets **64-bit ABIs only (`arm64-v8a` and `x86_64`)** built with NDK `30.0.16248370` (aligned with Google Play 64-bit / 16 KB page alignment and F-Droid APK size limits); 32-bit `armeabi-v7a` and `x86` are no longer built.
 7. Strict UnifOMR (the default) does not trial-decrypt own change or a Moonshine `--no-omr` payment. Turn strict mode off, or those notes stay unscanned. A compact-block hole must not mark the missing heights scanned. Rebuilding the money tree from `GetNoteCommitments` is required after a strict pass already appended commitments; a rewind that appends again duplicates leaves.
 8. `git.dark.fi` returns HTTP 504. `kvdb-overlay` is fetched from GitLab (`nighthawk24/kvdb-overlay` `accd2689`), RandomX from Codeberg (`0e31d5a`), and `rust-url` from GitHub (`v258`). The F-Droid RandomX path patch keys the Codeberg URL, which now matches `Cargo.toml`.
 

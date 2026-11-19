@@ -95,7 +95,7 @@ Gradle Managed Devices are also configured with our build scripts.  We have foun
 A variety of Gradle properties can be used to configure the build.  Most of these properties are optional and help with advanced configuration.  If you're just doing local development or making a small pull request contribution, you likely do not need to worry about these.
 
 ### Debug Signing
-By default, the application is signed by the developers automatically generated debug signing key.  In a team of developers, it may be advantageous to share a debug key so that debug builds can access key-restricted services such as Firebase or Google Maps.  For such a setup, the path to a shared debug signing key can be set with the property `WALLET_DEBUG_KEYSTORE_PATH`.
+By default, the application is signed by the developer's automatically generated debug signing key. When a team of developers needs debug builds to share a consistent signing certificate, set `WALLET_DEBUG_KEYSTORE_PATH` to a shared debug keystore.
 
 ### Release Signing
 This section is optional.
@@ -124,21 +124,6 @@ Typical `app` variants:
 
 ### Included builds
 Gradle [composite builds](https://docs.gradle.org/current/userguide/composite_builds.html) are optional and wired through `settings.gradle.kts` when you need to iterate on local copies of shared convention plugins or SDK modules. Day-to-day development consumes published `darkfi-android-sdk` artifacts from this workspace—no external wallet SDK checkout is required.
-
-### Firebase Test Lab
-This section is optional.
-
-For Continuous Integration, see [CI.md](CI.md).  The rest of this section is regarding local development.
-
-1. Configure or request access to a Firebase Test Lab–enabled Google Cloud project maintained by Nighthawk maintainers, or provision your own Firebase project if you are iterating privately.
-1. Set the Firebase Google Cloud project name as a global Gradle property `WALLET_FIREBASE_TEST_LAB_PROJECT` under `~/.gradle/gradle.properties`
-1. Run the Gradle task `flankAuth` to generate a Firebase authentication token on your machine
-
-Tests can now be run on Firebase Test Lab from your local machine.
-
-The Firebase Test Lab tasks DO NOT build the app, so they rely on existing build outputs.  This means you should:
-1. Build the debug and test APKs your pipeline expects (for example `./gradlew assembleDarkfitestnetDebug assembleDarkfimainnetDebug assembleAndroidTest`).
-1. Run the tests: `./gradlew runFlank`
 
 ### Emulator WTF
 This section is optional.  

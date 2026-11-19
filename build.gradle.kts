@@ -56,9 +56,6 @@ tasks {
             "IS_USE_TEST_ORCHESTRATOR" to "false",
             "IS_CRASH_ON_STRICT_MODE_VIOLATION" to "false",
 
-            "WALLET_FIREBASE_TEST_LAB_API_KEY_PATH" to "",
-            "WALLET_FIREBASE_TEST_LAB_PROJECT" to "",
-
             "WALLET_EMULATOR_WTF_API_KEY" to "",
 
             "IS_MINIFY_ENABLED" to "true",

@@ -310,8 +310,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     let _ = sync_wallet(&wallet).await;
                     let result = {
                         let drk = wallet.read().await;
-                        let use_unifomr =
-                            std::env::var("E2E_UNIFOMR").ok().as_deref() == Some("1");
+                        let use_unifomr = std::env::var("E2E_UNIFOMR").ok().as_deref() == Some("1");
                         let token = arg("--token").unwrap_or_else(|| "DRK".into());
                         let built = transactions::build_transfer(
                             &drk,

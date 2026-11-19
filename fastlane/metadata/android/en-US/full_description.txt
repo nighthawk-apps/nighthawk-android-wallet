@@ -3,21 +3,21 @@ TESTNET EDITION — Nighthawk targets the DarkFi testnet only (not mainnet).
 Nighthawk is a self-custodial, privacy-first wallet for the DarkFi network. Your keys, your coins.
 
 Features
-- Self-custodial 22-word DarkFi recovery phrase with PDF backup
+- Opens in DarkIRC encrypted chat with Wallet, DEX, DAO, and Settings tabs
+- Self-custodial 22-word DarkFi recovery phrase with word-check verification and PDF backup
 - Native DarkFi wallet sync (lightwalletd / UniFOMR)
-- Send and receive testnet DRK
-- Strict UniFOMR by default. Optional trial decryption is in Advanced settings
+- Send and receive testnet DRK; transfers show Broadcasted only after lightwalletd mempool confirmation
+- Embedded Nym mixnet on by default; optional Tor (Arti) or Direct transport in Settings
+- Configurable lightwalletd server (defaults to Mac Studio ngrok TLS with pinned leaf certificate; custom server options available in Settings)
+- Optional trial decryption (disabled or toggled in Advanced settings; strict UniFOMR setting available)
 - DAO governance hub
-- DarkIRC encrypted chat
-- Embedded Tor (Arti) on by default; turn it off in Settings or on the splash screen
-- You choose the lightwalletd. A fresh install uses local 127.0.0.1:9067 and does not call out. Change server has an optional Studio ngrok preset; that free-tunnel hostname changes and may be offline
 
 Optional nearby mesh
 Mesh is off unless you start it. It can request Bluetooth scan, advertise, and connect, nearby Wi-Fi devices (NEARBY_WIFI_DEVICES), and Wi-Fi state changes (CHANGE_WIFI_STATE, ACCESS_WIFI_STATE). None of these are required to create a wallet, sync, or send.
 
 Privacy
-- Addresses come from your recovery phrase
-- No analytics or tracking SDKs on the F-Droid build
+- 64-bit native builds (arm64-v8a and x86_64) for Google Play 16 KB page alignment and lean F-Droid APK distribution
+- No Firebase, Crashlytics, analytics, or third-party tracking SDKs anywhere in any build
 - Wallet data stays on the device
 - The seed, restore, and backup screens block screenshots
 

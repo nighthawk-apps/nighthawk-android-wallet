@@ -6,7 +6,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.lifecycle.lifecycleScope
 import com.nighthawkapps.lib.android.spackle.EmulatorWtfUtil
-import com.nighthawkapps.lib.android.spackle.FirebaseTestLabUtil
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
@@ -33,9 +32,7 @@ private fun ComponentActivity.observeScreenSecurityFlag(screenSecurity: ScreenSe
     screenSecurity.referenceCount
         .map { it > 0 }
         .onEach { isSecure ->
-            val isTest =
-                FirebaseTestLabUtil.isFirebaseTestLab(applicationContext) ||
-                    EmulatorWtfUtil.isEmulatorWtf(applicationContext)
+            val isTest = EmulatorWtfUtil.isEmulatorWtf(applicationContext)
 
             if (isSecure && !isTest && shouldSecureScreen) {
                 window.setFlags(

@@ -1450,32 +1450,21 @@ impl LightwalletClient {
         network: u8,
         payment_index: u32,
     ) -> Result<Vec<u8>, String> {
-        let extra = match self_change_omr_clues(
-            &tx_data,
-            wallet_secret,
-            network,
-            payment_index,
-            &omr_clue,
-        )
-        .await
-        {
-            Ok(clues) => clues,
-            Err(e) => {
-                tracing::warn!(
-                    target: "lightwallet-client",
-                    "sender change clues not attached: {e}"
-                );
-                Vec::new()
-            }
-        };
-        self.send_transaction_inner(
-            tx_data,
-            omr_clue,
-            payment_index,
-            omr_metadata_enc,
-            extra,
-        )
-        .await
+        let extra =
+            match self_change_omr_clues(&tx_data, wallet_secret, network, payment_index, &omr_clue)
+                .await
+            {
+                Ok(clues) => clues,
+                Err(e) => {
+                    tracing::warn!(
+                        target: "lightwallet-client",
+                        "sender change clues not attached: {e}"
+                    );
+                    Vec::new()
+                }
+            };
+        self.send_transaction_inner(tx_data, omr_clue, payment_index, omr_metadata_enc, extra)
+            .await
     }
 
     /// Broadcast a wallet-built contract transaction (DAO, token) with the
@@ -1559,6 +1548,45 @@ impl LightwalletClient {
             start.elapsed(),
         );
         result
+    }
+
+    /// Fetch a raw serialized transaction by 32-byte hash from lightwalletd
+    /// (mempool or mined chain). Returns `Ok(None)` if not found.
+    pub async fn get_transaction(&self, tx_hash: &[u8]) -> Result<Option<Vec<u8>>, String> {
+        if tx_hash.len() != 32 {
+            return Err(format!("tx_hash must be 32 bytes, got {}", tx_hash.len()));
+        }
+        let tx_hash = tx_hash.to_vec();
+        async_compat::Compat::new(async {
+            let channel = self.connect_channel().await?;
+            let mut client = lwd_client(channel);
+            match client
+                .get_transaction(lightwallet_proto::TxHash { hash: tx_hash })
+                .await
+            {
+                Ok(resp) => {
+                    let data = resp.into_inner().data;
+                    if data.is_empty() {
+                        Ok(None)
+                    } else {
+                        Ok(Some(data))
+                    }
+                }
+                Err(status) if status.code() == tonic::Code::NotFound => Ok(None),
+                Err(status) => Err(format!("GetTransaction RPC: {status}")),
+            }
+        })
+        .await
+    }
+
+    /// Poll `GetTransaction` briefly until lightwalletd confirms `tx_hash`
+    /// is present in mempool or mined blocks. Fails closed if offline or absent.
+    pub async fn confirm_transaction_in_mempool(&self, tx_hash: &[u8]) -> Result<(), String> {
+        confirm_with_probe(&[0, 400, 800, 1200], || async {
+            let found = self.get_transaction(tx_hash).await?;
+            Ok(found.is_some())
+        })
+        .await
     }
 
     /// Fetch an OMR digest for `detection_keys` over `[start_height, end_height]`.
@@ -2719,6 +2747,30 @@ pub fn is_loopback_host(host: &str) -> bool {
     )
 }
 
+/// Retries `probe` across `delays_ms` until it returns `Ok(true)`.
+async fn confirm_with_probe<F, Fut>(delays_ms: &[u64], mut probe: F) -> Result<(), String>
+where
+    F: FnMut() -> Fut,
+    Fut: std::future::Future<Output = Result<bool, String>>,
+{
+    let mut last_err = String::from("transaction not present in lightwalletd mempool");
+    for (attempt, &delay_ms) in delays_ms.iter().enumerate() {
+        if attempt > 0 && delay_ms > 0 {
+            tokio::time::sleep(Duration::from_millis(delay_ms)).await;
+        }
+        match probe().await {
+            Ok(true) => return Ok(()),
+            Ok(false) => {
+                last_err = "transaction not found in lightwalletd mempool".to_string();
+            }
+            Err(e) => {
+                last_err = e;
+            }
+        }
+    }
+    Err(last_err)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -3391,5 +3443,29 @@ mod tests {
         assert!(lim.try_acquire().is_ok());
         assert!(lim.try_acquire().is_ok());
         assert!(lim.try_acquire().is_err());
+    }
+
+    #[tokio::test]
+    async fn confirm_with_probe_requires_mempool_presence_or_fails() {
+        let mut calls = 0usize;
+        let ok = confirm_with_probe(&[0, 1, 1], || {
+            calls += 1;
+            let hit = calls >= 2;
+            async move { Ok(hit) }
+        })
+        .await;
+        assert!(ok.is_ok());
+        assert_eq!(calls, 2);
+
+        let absent = confirm_with_probe(&[0, 1], || async { Ok(false) }).await;
+        assert!(absent.is_err());
+        assert!(absent.unwrap_err().contains("mempool"));
+
+        let offline = confirm_with_probe(&[0, 1], || async {
+            Err("GetTransaction RPC: transport error".to_string())
+        })
+        .await;
+        assert!(offline.is_err());
+        assert!(offline.unwrap_err().contains("transport error"));
     }
 }

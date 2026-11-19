@@ -6,8 +6,6 @@
 # UPLOAD_KEYSTORE_PASSWORD - The password for UPLOAD_KEYSTORE_BASE_64
 # UPLOAD_KEY_ALIAS - The key alias inside UPLOAD_KEYSTORE_BASE_64
 # UPLOAD_KEY_ALIAS_PASSWORD - The password for the key alias
-# FIREBASE_DEBUG_JSON_BASE64 - Optional JSON to enable Firebase (e.g. Crashlytics) for debug builds
-# FIREBASE_RELEASE_JSON_BASE64 - Optional JSON to enable Firebase (e.g. Crashlytics) for release builds
 
 # Expected variables
 # SUPPORT_EMAIL_ADDRESS - Contact email address for sending requests from the app
@@ -82,17 +80,6 @@ jobs:
         timeout-minutes: 10
         with:
           gradle-home-cache-cleanup: true
-      - name: Export Google Services JSON
-        env:
-          FIREBASE_DEBUG_JSON_BASE64: ${{ secrets.FIREBASE_DEBUG_JSON_BASE64 }}
-          FIREBASE_RELEASE_JSON_BASE64: ${{ secrets.FIREBASE_RELEASE_JSON_BASE64 }}
-        if: "${{ env.FIREBASE_DEBUG_JSON_BASE64 != '' && env.FIREBASE_RELEASE_JSON_BASE64 != '' }}"
-        shell: bash
-        run: |
-          mkdir -p app/src/debug/
-          mkdir -p app/src/release/
-          echo ${FIREBASE_DEBUG_JSON_BASE64} | base64 --decode > app/src/debug/google-services.json
-          echo ${FIREBASE_RELEASE_JSON_BASE64} | base64 --decode > app/src/release/google-services.json
       - name: Authenticate to Google Cloud for Google Play
         id: auth_google_play
         uses: google-github-actions/auth@35b0e87d162680511bf346c299f71c9c5c379033

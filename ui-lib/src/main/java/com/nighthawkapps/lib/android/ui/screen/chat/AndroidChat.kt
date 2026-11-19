@@ -348,58 +348,58 @@ private fun ChatScreen(
             horizontalArrangement = Arrangement.End,
             verticalAlignment = Alignment.CenterVertically,
         ) {
-                IconButton(onClick = {
-                    newDmInitialPubkey = null
-                    showNewDm = true
-                }) {
-                    Icon(Icons.Default.Add, contentDescription = stringResource(R.string.ns_chat_new_dm))
-                }
-                IconButton(
-                    onClick = {
-                        val uri = DeepLinkUtil.buildPaymentRequestUri(receiveAddress) ?: return@IconButton
-                        if (inboxMode == ChatInboxMode.Channels && activeThreadKey.startsWith("#")) {
-                            pendingPublicInvoice = uri
-                        } else if (activeThreadKey.isNotBlank()) {
-                            controller.sendToChannel(activeThreadKey, uri)
-                        }
-                    },
-                    enabled = receiveAddress.isNotBlank() && activeThreadKey.isNotBlank(),
-                ) {
-                    Icon(
-                        Icons.Filled.RequestQuote,
-                        contentDescription = stringResource(R.string.ns_chat_attach_request),
-                    )
-                }
-                IconButton(
-                    onClick = {
-                        val fromDraft = draft.trim().takeIf { it.startsWith("drk:") }
-                        val fromHistory =
-                            messages[activeThreadKey]
-                                .orEmpty()
-                                .asReversed()
-                                .firstOrNull { it.text.startsWith("drk:") }
-                                ?.text
-                        val uri = fromDraft ?: fromHistory
-                        if (uri != null && DeepLinkUtil.getSendDeepLinkData(Uri.parse(uri)) != null) {
-                            onPayInvoice(uri)
-                        }
-                    },
-                    enabled = activeThreadKey.isNotBlank(),
-                ) {
-                    Icon(
-                        Icons.Filled.Payment,
-                        contentDescription = stringResource(R.string.ns_chat_pay_invoice),
-                    )
-                }
-                IconButton(onClick = { showNetworkHud = true }) {
-                    Icon(
-                        Icons.Default.Info,
-                        contentDescription = stringResource(R.string.ns_chat_hud_title),
-                    )
-                }
-                IconButton(onClick = onChatSettings) {
-                    Icon(Icons.Default.Settings, contentDescription = stringResource(R.string.ns_chat_settings_short))
-                }
+            IconButton(onClick = {
+                newDmInitialPubkey = null
+                showNewDm = true
+            }) {
+                Icon(Icons.Default.Add, contentDescription = stringResource(R.string.ns_chat_new_dm))
+            }
+            IconButton(
+                onClick = {
+                    val uri = DeepLinkUtil.buildPaymentRequestUri(receiveAddress) ?: return@IconButton
+                    if (inboxMode == ChatInboxMode.Channels && activeThreadKey.startsWith("#")) {
+                        pendingPublicInvoice = uri
+                    } else if (activeThreadKey.isNotBlank()) {
+                        controller.sendToChannel(activeThreadKey, uri)
+                    }
+                },
+                enabled = receiveAddress.isNotBlank() && activeThreadKey.isNotBlank(),
+            ) {
+                Icon(
+                    Icons.Filled.RequestQuote,
+                    contentDescription = stringResource(R.string.ns_chat_attach_request),
+                )
+            }
+            IconButton(
+                onClick = {
+                    val fromDraft = draft.trim().takeIf { it.startsWith("drk:") }
+                    val fromHistory =
+                        messages[activeThreadKey]
+                            .orEmpty()
+                            .asReversed()
+                            .firstOrNull { it.text.startsWith("drk:") }
+                            ?.text
+                    val uri = fromDraft ?: fromHistory
+                    if (uri != null && DeepLinkUtil.getSendDeepLinkData(Uri.parse(uri)) != null) {
+                        onPayInvoice(uri)
+                    }
+                },
+                enabled = activeThreadKey.isNotBlank(),
+            ) {
+                Icon(
+                    Icons.Filled.Payment,
+                    contentDescription = stringResource(R.string.ns_chat_pay_invoice),
+                )
+            }
+            IconButton(onClick = { showNetworkHud = true }) {
+                Icon(
+                    Icons.Default.Info,
+                    contentDescription = stringResource(R.string.ns_chat_hud_title),
+                )
+            }
+            IconButton(onClick = onChatSettings) {
+                Icon(Icons.Default.Settings, contentDescription = stringResource(R.string.ns_chat_settings_short))
+            }
         }
         if (showNetworkHud) {
             AlertDialog(

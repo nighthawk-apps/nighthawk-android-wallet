@@ -1,1 +1,1 @@
-DarkFi testnet wallet. UniFOMR, Tor, chat, optional nearby mesh
+DarkFi testnet wallet & DarkIRC chat. Nym mixnet, Tor, UniFOMR, DAO, mesh.

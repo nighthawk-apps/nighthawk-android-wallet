@@ -17,10 +17,15 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CheckboxDefaults
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.snapshots.SnapshotStateMap
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -101,6 +106,14 @@ fun SeedBackupContent(
                     .verticalScroll(scrollState),
         ) {
             val checkedState = remember { mutableStateOf(false) }
+            val challengeIndices = remember(seedWords) { pickSeedChallengeIndices(seedWords.size) }
+            val challengeAnswers = remember(seedWords) { mutableStateMapOf<Int, String>() }
+            val challengeSatisfied =
+                isSeedChallengeSatisfied(
+                    seedWords = seedWords,
+                    challengeIndices = challengeIndices,
+                    answers = challengeAnswers,
+                )
 
             if (navigationFromSettings) {
                 NighthawkTopBar(
@@ -150,6 +163,14 @@ fun SeedBackupContent(
                         modifier = Modifier.padding(start = 11.dp),
                     )
                 }
+                if (challengeIndices.isNotEmpty()) {
+                    Spacer(modifier = Modifier.height(16.dp))
+                    SeedWordConfirmationSection(
+                        seedWords = seedWords,
+                        challengeIndices = challengeIndices,
+                        answers = challengeAnswers,
+                    )
+                }
             }
             Spacer(modifier = Modifier.height(24.dp))
             if (!navigationFromSettings) {
@@ -163,7 +184,7 @@ fun SeedBackupContent(
                                 minWidth = dimensionResource(id = R.dimen.button_min_width),
                                 minHeight = dimensionResource(id = R.dimen.button_height),
                             ),
-                    enabled = checkedState.value,
+                    enabled = checkedState.value && challengeSatisfied,
                 )
             }
             val onExportClick = {
@@ -239,5 +260,72 @@ internal fun SeedItem(
             color = WalletTheme.colors.secondaryTitleText,
         )
         BodyMedium(text = " $seedWord")
+    }
+}
+
+private const val SEED_CHALLENGE_WORD_COUNT = 3
+
+internal fun pickSeedChallengeIndices(
+    wordCount: Int,
+    count: Int = SEED_CHALLENGE_WORD_COUNT,
+): List<Int> {
+    if (wordCount <= 0 || count <= 0) return emptyList()
+    val targetCount = count.coerceAtMost(wordCount)
+    return (0 until wordCount).shuffled().take(targetCount).sorted()
+}
+
+internal fun isSeedChallengeSatisfied(
+    seedWords: List<String>,
+    challengeIndices: List<Int>,
+    answers: Map<Int, String>,
+): Boolean {
+    if (seedWords.isEmpty()) return true
+    if (challengeIndices.isEmpty()) return false
+    return challengeIndices.all { index ->
+        val expected = seedWords.getOrNull(index) ?: return@all false
+        answers[index]?.trim().equals(expected.trim(), ignoreCase = true)
+    }
+}
+
+@Composable
+private fun SeedWordConfirmationSection(
+    seedWords: ImmutableList<String>,
+    challengeIndices: List<Int>,
+    answers: SnapshotStateMap<Int, String>,
+) {
+    Column(modifier = Modifier.fillMaxWidth()) {
+        BodySmall(text = stringResource(id = R.string.ns_seed_confirm_challenge_prompt))
+        Spacer(modifier = Modifier.height(8.dp))
+        challengeIndices.forEach { wordIndex ->
+            val answer = answers[wordIndex].orEmpty()
+            val expectedWord = seedWords.getOrNull(wordIndex).orEmpty()
+            val showMismatch =
+                answer.isNotBlank() &&
+                    !answer.trim().equals(expectedWord.trim(), ignoreCase = true)
+            OutlinedTextField(
+                value = answer,
+                onValueChange = { answers[wordIndex] = it },
+                label = {
+                    Text(text = stringResource(id = R.string.ns_seed_confirm_word_label, wordIndex + 1))
+                },
+                isError = showMismatch,
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth(),
+                colors =
+                    OutlinedTextFieldDefaults.colors(
+                        focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                        unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
+                        focusedLabelColor = MaterialTheme.colorScheme.onSurface,
+                        unfocusedLabelColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                    ),
+            )
+            if (showMismatch) {
+                BodySmall(
+                    text = stringResource(id = R.string.ns_seed_confirm_mismatch, wordIndex + 1),
+                    color = MaterialTheme.colorScheme.error,
+                )
+            }
+            Spacer(modifier = Modifier.height(8.dp))
+        }
     }
 }

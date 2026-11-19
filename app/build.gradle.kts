@@ -43,7 +43,7 @@ android {
 
         testInstrumentationRunner = "com.nighthawkapps.lib.android.test.NighthawkUiTestRunner"
 
-        // jniLibs for armeabi-v7a / x86 are empty — do not ship those ABIs.
+        // 64-bit only (arm64-v8a, x86_64) for Google Play 16 KB alignment and F-Droid APK size.
         ndk {
             abiFilters += listOf("arm64-v8a", "x86_64")
         }
@@ -260,6 +260,8 @@ androidComponents {
                 "firebase-**.properties",
                 "kotlin-tooling-metadata.json",
                 "kotlin/**",
+                "META-INF/com.google.android.gms**",
+                "META-INF/com.google.firebase**",
                 "play-services-**.properties",
                 "protolite-well-known-types.properties",
                 "transport-api.properties",

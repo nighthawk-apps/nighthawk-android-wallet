@@ -66,14 +66,23 @@ fun SendConfirmation(
             modifier = Modifier.align(Alignment.CenterHorizontally),
             color = WalletTheme.colors.secondaryTitleText
         )
-        if (sendConfirmationState is SendConfirmationState.Success && !txId.isNullOrBlank()) {
+        if (sendConfirmationState is SendConfirmationState.Success) {
             Spacer(modifier = Modifier.height(WalletTheme.dimens.spacingSmall))
             BodyMedium(
-                text = stringResource(id = R.string.send_tx_id_format, txId),
+                text = stringResource(id = R.string.ns_broadcasted_subtitle),
                 textAlign = TextAlign.Center,
                 modifier = Modifier.align(Alignment.CenterHorizontally),
                 color = WalletTheme.colors.secondaryTitleText,
             )
+            if (!txId.isNullOrBlank()) {
+                Spacer(modifier = Modifier.height(WalletTheme.dimens.spacingSmall))
+                BodyMedium(
+                    text = stringResource(id = R.string.send_tx_id_format, txId),
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.align(Alignment.CenterHorizontally),
+                    color = WalletTheme.colors.secondaryTitleText,
+                )
+            }
         }
         if (!errorMessage.isNullOrBlank()) {
             Spacer(modifier = Modifier.height(WalletTheme.dimens.spacingSmall))

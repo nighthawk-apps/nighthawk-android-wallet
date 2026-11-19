@@ -30,7 +30,7 @@ value class ConfigKey(
                 "Invalid key $key.  Length (${key.length}) is not in the range [$MIN_KEY_LENGTH, $MAX_KEY_LENGTH]."
             }
 
-            // This is a Firebase requirement
+            // Key must not begin with a digit
             require(!key.first().isDigit()) { "Invalid key $key. Key must not start with a number." }
 
             require(REGEX.matches(key)) { "Invalid key $key.  Key must contain only letter and numbers." }

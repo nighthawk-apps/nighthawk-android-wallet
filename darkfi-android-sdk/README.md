@@ -21,7 +21,7 @@ The app opens these calls from the **DAO** tab (and Settings → DAO) and from t
 
 ## Clue version and block target
 
-Registrations use `CLUE_KEY_VERSION = 1` (`rust/darkfi-mobile-ffi`). `GetLightInfo.block_target` is stored on the light-server info and used for DAO window length. Phone and emulator native libraries that match this surface are `jniLibs/arm64-v8a` and `jniLibs/x86_64` (rebuilt 2026-11-03). `armeabi-v7a` and `x86` still need a rebuild before those ABIs can link the new calls.
+Registrations use `CLUE_KEY_VERSION = 1` (`rust/darkfi-mobile-ffi`). `GetLightInfo.block_target` is stored on the light-server info and used for DAO window length. Native libraries target 64-bit ABIs only: `jniLibs/arm64-v8a` and `jniLibs/x86_64` (built with NDK `30.0.16248370`).
 
 ## UnifOMR Sync Types
 

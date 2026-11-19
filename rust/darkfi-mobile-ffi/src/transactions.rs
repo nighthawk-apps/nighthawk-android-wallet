@@ -1,9 +1,9 @@
 //! Transfer build/broadcast and wallet transaction history for UniFFI.
 
-use std::collections::{HashMap, VecDeque};
+use std::collections::{HashMap, HashSet, VecDeque};
 use std::str::FromStr;
 use std::sync::LazyLock;
-use std::sync::RwLock;
+use std::sync::{Mutex, RwLock};
 
 use darkfi::tx::Transaction;
 use darkfi_money_contract::{client::MoneyNote, model::MoneyTransferParamsV1, MoneyFunction};
@@ -87,6 +87,41 @@ static SENT_SYNC_SCHEMES: LazyLock<RwLock<BoundedCache<u8>>> =
 /// Per-session payment memo + recipient for txs we broadcast this process.
 static SENT_PAYMENT_META: LazyLock<RwLock<BoundedCache<(Option<String>, Option<String>)>>> =
     LazyLock::new(|| RwLock::new(BoundedCache::new()));
+
+/// Session set of tx hashes confirmed to have landed in lightwalletd mempool.
+static CONFIRMED_BROADCASTS: LazyLock<RwLock<BoundedCache<()>>> =
+    LazyLock::new(|| RwLock::new(BoundedCache::new()));
+
+/// Prevents concurrent duplicate broadcasts of the same tx while the first is in flight
+/// without ever returning `Ok` before mempool confirmation succeeds.
+static IN_FLIGHT_BROADCASTS: LazyLock<Mutex<HashSet<String>>> =
+    LazyLock::new(|| Mutex::new(HashSet::new()));
+
+struct InFlightBroadcastGuard {
+    tx_hash: String,
+}
+
+impl InFlightBroadcastGuard {
+    fn try_acquire(tx_hash: &str) -> Result<Self, String> {
+        let mut guard = IN_FLIGHT_BROADCASTS
+            .lock()
+            .map_err(|_| "broadcast guard mutex poisoned".to_string())?;
+        if !guard.insert(tx_hash.to_string()) {
+            return Err(format!("broadcast already in progress for {tx_hash}"));
+        }
+        Ok(Self {
+            tx_hash: tx_hash.to_string(),
+        })
+    }
+}
+
+impl Drop for InFlightBroadcastGuard {
+    fn drop(&mut self) {
+        if let Ok(mut guard) = IN_FLIGHT_BROADCASTS.lock() {
+            guard.remove(&self.tx_hash);
+        }
+    }
+}
 
 const MAX_SENT_CACHE_ENTRIES: usize = 10_000;
 
@@ -374,10 +409,7 @@ pub(crate) async fn resolve_outgoing_omr_clue(
 async fn payment_output_index(drk: &Drk, tx: &Transaction) -> Result<u32, String> {
     use darkfi_money_contract::client::MoneyNote;
 
-    let secrets = drk
-        .get_money_secrets()
-        .await
-        .map_err(|e| e.to_string())?;
+    let secrets = drk.get_money_secrets().await.map_err(|e| e.to_string())?;
     let visible = crate::lightwallet_client::visible_money_outputs(tx).await?;
     let mut foreign = Vec::new();
     for output in &visible {
@@ -409,16 +441,17 @@ pub async fn broadcast_transfer(
 
     let tx_hash = tx.hash().to_string();
 
-    // Idempotency: already broadcast this session.
-    if let Ok(map) = SENT_PAYMENT_META.read() {
+    // Idempotency: return Ok only if this tx was already confirmed in lightwalletd mempool.
+    if let Ok(map) = CONFIRMED_BROADCASTS.read() {
         if map.contains_key(&tx_hash) {
             tracing::warn!(
                 target: "wallet-tx",
-                "broadcast_transfer: txid {tx_hash} already submitted this session"
+                "broadcast_transfer: txid {tx_hash} already confirmed in mempool this session"
             );
             return Ok(tx_hash);
         }
     }
+    let _in_flight_guard = InFlightBroadcastGuard::try_acquire(&tx_hash)?;
 
     drk.simulate_tx(&tx)
         .await
@@ -440,23 +473,6 @@ pub async fn broadcast_transfer(
         lightwallet_tls_pin,
     );
 
-    // Session-only pending marker so concurrent retries collapse. Removed on
-    // ANY send error (including timeout) so a failed submit cannot return Ok
-    // without broadcasting. Persisted meta is written only after success.
-    {
-        let memo = payment_memo
-            .map(str::trim)
-            .filter(|s| !s.is_empty())
-            .map(str::to_string);
-        let recipient = recipient_address
-            .map(str::trim)
-            .filter(|s| !s.is_empty())
-            .map(str::to_string);
-        if let Ok(mut cache) = SENT_PAYMENT_META.write() {
-            cache.insert(tx_hash.clone(), (memo, recipient));
-        }
-    }
-
     let secret = drk
         .default_secret()
         .await
@@ -467,7 +483,7 @@ pub async fn broadcast_transfer(
         darkfi_sdk::crypto::keypair::Network::Testnet => 0x01u8,
     };
     let payment_index = payment_output_index(drk, &tx).await?;
-    let send_result = client
+    let tx_hash_bytes = client
         .send_transaction_with_wallet_clues(
             raw_tx.to_vec(),
             unifomr_clue.clone(),
@@ -476,20 +492,27 @@ pub async fn broadcast_transfer(
             network_byte,
             payment_index,
         )
-        .await;
-
-    match send_result {
-        Ok(_tx_hash_bytes) => {}
-        Err(e) => {
-            if let Ok(mut map) = SENT_PAYMENT_META.write() {
-                map.remove(&tx_hash);
-            }
-            return Err(format!(
+        .await
+        .map_err(|e| {
+            format!(
                 "SendTransaction via lightwalletd failed ({e}). \
                  UnifOMR clue hint was not stored — refusing darkfid fallback so \
                  receivers can still detect within the 24h TTL."
-            ));
-        }
+            )
+        })?;
+
+    client
+        .confirm_transaction_in_mempool(&tx_hash_bytes)
+        .await
+        .map_err(|e| {
+            format!(
+                "Transaction was not confirmed in lightwalletd mempool ({e}). \
+                 Not marking as broadcasted."
+            )
+        })?;
+
+    if let Ok(mut map) = CONFIRMED_BROADCASTS.write() {
+        map.insert(tx_hash.clone(), ());
     }
 
     let memo = payment_memo
@@ -898,5 +921,19 @@ mod tests {
 
         // Net zero without outgoing markers is not outgoing.
         assert!(!is_outgoing_transaction(0, "Confirmed", false, false));
+    }
+
+    #[test]
+    fn in_flight_broadcast_guard_prevents_concurrent_duplicate_and_releases_on_drop() {
+        let txid = "test_tx_guard_1";
+        let g1 = InFlightBroadcastGuard::try_acquire(txid).expect("first acquire");
+        assert!(InFlightBroadcastGuard::try_acquire(txid).is_err());
+        drop(g1);
+        let g2 = InFlightBroadcastGuard::try_acquire(txid).expect("reacquire after failure drop");
+        drop(g2);
+        assert!(CONFIRMED_BROADCASTS
+            .read()
+            .map(|m| !m.contains_key(txid))
+            .unwrap_or(false));
     }
 }

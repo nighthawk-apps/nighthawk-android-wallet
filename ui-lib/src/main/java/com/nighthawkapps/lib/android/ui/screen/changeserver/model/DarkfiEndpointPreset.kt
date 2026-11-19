@@ -49,7 +49,7 @@ object DarkfiEndpointCatalog {
             DarkfiNetwork.Testnet -> {
                 listOf(
                     DarkfiEndpointPreset(
-                        "Studio testnet (optional ngrok, hostname changes)",
+                        "Studio testnet (default ngrok TLS, hostname may rotate)",
                         DarkfiEndpoint(
                             host = DarkfiEndpoint.STUDIO_TESTNET_LWD_HOST,
                             port = 443,

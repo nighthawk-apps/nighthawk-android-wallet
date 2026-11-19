@@ -6,6 +6,20 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 OUT="$ROOT/artifacts/darkfid"
 : "${DARKFI_SRC:=$ROOT/third_party/darkfi}"
+
+if [[ -z "${ANDROID_NDK_HOME:-}" ]]; then
+  pinned="${ANDROID_NDK_VERSION:-}"
+  if [[ -z "$pinned" && -f "$ROOT/gradle.properties" ]]; then
+    pinned="$(awk -F= '/^[[:space:]]*ANDROID_NDK_VERSION=/{gsub(/\r/,"",$2); gsub(/ /,"",$2); print $2; exit}' "$ROOT/gradle.properties")"
+  fi
+  pinned="${pinned:-30.0.16248370}"
+  for sdk in ${ANDROID_HOME:+"$ANDROID_HOME"} ${ANDROID_SDK_ROOT:+"$ANDROID_SDK_ROOT"} "$HOME/Library/Android/sdk"; do
+    if [[ -f "$sdk/ndk/$pinned/source.properties" ]]; then
+      export ANDROID_NDK_HOME="$sdk/ndk/$pinned"
+      break
+    fi
+  done
+fi
 : "${ANDROID_NDK_HOME:?Set ANDROID_NDK_HOME to the Android NDK path}"
 
 if [[ ! -d "$DARKFI_SRC/bin/darkfid" ]]; then

@@ -18,7 +18,7 @@ Update status when a task lands; iOS column notes what the Swift app must mirror
 
 | ID | Task | Status | Notes |
 |----|------|--------|-------|
-| P0-1 | Rebuild `libdarkfi_mobile_ffi.so` (all ABIs) + refresh jniLibs | done (arm64-v8a mesh ABI) | `SKIP_UNIFFI_BINDGEN=1`; NDK **26.1.10909125**; other ABIs when disk allows |
+| P0-1 | Rebuild `libdarkfi_mobile_ffi.so` (all ABIs) + refresh jniLibs | done (`arm64-v8a`, `x86_64`) | NDK **30.0.16248370**; 64-bit only |
 | P0-2 | Regenerate UniFFI Kotlin after UDL changes | done | Committed bindings UniFFI **0.32**; skip bindgen unless UDL changes |
 | P0-3 | `payment_memos` table migration for existing wallets | done | `Drk::ensure_payment_memos_table()` on read/write |
 | P0-4 | Mainnet embedded darkfid `threshold = 11` | done | `DarkfidChainDefaults.confirmationThreshold` |
@@ -97,7 +97,7 @@ Update status when a task lands; iOS column notes what the Swift app must mirror
 ## Native build commands (local)
 
 ```bash
-export ANDROID_NDK_HOME="$HOME/Library/Android/sdk/ndk/26.1.10909125"
+export ANDROID_NDK_HOME="$HOME/Library/Android/sdk/ndk/30.0.16248370"
 ./scripts/build-darkfi-mobile-ffi-android.sh
 # Mesh C ABI only:
 # SKIP_UNIFFI_BINDGEN=1 MOBILE_FFI_ABIS=arm64-v8a ./scripts/build-darkfi-mobile-ffi-android.sh
