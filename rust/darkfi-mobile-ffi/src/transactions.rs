@@ -275,6 +275,9 @@ pub async fn build_transfer(
             .await
             .map_err(|e| format!("merkle rebuild for spend: {e}"))?;
         prefetch_money_zkas(lightwallet_server_url, lightwallet_tls_pin).await?;
+        // Pinned drk::transfer has no memo argument. Validate the memo so a
+        // bad string still fails, but do not patch DarkFi to carry it.
+        let _memo = crate::memo::parse_payment_memo(payment_memo)?;
         let tx = drk
             .transfer(amount, token, *recipient.public_key(), None, None, false)
             .await
@@ -423,6 +426,53 @@ async fn payment_output_index(drk: &Drk, tx: &Transaction) -> Result<u32, String
     Ok(if foreign.len() == 1 { foreign[0] } else { 0 })
 }
 
+/// Inputs marked spent before `SendTransaction`. Released only when the RPC
+/// fails in a way that means the server never accepted the transaction.
+struct PendingBroadcast {
+    coins: Vec<darkfi_money_contract::model::Coin>,
+}
+
+impl PendingBroadcast {
+    async fn reserve(drk: &Drk, tx: &Transaction) -> Result<Self, String> {
+        let tx_hash = tx.hash().to_string();
+        let mut output = Vec::new();
+        drk.mark_tx_spend(tx, &mut output)
+            .await
+            .map_err(|e| format!("PendingBroadcast reservation: {e}"))?;
+        let rows = drk
+            .get_coins(true)
+            .await
+            .map_err(|e| format!("PendingBroadcast reservation: {e}"))?;
+        let coins = rows
+            .into_iter()
+            .filter(|(_, _, spent, height, hash)| *spent && height.is_none() && hash == &tx_hash)
+            .map(|(own, _, _, _, _)| own.coin)
+            .collect();
+        Ok(Self { coins })
+    }
+
+    async fn release(self, drk: &Drk) {
+        for coin in &self.coins {
+            if let Err(e) = drk.unspend_coin(coin).await {
+                tracing::warn!(target: "wallet-tx", "PendingBroadcast release failed: {e}");
+            }
+        }
+    }
+}
+
+/// Timeouts and transport drops can happen after lightwalletd accepted the tx.
+fn send_may_have_landed(err: &str) -> bool {
+    let e = err.to_ascii_lowercase();
+    e.contains("timeout")
+        || e.contains("timed out")
+        || e.contains("deadline")
+        || e.contains("unavailable")
+        || e.contains("transport")
+        || e.contains("connection")
+        || e.contains("reset")
+        || e.contains("broken pipe")
+}
+
 pub async fn broadcast_transfer(
     drk: &Drk,
     tx_bytes: &[u8],
@@ -483,7 +533,10 @@ pub async fn broadcast_transfer(
         darkfi_sdk::crypto::keypair::Network::Testnet => 0x01u8,
     };
     let payment_index = payment_output_index(drk, &tx).await?;
-    let tx_hash_bytes = client
+    // Reserve before SendTransaction. A timeout on that RPC, or on the
+    // GetTransaction confirm below, must not leave the inputs spendable.
+    let pending = PendingBroadcast::reserve(drk, &tx).await?;
+    let tx_hash_bytes = match client
         .send_transaction_with_wallet_clues(
             raw_tx.to_vec(),
             unifomr_clue.clone(),
@@ -493,21 +546,33 @@ pub async fn broadcast_transfer(
             payment_index,
         )
         .await
-        .map_err(|e| {
-            format!(
+    {
+        Ok(bytes) => bytes,
+        Err(e) => {
+            if send_may_have_landed(&e) {
+                let _ = drk
+                    .put_tx_history_record(&tx, "PendingBroadcast", None)
+                    .await;
+            } else {
+                pending.release(drk).await;
+            }
+            return Err(format!(
                 "SendTransaction via lightwalletd failed ({e}). \
                  UnifOMR clue hint was not stored — refusing darkfid fallback so \
                  receivers can still detect within the 24h TTL."
-            )
-        })?;
-
+            ));
+        }
+    };
+    let _ = drk
+        .put_tx_history_record(&tx, "PendingBroadcast", None)
+        .await;
     client
         .confirm_transaction_in_mempool(&tx_hash_bytes)
         .await
         .map_err(|e| {
             format!(
                 "Transaction was not confirmed in lightwalletd mempool ({e}). \
-                 Not marking as broadcasted."
+                 Inputs stay reserved as PendingBroadcast and are not spendable."
             )
         })?;
 
@@ -528,11 +593,6 @@ pub async fn broadcast_transfer(
     drk.put_tx_history_record(&tx, "Broadcasted", None)
         .await
         .map_err(|e| format!("put_tx_history_record: {e}"))?;
-
-    let mut output = Vec::new();
-    drk.mark_tx_spend(&tx, &mut output)
-        .await
-        .map_err(|e| format!("mark_tx_spend after broadcast: {e}"))?;
 
     if let Err(e) = crate::sync::remember_own_outputs_from_tx(drk, &tx).await {
         tracing::warn!(
@@ -778,6 +838,18 @@ pub async fn invalidate_transactions_above(drk: &Drk, rewind_height: u32) -> Res
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn default_send_memo_is_plain_utf8() {
+        let bytes = crate::memo::parse_payment_memo(Some("  lunch  "))
+            .unwrap()
+            .unwrap();
+        assert_eq!(bytes, b"lunch");
+        assert!(crate::memo::parse_payment_memo(None).unwrap().is_none());
+        assert!(crate::memo::parse_payment_memo(Some("   "))
+            .unwrap()
+            .is_none());
+    }
 
     #[test]
     fn bounded_cache_fifo_evicts_oldest_insert_not_hash_order() {

@@ -40,6 +40,16 @@ class DarkfiChatOutgoingQueueStore internal constructor(
         }
     }
 
+    fun updateDelivery(
+        id: String,
+        delivery: String,
+    ) {
+        synchronized(lock) {
+            val cur = loadAllUnlocked()
+            writeAllUnlocked(cur.map { if (it.id == id) it.copy(delivery = delivery) else it })
+        }
+    }
+
     fun remove(id: String) {
         synchronized(lock) {
             val cur = loadAllUnlocked()

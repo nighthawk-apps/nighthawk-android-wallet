@@ -169,7 +169,7 @@
     <string name="ns_around">around %s</string>
     <string name="ns_total_balance">Total balance</string>
     <string name="ns_shielded_balance">Wallet balance</string>
-    <string name="ns_sapling_balance">Wallet balance</string>
+    <string name="ns_wallet_balance">Wallet balance</string>
     <string name="ns_transparent_balance">Wallet balance</string>
     <string name="ns_shield_now">Shield Now</string>
     <string name="ns_recent_activity">Recent activity</string>
@@ -324,7 +324,7 @@
     <string name="ns_subtotal">Subtotal</string>
     <string name="ns_total_amount">Total amount</string>
     <string name="ns_shielded">Confidential</string>
-    <string name="ns_legacy_shielded_sapling"> Экранирование</string>
+    <string name="ns_older_encoding"> Экранирование</string>
     <string name="ns_transparent">Public receive</string>
     <string name="ns_include_reply_to">include reply-to</string>
     <string name="open_browser">Open Browser</string>
@@ -412,7 +412,7 @@
     <string name="wallet_address_back_content_description">Назад</string>
     <string name="wallet_address_primary_deposit">Ваш Унифицированный Адрес</string>
     <string name="wallet_address_header_includes">который включает в себя</string>
-    <string name="wallet_address_confidential_receive">Экранированный Sapling-адрес</string>
+    <string name="wallet_address_confidential_receive">Адрес DarkFi</string>
     <string name="wallet_address_public_receive">Transparent</string>
     <string name="wallet_address_show">Показать адрес</string>
     <string name="wallet_address_hide">Скрыть адрес</string>

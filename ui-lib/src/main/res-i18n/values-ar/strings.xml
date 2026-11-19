@@ -253,7 +253,7 @@
     <string name="ns_chat_e2e_save">حفظ</string>
     <string name="ns_chat_e2e_saved_failed">تعذّر حفظ إعدادات التشفير طرفًا لطرف.</string>
     <string name="ns_chat_e2e_saved_ok">حُفظت إعدادات التشفير طرفًا لطرف؛ أُعيد تشغيل DarkIRC.</string>
-    <string name="ns_chat_e2e_section_body">اضبط مفاتيح ChaChaBox للقنوات المشفّرة والرسائل المباشرة. تُخزَّن المفاتيح على الجهاز وتُكتب في إعداد DarkIRC المضمّن، ويُنفَّذ التشفير داخل الخدمة.</string>
+    <string name="ns_chat_e2e_section_body">تستخدم الرسائل المباشرة مفاتيح ChaChaBox على الجهاز. القنوات العامة ليست مشفّرة طرفًا لطرف.</string>
     <string name="ns_chat_e2e_section_title">تشفير طرفًا لطرف</string>
     <string name="ns_chat_embedded_darkirc">تشغيل عقدة DarkIRC المضمّنة</string>
     <string name="ns_chat_embedded_darkirc_desc">يشغّل خدمة DarkIRC المرفقة على 127.0.0.1:6667 (إشعار مستمر). أوقفها لاستخدام adb reverse أو مضيف IRC الخاص بك. يتطلب الملف التنفيذي (راجع الوثائق).</string>
@@ -540,7 +540,7 @@
     <string name="ns_landing_footer">هذا التطبيق برنامج حر. التراخيص مذكورة ضمن الإعدادات &gt; حول &gt; التراخيص.</string>
     <string name="ns_landing_import_success_message">تهانينا! تم استيراد محفظتك بنجاح!</string>
     <string name="ns_landing_text">إذا كانت هذه أول مرة تستخدم فيها Nighthawk، فستحتاج إلى إنشاء محفظة. وإذا كنت عائدًا إلى Nighthawk، فيمكنك محاولة استعادة محفظتك السابقة.</string>
-    <string name="ns_legacy_shielded_sapling">ترميز أقدم</string>
+    <string name="ns_older_encoding">ترميز أقدم</string>
     <string name="ns_logo_desc">شعار Nighthawk</string>
     <string name="ns_memo">ملاحظة</string>
     <string name="ns_mesh_on_badge">MESH</string>
@@ -615,7 +615,6 @@
     <string name="ns_restore_wallet_text">أدخل عبارة البذور المكوّنة من 22 كلمة أدناه. إذا لم تكن لديك، فستحتاج إلى إنشاء محفظة جديدة.</string>
     <string name="ns_review_and_send">مراجعة وإرسال</string>
     <string name="ns_running_on_darkfi">تجربة DarkFi</string>
-    <string name="ns_sapling_balance">رصيد المحفظة</string>
     <string name="ns_scan_payment_code">مسح رمز دفع</string>
     <string name="ns_scan_payment_request">مسح طلب دفع</string>
     <string name="ns_scan_payment_request_text">إذا كان لديك طلب دفع، فامسح رمز QR هنا لتعبئة كل التفاصيل تلقائيًا.</string>

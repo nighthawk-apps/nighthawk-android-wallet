@@ -8,7 +8,7 @@
 
 Privacy-preserving wallet (work-in-progress) by [Nighthawk Apps](https://nighthawkapps.com). This tree ships as a **new Android application id** on the DarkFi network (DRK). The app integrates a native DarkFi wallet API via **UniFFI** (`rust/darkfi-mobile-ffi` → generated Kotlin + `DarkfiMobileFfiApi`) for chain sync, broadcast, and chat.
 
-**3.01.12** (`WALLET_VERSION_CODE=30100812`). The F-Droid native build turns off thin LTO so two rebuilds match. It also strips machine paths. Chat is the tab selected when you open the app. Default sync trial-decrypts notes in parallel. DarkFi pin `44ec78b6e`, Arti 0.48, UniFFI 0.32.2 (`darkfi-mobile-ffi` 0.2.3). Aligns with iOS 3.01.13 (build 17), desktop 3.1.10, Moonshine 3.1.9, and lightwalletd 0.3.6 (see [docs/VERSION_LOCKSTEP.md](docs/VERSION_LOCKSTEP.md)).
+**3.01.14** (`WALLET_VERSION_CODE=30100814`). The F-Droid native build turns off thin LTO so two rebuilds match. It also strips machine paths. Chat is the tab selected when you open the app. Default sync trial-decrypts notes in parallel. DarkFi pin `9d7ceaf77`, Arti 0.48, UniFFI 0.32.2 (`darkfi-mobile-ffi` 0.2.3), nym-smolmix `5f0dba82`. Aligns with iOS 3.01.14, desktop 3.1.12, Moonshine 3.1.11, and lightwalletd 0.3.8 (see [docs/VERSION_LOCKSTEP.md](docs/VERSION_LOCKSTEP.md)).
 
 ## Contents
 
@@ -31,7 +31,7 @@ Privacy-preserving wallet (work-in-progress) by [Nighthawk Apps](https://nightha
 
 Store listings are **not finalized** for `com.nighthawkwallet.android`. Placeholder targets until publishing completes:
 
-- **F-Droid:** DarkFi **testnet** package `com.nighthawkwallet.android.testnet` / flavor `darkfitestnet` (see [docs/fdroid.md](docs/fdroid.md); listing pending fdroiddata merge). **3.01.12** (`WALLET_VERSION_CODE=30100812`) — Fastlane changelog `fastlane/metadata/android/en-US/changelogs/30100812.txt`, tag `v3.01.12`. Local unsigned APK: `FDROID_BUILD=1 bundle exec fastlane fdroid`.
+- **F-Droid:** DarkFi **testnet** package `com.nighthawkwallet.android.testnet` / flavor `darkfitestnet` (see [docs/fdroid.md](docs/fdroid.md); listing pending fdroiddata merge). **3.01.14** (`WALLET_VERSION_CODE=30100814`), tag `v3.01.14`. Local unsigned APK: `FDROID_BUILD=1 bundle exec fastlane fdroid`.
 - **Google Play:** `https://PLACEHOLDER_PLAY_STORE_LISTING_URL`
 
 Replace these URLs when production listings exist—do not invent live links prematurely.
@@ -216,7 +216,7 @@ In-app **Chat** uses a **native in-process DarkIRC daemon** over UniFFI (`start_
 
 ## Nighthawk Mesh (encrypted EventGraph hop)
 
-Optional nearby BLE hop for **encrypted DarkIRC DAG** frames (Noise per GATT neighbor). Frame size is capped per message type, dedup ignores the timestamp, and aged sessions are rekeyed. Chat still goes through EventGraph → `event_pub` → UI. Share-internet / SoftAP / BLE LWD are **off**. The 2026-10-21 wallet localnet did not exercise this hop. Rebuild with `SKIP_UNIFFI_BINDGEN=1` after mesh C ABI changes. Full write-up: [docs/nighthawk-mesh.md](docs/nighthawk-mesh.md).
+Optional nearby BLE hop for **encrypted DarkIRC DAG** frames (Noise per GATT neighbor). Frame size is capped per message type, dedup ignores the timestamp, and aged sessions are rekeyed. Chat still goes through EventGraph → `event_pub` → UI. Share-internet / SoftAP / BLE LWD are **off**. Rebuild with `SKIP_UNIFFI_BINDGEN=1` after mesh C ABI changes. Full write-up: [docs/nighthawk-mesh.md](docs/nighthawk-mesh.md).
 
 ---
 
@@ -305,8 +305,7 @@ See [docs/instant-sync-strategy.md](docs/instant-sync-strategy.md) for the origi
 - Crypto parity: RLWE `n=1024`, signed AHE, `CLUE_ERROR_BOUND=2`, length-prefixed SealPIR limbs
 - Flow: RegisterCluePublicKey → GetClue → SendTransaction(omr_clue) → GetUnifOmrDigest → FetchPirBatch
 - Sync fail-closed if clue PK registration fails; send uses LWD `SendTransaction` only (24h clue hint)
-- **Trial decryption is the default.** Money notes, token mints, and compact DAO calls sync without a clue. Experimental UnifOMR is off under Advanced settings. Turn it on only when both wallets are registered on the same lightwalletd. It is not maintained until DarkFi mainnet contracts are live.
-- **Localnet (2026-10-21, not iOS):** 100/100 UnifOMR sends each way with Moonshine and with desktop. Eleven Moonshine `--no-omr` payments trial-decrypted; the balance stayed put across later syncs. Trial mode has to clear strict mode before it clears OMR, or the scan cursor goes idle and own change stays unscanned. A `GetBlockRange` hole stores only the last contiguous height actually returned. Rewinding a tree that already has those commitments duplicates leaves; rebuild it from `GetNoteCommitments`.
+- **Trial decryption is the default.** Money notes, token mints, and compact DAO calls sync without a clue. Experimental UnifOMR is off under Advanced settings. Turn it on only when both wallets are registered on the same lightwalletd. It is not maintained until DarkFi mainnet contracts are live. Forcing trial while UnifOMR strict mode is still on must clear strict mode first, or the scan cursor can idle. A `GetBlockRange` hole stores only the last contiguous height returned; rewinding a tree that already has those commitments duplicates leaves — rebuild from `GetNoteCommitments`.
 - Default local endpoint: `http://127.0.0.1:9067`
 - Limits: [`doc/unifomr_mvp_limits.md`](doc/unifomr_mvp_limits.md)
 

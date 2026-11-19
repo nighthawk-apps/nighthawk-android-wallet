@@ -37,9 +37,9 @@ internal object DrkWalletPassStore {
     }
 
     /**
-     * Database key derived from the mnemonic. The Android Keystore copy used to
-     * come back empty on the emulator, so every cold start generated a new pass
-     * and turso reported `Decryption failed for page=1`.
+     * Legacy database key derived from the mnemonic. New installs use [getOrCreate].
+     * Only existing `wallet.db` files that predate the independent pass still open
+     * with this, so a passphrase change does not wipe history.
      */
     fun forMnemonic(words: List<String>): String {
         val mac = javax.crypto.Mac.getInstance("HmacSHA256")
@@ -58,7 +58,7 @@ internal object DrkWalletPassStore {
             val ds = getDataStore(context)
             val prefs = ds.data.first()
             val existing = prefs[KEY_PASS]
-            if (existing != null) {
+            if (!existing.isNullOrEmpty()) {
                 return@runBlocking existing
             }
             val generated =
@@ -68,5 +68,29 @@ internal object DrkWalletPassStore {
                 )
             ds.edit { it[KEY_PASS] = generated }
             generated
+        }
+
+    /**
+     * Independent keystore pass for new databases. An on-disk `wallet.db` with no
+     * stored pass was keyed by [forMnemonic] and must keep that key.
+     */
+    fun resolve(
+        context: Context,
+        seedPhrase: List<String>,
+    ): String {
+        val stored = runCatching { peek(context) }.getOrNull()
+        if (!stored.isNullOrEmpty()) {
+            return stored
+        }
+        val db = DrkWalletPaths.walletDb(context)
+        if (db.isFile && db.length() > 0L) {
+            return forMnemonic(seedPhrase)
+        }
+        return getOrCreate(context)
+    }
+
+    private fun peek(context: Context): String? =
+        runBlocking {
+            getDataStore(context).data.first()[KEY_PASS]
         }
 }

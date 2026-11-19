@@ -53,6 +53,17 @@ namespace darkfi_mobile_ffi {
     boolean is_nym_running();
     // stopped | bootstrapping | connected | reconnecting | failed
     string nym_status();
+
+    // Shared Nym | Tor | Direct route. Session-only "continue without Nym"
+    // does not rewrite the stored preference. C ABI `nh_transport_*` mirrors
+    // these for builds that have not regenerated Kotlin/Swift bindings.
+    string transport_snapshot_json();
+    void transport_on_network_changed();
+    void transport_on_background();
+    void transport_on_foreground();
+    void transport_set_mesh_enabled(boolean on);
+    void transport_continue_without_nym();
+    void transport_clear_session_override();
 };
 
 callback interface DarkircEventCallback {

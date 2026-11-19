@@ -1,6 +1,7 @@
 package com.nighthawkapps.lib.android.ui
 
 import android.annotation.SuppressLint
+import android.content.Intent
 import android.os.Build
 import android.os.Bundle
 import android.os.SystemClock
@@ -61,10 +62,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.navigation.NavHostController
-import com.nighthawkapps.lib.android.global.AppWalletCoordinator
 import com.nighthawkapps.lib.android.sdk.mesh.MeshCoordinator
 import com.nighthawkapps.lib.android.sdk.mesh.restoreOnResume
-import com.nighthawkapps.lib.android.sdk.net.PrivacyNetwork
 import com.nighthawkapps.lib.android.sdk.nym.AppNymCoordinator
 import com.nighthawkapps.lib.android.sdk.tor.AppTorCoordinator
 import com.nighthawkapps.lib.android.sdk.tor.TorBootstrapUiState
@@ -135,9 +134,21 @@ class MainActivity : FragmentActivity() {
         WorkIds.ensureSyncNotificationScheduled(application)
     }
 
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        handleIntentData()
+    }
+
     private fun handleIntentData() {
         homeViewModel.intentDataUriForDeepLink = intent?.data
         homeViewModel.shortcutAction = ShortcutAction.getShortcutAction(intent?.getStringExtra(ShortcutAction.KEY_SHORT_CUT_CLICK))
+        val thread =
+            intent?.getStringExtra("nighthawk_chat_thread")
+                ?: intent?.data?.takeIf { it.scheme == "nighthawk" && it.host == "chat" }?.getQueryParameter("thread")
+        if (!thread.isNullOrBlank()) {
+            homeViewModel.pendingChatThread = thread
+        }
     }
 
     private fun configureSplashScreenKeepCondition(splashScreen: SplashScreen) {
@@ -443,13 +454,6 @@ class MainActivity : FragmentActivity() {
                         onClick = {
                             if (splash.isNym) {
                                 AppNymCoordinator.disableFromSplash(context)
-                                lifecycleScope.launch {
-                                    AppNymCoordinator.applyPrivacyNetwork(
-                                        context,
-                                        PrivacyNetwork.Direct,
-                                        AppWalletCoordinator.get(context),
-                                    )
-                                }
                             } else {
                                 AppTorCoordinator.disableTorFromSplash(context)
                             }
@@ -596,15 +600,8 @@ class MainActivity : FragmentActivity() {
 
         // Note this condition needs to be kept in sync with the condition in setupSplashScreen()
         val waitingOnWallet = null == configuration || secretState == SecretState.Loading
-        // Hold GetStarted (None) and Home (Ready after onboarding) until Tor is ready
-        // or the user continues without it. Seed backup and the post-backup carousel
-        // stay interactive — Create Wallet used to vanish behind Arti bootstrap.
-        val holdForTor =
-            (
-                secretState == SecretState.None ||
-                    (secretState is SecretState.Ready && onboardingDone)
-            ) &&
-                splash.isPending
+        // Navigation stays mounted while Nym or Tor bootstraps. A banner offers
+        // a session-only skip; it does not replace the NavHost.
         if (waitingOnWallet) {
             Box(
                 modifier = Modifier.fillMaxSize().safeDrawingPadding(),
@@ -614,11 +611,8 @@ class MainActivity : FragmentActivity() {
                     SplashVersionFooter()
                 }
             }
-        } else if (holdForTor) {
-            Box(modifier = Modifier.fillMaxSize().safeDrawingPadding()) {
-                SplashConnectingScreen(splash)
-            }
         } else {
+            Box(modifier = Modifier.fillMaxSize()) {
             // Note that the deeply nested child views will probably receive arguments derived from
             // the configuration.  The CompositionLocalProvider is helpful for passing the configuration
             // to the "platform" layer, which is where the arguments will be derived from.
@@ -665,6 +659,43 @@ class MainActivity : FragmentActivity() {
                         }
                     }
                 }
+            }
+            val showRouteBanner =
+                splash.isPending &&
+                    (
+                        secretState == SecretState.None ||
+                            (secretState is SecretState.Ready && onboardingDone)
+                    )
+            if (showRouteBanner) {
+                val bannerContext = LocalContext.current
+                Column(
+                    modifier =
+                        Modifier
+                            .align(Alignment.TopCenter)
+                            .padding(top = 12.dp, start = 16.dp, end = 16.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                ) {
+                    Text(
+                        text =
+                            stringResource(
+                                if (splash.isNym) {
+                                    R.string.splash_nym_bootstrapping
+                                } else {
+                                    R.string.splash_tor_bootstrapping
+                                },
+                            ),
+                        color = colorResource(R.color.splash_tagline_text),
+                        textAlign = TextAlign.Center,
+                    )
+                    if (splash.isNym) {
+                        TextButton(
+                            onClick = { AppNymCoordinator.disableFromSplash(bannerContext) },
+                        ) {
+                            Text(stringResource(R.string.splash_nym_continue_without))
+                        }
+                    }
+                }
+            }
             }
         }
     }

@@ -1,4 +1,4 @@
-//! Batched Sapling trial decrypt for a sync window.
+//! Batched note trial decrypt for a sync window.
 //!
 //! This is the production trial-decrypt path for Android and for desktop,
 //! which links this crate. UnifOMR is not involved.
@@ -71,13 +71,13 @@ fn open_chunk(
     notes: &[(Vec<u8>, Vec<u8>)],
     indexes: &[usize],
 ) -> Vec<(usize, MoneyNote)> {
-    use darkfi_sdk::crypto::diffie_hellman::sapling_ka_agree_batch;
+    use darkfi_sdk::crypto::diffie_hellman::sapling_ka_agree_batch as note_key_agree_batch;
 
     let epks: Vec<PublicKey> = indexes
         .iter()
         .map(|index| decoded[*index].as_ref().unwrap().ephem_public)
         .collect();
-    let shared = sapling_ka_agree_batch(secret, &epks);
+    let shared = note_key_agree_batch(secret, &epks);
     indexes
         .iter()
         .zip(shared)

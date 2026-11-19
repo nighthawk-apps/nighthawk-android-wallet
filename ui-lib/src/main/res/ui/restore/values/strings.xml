@@ -91,7 +91,6 @@
     <string name="ns_address_kind_confidential">Confidential address</string>
     <string name="ns_address_kind_public_receive">Public receive address</string>
     <string name="ns_shielded_balance">Wallet balance</string>
-    <string name="ns_sapling_balance">Wallet balance</string>
     <string name="ns_transparent_balance">Wallet balance</string>
     <string name="ns_shield_now">Shield Now</string>
     <string name="ns_drk_unit_short_empty">--- DRK</string>
@@ -151,9 +150,31 @@
     <string name="ns_chat_mesh_on">Nighthawk Mesh on</string>
     <string name="ns_chat_attach_request">Request</string>
     <string name="ns_chat_pay_invoice">Pay</string>
+    <string name="ns_chat_payment_request">Payment request</string>
+    <string name="ns_chat_clearnet_link_title">Open clearnet link?</string>
+    <string name="ns_chat_clearnet_link_body">This opens http(s) outside Nym/Tor and can leak your IP. Open in the system browser, or copy the link instead.</string>
+    <string name="ns_chat_clearnet_open_browser">Open in browser</string>
+    <string name="ns_chat_clearnet_copy_link">Copy link</string>
     <string name="ns_chat_public_pay_warning">Public # channels are plaintext. Attach this invoice anyway?</string>
     <string name="ns_chat_public_pay_title">Public channel is plaintext</string>
     <string name="ns_chat_public_pay_confirm">Attach anyway</string>
+    <string name="ns_chat_send_drk">DRK</string>
+    <string name="ns_chat_tip">Tip</string>
+    <string name="ns_chat_drk_address">Wallet address</string>
+    <string name="ns_chat_public_channel">Public channel · plaintext on the DAG</string>
+    <string name="ns_chat_direct_e2e">Direct message · end-to-end encrypted</string>
+    <string name="ns_chat_receipt_pending">Payment pending</string>
+    <string name="ns_chat_receipt_broadcasted">Payment broadcasted</string>
+    <string name="ns_chat_receipt_confirmed">Payment confirmed</string>
+    <string name="ns_chat_receipt_failed">Payment failed</string>
+    <string name="ns_chat_delivery_queued">Queued offline</string>
+    <string name="ns_chat_delivery_sending">Sending</string>
+    <string name="ns_chat_delivery_relayed">Relayed</string>
+    <string name="ns_chat_delivery_retry">Failed — tap to retry</string>
+    <string name="ns_chat_diag_route">Privacy route: %1$s</string>
+    <string name="ns_chat_diag_height">Lightwalletd height %1$d</string>
+    <string name="ns_chat_diag_height_unknown">Lightwalletd height unavailable</string>
+    <string name="ns_chat_diag_mesh">Nearby mesh peers %1$d</string>
     <string name="ns_chat_three_secrets_title">Three secrets (do not mix)</string>
     <string name="ns_chat_three_secrets_body">22-word wallet backup is not the 12-word chat identity, and neither is your ChaCha DM public key. Mixing them can lose money or deanonymize chat.</string>
     <string name="ns_chat_local_display_name">Local display name</string>
@@ -437,7 +458,7 @@
     <string name="ns_chat_status_irc_error">IRC error</string>
 
     <string name="ns_chat_e2e_section_title">End-to-end encryption</string>
-    <string name="ns_chat_e2e_section_body">Configure ChaChaBox keys for encrypted channels and direct messages. Keys are stored on-device and written into the embedded DarkIRC config; encryption runs inside the daemon.</string>
+    <string name="ns_chat_e2e_section_body">Direct messages use on-device ChaChaBox keys. Public channels are not end-to-end encrypted.</string>
     <string name="ns_chat_e2e_requires_embedded">Enable embedded DarkIRC above to apply E2E settings.</string>
     <string name="ns_chat_e2e_no_binary">Packaged darkirc_exec is missing for this device ABI — build it with scripts/build-darkirc-android.sh.</string>
     <string name="ns_chat_e2e_channels_title">Encrypted channels</string>
@@ -657,7 +678,7 @@
     <string name="ns_subtotal">Subtotal</string>
     <string name="ns_total_amount">Total amount</string>
     <string name="ns_shielded">Confidential</string>
-    <string name="ns_legacy_shielded_sapling">Older encoding</string>
+    <string name="ns_older_encoding">Older encoding</string>
     <string name="ns_transparent">Public receive</string>
     <string name="ns_include_reply_to">include reply-to</string>
     <string name="transaction_history_format_date_time_brief" translatable="false">MM/dd/yy h:mma</string>

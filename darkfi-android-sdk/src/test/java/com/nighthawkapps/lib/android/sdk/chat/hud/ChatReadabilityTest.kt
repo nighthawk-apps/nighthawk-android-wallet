@@ -50,11 +50,29 @@ class ChatReadabilityTest {
     }
 
     @Test
-    fun threadIsEncrypted_directAndSecretChannels() {
+    fun threadIsEncrypted_directOnlyNotPublicChannels() {
         assertTrue(ChatChrome.threadIsEncrypted(true, "alice", emptyList()))
-        assertTrue(ChatChrome.threadIsEncrypted(false, "#dev", listOf("#Dev")))
+        assertFalse(ChatChrome.threadIsEncrypted(false, "#dev", listOf("#Dev")))
         assertFalse(ChatChrome.threadIsEncrypted(false, "#dev", emptyList()))
-        assertFalse(ChatChrome.threadIsEncrypted(false, "", listOf("#dev")))
+        assertFalse(ChatChrome.threadIsEncrypted(true, "", listOf("#dev")))
+        assertFalse(ChatChrome.threadIsEncrypted(true, "#dev", listOf("#dev")))
+    }
+
+    @Test
+    fun timeline_outOfOrderDagRepeatsSameEpochDay() {
+        val day1 = 1_746_662_400_000L
+        val day2 = day1 + 86_400_000L
+        val items =
+            ChatTimeline.group(
+                listOf(
+                    msg("a", day1),
+                    msg("b", day2),
+                    msg("c", day1 + 1_000),
+                ),
+                ZoneOffset.UTC,
+            )
+        val days = items.filterIsInstance<ChatTimelineItem.DateSeparator>().map { it.epochDay }
+        assertEquals(listOf(days[0], days[1], days[0]), days)
     }
 
     @Test

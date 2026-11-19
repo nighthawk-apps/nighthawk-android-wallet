@@ -253,7 +253,7 @@
     <string name="ns_chat_e2e_save">Simpan</string>
     <string name="ns_chat_e2e_saved_failed">Tidak dapat menyimpan pengaturan E2E.</string>
     <string name="ns_chat_e2e_saved_ok">Pengaturan E2E disimpan; DarkIRC dimulai ulang.</string>
-    <string name="ns_chat_e2e_section_body">Atur kunci ChaChaBox untuk kanal terenkripsi dan pesan langsung. Kunci disimpan di perangkat dan ditulis ke konfigurasi DarkIRC tertanam; enkripsi berjalan di dalam daemon.</string>
+    <string name="ns_chat_e2e_section_body">Pesan langsung memakai kunci ChaChaBox di perangkat. Kanal publik tidak dienkripsi ujung-ke-ujung.</string>
     <string name="ns_chat_e2e_section_title">Enkripsi ujung ke ujung</string>
     <string name="ns_chat_embedded_darkirc">Jalankan node DarkIRC tertanam</string>
     <string name="ns_chat_embedded_darkirc_desc">Menjalankan daemon DarkIRC bawaan untuk 127.0.0.1:6667 (notifikasi tetap). Matikan untuk memakai adb reverse atau host IRC Anda sendiri. Memerlukan biner (lihat dokumentasi).</string>
@@ -540,7 +540,7 @@
     <string name="ns_landing_footer">Aplikasi ini perangkat lunak bebas. Lisensi tercantum di Pengaturan &gt; Tentang &gt; Lisensi.</string>
     <string name="ns_landing_import_success_message">Selamat! Dompet Anda berhasil diimpor!</string>
     <string name="ns_landing_text">Jika baru pertama kali memakai Nighthawk, Anda perlu membuat dompet. Jika kembali ke Nighthawk, Anda dapat mencoba memulihkan dompet sebelumnya.</string>
-    <string name="ns_legacy_shielded_sapling">Pengodean lama</string>
+    <string name="ns_older_encoding">Pengodean lama</string>
     <string name="ns_logo_desc">Logo Nighthawk</string>
     <string name="ns_memo">Memo</string>
     <string name="ns_mesh_on_badge">MESH</string>
@@ -615,7 +615,6 @@
     <string name="ns_restore_wallet_text">Masukkan frasa seed 22 kata di bawah. Jika Anda tidak punya frasa ini, buat dompet baru.</string>
     <string name="ns_review_and_send">Tinjau dan kirim</string>
     <string name="ns_running_on_darkfi">Pengalaman DarkFi</string>
-    <string name="ns_sapling_balance">Saldo dompet</string>
     <string name="ns_scan_payment_code">Pindai kode pembayaran</string>
     <string name="ns_scan_payment_request">Pindai Permintaan Pembayaran</string>
     <string name="ns_scan_payment_request_text">Jika ada permintaan pembayaran, pindai kode QR di sini untuk mengisi semua detail secara otomatis.</string>

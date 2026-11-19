@@ -7,6 +7,7 @@ import com.nighthawkapps.lib.uniffi.darkfi_mobile_ffi.DarkircEventCallback
 import com.nighthawkapps.lib.uniffi.darkfi_mobile_ffi.DarkircTransport
 import com.nighthawkapps.lib.uniffi.darkfi_mobile_ffi.bridgePing
 import com.nighthawkapps.lib.uniffi.darkfi_mobile_ffi.bridgeVersion
+import com.nighthawkapps.lib.uniffi.darkfi_mobile_ffi.darkircConnectionPhase
 import com.nighthawkapps.lib.uniffi.darkfi_mobile_ffi.darkircStatus
 import com.nighthawkapps.lib.uniffi.darkfi_mobile_ffi.generateDarkfiMnemonic
 import com.nighthawkapps.lib.uniffi.darkfi_mobile_ffi.sendChatMessage
@@ -47,12 +48,10 @@ class DarkfiMobileFfiInstrumentedTest {
     @Test
     fun darkircLifecycle_startTwiceThrows_sendWhenNotRunningThrows() {
         assumeTrue(DarkfiNativeProbe.run() is DarkfiNativeProbe.Ok)
-        
-        // Ensure we start from a clean state
-        val initialStatus = darkircStatus()
-        if (initialStatus == "running" || initialStatus == "starting") {
-            stopDarkirc()
-        }
+
+        // stopDarkirc() returns while status is still "stopping". A later
+        // start is rejected until the daemon thread reaches not_running.
+        awaitDaemonStopped()
 
         // Test sending message when not running
         assertFailsWith<DarkfiWalletNativeException.NativeDrkUnavailable> {
@@ -89,11 +88,12 @@ class DarkfiMobileFfiInstrumentedTest {
             startDarkirc(dbDir.absolutePath, DarkircTransport.DIRECT, zeroUShort, callback)
         }
 
-        // Stop daemon
+        // Stop daemon. stopDarkirc() returns before the thread is gone.
         stopDarkirc()
-        
+
         val statusAfterStop = darkircStatus()
         assertTrue(statusAfterStop == "stopping" || statusAfterStop == "not_running")
+        awaitDaemonStopped()
     }
 
     /**
@@ -101,12 +101,12 @@ class DarkfiMobileFfiInstrumentedTest {
      *
      * A `Privmsg` sent on a public channel is serialized, inserted into the
      * event graph DAG, and relayed back through `event_pub` to the registered
-     * callback. This exercises the exact serialize -> DAG -> deserialize path
-     * for public channels against the rebuilt native library, independent of
-     * any remote peers. Before the fix (the `Privmsg` struct was missing the
-     * upstream `version`/`msg_type` prefix, the send path used the channel name
-     * as the DAG key, and never inserted the event header) no public-channel
-     * message could survive this round trip.
+     * callback. The native send path refuses the message until the DAG is
+     * synced (`connected`), so this waits for that phase before sending.
+     * Before the fix (the `Privmsg` struct was missing the upstream
+     * `version`/`msg_type` prefix, the send path used the channel name as the
+     * DAG key, and never inserted the event header) no public-channel message
+     * could survive this round trip.
      */
     @Test
     fun publicChannelMessage_roundTripsThroughEventGraphToCallback() {
@@ -145,6 +145,10 @@ class DarkfiMobileFfiInstrumentedTest {
         startDarkirc(dbDir.absolutePath, DarkircTransport.DIRECT, zeroUShort, callback)
         try {
             assertTrue(awaitDaemonRunning(), "daemon never reached running state")
+            assertTrue(
+                awaitDaemonConnected(),
+                "darkirc never reached connected; send is refused until the DAG is synced",
+            )
 
             sendChatMessage(channel, nick, "$token hello public channel")
 
@@ -157,6 +161,7 @@ class DarkfiMobileFfiInstrumentedTest {
             assertTrue(gotMsg.contains(token))
         } finally {
             stopDarkirc()
+            awaitDaemonStopped()
         }
     }
 
@@ -172,7 +177,22 @@ class DarkfiMobileFfiInstrumentedTest {
         return darkircStatus() == "running"
     }
 
-    private fun awaitDaemonStopped(timeoutMs: Long = 30_000) {
+    /** Sends are refused until [darkircConnectionPhase] reports `connected`. */
+    private fun awaitDaemonConnected(timeoutMs: Long = 180_000): Boolean {
+        val deadline = System.currentTimeMillis() + timeoutMs
+        while (System.currentTimeMillis() < deadline) {
+            when (darkircConnectionPhase()) {
+                "connected" -> return true
+                "failed" -> return false
+            }
+            val status = darkircStatus()
+            if (status == "failed" || status == "not_running") return false
+            Thread.sleep(250)
+        }
+        return darkircConnectionPhase() == "connected"
+    }
+
+    private fun awaitDaemonStopped(timeoutMs: Long = 60_000) {
         if (darkircStatus() == "not_running") return
         try {
             stopDarkirc()

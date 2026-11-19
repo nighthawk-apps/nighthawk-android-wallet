@@ -19,7 +19,7 @@
 //! - **Debug logging at gRPC entrypoints**: every RPC call is logged at
 //!   DEBUG level with method name and timing.
 
-use std::collections::{BTreeMap, VecDeque};
+use std::collections::{BTreeMap, HashMap, VecDeque};
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
@@ -91,7 +91,8 @@ impl SlidingWindowLimiter {
                     if Instant::now() >= deadline {
                         return Err(e);
                     }
-                    tokio::time::sleep(Duration::from_millis(250)).await;
+                    // smol executor — tokio::time::sleep panics outside Compat.
+                    smol::Timer::after(Duration::from_millis(250)).await;
                 }
                 Err(e) => return Err(e),
             }
@@ -498,6 +499,7 @@ static DEFAULT_SOCKS5_PROXY: std::sync::RwLock<Option<(String, u16)>> =
 /// traffic. Explicit `socks5://` endpoint URLs take precedence.
 pub fn set_default_socks5_proxy(proxy: Option<(String, u16)>) {
     *DEFAULT_SOCKS5_PROXY.write().unwrap() = proxy;
+    invalidate_lightwallet_client_pool();
 }
 
 fn default_socks5_proxy_for(grpc_url: &str) -> Option<(String, u16)> {
@@ -533,11 +535,95 @@ pub struct LightwalletClient {
     require_https_over_socks: bool,
     /// Persistent cloneable gRPC channel — `OnceCell` so concurrent RPCs
     /// clone the ready channel without holding a session-wide mutex.
-    channel: tokio::sync::OnceCell<tonic::transport::Channel>,
+    /// Pooled clients share one cell per endpoint, pin list, and SOCKS route.
+    channel: Arc<tokio::sync::OnceCell<tonic::transport::Channel>>,
     /// RPC request metrics (chain tip, OMR, PIR, block requests).
     metrics: Arc<RpcMetrics>,
-    omr_limiter: SlidingWindowLimiter,
-    chain_tip_limiter: SlidingWindowLimiter,
+    omr_limiter: Arc<SlidingWindowLimiter>,
+    chain_tip_limiter: Arc<SlidingWindowLimiter>,
+}
+
+#[derive(Clone, PartialEq, Eq, Hash)]
+struct ClientPoolKey {
+    endpoint: String,
+    pins: Vec<[u8; 32]>,
+    socks_host: String,
+    socks_port: u16,
+}
+
+#[derive(Clone)]
+struct SharedDial {
+    channel: Arc<tokio::sync::OnceCell<tonic::transport::Channel>>,
+    metrics: Arc<RpcMetrics>,
+    omr_limiter: Arc<SlidingWindowLimiter>,
+    chain_tip_limiter: Arc<SlidingWindowLimiter>,
+}
+
+fn client_pool() -> &'static Mutex<HashMap<ClientPoolKey, SharedDial>> {
+    static POOL: std::sync::OnceLock<Mutex<HashMap<ClientPoolKey, SharedDial>>> =
+        std::sync::OnceLock::new();
+    POOL.get_or_init(|| Mutex::new(HashMap::new()))
+}
+
+fn pin_memory() -> &'static Mutex<HashMap<String, Vec<[u8; 32]>>> {
+    static PINS: std::sync::OnceLock<Mutex<HashMap<String, Vec<[u8; 32]>>>> =
+        std::sync::OnceLock::new();
+    PINS.get_or_init(|| Mutex::new(HashMap::new()))
+}
+
+/// Remember the full leaf-pin list for an endpoint. Later
+/// [`LightwalletClient::from_endpoint_and_pin`] calls merge that list and
+/// share one gRPC channel. Callers that never remember (unit tests) keep a
+/// fresh client.
+pub fn remember_tls_pins(endpoint: &str, pins: &[[u8; 32]]) {
+    let key = normalize_lightwallet_url(endpoint);
+    match pin_memory().lock() {
+        Ok(mut guard) => {
+            guard.insert(key, pins.to_vec());
+        }
+        Err(poisoned) => {
+            poisoned.into_inner().insert(key, pins.to_vec());
+        }
+    }
+}
+
+fn remembered_pins(endpoint: &str) -> Option<Vec<[u8; 32]>> {
+    let key = normalize_lightwallet_url(endpoint);
+    match pin_memory().lock() {
+        Ok(guard) => guard.get(&key).cloned(),
+        Err(poisoned) => poisoned.into_inner().get(&key).cloned(),
+    }
+}
+
+fn merge_pins(remembered: &[[u8; 32]], provided: &[[u8; 32]]) -> Vec<[u8; 32]> {
+    let mut out = remembered.to_vec();
+    for pin in provided {
+        if !out.contains(pin) {
+            out.push(*pin);
+        }
+    }
+    out
+}
+
+/// Drop pooled channels so the next dial observes a new SOCKS route or network.
+pub fn invalidate_lightwallet_client_pool() {
+    match client_pool().lock() {
+        Ok(mut guard) => guard.clear(),
+        Err(poisoned) => poisoned.into_inner().clear(),
+    }
+}
+
+fn pool_key(endpoint: &str, pins: &[[u8; 32]], socks: &Option<(String, u16)>) -> ClientPoolKey {
+    let (socks_host, socks_port) = match socks {
+        Some((host, port)) => (host.clone(), *port),
+        None => (String::new(), 0),
+    };
+    ClientPoolKey {
+        endpoint: endpoint.to_string(),
+        pins: pins.to_vec(),
+        socks_host,
+        socks_port,
+    }
 }
 
 /// One pooled UnifOMR detection key. The handle and key are never logged.
@@ -678,7 +764,11 @@ impl LightwalletClient {
             .or_else(|| default_socks5_proxy_for(&parsed.grpc_url));
         Self {
             endpoint: parsed.grpc_url,
-            connect_timeout: Duration::from_secs(10),
+            connect_timeout: if socks5_proxy.is_some() {
+                Duration::from_secs(60)
+            } else {
+                Duration::from_secs(10)
+            },
             // Match lightwalletd `request_timeout_s` (1800). UnifOMR Param2
             // GetUnifOmrDigest streams ~120 MiB detection keys and a per-message
             // SIMD encode (D=4096) can exceed 5 minutes.
@@ -686,16 +776,16 @@ impl LightwalletClient {
             tls_pins: Vec::new(),
             socks5_proxy,
             require_https_over_socks: true,
-            channel: tokio::sync::OnceCell::new(),
+            channel: Arc::new(tokio::sync::OnceCell::new()),
             metrics: Arc::new(RpcMetrics::default()),
-            omr_limiter: SlidingWindowLimiter::new(
+            omr_limiter: Arc::new(SlidingWindowLimiter::new(
                 Self::OMR_RATE_LIMIT_PER_MIN,
                 Duration::from_secs(60),
-            ),
-            chain_tip_limiter: SlidingWindowLimiter::new(
+            )),
+            chain_tip_limiter: Arc::new(SlidingWindowLimiter::new(
                 Self::CHAIN_TIP_RATE_LIMIT_PER_MIN,
                 Duration::from_secs(60),
-            ),
+            )),
         }
     }
 
@@ -720,7 +810,11 @@ impl LightwalletClient {
             .or_else(|| default_socks5_proxy_for(&parsed.grpc_url));
         Self {
             endpoint: parsed.grpc_url,
-            connect_timeout: Duration::from_secs(10),
+            connect_timeout: if socks5_proxy.is_some() {
+                Duration::from_secs(60)
+            } else {
+                Duration::from_secs(10)
+            },
             // Match lightwalletd `request_timeout_s` (1800). UnifOMR Param2
             // GetUnifOmrDigest streams ~120 MiB detection keys and a per-message
             // SIMD encode (D=4096) can exceed 5 minutes.
@@ -728,16 +822,16 @@ impl LightwalletClient {
             tls_pins: pins,
             socks5_proxy,
             require_https_over_socks: true,
-            channel: tokio::sync::OnceCell::new(),
+            channel: Arc::new(tokio::sync::OnceCell::new()),
             metrics: Arc::new(RpcMetrics::default()),
-            omr_limiter: SlidingWindowLimiter::new(
+            omr_limiter: Arc::new(SlidingWindowLimiter::new(
                 Self::OMR_RATE_LIMIT_PER_MIN,
                 Duration::from_secs(60),
-            ),
-            chain_tip_limiter: SlidingWindowLimiter::new(
+            )),
+            chain_tip_limiter: Arc::new(SlidingWindowLimiter::new(
                 Self::CHAIN_TIP_RATE_LIMIT_PER_MIN,
                 Duration::from_secs(60),
-            ),
+            )),
         }
     }
 
@@ -764,10 +858,56 @@ impl LightwalletClient {
     }
 
     pub fn from_endpoint_and_pins(endpoint: &str, pins: &[[u8; 32]]) -> Self {
-        if pins.is_empty() {
-            Self::new(endpoint)
-        } else {
-            Self::new_with_tls_pins(endpoint, pins.to_vec())
+        let pins = match remembered_pins(endpoint) {
+            Some(full) => merge_pins(&full, pins),
+            None => {
+                return if pins.is_empty() {
+                    Self::new(endpoint)
+                } else {
+                    Self::new_with_tls_pins(endpoint, pins.to_vec())
+                };
+            }
+        };
+        let parsed = parse_lightwallet_endpoint(endpoint);
+        let socks5_proxy = parsed
+            .socks5_proxy
+            .or_else(|| default_socks5_proxy_for(&parsed.grpc_url));
+        let key = pool_key(&parsed.grpc_url, &pins, &socks5_proxy);
+        let shared = {
+            let mut pool = match client_pool().lock() {
+                Ok(guard) => guard,
+                Err(poisoned) => poisoned.into_inner(),
+            };
+            pool.entry(key)
+                .or_insert_with(|| SharedDial {
+                    channel: Arc::new(tokio::sync::OnceCell::new()),
+                    metrics: Arc::new(RpcMetrics::default()),
+                    omr_limiter: Arc::new(SlidingWindowLimiter::new(
+                        Self::OMR_RATE_LIMIT_PER_MIN,
+                        Duration::from_secs(60),
+                    )),
+                    chain_tip_limiter: Arc::new(SlidingWindowLimiter::new(
+                        Self::CHAIN_TIP_RATE_LIMIT_PER_MIN,
+                        Duration::from_secs(60),
+                    )),
+                })
+                .clone()
+        };
+        Self {
+            endpoint: parsed.grpc_url,
+            connect_timeout: if socks5_proxy.is_some() {
+                Duration::from_secs(60)
+            } else {
+                Duration::from_secs(10)
+            },
+            request_timeout: Duration::from_secs(1800),
+            tls_pins: pins,
+            socks5_proxy,
+            require_https_over_socks: true,
+            channel: shared.channel,
+            metrics: shared.metrics,
+            omr_limiter: shared.omr_limiter,
+            chain_tip_limiter: shared.chain_tip_limiter,
         }
     }
 
@@ -845,6 +985,23 @@ impl LightwalletClient {
         Ok(())
     }
 
+    /// Per-RPC deadline plus TCP and HTTP/2 keepalives. Idle Nym/Tor
+    /// connections otherwise die, and the next call waits out the long
+    /// UnifOMR request timeout.
+    fn tune_grpc_endpoint(
+        endpoint: tonic::transport::Endpoint,
+        connect_timeout: Duration,
+        request_timeout: Duration,
+    ) -> tonic::transport::Endpoint {
+        endpoint
+            .connect_timeout(connect_timeout)
+            .timeout(request_timeout)
+            .tcp_keepalive(Some(Duration::from_secs(30)))
+            .http2_keep_alive_interval(Duration::from_secs(30))
+            .keep_alive_timeout(Duration::from_secs(20))
+            .keep_alive_while_idle(true)
+    }
+
     async fn dial_tcp(
         socks5_proxy: &Option<(String, u16)>,
         host: &str,
@@ -860,20 +1017,36 @@ impl LightwalletClient {
         if let Some((proxy_host, proxy_port)) = socks5_proxy {
             let proxy = (proxy_host.as_str(), *proxy_port);
             let dest = (host, port);
-            let socks = tokio::time::timeout(
-                connect_timeout,
-                tokio_socks::tcp::Socks5Stream::connect(proxy, dest),
-            )
-            .await
-            .map_err(|_| {
-                std::io::Error::new(std::io::ErrorKind::TimedOut, "SOCKS5 connect timeout")
-            })?
-            .map_err(|e| {
-                std::io::Error::new(
-                    std::io::ErrorKind::ConnectionRefused,
-                    format!("SOCKS5: {e}"),
+            let local = proxy_host == "127.0.0.1" || proxy_host == "localhost";
+            let socks_result = if local {
+                let auth = crate::transport_manager::current_socks_auth();
+                tokio::time::timeout(
+                    connect_timeout,
+                    tokio_socks::tcp::Socks5Stream::connect_with_password(
+                        proxy,
+                        dest,
+                        &auth.username,
+                        &auth.password,
+                    ),
                 )
-            })?;
+                .await
+            } else {
+                tokio::time::timeout(
+                    connect_timeout,
+                    tokio_socks::tcp::Socks5Stream::connect(proxy, dest),
+                )
+                .await
+            };
+            let socks = socks_result
+                .map_err(|_| {
+                    std::io::Error::new(std::io::ErrorKind::TimedOut, "SOCKS5 connect timeout")
+                })?
+                .map_err(|e| {
+                    std::io::Error::new(
+                        std::io::ErrorKind::ConnectionRefused,
+                        format!("SOCKS5: {e}"),
+                    )
+                })?;
             Ok(socks.into_inner())
         } else {
             let addr = format!("{host}:{port}");
@@ -965,12 +1138,15 @@ impl LightwalletClient {
             } else {
                 endpoint.clone()
             };
-            tonic::transport::Endpoint::from_shared(origin)
-                .map_err(|e| format!("Invalid endpoint: {e}"))?
-                .timeout(self.request_timeout)
-                .connect_with_connector(connector)
-                .await
-                .map_err(|e| format!("gRPC connect (TLS): {e}"))?
+            Self::tune_grpc_endpoint(
+                tonic::transport::Endpoint::from_shared(origin)
+                    .map_err(|e| format!("Invalid endpoint: {e}"))?,
+                connect_timeout,
+                self.request_timeout,
+            )
+            .connect_with_connector(connector)
+            .await
+            .map_err(|e| format!("gRPC connect (TLS): {e}"))?
         } else if via_socks {
             // Cleartext gRPC through local Tor SOCKS (privacy path).
             let connector = tower::service_fn(move |uri: tonic::codegen::http::Uri| {
@@ -989,21 +1165,26 @@ impl LightwalletClient {
                 }
             });
 
-            tonic::transport::Endpoint::from_shared(endpoint.clone())
-                .map_err(|e| format!("Invalid endpoint: {e}"))?
-                .timeout(self.request_timeout)
-                .connect_with_connector(connector)
-                .await
-                .map_err(|e| format!("gRPC connect (SOCKS5): {e}"))?
+            Self::tune_grpc_endpoint(
+                tonic::transport::Endpoint::from_shared(endpoint.clone())
+                    .map_err(|e| format!("Invalid endpoint: {e}"))?,
+                connect_timeout,
+                self.request_timeout,
+            )
+            .connect_with_connector(connector)
+            .await
+            .map_err(|e| format!("gRPC connect (SOCKS5): {e}"))?
         } else {
             // Loopback cleartext only (policy already enforced above).
-            tonic::transport::Channel::from_shared(endpoint.clone())
-                .map_err(|e| format!("Invalid endpoint: {e}"))?
-                .connect_timeout(self.connect_timeout)
-                .timeout(self.request_timeout)
-                .connect()
-                .await
-                .map_err(|e| format!("gRPC connect: {e}"))?
+            Self::tune_grpc_endpoint(
+                tonic::transport::Channel::from_shared(endpoint.clone())
+                    .map_err(|e| format!("Invalid endpoint: {e}"))?,
+                self.connect_timeout,
+                self.request_timeout,
+            )
+            .connect()
+            .await
+            .map_err(|e| format!("gRPC connect: {e}"))?
         };
 
         Ok(fresh)
@@ -2756,7 +2937,8 @@ where
     let mut last_err = String::from("transaction not present in lightwalletd mempool");
     for (attempt, &delay_ms) in delays_ms.iter().enumerate() {
         if attempt > 0 && delay_ms > 0 {
-            tokio::time::sleep(Duration::from_millis(delay_ms)).await;
+            // smol executor — tokio::time::sleep panics outside Compat.
+            smol::Timer::after(Duration::from_millis(delay_ms)).await;
         }
         match probe().await {
             Ok(true) => return Ok(()),

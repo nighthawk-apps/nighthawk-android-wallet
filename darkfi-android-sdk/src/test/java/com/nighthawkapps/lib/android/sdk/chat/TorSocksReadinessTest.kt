@@ -42,6 +42,13 @@ class TorSocksReadinessTest {
     }
 
     @Test
+    fun awaitTcpReachable_refusesClearnetHost() =
+        runBlocking {
+            assertFalse(TorSocksReadiness.awaitTcpReachable("api.example.com", 443, deadlineMs = 2_000L))
+            assertFalse(TorSocksReadiness.tcpReachable("1.2.3.4", 9067, connectTimeoutMs = 50))
+        }
+
+    @Test
     fun awaitTcpReachable_eventuallyTrue() =
         runBlocking {
             ServerSocket(0).use { ss ->

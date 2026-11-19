@@ -1,1 +1,1 @@
-Dependency updates (Gradle 9.9.1, Rust crates). Japanese, Chinese, Korean, Indonesian, Spanish, Portuguese, and Arabic UI strings. Chat remains the opening tab.
+Shared darkfi-mobile-ffi (DarkFi 9d7ceaf77, Nym 5f0dba82): TransportManager, chat+wallet contacts/outbox, trial-decrypt default. Aligns with iOS 3.01.14, desktop 3.1.12, Moonshine 3.1.11, lightwalletd 0.3.8.

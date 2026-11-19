@@ -3,6 +3,7 @@ package com.nighthawkapps.lib.android.sdk.uniffi
 import com.nighthawkapps.lib.android.sdk.chat.DarkfiChatPreferences
 import com.nighthawkapps.lib.android.sdk.net.LightwalletTlsPin
 import com.nighthawkapps.lib.android.sdk.net.PrivacyNetwork
+import com.nighthawkapps.lib.android.sdk.net.SessionTransport
 import com.nighthawkapps.lib.android.sdk.net.TorDarkfidEndpoint
 import com.nighthawkapps.lib.android.sdk.nym.PlatformTls
 import com.nighthawkapps.lib.android.sdk.wallet.DarkfiNetwork
@@ -77,7 +78,7 @@ object DarkfiMobileFfiApi {
     ): DrkBootstrapConfig {
         DrkWalletPaths.ensureDirectories(context)
         val prefs = DarkfiChatPreferences(context.applicationContext)
-        val network = prefs.privacyNetwork
+        val network = SessionTransport.effective(prefs)
         return DrkBootstrapConfig(
             network =
                 when (wallet.network) {
@@ -87,7 +88,7 @@ object DarkfiMobileFfiApi {
             mnemonic = wallet.seedPhrase,
             walletDbPath = DrkWalletPaths.walletDb(context).absolutePath,
             cachePath = DrkWalletPaths.cacheDir(context).absolutePath,
-            walletPass = DrkWalletPassStore.forMnemonic(wallet.seedPhrase),
+            walletPass = DrkWalletPassStore.resolve(context, wallet.seedPhrase),
             lightwalletServerUrl = TorDarkfidEndpoint.displayUrlForWallet(context, wallet.endpoint),
             birthdayHeight = wallet.birthdayHeight ?: -1L, // null → full history; 0 → tip seed
 
@@ -135,11 +136,12 @@ object DarkfiMobileFfiApi {
                     liveUsers = 1
                     return handle
                 } catch (e: DarkfiWalletNativeException.NativeDrkUnavailable) {
-                    if (!isRecoverableWalletOpenFailure(e.message)) {
+                    val transient = isTransientNetworkOpenFailure(e.message)
+                    if (!transient && !isRecoverableWalletOpenFailure(e.message)) {
                         throw e
                     }
                     last = e
-                    if (shouldWipeBeforeRetry(e.message)) {
+                    if (!transient && shouldWipeBeforeRetry(e.message)) {
                         android.util.Log.w(
                             "DarkfiMobileFfiApi",
                             "native wallet open failed (attempt ${attempt + 1}/3); wiping local DB: ${e.message}",
@@ -148,7 +150,7 @@ object DarkfiMobileFfiApi {
                     } else {
                         android.util.Log.w(
                             "DarkfiMobileFfiApi",
-                            "native wallet open failed (attempt ${attempt + 1}/3); lock held, retrying without wipe: ${e.message}",
+                            "native wallet open failed (attempt ${attempt + 1}/3); retrying without wipe: ${e.message}",
                         )
                     }
                     // Fjall Drop / exclusive lock can lag behind UniFFI destroy().
@@ -188,8 +190,15 @@ object DarkfiMobileFfiApi {
         }
     }
 
-    /** Lock conflicts must be retried. Deleting the DB while it is open destroys the live handle. */
+    /**
+     * Lock conflicts and transient lightwalletd errors are retried without deleting
+     * `wallet.db`. Wiping on `ConnectionFailed` / `InitializationFailed` destroyed
+     * healthy wallets when the server was briefly unreachable.
+     */
     internal fun shouldWipeBeforeRetry(message: String?): Boolean {
+        if (isTransientNetworkOpenFailure(message)) {
+            return false
+        }
         val lower = message?.lowercase() ?: return false
         return !lower.contains("locked") &&
             !lower.contains("could not acquire lock") &&
@@ -197,8 +206,9 @@ object DarkfiMobileFfiApi {
     }
 
     /**
-     * True when [message] from `Drk::new` / `WalletDb` is safe to recover by deleting local
-     * cache + `wallet.db` and re-opening (keys are re-imported from the mnemonic).
+     * True when [message] from `Drk::new` / `WalletDb` is worth retrying.
+     * Corrupt local DB errors may also be wiped; transient connection and
+     * initialization failures are not — see [shouldWipeBeforeRetry].
      */
     internal fun isRecoverableWalletOpenFailure(message: String?): Boolean {
         val lower = message?.lowercase() ?: return false
@@ -211,11 +221,20 @@ object DarkfiMobileFfiApi {
             lower.contains("sqlcipher") ||
             lower.contains("turso") ||
             lower.contains("fjall") ||
-            lower.contains("initializationfailed") ||
-            lower.contains("connectionfailed") ||
             lower.contains("initialize_wallet") ||
             lower.contains("databaseerror") ||
             lower.contains("queryexecution")
+    }
+
+    /** Transient network/bootstrap errors — retry without wiping disk. */
+    internal fun isTransientNetworkOpenFailure(message: String?): Boolean {
+        val lower = message?.lowercase() ?: return false
+        return lower.contains("connectionfailed") ||
+            lower.contains("initializationfailed") ||
+            lower.contains("transport error") ||
+            lower.contains("timed out") ||
+            lower.contains("nym") ||
+            lower.contains("socks")
     }
 
     /**

@@ -157,6 +157,7 @@ class NighthawkBleLink(
 
     @SuppressLint("MissingPermission")
     internal fun tearDownRadio() {
+        cancelDutyTimersLocked()
         stopScanLocked()
         try {
             advertiser?.stopAdvertising(advertiseCallback)
@@ -248,7 +249,19 @@ class NighthawkBleLink(
             }
         }
 
+    private val dutyRunnables = mutableListOf<Runnable>()
+
+    private fun cancelDutyTimersLocked() {
+        val handler = radio ?: return
+        for (r in dutyRunnables) {
+            handler.removeCallbacks(r)
+        }
+        dutyRunnables.clear()
+    }
+
     internal fun applyDutyLocked() {
+        // Cancel prior duty cycle timers — battery broadcasts used to multiply these.
+        cancelDutyTimersLocked()
         val duty =
             MeshPowerPolicy.scanDuty(
                 foreground = foreground,
@@ -264,8 +277,12 @@ class NighthawkBleLink(
         }
         startScanLocked()
         if (!duty.isContinuous) {
-            radio?.postDelayed({ stopScanLocked() }, duty.scanOnMs)
-            radio?.postDelayed({ if (started) applyDutyLocked() }, duty.scanOnMs + duty.scanOffMs)
+            val stopScan = Runnable { stopScanLocked() }
+            val restartDuty = Runnable { if (started) applyDutyLocked() }
+            dutyRunnables += stopScan
+            dutyRunnables += restartDuty
+            radio?.postDelayed(stopScan, duty.scanOnMs)
+            radio?.postDelayed(restartDuty, duty.scanOnMs + duty.scanOffMs)
         }
     }
 

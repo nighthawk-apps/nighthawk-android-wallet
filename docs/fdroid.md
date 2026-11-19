@@ -37,7 +37,20 @@ srclib SHA edit.
 
 Tagging alone does **not** run this repo’s GitHub `Deploy` workflow (that is branch/`workflow_dispatch` + Play secrets). F-Droid’s scanner is separate.
 
-## 3.01.12 (this release)
+## 3.01.14 (this release)
+
+| Field | Value |
+|-------|--------|
+| `WALLET_VERSION_NAME` | `3.01.14` |
+| `WALLET_VERSION_CODE` | `30100814` |
+| Suggested git tag | `v3.01.14` |
+| Fastlane changelog | `fastlane/metadata/android/en-US/changelogs/30100814.txt` |
+| DarkFi pin | `9d7ceaf77da7ccfd29ead3ba168fab284decd8c8` (`nighthawk-testnet`, Arti 0.48) |
+| nym-smolmix | `5f0dba82` |
+
+`FDROID_BUILD=1` sets `CARGO_PROFILE_RELEASE_LTO=off` and remaps machine paths so native `.so` rebuilds match. Aligns with iOS 3.01.14, desktop 3.1.12, Moonshine 3.1.11, and lightwalletd 0.3.8.
+
+## 3.01.12
 
 | Field | Value |
 |-------|--------|

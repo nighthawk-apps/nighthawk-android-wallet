@@ -2,9 +2,10 @@
 //!
 //! Links upstream **`bin/drk`** when `third_party/darkfi` is vendored (see `scripts/vendor-darkfi.sh`).
 
-#[cfg(all(feature = "nym", target_os = "android"))]
+#[cfg(all(feature = "nym-android", target_os = "android"))]
 mod android_tls;
 mod birthday;
+mod block_times;
 pub mod block_cache;
 pub mod bootstrap;
 mod dao;
@@ -22,6 +23,7 @@ pub mod sync;
 pub use sync::{apply_full_block, redact_sync_error};
 mod tokens;
 mod tor;
+pub mod transport_manager;
 pub mod transactions;
 mod tx_inspect;
 
@@ -562,7 +564,12 @@ pub fn start_arti_proxy(socks_listen: String) -> Result<bool, DarkfiWalletNative
         let port = parse_socks_listen_port(&socks_listen).map_err(|e| {
             DarkfiWalletNativeError::NativeDrkUnavailable(format!("invalid socks_listen: {e}"))
         })?;
-        crate::tor::start_arti_proxy(port)
+        let started = crate::tor::start_arti_proxy(port)?;
+        crate::transport_manager::note_proxy_started(
+            crate::transport_manager::TransportKind::Tor,
+            port,
+        );
+        Ok(started)
     })
 }
 
@@ -581,6 +588,7 @@ fn parse_socks_listen_port(s: &str) -> Result<u16, String> {
 
 pub fn stop_arti_proxy() {
     crate::tor::stop_arti_proxy();
+    crate::transport_manager::note_proxy_stopped(crate::transport_manager::TransportKind::Tor);
 }
 
 pub fn is_arti_running() -> bool {
@@ -593,13 +601,19 @@ pub fn start_nym_proxy(socks_listen: String) -> Result<bool, DarkfiWalletNativeE
         let port = parse_socks_listen_port(&socks_listen).map_err(|e| {
             DarkfiWalletNativeError::NativeDrkUnavailable(format!("invalid socks_listen: {e}"))
         })?;
-        crate::nym::start_nym_proxy(port)
+        let started = crate::nym::start_nym_proxy(port)?;
+        crate::transport_manager::note_proxy_started(
+            crate::transport_manager::TransportKind::Nym,
+            port,
+        );
+        Ok(started)
     })
 }
 
 #[cfg(feature = "nym")]
 pub fn stop_nym_proxy() {
     crate::nym::stop_nym_proxy();
+    crate::transport_manager::note_proxy_stopped(crate::transport_manager::TransportKind::Nym);
 }
 
 #[cfg(feature = "nym")]
@@ -630,6 +644,34 @@ pub fn is_nym_running() -> bool {
 #[cfg(not(feature = "nym"))]
 pub fn nym_status() -> String {
     "stopped".to_string()
+}
+
+pub fn transport_snapshot_json() -> String {
+    crate::transport_manager::snapshot_json()
+}
+
+pub fn transport_on_network_changed() {
+    crate::transport_manager::on_network_changed();
+}
+
+pub fn transport_on_background() {
+    crate::transport_manager::on_background();
+}
+
+pub fn transport_on_foreground() {
+    crate::transport_manager::on_foreground();
+}
+
+pub fn transport_set_mesh_enabled(on: bool) {
+    crate::transport_manager::set_mesh_enabled(on);
+}
+
+pub fn transport_continue_without_nym() {
+    crate::transport_manager::continue_without_nym();
+}
+
+pub fn transport_clear_session_override() {
+    crate::transport_manager::clear_session_override();
 }
 
 /// Start the Nym proxy and return the SOCKS port to route through. Mixnet
@@ -796,6 +838,10 @@ impl DarkfiWalletHandle {
 
         // Arti refuses to start until this directory exists. Set it before the proxy.
         crate::tor::set_arti_storage_dir(std::path::PathBuf::from(&config.cache_path));
+        crate::block_times::set_store_directory(&config.cache_path);
+        let tls_pins =
+            crate::parse_tls_pins(config.lightwallet_tls_pin_sha256.as_deref()).unwrap_or_default();
+        crate::lightwallet_client::remember_tls_pins(&config.lightwallet_server_url, &tls_pins);
 
         // Nym or Tor routing (fail-closed) for remote lightwalletd only. Loopback
         // stays direct, so a local server must not block wallet open on bootstrap.
@@ -808,6 +854,11 @@ impl DarkfiWalletHandle {
         } else {
             sync::RouteGate::Direct
         };
+        crate::transport_manager::note_wallet_route(
+            route,
+            config.nym_socks_port,
+            config.tor_socks_port,
+        );
         if remote_lwd && config.use_nym {
             let port = start_nym_route(config.nym_socks_port)?;
             crate::lightwallet_client::set_default_socks5_proxy(Some((
@@ -854,7 +905,7 @@ impl DarkfiWalletHandle {
         .map_err(DarkfiWalletNativeError::native)?;
         let sync_engine = Arc::new(crate::lightwallet_sync::SyncEngine::with_tls_pins(
             config.lightwallet_server_url.clone(),
-            crate::parse_tls_pins(config.lightwallet_tls_pin_sha256.as_deref()).unwrap_or_default(),
+            tls_pins,
         ));
         sync_engine.set_strict_omr_only(config.strict_omr_only);
         sync_engine.set_data_dir(std::path::PathBuf::from(&config.cache_path));

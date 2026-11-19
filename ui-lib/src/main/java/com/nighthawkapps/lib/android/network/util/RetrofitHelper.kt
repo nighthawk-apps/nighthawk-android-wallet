@@ -4,10 +4,13 @@ import android.content.Context
 import com.nighthawkapps.lib.android.network.CoinMetricsApiService
 import com.nighthawkapps.lib.android.sdk.net.TorOutboundSocks
 import okhttp3.CertificatePinner
+import okhttp3.Dns
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
+import java.net.InetAddress
+import java.net.UnknownHostException
 
 object RetrofitHelper {
     private const val COINGECKO_HOST = "api.coingecko.com"
@@ -21,6 +24,21 @@ object RetrofitHelper {
         arrayOf(
             "sha256/BhM1gGE+L4fCC9ER5xj4P1/deHgoXOjL9TsSj7Q5B9o=",
         )
+
+    /**
+     * When SOCKS (Nym/Tor) is active, never call [Dns.SYSTEM] — that leaks the
+     * real IP/DNS. Return a placeholder address so the SOCKS proxy resolves
+     * the hostname remotely.
+     */
+    private val socksRemoteDns =
+        Dns { hostname ->
+            try {
+                listOf(InetAddress.getByAddress(hostname, byteArrayOf(0, 0, 0, 0)))
+            } catch (e: UnknownHostException) {
+                throw UnknownHostException("SOCKS remote DNS placeholder for $hostname").initCause(e)
+                    as UnknownHostException
+            }
+        }
 
     private fun buildOkHttpClient(context: Context): OkHttpClient {
         val app = context.applicationContext
@@ -44,7 +62,11 @@ object RetrofitHelper {
                 .addInterceptor(
                     HttpLoggingInterceptor().setLevel(loggingLevel),
                 )
-        TorOutboundSocks.proxyForClearnetHttp(app)?.let(builder::proxy)
+        val proxy = TorOutboundSocks.proxyForClearnetHttp(app)
+        if (proxy != null) {
+            builder.proxy(proxy)
+            builder.dns(socksRemoteDns)
+        }
         return builder.build()
     }
 

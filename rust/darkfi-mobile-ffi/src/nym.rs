@@ -55,6 +55,8 @@ static NYM_STATE: AtomicU8 = AtomicU8::new(NYM_STOPPED);
 static NYM_STOP_REQUESTED: AtomicBool = AtomicBool::new(false);
 /// Set while a replacement tunnel bootstraps after the previous one failed.
 static NYM_REBUILDING: AtomicBool = AtomicBool::new(false);
+/// Set by a network change so the next dial drops the cached tunnel.
+static DROP_TUNNEL: AtomicBool = AtomicBool::new(false);
 /// Generation and time of the last proof that the tunnel carries traffic.
 static LAST_HEALTHY: StdMutex<Option<(u64, Instant)>> = StdMutex::new(None);
 
@@ -171,6 +173,21 @@ pub fn nym_status() -> String {
     .to_string()
 }
 
+/// Drop the cached mixnet tunnel on the next dial and forget DNS answers.
+pub(crate) fn on_network_changed() {
+    DROP_TUNNEL.store(true, Ordering::SeqCst);
+    clear_dns_cache();
+    if let Ok(mut last) = LAST_HEALTHY.lock() {
+        *last = None;
+    }
+}
+
+/// Forget DNS answers while the process is backgrounded. The tunnel stays up
+/// so a quick resume does not pay for another bootstrap.
+pub(crate) fn on_suspend() {
+    clear_dns_cache();
+}
+
 /// Block until the Nym tunnel is up (or `timeout` elapses / bootstrap failed).
 #[cfg(test)]
 pub fn wait_until_running(timeout: Duration) -> Result<(), crate::DarkfiWalletNativeError> {
@@ -280,26 +297,10 @@ async fn wait_for_stop() {
     }
 }
 
-/// Minimal SOCKS5 CONNECT handler: "no authentication", read the target,
-/// dial it through the mixnet, and pipe bytes both ways.
+/// Minimal SOCKS5 CONNECT handler. Prefer RFC 1929 username/password when the
+/// client offers it, and still accept method 0x00 so existing callers work.
 async fn handle_socks_conn(mut inbound: TcpStream) -> Result<(), String> {
-    let mut head = [0u8; 2];
-    inbound
-        .read_exact(&mut head)
-        .await
-        .map_err(|e| e.to_string())?;
-    if head[0] != 0x05 {
-        return Err("not a SOCKS5 greeting".into());
-    }
-    let mut methods = vec![0u8; head[1] as usize];
-    inbound
-        .read_exact(&mut methods)
-        .await
-        .map_err(|e| e.to_string())?;
-    inbound
-        .write_all(&[0x05, 0x00])
-        .await
-        .map_err(|e| e.to_string())?;
+    accept_socks_greeting(&mut inbound).await?;
 
     let mut req = [0u8; 4];
     inbound
@@ -391,6 +392,13 @@ fn socks_reply(status: u8) -> [u8; 10] {
 /// during bootstrap so concurrent callers wait for the same tunnel.
 async fn get_tunnel() -> Result<(u64, Tunnel), String> {
     let mut slot = TUNNEL.lock().await;
+    if DROP_TUNNEL.swap(false, Ordering::SeqCst) {
+        if let Some((_, tunnel)) = slot.tunnel.take() {
+            tracing::info!("dropping Nym tunnel after a network change");
+            tokio::spawn(async move { tunnel.shutdown().await });
+        }
+        clear_dns_cache();
+    }
     if let Some((gen, tunnel)) = &slot.tunnel {
         return Ok((*gen, tunnel.clone()));
     }
@@ -472,8 +480,44 @@ fn mark_healthy(gen: u64) {
     }
 }
 
+/// First successful DNS answer. A fast UDP failure does not cancel TCP, and
+/// a blackholed UDP query does not delay the TCP attempt.
+async fn race_udp_tcp_dns<U, T>(udp: U, tcp: T) -> Result<Option<IpAddr>, String>
+where
+    U: std::future::Future<Output = Result<Option<IpAddr>, String>>,
+    T: std::future::Future<Output = Result<Option<IpAddr>, String>>,
+{
+    tokio::pin!(udp);
+    tokio::pin!(tcp);
+    let mut udp_err: Option<String> = None;
+    let mut tcp_err: Option<String> = None;
+    loop {
+        tokio::select! {
+            res = &mut udp, if udp_err.is_none() => {
+                match res {
+                    Ok(answer) => return Ok(answer),
+                    Err(e) => udp_err = Some(e),
+                }
+            }
+            res = &mut tcp, if tcp_err.is_none() => {
+                match res {
+                    Ok(answer) => return Ok(answer),
+                    Err(e) => tcp_err = Some(e),
+                }
+            }
+        }
+        if udp_err.is_some() && tcp_err.is_some() {
+            return Err(format!(
+                "udp: {}; tcp: {}",
+                udp_err.unwrap_or_default(),
+                tcp_err.unwrap_or_default()
+            ));
+        }
+    }
+}
+
 /// Whether tunnel `gen` still carries traffic: recently proven, or answers a
-/// fresh DNS query through the mixnet.
+/// fresh DNS query (UDP or TCP) through the mixnet.
 async fn tunnel_is_healthy(gen: u64, tunnel: &Tunnel) -> bool {
     let recent = LAST_HEALTHY
         .lock()
@@ -484,8 +528,13 @@ async fn tunnel_is_healthy(gen: u64, tunnel: &Tunnel) -> bool {
         return true;
     }
     for resolver in DNS_RESOLVERS.iter().take(2) {
-        let probe =
-            tokio::time::timeout(DNS_TIMEOUT, dns_query(tunnel, HEALTH_PROBE_HOST, *resolver));
+        let probe = tokio::time::timeout(
+            DNS_TIMEOUT,
+            race_udp_tcp_dns(
+                dns_query(tunnel, HEALTH_PROBE_HOST, *resolver),
+                dns_query_tcp(tunnel, HEALTH_PROBE_HOST, *resolver),
+            ),
+        );
         if matches!(probe.await, Ok(Ok(_))) {
             mark_healthy(gen);
             return true;
@@ -506,13 +555,19 @@ async fn resolve_over_nym(tunnel: &Tunnel, host: &str) -> Result<Option<IpAddr>,
     }
 
     let mut last_err = String::new();
+    // Race UDP and TCP per resolver. One 8s budget covers both transports so a
+    // blackholed UDP path cannot burn 3×8s before TCP is tried.
     for (attempt, resolver) in DNS_RESOLVERS.iter().enumerate() {
-        // The timeout covers socket creation and send too: both can stall
-        // when the tunnel's bridge is unhealthy.
-        let query = tokio::time::timeout(DNS_TIMEOUT, dns_query(tunnel, host, *resolver))
-            .await
-            .map_err(|_| format!("mixnet DNS lookup for {host} timed out"))
-            .and_then(|r| r);
+        let query = tokio::time::timeout(
+            DNS_TIMEOUT,
+            race_udp_tcp_dns(
+                dns_query(tunnel, host, *resolver),
+                dns_query_tcp(tunnel, host, *resolver),
+            ),
+        )
+        .await
+        .map_err(|_| format!("mixnet DNS lookup for {host} timed out"))
+        .and_then(|r| r);
         match query {
             Ok(answer) => {
                 if let Some(ip) = answer {
@@ -522,27 +577,6 @@ async fn resolve_over_nym(tunnel: &Tunnel, host: &str) -> Result<Option<IpAddr>,
             }
             Err(e) => {
                 tracing::warn!("mixnet DNS lookup for {host} failed (attempt {attempt}): {e}");
-                last_err = e;
-            }
-        }
-    }
-
-    // Mixnet UDP to public resolvers often blackholes while TCP to the same
-    // resolver still works. Try DNS-over-TCP before calling the tunnel dead.
-    for (attempt, resolver) in DNS_RESOLVERS.iter().take(2).enumerate() {
-        let query = tokio::time::timeout(DNS_TIMEOUT, dns_query_tcp(tunnel, host, *resolver))
-            .await
-            .map_err(|_| format!("mixnet TCP DNS lookup for {host} timed out"))
-            .and_then(|r| r);
-        match query {
-            Ok(answer) => {
-                if let Some(ip) = answer {
-                    dns_cache_put(host, ip);
-                }
-                return Ok(answer);
-            }
-            Err(e) => {
-                tracing::warn!("mixnet TCP DNS lookup for {host} failed (attempt {attempt}): {e}");
                 last_err = e;
             }
         }
@@ -633,6 +667,66 @@ fn clear_dns_cache() {
     if let Ok(mut cache) = DNS_CACHE.lock() {
         *cache = None;
     }
+}
+
+async fn accept_socks_greeting(inbound: &mut TcpStream) -> Result<(), String> {
+    let mut head = [0u8; 2];
+    inbound
+        .read_exact(&mut head)
+        .await
+        .map_err(|e| e.to_string())?;
+    if head[0] != 0x05 {
+        return Err("not a SOCKS5 greeting".into());
+    }
+    let mut methods = vec![0u8; head[1] as usize];
+    inbound
+        .read_exact(&mut methods)
+        .await
+        .map_err(|e| e.to_string())?;
+    let method = crate::transport_manager::socks_method(&methods);
+    inbound
+        .write_all(&[0x05, method])
+        .await
+        .map_err(|e| e.to_string())?;
+    if method == 0xff {
+        return Err("no acceptable SOCKS5 method".into());
+    }
+    if method == 0x02 {
+        let mut ver_ulen = [0u8; 2];
+        inbound
+            .read_exact(&mut ver_ulen)
+            .await
+            .map_err(|e| e.to_string())?;
+        if ver_ulen[0] != 0x01 {
+            return Err("bad SOCKS5 username/password version".into());
+        }
+        let mut user = vec![0u8; ver_ulen[1] as usize];
+        inbound
+            .read_exact(&mut user)
+            .await
+            .map_err(|e| e.to_string())?;
+        let mut plen = [0u8; 1];
+        inbound
+            .read_exact(&mut plen)
+            .await
+            .map_err(|e| e.to_string())?;
+        let mut pass = vec![0u8; plen[0] as usize];
+        inbound
+            .read_exact(&mut pass)
+            .await
+            .map_err(|e| e.to_string())?;
+        let username = String::from_utf8(user).map_err(|e| e.to_string())?;
+        let password = String::from_utf8(pass).map_err(|e| e.to_string())?;
+        let ok = crate::transport_manager::socks_password_ok(&username, &password);
+        inbound
+            .write_all(&[0x01, if ok { 0x00 } else { 0x01 }])
+            .await
+            .map_err(|e| e.to_string())?;
+        if !ok {
+            return Err("SOCKS5 username/password rejected".into());
+        }
+    }
+    Ok(())
 }
 
 #[cfg(test)]

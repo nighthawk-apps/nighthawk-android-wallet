@@ -58,6 +58,7 @@ internal fun ChatNewDmSheet(
         mutableStateOf(initialPeerPublicKey.orEmpty())
     }
     var myPublic by remember { mutableStateOf("") }
+    var mySecret by remember { mutableStateOf("") }
     var busy by remember { mutableStateOf(false) }
     var showPasteConfirm by remember { mutableStateOf(false) }
 
@@ -138,7 +139,10 @@ internal fun ChatNewDmSheet(
                                 controller.generateEphemeralDmShareKeypair()
                             }
                         if (kp != null) {
+                            // Keep the secret that matches the displayed pubkey —
+                            // addDmContact must not generate a different keypair.
                             myPublic = kp.myDmChachaPublicBase58
+                            mySecret = kp.myDmChachaSecretBase58
                         }
                     }
                 },
@@ -176,7 +180,8 @@ internal fun ChatNewDmSheet(
                             controller.addDmContact(
                                 contactLabel = label,
                                 theirPublicBase58 = theirPublic,
-                                generateMySecret = true,
+                                generateMySecret = mySecret.isBlank(),
+                                mySecretBase58 = mySecret.ifBlank { null },
                             )
                         busy = false
                         withContext(Dispatchers.Main) {

@@ -17,6 +17,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.nighthawkapps.lib.android.sdk.chat.ChatReceiptPhase
+import com.nighthawkapps.lib.android.sdk.chat.ChatReceiptStore
 import com.nighthawkapps.lib.android.sdk.wallet.DarkfiAmountFormatter
 import com.nighthawkapps.lib.android.sdk.wallet.DarkfiAmountParser
 import com.nighthawkapps.lib.android.sdk.wallet.SendBalanceCheck
@@ -303,7 +305,11 @@ private fun NighthawkSendFlow(
                         } else {
                             null
                         }
-                    val canSend = fieldsReady && balanceCheck == SendBalanceCheck.Ok && !isSubmitting
+                    val canSend =
+                        fieldsReady &&
+                            balanceCheck == SendBalanceCheck.Ok &&
+                            !isSubmitting &&
+                            isPinConfigured != null
                     val unit =
                         tokenBalances.firstOrNull { it.tokenId == selectedTokenId }?.displayName
                             ?: "DRK"
@@ -334,19 +340,22 @@ private fun NighthawkSendFlow(
                             },
                         onBack = { goBackStage() },
                         onSend = {
-                            if (isPinConfigured == true) {
-                                isAuthenticatingToSend = true
-                            } else {
-                                sendViewModel.setStage(SendStage.Sending)
-                                sendViewModel.submitTransfer(
-                                    recipientAddress = recipient,
-                                    amountDisplay = amountText,
-                                    confirmedBalanceAtomic = balanceAtomic,
-                                    tokenId = selectedTokenId,
-                                    paymentMemo = memoText.ifBlank { null },
-                                ) {
-                                    sendViewModel.setStage(SendStage.Success)
+                            // null = PIN config still loading — do not fail-open to send.
+                            when (isPinConfigured) {
+                                true -> isAuthenticatingToSend = true
+                                false -> {
+                                    sendViewModel.setStage(SendStage.Sending)
+                                    sendViewModel.submitTransfer(
+                                        recipientAddress = recipient,
+                                        amountDisplay = amountText,
+                                        confirmedBalanceAtomic = balanceAtomic,
+                                        tokenId = selectedTokenId,
+                                        paymentMemo = memoText.ifBlank { null },
+                                    ) {
+                                        sendViewModel.setStage(SendStage.Success)
+                                    }
                                 }
+                                null -> Unit
                             }
                         },
                     )
@@ -369,6 +378,16 @@ private fun NighthawkSendFlow(
                         return@LaunchedEffect
                     }
                     if (lastTxId != null) {
+                        val receiptId = homeViewModel.pendingChatReceiptId
+                        if (!receiptId.isNullOrBlank()) {
+                            ChatReceiptStore.mark(
+                                activity,
+                                receiptId,
+                                ChatReceiptPhase.Broadcasted,
+                                lastTxId,
+                            )
+                            homeViewModel.pendingChatReceiptId = null
+                        }
                         sendViewModel.setStage(SendStage.Success)
                     } else if (errorMessage != null) {
                         sendViewModel.setStage(SendStage.Failed)

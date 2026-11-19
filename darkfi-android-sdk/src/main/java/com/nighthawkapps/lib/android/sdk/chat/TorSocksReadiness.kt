@@ -61,6 +61,13 @@ internal object TorSocksReadiness {
         deadlineMs: Long,
         pollMs: Long = 500L,
     ): Boolean {
+        if (!isLoopbackProbeHost(host)) {
+            android.util.Log.w(
+                "DarkfidProbe",
+                "refusing clearnet TCP probe to $host:$port",
+            )
+            return false
+        }
         val deadline = System.currentTimeMillis() + deadlineMs
         while (System.currentTimeMillis() < deadline) {
             val timeout = 5000
@@ -76,8 +83,14 @@ internal object TorSocksReadiness {
         host: String,
         port: Int,
         connectTimeoutMs: Int,
-    ): Boolean =
-        try {
+    ): Boolean {
+        // Direct sockets are only for loopback (Tor/Nym SOCKS, local darkfid).
+        // A NO_PROXY dial to a lightwalletd host is a clearnet leak.
+        if (!isLoopbackProbeHost(host)) {
+            android.util.Log.w("DarkfidProbe", "refusing clearnet TCP probe to $host:$port")
+            return false
+        }
+        return try {
             Socket(Proxy.NO_PROXY).use { sock ->
                 sock.connect(InetSocketAddress(host, port), connectTimeoutMs)
                 true
@@ -86,4 +99,15 @@ internal object TorSocksReadiness {
             android.util.Log.e("DarkfidProbe", "tcpReachable failed for $host:$port - ${e.message}", e)
             false
         }
+    }
+
+    private fun isLoopbackProbeHost(host: String): Boolean {
+        val h = host.trim().lowercase()
+        return h == "127.0.0.1" ||
+            h == "localhost" ||
+            h == "::1" ||
+            h == "[::1]" ||
+            h == "0.0.0.0" ||
+            h == "10.0.2.2"
+    }
 }

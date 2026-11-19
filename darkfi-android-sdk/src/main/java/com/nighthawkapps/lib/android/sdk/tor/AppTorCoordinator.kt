@@ -9,6 +9,7 @@ import com.nighthawkapps.lib.android.sdk.chat.darkirc.DarkircDaemonService
 import com.nighthawkapps.lib.android.sdk.chat.darkirc.DarkircP2pTransport
 import com.nighthawkapps.lib.android.sdk.daemon.DarkfiDaemonPreferences
 import com.nighthawkapps.lib.android.sdk.net.PrivacyNetwork
+import com.nighthawkapps.lib.android.sdk.net.SessionTransport
 import com.nighthawkapps.lib.android.sdk.wallet.DarkfiWalletCoordinator
 import com.nighthawkapps.lib.android.sdk.wallet.DrkWalletPaths
 import com.nighthawkapps.lib.android.sdk.wallet.darkfid.DarkfidDaemonBootstrap
@@ -248,7 +249,7 @@ object AppTorCoordinator {
 
     fun resolveDarkircP2pTransport(context: Context): DarkircP2pTransport {
         val prefs = DarkfiChatPreferences(context.applicationContext)
-        return when (prefs.privacyNetwork) {
+        return when (SessionTransport.effective(prefs)) {
             PrivacyNetwork.Nym -> {
                 DarkircP2pTransport.NymViaSocks5(PrivacyNetwork.NYM_SOCKS_HOST, prefs.nymSocksPort)
             }
@@ -269,7 +270,7 @@ object AppTorCoordinator {
 
     fun resolveDarkfidP2pTransport(context: Context): DarkfidP2pTransport {
         val prefs = DarkfiChatPreferences(context.applicationContext)
-        return when (prefs.privacyNetwork) {
+        return when (SessionTransport.effective(prefs)) {
             PrivacyNetwork.Nym -> {
                 DarkfidP2pTransport.NymViaSocks5(PrivacyNetwork.NYM_SOCKS_HOST, prefs.nymSocksPort)
             }

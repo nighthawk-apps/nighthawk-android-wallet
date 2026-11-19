@@ -5,6 +5,7 @@ import com.nighthawkapps.lib.android.sdk.chat.DarkfiChatPreferences
 import com.nighthawkapps.lib.android.sdk.net.PrivacyNetwork
 import com.nighthawkapps.lib.android.sdk.wallet.DarkfiEndpoint
 import com.nighthawkapps.lib.android.sdk.wallet.DarkfiNetwork
+import com.nighthawkapps.lib.android.sdk.wallet.DrkWalletPassStore
 import com.nighthawkapps.lib.android.sdk.wallet.DrkWalletPaths
 import com.nighthawkapps.lib.android.sdk.wallet.PersistableDarkfiWallet
 import org.junit.Assert.assertEquals
@@ -47,6 +48,7 @@ class DarkfiMobileFfiBootstrapConfigTest {
 
     @org.junit.Before
     fun setUp() {
+        DrkWalletPaths.walletDb(context).delete()
         val testFile = java.io.File(context.filesDir, "test_pass.preferences_pb")
         val prefs = androidx.datastore.preferences.core.PreferenceDataStoreFactory.create(
             produceFile = { testFile }
@@ -81,6 +83,7 @@ class DarkfiMobileFfiBootstrapConfigTest {
         assertTrue(config.walletDbPath.contains("wallet.db"))
         assertTrue(config.cachePath.endsWith("cache"))
         assertTrue(config.walletPass.isNotEmpty())
+        assertTrue(config.walletPass != DrkWalletPassStore.forMnemonic(wallet.seedPhrase))
     }
 
     @Test
@@ -142,12 +145,18 @@ class DarkfiMobileFfiBootstrapConfigTest {
 @Config(manifest = Config.NONE)
 class RecoverableWalletOpenFailureTest {
     @Test
-    fun initializationFailed_isRecoverable() {
-        assertTrue(
-            DarkfiMobileFfiApi.isRecoverableWalletOpenFailure(
-                "native drk unavailable: Drk::new: Database error: WalletDbError::InitializationFailed",
-            ),
-        )
+    fun initializationFailed_retriesWithoutWipingDb() {
+        val message =
+            "native drk unavailable: Drk::new: Database error: WalletDbError::InitializationFailed"
+        assertTrue(DarkfiMobileFfiApi.isTransientNetworkOpenFailure(message))
+        assertFalse(DarkfiMobileFfiApi.shouldWipeBeforeRetry(message))
+    }
+
+    @Test
+    fun connectionFailed_retriesWithoutWipingDb() {
+        val message = "native drk unavailable: ConnectionFailed: lightwalletd unreachable"
+        assertTrue(DarkfiMobileFfiApi.isTransientNetworkOpenFailure(message))
+        assertFalse(DarkfiMobileFfiApi.shouldWipeBeforeRetry(message))
     }
 
     @Test

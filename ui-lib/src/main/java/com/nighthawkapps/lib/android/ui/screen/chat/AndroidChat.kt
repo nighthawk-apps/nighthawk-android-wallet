@@ -1,5 +1,6 @@
 package com.nighthawkapps.lib.android.ui.screen.chat
 
+import android.content.Intent
 import android.net.Uri
 import android.widget.Toast
 import androidx.activity.viewModels
@@ -22,6 +23,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
@@ -69,11 +71,20 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.nighthawkapps.lib.android.global.DeepLinkUtil
 import com.nighthawkapps.lib.android.sdk.chat.ChatChannelMessage
+import com.nighthawkapps.lib.android.sdk.chat.ChatDeliveryLabel
+import com.nighthawkapps.lib.android.sdk.chat.ChatDeliveryState
+import com.nighthawkapps.lib.android.sdk.chat.ChatInvoices
+import com.nighthawkapps.lib.android.sdk.chat.ChatLinkGuard
+import com.nighthawkapps.lib.android.sdk.chat.ChatReceipt
+import com.nighthawkapps.lib.android.sdk.chat.ChatReceiptCodec
+import com.nighthawkapps.lib.android.sdk.chat.ChatReceiptPhase
+import com.nighthawkapps.lib.android.sdk.chat.ChatReceiptStore
+import com.nighthawkapps.lib.android.sdk.chat.NighthawkContactStore
+import com.nighthawkapps.lib.android.sdk.mesh.NighthawkMeshService
 import com.nighthawkapps.lib.android.sdk.chat.DarkfiChatConnectionState
 import com.nighthawkapps.lib.android.sdk.chat.DarkfiChatController
 import com.nighthawkapps.lib.android.sdk.chat.DarkfiChatPreferences
 import com.nighthawkapps.lib.android.sdk.chat.EmbeddedDarkircNodeStatus
-import com.nighthawkapps.lib.android.sdk.chat.darkirc.DarkircChannelCryptoConfig
 import com.nighthawkapps.lib.android.sdk.chat.darkirc.DarkircCryptoManager
 import com.nighthawkapps.lib.android.sdk.chat.darkirc.DarkircDmPubkeyParser
 import com.nighthawkapps.lib.android.sdk.chat.fud.FudOfferInbox
@@ -95,13 +106,30 @@ import com.nighthawkapps.lib.android.ui.preference.StandardPreferenceKeys
 import com.nighthawkapps.lib.android.ui.preference.StandardPreferenceSingleton
 import com.nighthawkapps.lib.android.ui.screen.chat.view.ChatNetworkHud
 import com.nighthawkapps.lib.android.ui.screen.chat.view.ChatNewDmSheet
+import com.nighthawkapps.lib.android.ui.screen.home.viewmodel.HomeViewModel
 import com.nighthawkapps.lib.android.ui.screen.home.viewmodel.WalletViewModel
+
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import java.util.Locale
 
 private const val CONNECTION_STATUS_MAX_LINES = 5
+
+private fun receiptPhaseLabel(phase: ChatReceiptPhase): Int =
+    when (phase) {
+        ChatReceiptPhase.Pending -> R.string.ns_chat_receipt_pending
+        ChatReceiptPhase.Broadcasted -> R.string.ns_chat_receipt_broadcasted
+        ChatReceiptPhase.Confirmed -> R.string.ns_chat_receipt_confirmed
+        ChatReceiptPhase.Failed -> R.string.ns_chat_receipt_failed
+    }
+
+private fun deliveryLabel(state: ChatDeliveryState): Int =
+    when (state) {
+        ChatDeliveryState.Queued -> R.string.ns_chat_delivery_queued
+        ChatDeliveryState.Sending -> R.string.ns_chat_delivery_sending
+        ChatDeliveryState.Relayed -> R.string.ns_chat_delivery_relayed
+        ChatDeliveryState.Failed -> R.string.ns_chat_delivery_retry
+    }
 
 private enum class ChatInboxMode {
     Channels,
@@ -133,12 +161,19 @@ internal fun MainActivity.AndroidChat(
         return
     }
     val walletViewModel by viewModels<WalletViewModel>()
+    val homeViewModel by viewModels<HomeViewModel>()
     val addresses by walletViewModel.addresses.collectAsStateWithLifecycle()
+    val snapshot by walletViewModel.walletSnapshot.collectAsStateWithLifecycle()
+    val pendingThread by homeViewModel.pendingChatThreadFlow.collectAsStateWithLifecycle()
     ChatScreen(
         controller = controller,
         onChatSettings = onChatSettings,
         onPayInvoice = onPayInvoice,
         receiveAddress = addresses?.privateAddresses?.firstOrNull().orEmpty(),
+        chainTip = snapshot?.processorInfo?.chainTip ?: 0L,
+        pendingThread = pendingThread,
+        onConsumeThread = { homeViewModel.pendingChatThread = null },
+        onBeginReceipt = { homeViewModel.pendingChatReceiptId = it },
     )
 }
 
@@ -149,6 +184,10 @@ private fun ChatScreen(
     onChatSettings: () -> Unit,
     onPayInvoice: (String) -> Unit,
     receiveAddress: String,
+    chainTip: Long,
+    pendingThread: String?,
+    onConsumeThread: () -> Unit,
+    onBeginReceipt: (String) -> Unit,
 ) {
     val connectionState by controller.connectionState.collectAsStateWithLifecycle()
     val nodeStatus by controller.embeddedNodeStatus.collectAsStateWithLifecycle()
@@ -193,9 +232,6 @@ private fun ChatScreen(
     var deleteDmLabel by remember { mutableStateOf<String?>(null) }
     var sharePubkeyChannel by remember { mutableStateOf<String?>(null) }
     var showNetworkHud by remember { mutableStateOf(false) }
-    var encryptChannel by remember { mutableStateOf<String?>(null) }
-    var generatedChannelSecret by remember { mutableStateOf<String?>(null) }
-    var cryptoRevision by remember { mutableStateOf(0) }
 
     val outboundSlots by controller.outboundSlots.collectAsStateWithLifecycle()
     val useTor by controller.useTorForChat.collectAsStateWithLifecycle()
@@ -208,6 +244,11 @@ private fun ChatScreen(
     var threadDisplayNames by remember { mutableStateOf<Map<String, String>>(emptyMap()) }
     var localDisplayName by remember { mutableStateOf("") }
     var pendingPublicInvoice by remember { mutableStateOf<String?>(null) }
+    var pendingClearnetUrl by remember { mutableStateOf<String?>(null) }
+    var showDrkComposer by remember { mutableStateOf(false) }
+    var drkAmount by remember { mutableStateOf("") }
+    var drkMemo by remember { mutableStateOf("") }
+    var drkAddress by remember { mutableStateOf("") }
     var fudPrompt by remember { mutableStateOf<FudPromptUi?>(null) }
     val chatPrefs = remember { DarkfiChatPreferences(context.applicationContext) }
 
@@ -269,25 +310,26 @@ private fun ChatScreen(
             ChatInboxMode.Channels -> selectedChannel
             ChatInboxMode.Direct -> selectedDmLabel ?: dmLabels.firstOrNull().orEmpty()
         }
+    LaunchedEffect(pendingThread) {
+        val thread = pendingThread?.trim().orEmpty()
+        if (thread.isEmpty()) return@LaunchedEffect
+        if (thread.startsWith("#")) {
+            inboxMode = ChatInboxMode.Channels
+            selectedChannel = thread
+        } else {
+            inboxMode = ChatInboxMode.Direct
+            selectedDmLabel = thread
+        }
+        onConsumeThread()
+    }
     LaunchedEffect(activeThreadKey) {
         localDisplayName = threadDisplayNames[activeThreadKey].orEmpty()
     }
 
-    val encryptedChannelNames =
-        remember(cryptoRevision) {
-            DarkircCryptoManager
-                .loadChannels(context.applicationContext)
-                .mapNotNull { cfg ->
-                    cfg.secretBase58
-                        ?.takeIf { it.isNotBlank() }
-                        ?.let { cfg.channel.lowercase(Locale.ROOT) }
-                }.toSet()
-        }
     val isEncryptedThread =
         ChatChrome.threadIsEncrypted(
             isDirectInbox = inboxMode == ChatInboxMode.Direct,
             threadKey = activeThreadKey,
-            encryptedChannelNames = encryptedChannelNames,
         )
     val myNick = controller.ircNickname
 
@@ -407,6 +449,18 @@ private fun ChatScreen(
                 title = { Text(stringResource(R.string.ns_chat_hud_title)) },
                 text = {
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        val privacyRoute =
+                            when (connectionState) {
+                                DarkfiChatConnectionState.ConnectedViaNym -> "Nym mixnet"
+                                DarkfiChatConnectionState.ConnectedViaTor -> "Tor"
+                                DarkfiChatConnectionState.ConnectedDirect -> "Direct (clearnet)"
+                                else -> connectionState.name
+                            }
+                        Text(
+                            text = "Active privacy route: $privacyRoute",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.primary,
+                        )
                         CompactConnectionStatusBlock(
                             nodeStatus = nodeStatus,
                             connectionState = connectionState,
@@ -429,6 +483,34 @@ private fun ChatScreen(
                                 style = MaterialTheme.typography.labelSmall,
                             )
                         }
+                        Text(
+                            text = stringResource(R.string.ns_chat_diag_route, connectionState.name),
+                            style = MaterialTheme.typography.labelSmall,
+                        )
+                        Text(
+                            text =
+                                if (chainTip > 0L) {
+                                    stringResource(R.string.ns_chat_diag_height, chainTip)
+                                } else {
+                                    stringResource(R.string.ns_chat_diag_height_unknown)
+                                },
+                            style = MaterialTheme.typography.labelSmall,
+                        )
+                        Text(
+                            text = stringResource(R.string.ns_chat_diag_mesh, NighthawkMeshService.hudPeerCount),
+                            style = MaterialTheme.typography.labelSmall,
+                        )
+                        Text(
+                            text =
+                                stringResource(
+                                    if (isEncryptedThread) {
+                                        R.string.ns_chat_direct_e2e
+                                    } else {
+                                        R.string.ns_chat_public_channel
+                                    },
+                                ),
+                            style = MaterialTheme.typography.labelSmall,
+                        )
                     }
                 },
                 confirmButton = {
@@ -449,17 +531,6 @@ private fun ChatScreen(
                 ) {
                     Text(
                         text = stringResource(R.string.ns_chat_share_pubkey_short),
-                        style = MaterialTheme.typography.labelMedium,
-                    )
-                }
-                TextButton(
-                    onClick = { encryptChannel = selectedChannel },
-                    modifier = Modifier.heightIn(max = 32.dp),
-                    contentPadding = ButtonDefaults.TextButtonContentPadding,
-                    enabled = hasEmbedded,
-                ) {
-                    Text(
-                        text = stringResource(R.string.ns_chat_encrypt_channel),
                         style = MaterialTheme.typography.labelMedium,
                     )
                 }
@@ -573,15 +644,17 @@ private fun ChatScreen(
             modifier = Modifier.weight(1f),
             verticalArrangement = Arrangement.spacedBy(6.dp),
         ) {
-            items(
+            itemsIndexed(
                 items = timeline,
-                key = { item ->
+                key = { index, item ->
                     when (item) {
-                        is ChatTimelineItem.DateSeparator -> "day-${item.epochDay}"
+                        // Index-qualified: out-of-order DAG can insert duplicate
+                        // epochDay separators and crash LazyColumn on key collision.
+                        is ChatTimelineItem.DateSeparator -> "day-${item.epochDay}-$index"
                         is ChatTimelineItem.Message -> item.message.eventId
                     }
                 },
-            ) { item ->
+            ) { _, item ->
                 when (item) {
                     is ChatTimelineItem.DateSeparator -> {
                         Text(
@@ -598,6 +671,11 @@ private fun ChatScreen(
                             myNick = myNick,
                             isEncryptedThread = isEncryptedThread,
                             onLongPress = { messageMenuTarget = item.message },
+                            onPayInvoice = onPayInvoice,
+                            onClearnetLink = { url -> pendingClearnetUrl = url },
+                            onRetry = {
+                                controller.sendToChannel(item.message.channel, item.message.text)
+                            },
                             onFudTap = { raw ->
                                 val uri = FudUri.parse(raw)
                                 when (
@@ -637,6 +715,18 @@ private fun ChatScreen(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.Bottom,
         ) {
+            TextButton(
+                onClick = {
+                    drkAddress =
+                        selectedDmLabel
+                            ?.let { NighthawkContactStore.findByNick(context, it)?.walletAddress }
+                            .orEmpty()
+                    showDrkComposer = true
+                },
+                enabled = activeThreadKey.isNotBlank(),
+            ) {
+                Text(stringResource(R.string.ns_chat_send_drk))
+            }
             OutlinedTextField(
                 value = draft,
                 onValueChange = { draft = it },
@@ -686,6 +776,90 @@ private fun ChatScreen(
         }
     }
 
+    fun postChatPayment(tip: Boolean) {
+        val address = drkAddress.trim()
+        if (address.isEmpty() || activeThreadKey.isBlank()) return
+        val memo = drkMemo.trim().ifBlank { if (tip) "Tip" else null }
+        val uri = DeepLinkUtil.buildPaymentRequestUri(address, drkAmount.ifBlank { null }, memo) ?: return
+        val receipt =
+            ChatReceipt(
+                id = java.util.UUID.randomUUID().toString(),
+                phase = ChatReceiptPhase.Pending,
+                amount = drkAmount.ifBlank { "0" },
+                address = address,
+                memo = memo,
+                txId = null,
+            )
+        ChatReceiptStore.upsert(context, receipt)
+        onBeginReceipt(receipt.id)
+        controller.sendToChannel(activeThreadKey, ChatReceiptCodec.encode(receipt))
+        showDrkComposer = false
+        onPayInvoice(uri)
+    }
+
+    if (showDrkComposer) {
+        AlertDialog(
+            onDismissRequest = { showDrkComposer = false },
+            title = { Text(stringResource(R.string.ns_chat_send_drk)) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedTextField(
+                        value = drkAmount,
+                        onValueChange = { drkAmount = it },
+                        label = { Text(stringResource(R.string.ns_request_amount_hint)) },
+                        singleLine = true,
+                    )
+                    OutlinedTextField(
+                        value = drkMemo,
+                        onValueChange = { drkMemo = it },
+                        label = { Text(stringResource(R.string.ns_request_memo_hint)) },
+                        singleLine = true,
+                    )
+                    OutlinedTextField(
+                        value = drkAddress,
+                        onValueChange = { drkAddress = it },
+                        label = { Text(stringResource(R.string.ns_chat_drk_address)) },
+                        singleLine = true,
+                    )
+                }
+            },
+            confirmButton = {
+                Row {
+                    TextButton(
+                        onClick = {
+                            val uri =
+                                DeepLinkUtil.buildPaymentRequestUri(
+                                    receiveAddress,
+                                    drkAmount,
+                                    drkMemo,
+                                )
+                            showDrkComposer = false
+                            if (uri == null) return@TextButton
+                            if (inboxMode == ChatInboxMode.Channels && activeThreadKey.startsWith("#")) {
+                                pendingPublicInvoice = uri
+                            } else if (activeThreadKey.isNotBlank()) {
+                                controller.sendToChannel(activeThreadKey, uri)
+                            }
+                        },
+                    ) {
+                        Text(stringResource(R.string.ns_chat_attach_request))
+                    }
+                    TextButton(onClick = { postChatPayment(tip = false) }) {
+                        Text(stringResource(R.string.ns_chat_send))
+                    }
+                    TextButton(onClick = { postChatPayment(tip = true) }) {
+                        Text(stringResource(R.string.ns_chat_tip))
+                    }
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDrkComposer = false }) {
+                    Text(stringResource(R.string.ns_cancel))
+                }
+            },
+        )
+    }
+
     if (pendingPublicInvoice != null) {
         AlertDialog(
             onDismissRequest = { pendingPublicInvoice = null },
@@ -707,6 +881,41 @@ private fun ChatScreen(
             dismissButton = {
                 TextButton(onClick = { pendingPublicInvoice = null }) {
                     Text(stringResource(R.string.ns_cancel))
+                }
+            },
+        )
+    }
+
+    pendingClearnetUrl?.let { url ->
+        AlertDialog(
+            onDismissRequest = { pendingClearnetUrl = null },
+            title = { Text(stringResource(R.string.ns_chat_clearnet_link_title)) },
+            text = { Text(stringResource(R.string.ns_chat_clearnet_link_body)) },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        pendingClearnetUrl = null
+                        runCatching {
+                            context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
+                        }
+                    },
+                ) {
+                    Text(stringResource(R.string.ns_chat_clearnet_open_browser))
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        pendingClearnetUrl = null
+                        scope.launch(Dispatchers.Main) {
+                            clipboard.setSensitivePlainText(context, url)
+                            Toast
+                                .makeText(context, R.string.ns_copied, Toast.LENGTH_SHORT)
+                                .show()
+                        }
+                    },
+                ) {
+                    Text(stringResource(R.string.ns_chat_clearnet_copy_link))
                 }
             },
         )
@@ -850,73 +1059,6 @@ private fun ChatScreen(
         )
     }
 
-    encryptChannel?.let { channel ->
-        AlertDialog(
-            onDismissRequest = {
-                encryptChannel = null
-                generatedChannelSecret = null
-            },
-            title = { Text(stringResource(R.string.ns_chat_encrypt_channel)) },
-            text = {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text(stringResource(R.string.ns_chat_encrypt_channel_body, channel))
-                    generatedChannelSecret?.let { secret ->
-                        Text(
-                            text = secret,
-                            style = MaterialTheme.typography.bodySmall,
-                        )
-                    }
-                }
-            },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        scope.launch {
-                            val secret =
-                                generatedChannelSecret
-                                    ?: withContext(Dispatchers.IO) {
-                                        DarkircCryptoManager.generateChannelSecret(context.applicationContext)
-                                    }
-                            if (secret != null) {
-                                generatedChannelSecret = secret
-                                withContext(Dispatchers.IO) {
-                                    DarkircCryptoManager.saveChannel(
-                                        context.applicationContext,
-                                        DarkircChannelCryptoConfig(
-                                            channel = channel,
-                                            secretBase58 = secret,
-                                            topic = null,
-                                        ),
-                                    )
-                                    DarkircCryptoManager.applyAndRestartEmbeddedDaemon(context.applicationContext)
-                                }
-                                cryptoRevision += 1
-                                clipboard.setSensitivePlainText(context, secret)
-                                Toast
-                                    .makeText(context, R.string.ns_chat_secret_copied, Toast.LENGTH_SHORT)
-                                    .show()
-                            }
-                            encryptChannel = null
-                            generatedChannelSecret = null
-                        }
-                    },
-                ) {
-                    Text(stringResource(R.string.ns_chat_e2e_generate_secret))
-                }
-            },
-            dismissButton = {
-                TextButton(
-                    onClick = {
-                        encryptChannel = null
-                        generatedChannelSecret = null
-                    },
-                ) {
-                    Text(stringResource(R.string.ns_cancel))
-                }
-            },
-        )
-    }
-
     fudPrompt?.let { prompt ->
         when (prompt) {
             is FudPromptUi.Confirm -> {
@@ -984,6 +1126,9 @@ private fun ChatMessageLine(
     myNick: String,
     isEncryptedThread: Boolean,
     onLongPress: () -> Unit,
+    onPayInvoice: (String) -> Unit,
+    onClearnetLink: (String) -> Unit,
+    onRetry: () -> Unit,
     onFudTap: (String) -> Unit,
 ) {
     // Trust FFI isOutgoing only — nick string compare is spoofable (Fable 5.1 Fix 3).
@@ -1025,19 +1170,39 @@ private fun ChatMessageLine(
                         is ChatInlineSpan.Url -> {
                             val start = length
                             append(span.url)
-                            addLink(
-                                LinkAnnotation.Url(
-                                    span.url,
-                                    TextLinkStyles(
-                                        SpanStyle(
-                                            color = linkColor,
-                                            textDecoration = TextDecoration.Underline,
+                            if (ChatLinkGuard.isClearnetHttp(span.url)) {
+                                addLink(
+                                    LinkAnnotation.Clickable(
+                                        tag = "clearnet:${span.url}",
+                                        styles =
+                                            TextLinkStyles(
+                                                SpanStyle(
+                                                    color = linkColor,
+                                                    textDecoration = TextDecoration.Underline,
+                                                ),
+                                            ),
+                                        linkInteractionListener = {
+                                            onClearnetLink(span.url)
+                                        },
+                                    ),
+                                    start,
+                                    length,
+                                )
+                            } else {
+                                addLink(
+                                    LinkAnnotation.Url(
+                                        span.url,
+                                        TextLinkStyles(
+                                            SpanStyle(
+                                                color = linkColor,
+                                                textDecoration = TextDecoration.Underline,
+                                            ),
                                         ),
                                     ),
-                                ),
-                                start,
-                                length,
-                            )
+                                    start,
+                                    length,
+                                )
+                            }
                         }
 
                         is ChatInlineSpan.Fud -> {
@@ -1097,6 +1262,90 @@ private fun ChatMessageLine(
                         modifier = Modifier.clickable { onFudTap(uri) },
                     )
                 }
+            }
+            ChatInvoices.find(line.text)?.let { invoice ->
+                Column(
+                    modifier =
+                        Modifier
+                            .padding(top = 6.dp)
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(MaterialTheme.colorScheme.surfaceVariant)
+                            .padding(10.dp),
+                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                ) {
+                    Text(
+                        text = stringResource(R.string.ns_chat_payment_request),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.primary,
+                    )
+                    invoice.amount?.takeIf { it.isNotBlank() }?.let { amt ->
+                        Text(
+                            text = "$amt ${invoice.token ?: "DRK"}",
+                            style = MaterialTheme.typography.bodyMedium,
+                        )
+                    }
+                    Text(
+                        text = invoice.address,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = mutedColor,
+                        maxLines = 1,
+                    )
+                    invoice.memo?.takeIf { it.isNotBlank() }?.let { memo ->
+                        Text(
+                            text = memo,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = mutedColor,
+                            maxLines = 2,
+                        )
+                    }
+                    Text(
+                        text = stringResource(R.string.ns_chat_pay_invoice),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.clickable { onPayInvoice(invoice.uri) },
+                    )
+                }
+            }
+            val receiptRevision by ChatReceiptStore.revision.collectAsStateWithLifecycle()
+            val context = LocalContext.current
+            val receipt =
+                remember(line.text, receiptRevision) {
+                    val parsed = ChatReceiptCodec.parse(line.text) ?: return@remember null
+                    ChatReceiptStore.get(context, parsed.id) ?: parsed
+                }
+            receipt?.let { card ->
+                Text(
+                    text = stringResource(receiptPhaseLabel(card.phase)),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.padding(top = 4.dp),
+                )
+                Text(
+                    text = "${card.amount} → ${card.address}",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = mutedColor,
+                    maxLines = 1,
+                )
+                card.txId?.takeIf { it.isNotBlank() }?.let { tx ->
+                    Text(
+                        text = tx,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = mutedColor,
+                        maxLines = 1,
+                    )
+                }
+            }
+            ChatDeliveryLabel.from(line.eventId, line.isOutgoing)?.let { delivery ->
+                Text(
+                    text = stringResource(deliveryLabel(delivery)),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = mutedColor,
+                    modifier =
+                        Modifier.clickable(enabled = delivery == ChatDeliveryState.Failed) {
+                            onRetry()
+                        },
+                )
             }
         }
         Text(

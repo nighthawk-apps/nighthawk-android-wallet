@@ -3,6 +3,8 @@ package com.nighthawkapps.lib.android.sdk.nym
 import android.content.Context
 import com.nighthawkapps.lib.android.sdk.chat.DarkfiChatPreferences
 import com.nighthawkapps.lib.android.sdk.net.PrivacyNetwork
+import com.nighthawkapps.lib.android.sdk.net.SessionTransport
+import com.nighthawkapps.lib.android.sdk.net.TransportNative
 import com.nighthawkapps.lib.android.sdk.tor.AppTorCoordinator
 import com.nighthawkapps.lib.android.sdk.tor.TorBootstrapUiState
 import com.nighthawkapps.lib.android.sdk.wallet.DarkfiWalletCoordinator
@@ -38,7 +40,7 @@ object AppNymCoordinator {
     /** Non-blocking: start the Nym proxy when Nym is the wallet network. */
     fun warmStartIfEnabled(context: Context) {
         val prefs = DarkfiChatPreferences(context.applicationContext)
-        if (prefs.privacyNetwork != PrivacyNetwork.Nym) {
+        if (SessionTransport.effective(prefs) != PrivacyNetwork.Nym) {
             _bootstrapState.value = TorBootstrapUiState.Disabled
             return
         }
@@ -52,7 +54,7 @@ object AppNymCoordinator {
      */
     suspend fun ensureReady(context: Context): Int? {
         val prefs = DarkfiChatPreferences(context.applicationContext)
-        if (prefs.privacyNetwork != PrivacyNetwork.Nym) {
+        if (SessionTransport.effective(prefs) != PrivacyNetwork.Nym) {
             _bootstrapState.value = TorBootstrapUiState.Disabled
             return null
         }
@@ -68,7 +70,7 @@ object AppNymCoordinator {
         val deadline = System.currentTimeMillis() + NYM_BOOTSTRAP_DEADLINE_MS
         var ready = false
         while (started && System.currentTimeMillis() < deadline) {
-            if (prefs.privacyNetwork != PrivacyNetwork.Nym) {
+            if (SessionTransport.effective(prefs) != PrivacyNetwork.Nym) {
                 break
             }
             when (runCatching { nymStatus() }.getOrDefault(NYM_STATUS_STOPPED)) {
@@ -86,7 +88,7 @@ object AppNymCoordinator {
         }
         _bootstrapState.value =
             when {
-                prefs.privacyNetwork != PrivacyNetwork.Nym -> TorBootstrapUiState.Disabled
+                SessionTransport.effective(prefs) != PrivacyNetwork.Nym -> TorBootstrapUiState.Disabled
                 ready -> TorBootstrapUiState.Ready
                 else -> TorBootstrapUiState.Failed
             }
@@ -106,14 +108,14 @@ object AppNymCoordinator {
     }
 
     /**
-     * Splash escape hatch: switch the app to a direct connection immediately. Callers holding a
-     * wallet coordinator should follow up with [applyPrivacyNetwork] so P2P and the wallet move too.
+     * Splash escape hatch for this process only. The stored network stays Nym so the next
+     * launch tries the mixnet again. Does not reopen the wallet by itself.
      */
     fun disableFromSplash(context: Context) {
-        DarkfiChatPreferences(context.applicationContext).privacyNetwork = PrivacyNetwork.Direct
+        SessionTransport.continueWithoutNym()
         runCatching { stopNymProxy() }
         _bootstrapState.value = TorBootstrapUiState.Disabled
-        Twig.info { "AppNym: disabled from splash; wallet traffic goes direct" }
+        Twig.info { "AppNym: session-only direct from splash on ${context.applicationContext.packageName}" }
     }
 
     /**
@@ -141,6 +143,7 @@ object AppNymCoordinator {
         walletCoordinator: DarkfiWalletCoordinator,
     ) {
         val app = context.applicationContext
+        SessionTransport.clear()
         DarkfiChatPreferences(app).privacyNetwork = network
         if (network == PrivacyNetwork.Nym) {
             ensureReady(app)
@@ -153,6 +156,14 @@ object AppNymCoordinator {
         } else {
             AppTorCoordinator.stopEmbeddedTor()
         }
+        val prefs = DarkfiChatPreferences(app)
+        val kind =
+            when (network) {
+                PrivacyNetwork.Tor -> 1
+                PrivacyNetwork.Direct -> 2
+                PrivacyNetwork.Nym -> 0
+            }
+        TransportNative.apply(kind, prefs.nymSocksPort, prefs.socksPort)
         AppTorCoordinator.restartEmbeddedDarkircForTransport(app)
         AppTorCoordinator.restartEmbeddedDarkfidForTransport(app)
         walletCoordinator.reloadSynchronizer()

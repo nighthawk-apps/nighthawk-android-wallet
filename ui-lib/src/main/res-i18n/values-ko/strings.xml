@@ -253,7 +253,7 @@
     <string name="ns_chat_e2e_save">저장</string>
     <string name="ns_chat_e2e_saved_failed">E2E 설정을 저장하지 못했습니다.</string>
     <string name="ns_chat_e2e_saved_ok">E2E 설정을 저장했고 DarkIRC를 다시 시작했습니다.</string>
-    <string name="ns_chat_e2e_section_body">암호화된 채널과 개인 메시지용 ChaChaBox 키를 설정합니다. 키는 기기에 저장되어 내장 DarkIRC 설정에 기록되며, 암호화는 데몬 안에서 실행됩니다.</string>
+    <string name="ns_chat_e2e_section_body">개인 메시지는 기기의 ChaChaBox 키를 사용합니다. 공개 채널은 종단간 암호화되지 않습니다.</string>
     <string name="ns_chat_e2e_section_title">종단간 암호화</string>
     <string name="ns_chat_embedded_darkirc">내장 DarkIRC 노드 실행</string>
     <string name="ns_chat_embedded_darkirc_desc">포함된 DarkIRC 데몬을 127.0.0.1:6667에서 시작합니다(상주 알림). 끄면 adb reverse 또는 자신의 IRC 호스트를 씁니다. 바이너리가 필요합니다(문서 참고).</string>
@@ -540,7 +540,7 @@
     <string name="ns_landing_footer">이 앱은 자유 소프트웨어입니다. 라이선스는 설정 &gt; 정보 &gt; 라이선스에 있습니다.</string>
     <string name="ns_landing_import_success_message">축하합니다! 지갑을 가져왔습니다!</string>
     <string name="ns_landing_text">Nighthawk를 처음 쓰신다면 지갑을 만들어야 합니다. 다시 오셨다면 이전 지갑 복원을 시도해 보세요.</string>
-    <string name="ns_legacy_shielded_sapling">이전 인코딩</string>
+    <string name="ns_older_encoding">이전 인코딩</string>
     <string name="ns_logo_desc">Nighthawk 로고</string>
     <string name="ns_memo">메모</string>
     <string name="ns_mesh_on_badge">메시</string>
@@ -615,7 +615,6 @@
     <string name="ns_restore_wallet_text">아래에 22단어 시드 문구를 입력하세요. 이 문구가 없으면 새 지갑을 만들어야 합니다.</string>
     <string name="ns_review_and_send">검토 후 보내기</string>
     <string name="ns_running_on_darkfi">DarkFi 경험</string>
-    <string name="ns_sapling_balance">지갑 잔액</string>
     <string name="ns_scan_payment_code">결제 코드 스캔</string>
     <string name="ns_scan_payment_request">결제 요청 스캔</string>
     <string name="ns_scan_payment_request_text">결제 요청이 있으면 여기서 QR 코드를 스캔해 내용을 자동으로 채울 수 있습니다.</string>

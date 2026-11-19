@@ -1,15 +1,20 @@
 # darkfi-mobile-ffi
 
-Rust `cdylib` that exposes a UniFFI surface for the Android SDK (`namespace com.nighthawkapps.lib.uniffi.darkfi_mobile_ffi`) and iOS (`DarkfiMobileFfi` module).
+Rust `cdylib` that exposes a UniFFI surface for the Android SDK (`namespace com.nighthawkapps.lib.uniffi.darkfi_mobile_ffi`) and iOS (`DarkfiMobileFfi` module). Version 0.2.3, UniFFI 0.32.2.
+
+The files live in `nighthawk-android-wallet/rust/darkfi-mobile-ffi`. `GitHub/darkfi-mobile-ffi` and `nighthawk-ios-wallet/rust/darkfi-mobile-ffi` are symlinks to that directory. Cargo resolves `../../third_party/darkfi` from the path it opens, so desktop depends on the Android path (the iOS symlink resolves the iOS pin, which is the same commit). Do not give Cargo the root symlink as the package directory.
 
 Product direction for expanding this crate—embedded **`drk`**-equivalent wallet logic vs thinner APIs—is **`docs/wallet-roadmap.md`**.
 
-## Recent surface
+## API surface
+
+Shared by Android, iOS, and desktop. DarkFi pin `9d7ceaf77`, UniFFI 0.32.2, crate `0.2.3`.
 
 - **`CLUE_KEY_VERSION = 1`** (`src/unifomr.rs`). Every `RegisterCluePublicKey` sends that constant. The clue key is derived from the wallet secret and does not rotate, so a timestamp would mark a real entry and show when the wallet last started. Server decoys are expected to use the same value.
 - **DAO.** `dao_create` takes proposer limit, quorum, early-exec quorum, and approval ratio, and keeps all six role keys. `dao_import` reads drk TOML. `dao_export_role` writes drk TOML for `proposer`, `voter`, `executor`, or `all`. `dao_exec` has no early flag; the wallet chooses early or normal execution from the tip. Treasury, fund, propose, vote, and token generate/mint/freeze are on the same handle.
 - **`block_target`.** `LightServerInfo` keeps `GetLightInfo.block_target`. DAO voting windows use it.
 - **Money tree.** A rebuild stops at the wallet's last scanned height, not the server tip, so coins between the scan cursor and the tip are not skipped after a spend.
+- **Chat / DarkIRC.** In-process daemon via UniFFI (`start_darkirc`), Nym / Tor / Direct transports, public channels including `#nighthawk`, ChaCha DMs, and optional BLE mesh hop.
 - **Android binaries.** `arm64-v8a` and `x86_64` only (64-bit, NDK `30.0.16248370`; 32-bit `armeabi-v7a` and `x86` are dropped).
 
 ## Sync Architecture — UnifOMR

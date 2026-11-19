@@ -374,6 +374,11 @@ class NativeDarkfiSynchronizer internal constructor(
             syncScope.launch {
                 while (isActive) {
                     applySyncSnapshotBestEffort()
+                    // Always refresh balances/tokens/txs — synced wallets previously
+                    // only polled lightSyncSnapshot and never updated UI on new funds.
+                    refreshBalanceBestEffort()
+                    refreshTokenBalancesBestEffort()
+                    refreshTransactionsBestEffort()
                     delay(
                         if (_status.value == DarkfiSyncStatus.SYNCED) {
                             SYNC_PROGRESS_POLL_MS
@@ -458,6 +463,13 @@ class NativeDarkfiSynchronizer internal constructor(
                         else -> _status.value
                     }
                 }
+            // lightSyncSnapshot does not include balances. Refresh them once the
+            // engine reports synced so the UI is not stuck on the pre-sync zero.
+            if (_status.value == DarkfiSyncStatus.SYNCED) {
+                refreshBalanceBestEffort()
+                refreshTokenBalancesBestEffort()
+                refreshTransactionsBestEffort()
+            }
         } catch (_: Throwable) {
             // destroyed handle / transient FFI
         }

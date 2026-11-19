@@ -96,3 +96,6 @@ app/darkfitestnet/
 # Local Gradle daemon JVM choice. Not part of the project.
 gradle/gradle-daemon-jvm.properties
 
+
+# Fastlane auto-generated docs
+fastlane/README.md

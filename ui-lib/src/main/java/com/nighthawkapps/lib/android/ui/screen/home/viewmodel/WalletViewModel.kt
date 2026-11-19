@@ -2,6 +2,9 @@ package com.nighthawkapps.lib.android.ui.screen.home.viewmodel
 
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.DefaultLifecycleObserver
+import androidx.lifecycle.LifecycleOwner
+import androidx.lifecycle.ProcessLifecycleOwner
 import androidx.lifecycle.viewModelScope
 import com.nighthawkapps.lib.android.global.AppWalletCoordinator
 import com.nighthawkapps.lib.android.sdk.wallet.DarkfiEndpoint
@@ -84,6 +87,37 @@ class WalletViewModel(
         }
 
     private val isUserAuthenticated = MutableStateFlow(false)
+
+    private val resetAuthOnBackground =
+        object : DefaultLifecycleObserver {
+            override fun onStop(owner: LifecycleOwner) {
+                isUserAuthenticated.value = false
+            }
+        }
+
+    init {
+        val register = {
+            ProcessLifecycleOwner.get().lifecycle.addObserver(resetAuthOnBackground)
+        }
+        if (android.os.Looper.myLooper() == android.os.Looper.getMainLooper()) {
+            register()
+        } else {
+            android.os.Handler(android.os.Looper.getMainLooper()).post(register)
+        }
+    }
+
+    override fun onCleared() {
+        val remove =
+            Runnable {
+                ProcessLifecycleOwner.get().lifecycle.removeObserver(resetAuthOnBackground)
+            }
+        if (android.os.Looper.myLooper() == android.os.Looper.getMainLooper()) {
+            remove.run()
+        } else {
+            android.os.Handler(android.os.Looper.getMainLooper()).post(remove)
+        }
+        super.onCleared()
+    }
 
     private val isAuthenticationRequire =
         flow {

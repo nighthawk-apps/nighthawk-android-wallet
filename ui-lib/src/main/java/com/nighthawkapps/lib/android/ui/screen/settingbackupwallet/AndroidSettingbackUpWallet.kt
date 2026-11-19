@@ -39,6 +39,11 @@ internal fun WrapAndroidSettingBackUpWallet(
 
     var isAuthenticated by rememberSaveable { mutableStateOf(false) }
 
+    // null = still loading PIN config — never flash the seed phrase.
+    if (isPinConfigured == null) {
+        return
+    }
+
     if (isPinConfigured == true && !isAuthenticated) {
         AuthenticatePin(
             verifyPin = pinViewModel::verifyPin,

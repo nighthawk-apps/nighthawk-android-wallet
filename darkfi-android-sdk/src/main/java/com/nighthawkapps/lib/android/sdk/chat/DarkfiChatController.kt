@@ -14,6 +14,7 @@ import com.nighthawkapps.lib.android.sdk.chat.hud.OutboundPeerSlot
 import com.nighthawkapps.lib.android.sdk.chat.hud.OutboundPeerSlots
 import com.nighthawkapps.lib.android.sdk.daemon.DarkfiChatStatusRegistry
 import com.nighthawkapps.lib.android.sdk.net.PrivacyNetwork
+import com.nighthawkapps.lib.android.sdk.net.SessionTransport
 import com.nighthawkapps.lib.android.sdk.nym.AppNymCoordinator
 import com.nighthawkapps.lib.android.spackle.Twig
 import com.nighthawkapps.lib.uniffi.darkfi_mobile_ffi.DarkircEventCallback
@@ -112,6 +113,11 @@ class DarkfiChatController(
 
     init {
         refreshDmStateFromDisk()
+        scope.launch(Dispatchers.IO) {
+            val loaded = ChatHistoryStore.load(app)
+            if (loaded.isEmpty()) return@launch
+            _messagesByChannel.update { cur -> if (cur.isEmpty()) loaded else cur }
+        }
     }
 
     fun refreshDmStateFromDisk() {
@@ -134,7 +140,7 @@ class DarkfiChatController(
         // Compose screen still showed Disconnected after process reuse).
         val status = darkircStatus()
         if (status == "running" || status == "starting") {
-            val transport = activeTransport ?: chatTransportFor(preferences.privacyNetwork)
+            val transport = activeTransport ?: chatTransportFor(SessionTransport.effective(preferences))
             val connectedState = connectedStateFor(transport)
             if (preferences.runEmbeddedDarkirc) {
                 DarkircDaemonService.start(app)
@@ -201,7 +207,7 @@ class DarkfiChatController(
             // Chat P2P follows the app network. Nym and Tor need their SOCKS proxy carrying
             // traffic before the daemon starts; otherwise fail loudly rather than silently
             // leaking over clearnet.
-            val transport = chatTransportFor(preferences.privacyNetwork)
+            val transport = chatTransportFor(SessionTransport.effective(preferences))
             val socksPort: Int? =
                 when (transport) {
                     DarkircTransport.NYM -> resolveNymSocksPortOrNull()
@@ -243,6 +249,9 @@ class DarkfiChatController(
                     }
                 }
 
+            // Rust loads then deletes this file inside start_darkirc. Write it here,
+            // on the IO dispatcher, not from the UI thread during send.
+            publishDmContactsForDaemon()
             startDarkirc(
                 datastorePath = sledDb.absolutePath,
                 transport = transport,
@@ -398,8 +407,14 @@ class DarkfiChatController(
 
     private fun darkircDatastoreDir(): File = File(File(app.filesDir, "darkirc"), "darkirc_db")
 
-    /** Rust reads this file on each DM so saltbox keys match the secure store. */
+    /**
+     * Rust reads this file on each DM, then zeroes and deletes it.
+     * Must not run on the main thread — it writes DM secrets to disk.
+     */
     private fun publishDmContactsForDaemon() {
+        check(!android.os.Looper.getMainLooper().isCurrentThread) {
+            "refusing to write DM secrets to darkirc_crypto_bundle.json on the main thread"
+        }
         val contacts = DarkircCryptoManager.loadContacts(app)
         val json =
             buildString {
@@ -446,7 +461,7 @@ class DarkfiChatController(
      */
     fun restartIfNetworkChanged() {
         _useTorForChat.value = preferences.useTorForChat
-        val wanted = chatTransportFor(preferences.privacyNetwork)
+        val wanted = chatTransportFor(SessionTransport.effective(preferences))
         val running = darkircStatus() in setOf("running", "starting")
         if (!running || activeTransport == null || activeTransport == wanted) {
             connectOrRetry()
@@ -536,7 +551,16 @@ class DarkfiChatController(
             next[key] = pruned + msg
             next
         }
-        ChatMessageNotifier.maybeNotify(app, msg.channel, msg.nick, msg.text)
+        ChatHistoryStore.append(app, msg)
+        ChatMessageNotifier.maybeNotify(
+            context = app,
+            channel = msg.channel,
+            nick = msg.nick,
+            preview = msg.text,
+            isOutgoing = msg.isOutgoing,
+            timestampMs = msg.timestampMs,
+            ownNick = preferences.ensureIrcNickname(),
+        )
         if (!msg.channel.startsWith("#")) {
             DmConversationStore.touchMessage(
                 app,
@@ -551,15 +575,17 @@ class DarkfiChatController(
     private fun recordLocalOutgoing(
         contactLabel: String,
         plaintext: String,
-    ) {
+    ): String {
         val nick = preferences.ensureIrcNickname()
+        val eventId = "local-${System.nanoTime()}"
         val line =
             ChatChannelMessage(
-                eventId = "local-${System.nanoTime()}",
+                eventId = eventId,
                 channel = contactLabel,
                 nick = nick,
                 text = plaintext,
                 timestampMs = System.currentTimeMillis(),
+                isOutgoing = true,
             )
         _messagesByChannel.update { cur ->
             val next = cur.toMutableMap()
@@ -575,12 +601,35 @@ class DarkfiChatController(
             )
             refreshDmStateFromDisk()
         }
+        ChatHistoryStore.append(app, line)
+        return eventId
+    }
+
+    private fun retagOutgoing(
+        channel: String,
+        eventId: String,
+        prefix: String,
+    ) {
+        _messagesByChannel.update { cur ->
+            val next = cur.toMutableMap()
+            next[channel] =
+                next[channel].orEmpty().map { line ->
+                    if (line.eventId == eventId) {
+                        line.copy(eventId = "$prefix-${line.eventId.substringAfter('-', line.eventId)}")
+                    } else {
+                        line
+                    }
+                }
+            next
+        }
     }
 
     private fun drainOutgoingQueue() {
         val pending = outgoingQueue.loadAll()
         if (pending.isEmpty()) return
         for (rec in pending) {
+            if (rec.delivery == "failed") continue
+            outgoingQueue.updateDelivery(rec.id, "sending")
             try {
                 val body =
                     DarkfiChatCrypto.encryptMessageIfPossible(
@@ -594,6 +643,7 @@ class DarkfiChatController(
                 sendChatMessage(rec.channelNormalized, nick, body)
                 outgoingQueue.remove(rec.id)
             } catch (e: Exception) {
+                outgoingQueue.updateDelivery(rec.id, "failed")
                 Twig.warn(e) { "Stopping drain at ${rec.id}" }
                 break
             }
@@ -697,6 +747,7 @@ class DarkfiChatController(
                         recordLocalOutgoing(normalized, actionText)
                         scope.launch(Dispatchers.IO) {
                             try {
+                                publishDmContactsForDaemon()
                                 sendChatMessage(normalized, nick, actionText)
                             } catch (e: Exception) {
                                 Twig.error(e) { "FFI send failed" }
@@ -766,16 +817,17 @@ class DarkfiChatController(
                 delegateWireCryptoToDaemon = true
             )
 
-        publishDmContactsForDaemon()
         if (darkircStatus() == "running") {
             // Optimistic local bubble so public-channel sends are never invisible
             // while waiting for EventGraph self-echo / peer relay.
-            recordLocalOutgoing(normalized, body)
+            val localId = recordLocalOutgoing(normalized, body)
             scope.launch(Dispatchers.IO) {
                 try {
+                    publishDmContactsForDaemon()
                     val nick = preferences.ensureIrcNickname()
                     sendChatMessage(normalized, nick, wireBody)
                 } catch (e: Exception) {
+                    retagOutgoing(normalized, localId, "failed")
                     Twig.error(e) { "FFI send failed" }
                     _diagnosticDetail.value = "Send failed: ${e.message ?: e.javaClass.simpleName}"
                 }
@@ -798,9 +850,10 @@ class DarkfiChatController(
                 ChatChannelMessage(
                     eventId = "queued-${System.nanoTime()}",
                     channel = normalized,
-                    nick = nick + " (queued)",
+                    nick = nick,
                     text = body,
                     timestampMs = System.currentTimeMillis(),
+                    isOutgoing = true,
                 )
             _messagesByChannel.update { cur ->
                 val next = cur.toMutableMap()
@@ -814,19 +867,24 @@ class DarkfiChatController(
         contactLabel: String,
         theirPublicBase58: String,
         generateMySecret: Boolean = true,
+        /** When sharing a pubkey first, pass the same secret so the contact matches. */
+        mySecretBase58: String? = null,
     ): Result<Unit> =
         withContext(Dispatchers.IO) {
             runCatching {
                 val label = contactLabel.trim().take(DmConversationLimits.CONTACT_LABEL_MAX_LEN)
                 require(label.isNotBlank()) { "contact label required" }
                 val theirPublic = theirPublicBase58.trim()
+                val explicit = mySecretBase58?.trim()?.takeIf { it.isNotBlank() }
                 val mySecret =
-                    if (generateMySecret) {
-                        DarkircCryptoManager.generateDmKeypair(app)?.myDmChachaSecretBase58
-                            ?: error("could not generate DM secret")
-                    } else {
-                        error("my secret required")
-                    }
+                    explicit
+                        ?: DarkircCryptoManager.loadShareKeypair(app)?.myDmChachaSecretBase58
+                        ?: if (generateMySecret) {
+                            DarkircCryptoManager.ensureShareKeypair(app)?.myDmChachaSecretBase58
+                                ?: error("could not generate DM secret")
+                        } else {
+                            error("my secret required")
+                        }
                 val config =
                     DarkircContactCryptoConfig(
                         nick = label,
@@ -834,6 +892,16 @@ class DarkfiChatController(
                         myDmChachaSecretBase58 = mySecret,
                     )
                 DarkircCryptoManager.saveContact(app, config)
+                NighthawkContactStore.upsert(
+                    app,
+                    NighthawkContact(
+                        id = label.lowercase(java.util.Locale.ROOT),
+                        nickname = label,
+                        dmPublicKey = theirPublic,
+                        walletAddress = NighthawkContactStore.findByNick(app, label)?.walletAddress,
+                    ),
+                    myDmSecret = mySecret,
+                )
                 DmConversationStore.upsert(
                     app,
                     DmConversationMeta(
@@ -850,13 +918,18 @@ class DarkfiChatController(
             runCatching {
                 val label = contactLabel.trim()
                 DarkircCryptoManager.removeContact(app, label)
+                NighthawkContactStore.remove(app, label)
                 DmConversationStore.remove(app, label)
                 _messagesByChannel.update { cur -> cur - label }
                 refreshDmStateFromDisk()
             }
         }
 
-    fun generateEphemeralDmShareKeypair() = DarkircCryptoManager.generateDmKeypair(app)
+    /**
+     * Public key for "share pubkey" / new DM. The secret is stored and reused by
+     * [addDmContact] so the displayed key is not thrown away for a different keypair.
+     */
+    fun generateEphemeralDmShareKeypair() = DarkircCryptoManager.ensureShareKeypair(app)
 
     companion object {
         private val appScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)

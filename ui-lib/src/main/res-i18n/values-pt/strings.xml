@@ -253,7 +253,7 @@
     <string name="ns_chat_e2e_save">Salvar</string>
     <string name="ns_chat_e2e_saved_failed">Não foi possível salvar as configurações E2E.</string>
     <string name="ns_chat_e2e_saved_ok">Configurações E2E salvas; DarkIRC reiniciado.</string>
-    <string name="ns_chat_e2e_section_body">Configure as chaves ChaChaBox de canais criptografados e mensagens diretas. As chaves ficam no aparelho e entram na configuração do DarkIRC embarcado; a criptografia roda dentro do daemon.</string>
+    <string name="ns_chat_e2e_section_body">Mensagens diretas usam chaves ChaChaBox neste aparelho. Canais públicos não têm criptografia de ponta a ponta.</string>
     <string name="ns_chat_e2e_section_title">Criptografia de ponta a ponta</string>
     <string name="ns_chat_embedded_darkirc">Executar o nó DarkIRC embarcado</string>
     <string name="ns_chat_embedded_darkirc_desc">Inicia o daemon DarkIRC que vem no app, em 127.0.0.1:6667 (notificação persistente). Desligue para usar adb reverse ou o seu próprio host IRC. Precisa do binário (veja a documentação).</string>
@@ -540,7 +540,7 @@
     <string name="ns_landing_footer">Este app é software livre. As licenças estão em Configurações &gt; Sobre &gt; Licenças.</string>
     <string name="ns_landing_import_success_message">Parabéns! Sua carteira foi importada!</string>
     <string name="ns_landing_text">Se esta é a primeira vez que você usa a Nighthawk, será preciso criar uma carteira. Se você está voltando, pode tentar restaurar a carteira anterior.</string>
-    <string name="ns_legacy_shielded_sapling">Codificação antiga</string>
+    <string name="ns_older_encoding">Codificação antiga</string>
     <string name="ns_logo_desc">Logotipo da Nighthawk</string>
     <string name="ns_memo">Memo</string>
     <string name="ns_mesh_on_badge">MESH</string>
@@ -615,7 +615,6 @@
     <string name="ns_restore_wallet_text">Digite abaixo sua frase semente de 22 palavras. Se você não tiver essa frase, vai precisar criar uma carteira nova.</string>
     <string name="ns_review_and_send">Revisar e enviar</string>
     <string name="ns_running_on_darkfi">Uma experiência DarkFi</string>
-    <string name="ns_sapling_balance">Saldo da carteira</string>
     <string name="ns_scan_payment_code">Escanear um código de pagamento</string>
     <string name="ns_scan_payment_request">Escanear um pedido de pagamento</string>
     <string name="ns_scan_payment_request_text">Se você tiver um pedido de pagamento, escaneie o QR code aqui para preencher os dados automaticamente.</string>

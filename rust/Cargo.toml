@@ -15,7 +15,10 @@ form_urlencoded = { git = "https://github.com/darkrenaissance/rust-url", branch 
 # crates.io nym-smolmix stops at 1.21.6. develop is nym-smolmix 2.0.0
 # (2026-10-23). The 1.22.2 mixnet tag depends on yanked tokio_with_wasm 0.10.1
 # and cannot be freshly resolved. sqlx 0.9 coexists with rusqlite 0.37.
+# Pin choice (Android + iOS lockstep): 5f0dba82. Do not advance one platform alone.
 nym-smolmix = { git = "https://github.com/nymtech/nym.git", rev = "5f0dba82d7a4c3d32fb21f78a0e3ddb6320b4ae8" }
+# Shared with iOS builds of this crate (open_files + RTM_IFINFO2).
+sysinfo = { path = "../../nighthawk-ios-wallet/rust/vendor/sysinfo-0.38.4" }
 
 [profile.release]
 opt-level = 3

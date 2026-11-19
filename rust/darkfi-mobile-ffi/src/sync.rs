@@ -140,7 +140,7 @@ pub async fn sync_once_via_lightwallet(drk: DrkPtr, url: &str) -> Result<(), Str
             engine.set_chain_tip(info.chain_tip_height);
         }
     }
-    try_lightwallet_sync(&drk, &engine)
+    run_sync_cycle_fenced(&drk, &engine)
         .await
         .map(|_| ())
         .map_err(|e| redact_sync_error(&e))
@@ -323,7 +323,7 @@ pub fn start_background_sync(
                     // The same race observes `request_stop` so close() can
                     // join this thread and release the wallet database.
                     let cycle_result = smol::future::or(
-                        async { try_lightwallet_sync(&drk, &sync_engine).await },
+                        run_sync_cycle_fenced(&drk, &sync_engine),
                         async {
                             let mut waited = 0u64;
                             loop {
@@ -508,8 +508,10 @@ static CLUE_PK_REGISTERED: std::sync::OnceLock<
     std::sync::Mutex<std::collections::HashSet<[u8; 32]>>,
 > = std::sync::OnceLock::new();
 
-fn clue_registration_id(network: u8, pay_pk: &[u8; 32], clue_pk: &[u8]) -> [u8; 32] {
+fn clue_registration_id(server: &str, network: u8, pay_pk: &[u8; 32], clue_pk: &[u8]) -> [u8; 32] {
     let mut h = blake3::Hasher::new_derive_key("darkfi-mobile-ffi clue-reg v1");
+    h.update(&(server.len() as u64).to_le_bytes());
+    h.update(server.as_bytes());
     h.update(&[network]);
     h.update(pay_pk);
     h.update(clue_pk);
@@ -534,8 +536,9 @@ fn mark_clue_registered(id: [u8; 32]) {
 }
 
 /// Drop cached detection keys (call on wallet close / re-bootstrap).
-/// Detection keys are no longer cached across cycles; kept as a no-op for FFI.
-pub fn clear_detection_key_cache() {}
+pub fn clear_detection_key_cache() {
+    crate::lightwallet_client::clear_detection_key_pool();
+}
 
 /// Ensure lightwalletd `GetLightInfo.chain_name` matches the wallet network so
 /// Android / iOS / Moonshine do not cross-talk mainnet vs testnet clue directories.
@@ -572,6 +575,22 @@ fn ensure_chain_matches_wallet(
 /// 5. Update sync engine state throughout
 ///
 /// Returns Ok(()) on successful sync cycle, Err on server/connection failure.
+/// Run one sync cycle, converting a panic into a cycle error so the
+/// background sync thread keeps running.
+async fn run_sync_cycle_fenced(drk: &DrkPtr, sync_engine: &SyncEngine) -> Result<(), String> {
+    use futures::FutureExt;
+    match std::panic::AssertUnwindSafe(try_lightwallet_sync(drk, sync_engine))
+        .catch_unwind()
+        .await
+    {
+        Ok(result) => result,
+        Err(_) => {
+            tracing::error!(target: "wallet-sync", "isolated panic in sync cycle");
+            Err("sync cycle panicked".to_string())
+        }
+    }
+}
+
 async fn try_lightwallet_sync(drk: &DrkPtr, sync_engine: &SyncEngine) -> Result<(), String> {
     let client = sync_engine.lightwallet_client();
 
@@ -1194,7 +1213,12 @@ async fn try_omr_sync(
             let mut registered = 0usize;
             let mut last_err: Option<String> = None;
             for pay_pk in &recipient_pubkeys {
-                let reg_id = clue_registration_id(omr_network.to_byte(), pay_pk, &clue_pk);
+                let reg_id = clue_registration_id(
+                    &sync_engine.server_url(),
+                    omr_network.to_byte(),
+                    pay_pk,
+                    &clue_pk,
+                );
                 if clue_already_registered(&reg_id) {
                     registered += 1;
                     continue;
@@ -1612,7 +1636,9 @@ async fn apply_omr_sparse_window(drk: &drk::Drk, window: &PreparedOmrWindow) -> 
             ));
         }
         blocks_by_height.insert(block.height, block.clone());
+        crate::block_times::note_block_time(block.height, block.timestamp);
     }
+    crate::block_times::flush();
     if !trial_decrypt_all {
         for h in matching_heights {
             let has_coins = coins_by_height
@@ -2848,9 +2874,8 @@ pub async fn remember_own_outputs_from_tx(
             }
         }
     }
-    // Change/fee rows carry placeholder leaf positions until the next genesis
-    // commitment walk. Clear the spend-ready flag so the following spend rebuilds.
-    let _ = set_merkle_from_genesis(drk, false);
+    // Do NOT clear merkle_from_genesis — that forced a full 0..=tip download
+    // after every send. Placeholder leaves are rewritten by incremental sync.
     Ok(())
 }
 
@@ -2953,6 +2978,7 @@ async fn process_compact_block(
         );
         return Err(e);
     }
+    crate::block_times::note_block_time(block.height, block.timestamp);
 
     use std::io::Cursor;
 
@@ -3396,6 +3422,15 @@ pub(crate) fn append_commitment_leaves(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn clue_registration_id_binds_server_and_keys() {
+        let a = clue_registration_id("tcp://a", 1, &[1; 32], b"pk");
+        assert_ne!(a, clue_registration_id("tcp://b", 1, &[1; 32], b"pk"));
+        assert_ne!(a, clue_registration_id("tcp://a", 0, &[1; 32], b"pk"));
+        assert_ne!(a, clue_registration_id("tcp://a", 1, &[2; 32], b"pk"));
+        assert_ne!(a, clue_registration_id("tcp://a", 1, &[1; 32], b"pk2"));
+    }
 
     #[test]
     fn empty_money_tree_root_matches_zero_leaf_only() {

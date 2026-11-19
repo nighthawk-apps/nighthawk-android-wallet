@@ -169,7 +169,7 @@
     <string name="ns_around">around %s</string>
     <string name="ns_total_balance">Total balance</string>
     <string name="ns_shielded_balance">Wallet balance</string>
-    <string name="ns_sapling_balance">Wallet balance</string>
+    <string name="ns_wallet_balance">Wallet balance</string>
     <string name="ns_transparent_balance">Wallet balance</string>
     <string name="ns_shield_now">Shield Now</string>
     <string name="ns_recent_activity">Recent activity</string>
@@ -324,7 +324,7 @@
     <string name="ns_subtotal">Subtotal</string>
     <string name="ns_total_amount">Total amount</string>
     <string name="ns_shielded">Confidential</string>
-    <string name="ns_legacy_shielded_sapling">Older encoding</string>
+    <string name="ns_older_encoding">Older encoding</string>
     <string name="ns_transparent">Public receive</string>
     <string name="ns_include_reply_to">include reply-to</string>
     <string name="open_browser">Open Browser</string>
@@ -412,7 +412,7 @@
     <string name="wallet_address_back_content_description">Back</string>
     <string name="wallet_address_primary_deposit">Your wallet address</string>
     <string name="wallet_address_header_includes">which includes</string>
-    <string name="wallet_address_confidential_receive">Shielded Sapling (NU1)</string>
+    <string name="wallet_address_confidential_receive">DarkFi address</string>
     <string name="wallet_address_public_receive">Transparent</string>
     <string name="wallet_address_show">Show address</string>
     <string name="wallet_address_hide">Hide address</string>

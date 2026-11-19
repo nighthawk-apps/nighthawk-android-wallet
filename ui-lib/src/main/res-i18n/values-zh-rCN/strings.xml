@@ -253,7 +253,7 @@
     <string name="ns_chat_e2e_save">保存</string>
     <string name="ns_chat_e2e_saved_failed">无法保存端到端设置。</string>
     <string name="ns_chat_e2e_saved_ok">端到端设置已保存；DarkIRC 已重启。</string>
-    <string name="ns_chat_e2e_section_body">为加密频道和私信配置 ChaChaBox 密钥。密钥保存在本机，并写入内置 DarkIRC 配置；加密在守护进程内进行。</string>
+    <string name="ns_chat_e2e_section_body">私信使用保存在本机的 ChaChaBox 密钥。公开频道没有端到端加密。</string>
     <string name="ns_chat_e2e_section_title">端到端加密</string>
     <string name="ns_chat_embedded_darkirc">运行内置 DarkIRC 节点</string>
     <string name="ns_chat_embedded_darkirc_desc">启动随应用提供的 DarkIRC 守护进程，监听 127.0.0.1:6667（常驻通知）。关闭后可改用 adb reverse 或你自己的 IRC 主机。需要该二进制文件（参见文档）。</string>
@@ -540,7 +540,7 @@
     <string name="ns_landing_footer">本应用是自由软件。许可列在「设置 &gt; 关于 &gt; 许可」中。</string>
     <string name="ns_landing_import_success_message">恭喜！钱包已成功导入！</string>
     <string name="ns_landing_text">如果这是你第一次使用 Nighthawk，需要创建一个钱包。如果是再次使用，可以尝试恢复之前的钱包。</string>
-    <string name="ns_legacy_shielded_sapling">旧版编码</string>
+    <string name="ns_older_encoding">旧版编码</string>
     <string name="ns_logo_desc">Nighthawk 标志</string>
     <string name="ns_memo">备注</string>
     <string name="ns_mesh_on_badge">MESH</string>
@@ -615,7 +615,6 @@
     <string name="ns_restore_wallet_text">在下方输入 22 个单词的助记词。如果没有这组短语，就需要创建新钱包。</string>
     <string name="ns_review_and_send">核对并发送</string>
     <string name="ns_running_on_darkfi">一种 DarkFi 体验</string>
-    <string name="ns_sapling_balance">钱包余额</string>
     <string name="ns_scan_payment_code">扫描付款码</string>
     <string name="ns_scan_payment_request">扫描付款请求</string>
     <string name="ns_scan_payment_request_text">如果有付款请求，可在此扫描二维码，自动填入全部信息。</string>

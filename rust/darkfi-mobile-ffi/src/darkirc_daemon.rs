@@ -332,11 +332,16 @@ struct PresentedPrivmsg {
 /// Decrypt a DM the way upstream darkirc does, or pass a public channel through.
 fn present_privmsg(privmsg: Privmsg) -> PresentedPrivmsg {
     if privmsg.channel.starts_with('#') {
+        let self_nick = LAST_SELF_NICK
+            .lock()
+            .map(|guard| guard.clone())
+            .unwrap_or_default();
+        let is_outgoing = !self_nick.is_empty() && privmsg.nick == self_nick;
         return PresentedPrivmsg {
             channel: privmsg.channel.clone(),
             nick: privmsg.nick,
             msg: privmsg.msg,
-            is_outgoing: false,
+            is_outgoing,
         };
     }
     let Ok(contacts) = DM_CONTACTS.lock() else {

@@ -30,8 +30,8 @@ The SDK exposes the following sync-related types:
 ### `SyncMethod`
 ```kotlin
 enum class SyncMethod {
-    UNIF_OMR,       // UnifOMR BFV FHE-based detection (default)
-    TRIAL_DECRYPT,  // Trial decryption fallback
+    UNIF_OMR,       // UnifOMR BFV FHE-based detection (experimental; off unless enabled)
+    TRIAL_DECRYPT,  // Padded trial decryption (default sync path)
     UNKNOWN         // Legacy/unknown
 }
 ```

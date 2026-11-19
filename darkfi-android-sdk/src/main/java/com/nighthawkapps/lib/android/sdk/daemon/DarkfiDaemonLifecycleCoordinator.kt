@@ -70,7 +70,6 @@ class DarkfiDaemonLifecycleCoordinator private constructor(
     private suspend fun awaitEmbeddedDarkfidIfNeeded() {
         val wallet = walletCoordinatorProvider().persistableWallet.value ?: return
         val ok = DarkfidConnectionProbe.awaitLoopbackRpc(appContext, wallet.endpoint)
-        walletCoordinatorProvider().probeDarkfidAndUpdateStatus()
         if (!ok) {
             Twig.warn { "Embedded darkfid: JSON-RPC not reachable at ${wallet.endpoint.toDisplayString()}" }
         }
@@ -162,7 +161,8 @@ class DarkfiDaemonLifecycleCoordinator private constructor(
                     if (daemonPrefs.runEmbeddedDarkfid) {
                         DarkfidDaemonBootstrap.warmOnForeground(appContext)
                     }
-                    walletCoordinatorProvider().probeDarkfidAndUpdateStatus()
+                    // No clearnet TCP probe. Socket(Proxy.NO_PROXY) to the lightwalletd
+                    // host leaked every 20s and bypassed Nym/Tor. Sync state comes from FFI.
                     if (_status.value != DarkfiDaemonStatus.Connected) {
                         Twig.debug { "DarkFi daemon: not connected — refresh" }
                         walletCoordinatorProvider().rescanBlockchain()

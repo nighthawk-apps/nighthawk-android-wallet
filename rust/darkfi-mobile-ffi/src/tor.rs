@@ -164,6 +164,26 @@ pub fn arti_failed() -> bool {
     )
 }
 
+/// `connected` | `bootstrapping` | `failed` | `stopped`.
+pub(crate) fn arti_phase() -> &'static str {
+    match ARTI_STATE.load(Ordering::SeqCst) {
+        ARTI_CONNECTED => "connected",
+        ARTI_BOOTSTRAPPING => "bootstrapping",
+        ARTI_FAILED => "failed",
+        _ => "stopped",
+    }
+}
+
+/// Arti redials new streams itself. Wallet gRPC channels are dropped by the
+/// lightwallet client pool; this hook only records that circuits should be fresh.
+pub(crate) fn on_network_changed() {
+    tracing::info!("Tor network change; next streams use a new circuit");
+}
+
+pub(crate) fn on_suspend() {
+    tracing::debug!("Tor proxy suspended with the process");
+}
+
 /// Bootstrap the Tor client and serve SOCKS5 CONNECT requests until stopped.
 async fn run_socks_proxy(socks_port: u16) -> Result<(), String> {
     // Resolve storage *before* bind so a missing cache dir fails closed without
@@ -254,32 +274,13 @@ async fn run_socks_proxy(socks_port: u16) -> Result<(), String> {
     Ok(())
 }
 
-/// Minimal SOCKS5 CONNECT handler: negotiates "no authentication", reads the
-/// CONNECT target, dials it through Tor, and pipes bytes both ways.
+/// Minimal SOCKS5 CONNECT handler. Prefer RFC 1929 username/password when the
+/// client offers it, and still accept method 0x00 so existing callers work.
 async fn handle_socks_conn(
     mut inbound: TcpStream,
     tor_client: Arc<TorClient<tor_rtcompat::PreferredRuntime>>,
 ) -> Result<(), String> {
-    // --- Greeting: VER, NMETHODS, METHODS... ---
-    let mut head = [0u8; 2];
-    inbound
-        .read_exact(&mut head)
-        .await
-        .map_err(|e| e.to_string())?;
-    if head[0] != 0x05 {
-        return Err("not a SOCKS5 greeting".into());
-    }
-    let nmethods = head[1] as usize;
-    let mut methods = vec![0u8; nmethods];
-    inbound
-        .read_exact(&mut methods)
-        .await
-        .map_err(|e| e.to_string())?;
-    // Reply: VER=5, METHOD=0 (no authentication).
-    inbound
-        .write_all(&[0x05, 0x00])
-        .await
-        .map_err(|e| e.to_string())?;
+    accept_socks_greeting(&mut inbound).await?;
 
     // --- Request: VER, CMD, RSV, ATYP, DST.ADDR, DST.PORT ---
     let mut req = [0u8; 4];
@@ -380,5 +381,65 @@ async fn handle_socks_conn(
     };
 
     futures::future::join(client_to_tor, tor_to_client).await;
+    Ok(())
+}
+
+async fn accept_socks_greeting(inbound: &mut TcpStream) -> Result<(), String> {
+    let mut head = [0u8; 2];
+    inbound
+        .read_exact(&mut head)
+        .await
+        .map_err(|e| e.to_string())?;
+    if head[0] != 0x05 {
+        return Err("not a SOCKS5 greeting".into());
+    }
+    let mut methods = vec![0u8; head[1] as usize];
+    inbound
+        .read_exact(&mut methods)
+        .await
+        .map_err(|e| e.to_string())?;
+    let method = crate::transport_manager::socks_method(&methods);
+    inbound
+        .write_all(&[0x05, method])
+        .await
+        .map_err(|e| e.to_string())?;
+    if method == 0xff {
+        return Err("no acceptable SOCKS5 method".into());
+    }
+    if method == 0x02 {
+        let mut ver_ulen = [0u8; 2];
+        inbound
+            .read_exact(&mut ver_ulen)
+            .await
+            .map_err(|e| e.to_string())?;
+        if ver_ulen[0] != 0x01 {
+            return Err("bad SOCKS5 username/password version".into());
+        }
+        let mut user = vec![0u8; ver_ulen[1] as usize];
+        inbound
+            .read_exact(&mut user)
+            .await
+            .map_err(|e| e.to_string())?;
+        let mut plen = [0u8; 1];
+        inbound
+            .read_exact(&mut plen)
+            .await
+            .map_err(|e| e.to_string())?;
+        let mut pass = vec![0u8; plen[0] as usize];
+        inbound
+            .read_exact(&mut pass)
+            .await
+            .map_err(|e| e.to_string())?;
+        let username = String::from_utf8(user).map_err(|e| e.to_string())?;
+        let password = String::from_utf8(pass).map_err(|e| e.to_string())?;
+        let ok = crate::transport_manager::socks_password_ok(&username, &password);
+        inbound
+            .write_all(&[0x01, if ok { 0x00 } else { 0x01 }])
+            .await
+            .map_err(|e| e.to_string())?;
+        if !ok {
+            return Err("SOCKS5 username/password rejected".into());
+        }
+    }
     Ok(())
 }

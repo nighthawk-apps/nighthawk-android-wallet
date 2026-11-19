@@ -4,8 +4,10 @@ import android.app.Application
 import android.content.Context
 import com.nighthawkapps.lib.android.sdk.chat.DarkfiChatPreferences
 import com.nighthawkapps.lib.android.sdk.net.PrivacyNetwork
+import com.nighthawkapps.lib.android.sdk.net.SessionTransport
 import com.nighthawkapps.lib.android.sdk.tor.TorBootstrapUiState
 import kotlinx.coroutines.runBlocking
+import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Before
@@ -28,6 +30,12 @@ class AppNymCoordinatorTest {
             .edit()
             .clear()
             .commit()
+        SessionTransport.clear()
+    }
+
+    @After
+    fun clearSessionOverride() {
+        SessionTransport.clear()
     }
 
     @Test
@@ -55,9 +63,11 @@ class AppNymCoordinatorTest {
         }
 
     @Test
-    fun disableFromSplash_switchesWalletToDirect() {
+    fun disableFromSplash_isSessionOnly() {
+        DarkfiChatPreferences(app).privacyNetwork = PrivacyNetwork.Nym
         AppNymCoordinator.disableFromSplash(app)
-        assertEquals(PrivacyNetwork.Direct, DarkfiChatPreferences(app).privacyNetwork)
+        assertEquals(PrivacyNetwork.Nym, DarkfiChatPreferences(app).privacyNetwork)
+        assertEquals(PrivacyNetwork.Direct, SessionTransport.effective(DarkfiChatPreferences(app)))
         assertEquals(TorBootstrapUiState.Disabled, AppNymCoordinator.bootstrapState.value)
     }
 }

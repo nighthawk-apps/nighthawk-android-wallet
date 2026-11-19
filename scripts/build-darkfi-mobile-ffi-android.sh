@@ -193,7 +193,8 @@ done
 (
   cd "$RUST"
   # Build library only (skip workspace `uniffi-bindgen` bin).
-  cargo ndk "${ndk_args[@]}" build --release -p darkfi-mobile-ffi --lib
+  # nym-android enables JNI + rustls-platform-verifier (Android-only).
+  cargo ndk "${ndk_args[@]}" build --release -p darkfi-mobile-ffi --lib --features nym-android
 )
 
 T="$RUST/target"
@@ -233,8 +234,8 @@ if [[ "${SKIP_UNIFFI_BINDGEN:-0}" != "1" && "${FDROID_BUILD:-0}" != "1" ]]; then
   echo "Regenerating Kotlin UniFFI bindings..."
   (
     cd "$RUST"
-    cargo build -p darkfi-mobile-ffi --lib >/dev/null
-    cargo run -p darkfi-mobile-ffi --bin uniffi-bindgen -- generate \
+    cargo build -p darkfi-mobile-ffi --lib --features nym-android >/dev/null
+    cargo run -p darkfi-mobile-ffi --bin uniffi-bindgen --features nym-android -- generate \
       darkfi-mobile-ffi/src/darkfi_mobile_ffi.udl \
       --language kotlin \
       --crate darkfi_mobile_ffi \

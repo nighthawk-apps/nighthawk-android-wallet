@@ -3,11 +3,12 @@ package com.nighthawkapps.lib.android.sdk.net
 import android.content.Context
 import com.nighthawkapps.lib.android.sdk.chat.DarkfiChatPreferences
 import com.nighthawkapps.lib.android.sdk.chat.TorIntegrationHelper
+import com.nighthawkapps.lib.android.sdk.net.SessionTransport
 import java.net.InetSocketAddress
 import java.net.Proxy
 
 /**
- * SOCKS policy for wallet traffic, following [DarkfiChatPreferences.privacyNetwork]:
+ * SOCKS policy for wallet and fiat traffic, following the session-effective network:
  * — clearnet HTTP uses the Nym or Tor SOCKS proxy unless the network is [PrivacyNetwork.Direct];
  * — outbound TCP skips SOCKS for loopback (adb reverse / local darkfid).
  */
@@ -40,7 +41,7 @@ object TorOutboundSocks {
 
     /** SOCKS `(host, port)` for the wallet network, or null for [PrivacyNetwork.Direct]. */
     fun walletSocksEndpoint(prefs: DarkfiChatPreferences): InetSocketAddress? =
-        when (prefs.privacyNetwork) {
+        when (SessionTransport.effective(prefs)) {
             PrivacyNetwork.Nym -> {
                 InetSocketAddress(PrivacyNetwork.NYM_SOCKS_HOST, prefs.nymSocksPort)
             }

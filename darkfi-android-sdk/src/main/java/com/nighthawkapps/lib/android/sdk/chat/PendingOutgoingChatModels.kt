@@ -11,6 +11,8 @@ data class PendingOutgoingChatRecord(
     @SerialName("ch") val channelNormalized: String,
     @SerialName("t") val textSanitized: String,
     @SerialName("q") val queuedAtEpochMs: Long,
+    /** queued | sending | failed. Removed from the file once relayed. */
+    @SerialName("state") val delivery: String = "queued",
 )
 
 @Serializable

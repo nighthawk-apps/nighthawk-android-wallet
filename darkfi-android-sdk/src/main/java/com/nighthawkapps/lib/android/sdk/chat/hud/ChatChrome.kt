@@ -119,23 +119,19 @@ object ChatChrome {
         }
 
     /**
-     * Direct inbox is always E2E. A `#channel` is encrypted when it has a stored
-     * shared secret (NaCl box). Same two-tone body applies to both; encrypted
-     * threads also get charcoal / accent-subtle bubbles.
+     * Direct messages are ChaChaBox. Public `#channels` are plaintext on the wire,
+     * even if a channel secret was stored — do not paint them as encrypted.
      */
     fun threadIsEncrypted(
         isDirectInbox: Boolean,
         threadKey: String,
-        encryptedChannelNames: Collection<String>,
+        @Suppress("UNUSED_PARAMETER") encryptedChannelNames: Collection<String> = emptyList(),
     ): Boolean {
-        if (isDirectInbox) {
-            return true
-        }
-        val key = threadKey.lowercase(Locale.ROOT)
-        if (key.isBlank()) {
+        if (!isDirectInbox) {
             return false
         }
-        return encryptedChannelNames.any { it.lowercase(Locale.ROOT) == key }
+        val key = threadKey.trim()
+        return key.isNotEmpty() && !key.startsWith("#")
     }
 }
 

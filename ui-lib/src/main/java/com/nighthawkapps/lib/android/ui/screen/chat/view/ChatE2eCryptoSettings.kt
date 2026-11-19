@@ -23,7 +23,6 @@ import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import com.nighthawkapps.lib.android.sdk.chat.darkirc.DarkircChannelCryptoConfig
 import com.nighthawkapps.lib.android.sdk.chat.darkirc.DarkircCliKeygen
 import com.nighthawkapps.lib.android.sdk.chat.darkirc.DarkircContactCryptoConfig
 import com.nighthawkapps.lib.android.sdk.chat.darkirc.DarkircCryptoManager
@@ -49,15 +48,12 @@ internal fun ChatE2eCryptoSettings(
     val scope = rememberCoroutineScope()
     val appContext = context.applicationContext
 
-    var channels by remember { mutableStateOf(DarkircCryptoManager.loadChannels(appContext)) }
     var contacts by remember { mutableStateOf(DarkircCryptoManager.loadContacts(appContext)) }
     val hasBinary = remember { DarkircCryptoManager.hasBundledDarkirc(appContext) }
 
-    var showAddChannel by remember { mutableStateOf(false) }
     var showAddContact by remember { mutableStateOf(false) }
 
     fun reload() {
-        channels = DarkircCryptoManager.loadChannels(appContext)
         contacts = DarkircCryptoManager.loadContacts(appContext)
     }
 
@@ -101,53 +97,6 @@ internal fun ChatE2eCryptoSettings(
 
         Spacer(modifier = Modifier.height(12.dp))
         TitleMedium(
-            text = stringResource(R.string.ns_chat_e2e_channels_title),
-            modifier = Modifier.padding(bottom = 4.dp),
-        )
-        if (channels.isEmpty()) {
-            Text(
-                text = stringResource(R.string.ns_chat_e2e_channels_empty),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        } else {
-            channels.forEach { ch ->
-                Column(modifier = Modifier.padding(vertical = 4.dp)) {
-                    Text(text = ch.channel, style = MaterialTheme.typography.bodyMedium)
-                    ch.topic?.let {
-                        Text(
-                            text = it,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                    TextButton(
-                        onClick = {
-                            DarkircCryptoManager.removeChannel(appContext, ch.channel)
-                            applyCrypto { ok ->
-                                Toast
-                                    .makeText(
-                                        context,
-                                        if (ok) R.string.ns_chat_e2e_removed_ok else R.string.ns_chat_e2e_saved_failed,
-                                        Toast.LENGTH_SHORT,
-                                    ).show()
-                            }
-                        },
-                    ) {
-                        Text(stringResource(R.string.ns_chat_e2e_remove))
-                    }
-                }
-            }
-        }
-        PrimaryButton(
-            enabled = embeddedDarkircEnabled,
-            onClick = { showAddChannel = true },
-            text = stringResource(R.string.ns_chat_e2e_add_channel),
-            modifier = Modifier.fillMaxWidth(),
-        )
-
-        Spacer(modifier = Modifier.height(16.dp))
-        TitleMedium(
             text = stringResource(R.string.ns_chat_e2e_contacts_title),
             modifier = Modifier.padding(bottom = 4.dp),
         )
@@ -187,42 +136,6 @@ internal fun ChatE2eCryptoSettings(
         )
     }
 
-    if (showAddChannel) {
-        AddChannelDialog(
-            canGenerate = hasBinary,
-            onDismiss = { showAddChannel = false },
-            onSave = { channel, secret, topic ->
-                showAddChannel = false
-                runCatching {
-                    DarkircCryptoManager.saveChannel(
-                        appContext,
-                        DarkircChannelCryptoConfig(
-                            channel = channel,
-                            secretBase58 = secret,
-                            topic = topic?.takeIf { it.isNotBlank() },
-                        ),
-                    )
-                }.onSuccess {
-                    applyCrypto { ok ->
-                        Toast
-                            .makeText(
-                                context,
-                                if (ok) R.string.ns_chat_e2e_saved_ok else R.string.ns_chat_e2e_saved_failed,
-                                Toast.LENGTH_SHORT,
-                            ).show()
-                    }
-                }.onFailure {
-                    Toast.makeText(context, R.string.ns_chat_e2e_saved_failed, Toast.LENGTH_SHORT).show()
-                }
-            },
-            onGenerateSecret = {
-                withContext(Dispatchers.IO) {
-                    DarkircCryptoManager.generateChannelSecret(appContext)
-                }
-            },
-        )
-    }
-
     if (showAddContact) {
         AddContactDialog(
             canGenerate = hasBinary,
@@ -259,78 +172,6 @@ internal fun ChatE2eCryptoSettings(
             },
         )
     }
-}
-
-@Composable
-private fun AddChannelDialog(
-    canGenerate: Boolean,
-    onDismiss: () -> Unit,
-    onSave: (channel: String, secret: String, topic: String?) -> Unit,
-    onGenerateSecret: suspend () -> String?,
-) {
-    val scope = rememberCoroutineScope()
-    var channel by remember { mutableStateOf("#") }
-    var secret by remember { mutableStateOf("") }
-    var topic by remember { mutableStateOf("") }
-
-    MaterialAlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.ns_chat_e2e_channel_dialog_title)) },
-        text = {
-            Column {
-                OutlinedTextField(
-                    value = channel,
-                    onValueChange = { channel = it },
-                    label = { Text(stringResource(R.string.ns_chat_e2e_channel_name)) },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true,
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                OutlinedTextField(
-                    value = secret,
-                    onValueChange = { secret = it },
-                    label = { Text(stringResource(R.string.ns_chat_e2e_channel_secret)) },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true,
-                )
-                if (canGenerate) {
-                    TextButton(
-                        onClick = {
-                            scope.launch {
-                                onGenerateSecret()?.let { secret = it }
-                            }
-                        },
-                    ) {
-                        Text(stringResource(R.string.ns_chat_e2e_generate_secret))
-                    }
-                }
-                Spacer(modifier = Modifier.height(8.dp))
-                OutlinedTextField(
-                    value = topic,
-                    onValueChange = { topic = it },
-                    label = { Text(stringResource(R.string.ns_chat_e2e_channel_topic)) },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true,
-                )
-            }
-        },
-        confirmButton = {
-            TextButton(
-                onClick = {
-                    val normalized =
-                        channel.trim().let { if (it.startsWith("#")) it else "#$it" }
-                    onSave(normalized, secret.trim(), topic.trim())
-                },
-            ) {
-                Text(stringResource(R.string.ns_chat_e2e_save))
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text(stringResource(R.string.ns_cancel))
-            }
-        },
-    )
 }
 
 @Composable

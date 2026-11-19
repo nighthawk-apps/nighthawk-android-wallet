@@ -8,7 +8,11 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
 /**
- * Probes standalone **lightwalletd** reachability (TCP on gRPC port 9067).
+ * Probes **local** lightwalletd readiness only.
+ *
+ * Remote / `.onion` / proxied endpoints are never clearnet-probed: a
+ * `Socket(Proxy.NO_PROXY)` dial would leak the real IP/DNS every ~20s and
+ * break proxy-only setups. Remote reachability is left to the wallet FFI.
  */
 object DarkfidConnectionProbe {
     private const val RPC_PROBE_DEADLINE_MS = 15_000L
@@ -19,21 +23,18 @@ object DarkfidConnectionProbe {
         endpoint: DarkfiEndpoint,
     ): Boolean =
         withContext(Dispatchers.IO) {
-            AppTorCoordinator.ensureSocksReady(context)
             val host = endpoint.host.trim()
-            val port = endpoint.port
-            android.util.Log.d("LwdProbe", "probing lightwalletd $host:$port ...")
-            val ok =
-                TorSocksReadiness.awaitTcpReachable(host, port, RPC_PROBE_DEADLINE_MS)
-            if (!ok) {
-                android.util.Log.w(
+            if (!isLoopbackHost(host)) {
+                android.util.Log.d(
                     "LwdProbe",
-                    "TCP not reachable $host:$port after ${RPC_PROBE_DEADLINE_MS}ms",
+                    "skip clearnet probe for non-loopback host=$host (privacy)",
                 )
-            } else {
-                android.util.Log.d("LwdProbe", "TCP reachable")
+                return@withContext true
             }
-            ok
+            AppTorCoordinator.ensureSocksReady(context)
+            val port = endpoint.port
+            android.util.Log.d("LwdProbe", "probing loopback lightwalletd $host:$port ...")
+            TorSocksReadiness.awaitTcpReachable(host, port, RPC_PROBE_DEADLINE_MS)
         }
 
     suspend fun awaitLoopbackRpc(
@@ -41,6 +42,10 @@ object DarkfidConnectionProbe {
         endpoint: DarkfiEndpoint,
         deadlineMs: Long = 120_000L,
     ): Boolean {
+        val host = endpoint.host.trim()
+        if (!isLoopbackHost(host)) {
+            return true
+        }
         val started = System.currentTimeMillis()
         while (System.currentTimeMillis() - started < deadlineMs) {
             if (isReachable(context, endpoint)) {
@@ -49,5 +54,14 @@ object DarkfidConnectionProbe {
             kotlinx.coroutines.delay(LOOPBACK_POLL_DELAY_MS)
         }
         return false
+    }
+
+    private fun isLoopbackHost(host: String): Boolean {
+        val h = host.lowercase()
+        return h == "127.0.0.1" ||
+            h == "localhost" ||
+            h == "::1" ||
+            h == "[::1]" ||
+            h == "10.0.2.2" // Android emulator host loopback
     }
 }

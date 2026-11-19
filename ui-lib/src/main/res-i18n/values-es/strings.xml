@@ -253,7 +253,7 @@
     <string name="ns_chat_e2e_save">Guardar</string>
     <string name="ns_chat_e2e_saved_failed">No se han podido guardar los ajustes E2E.</string>
     <string name="ns_chat_e2e_saved_ok">Ajustes E2E guardados; DarkIRC reiniciado.</string>
-    <string name="ns_chat_e2e_section_body">Configura las claves ChaChaBox para canales cifrados y mensajes directos. Las claves se guardan en el dispositivo y se escriben en la configuración de DarkIRC integrado; el cifrado se ejecuta dentro del demonio.</string>
+    <string name="ns_chat_e2e_section_body">Los mensajes directos usan claves ChaChaBox en el dispositivo. Los canales públicos no están cifrados de extremo a extremo.</string>
     <string name="ns_chat_e2e_section_title">Cifrado de extremo a extremo</string>
     <string name="ns_chat_embedded_darkirc">Ejecutar el nodo DarkIRC integrado</string>
     <string name="ns_chat_embedded_darkirc_desc">Inicia el demonio DarkIRC incluido en 127.0.0.1:6667 (notificación persistente). Desactívalo para usar adb reverse o tu propio servidor IRC. Hace falta el binario (consulta la documentación).</string>
@@ -540,7 +540,7 @@
     <string name="ns_landing_footer">Esta aplicación es software libre. Las licencias están en Ajustes &gt; Acerca de &gt; Licencias.</string>
     <string name="ns_landing_import_success_message">¡Enhorabuena! Tu cartera se ha importado correctamente.</string>
     <string name="ns_landing_text">Si es la primera vez que usas Nighthawk, tendrás que crear una cartera. Si vuelves a Nighthawk, puedes intentar restaurar tu cartera anterior.</string>
-    <string name="ns_legacy_shielded_sapling">Codificación antigua</string>
+    <string name="ns_older_encoding">Codificación antigua</string>
     <string name="ns_logo_desc">Logotipo de Nighthawk</string>
     <string name="ns_memo">Nota</string>
     <string name="ns_mesh_on_badge">MALLA</string>
@@ -615,7 +615,6 @@
     <string name="ns_restore_wallet_text">Introduce abajo tu frase semilla de 22 palabras. Si no la tienes, tendrás que crear una cartera nueva.</string>
     <string name="ns_review_and_send">Revisar y enviar</string>
     <string name="ns_running_on_darkfi">Una experiencia DarkFi</string>
-    <string name="ns_sapling_balance">Saldo de la cartera</string>
     <string name="ns_scan_payment_code">Escanear un código de pago</string>
     <string name="ns_scan_payment_request">Escanear una solicitud de pago</string>
     <string name="ns_scan_payment_request_text">Si tienes una solicitud de pago, puedes escanear aquí el código QR para rellenar todos los datos.</string>

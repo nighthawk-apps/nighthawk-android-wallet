@@ -38,10 +38,18 @@ class DarkfidLineJsonRpcCaller(
                     null -> Socket(java.net.Proxy.NO_PROXY)
                     else -> Socket(proxy)
                 }
+            // SOCKS must see an unresolved name so the proxy does DNS. A resolved
+            // InetSocketAddress looks the hostname up on clearnet first.
+            val address =
+                if (proxy == null) {
+                    InetSocketAddress(host, port)
+                } else {
+                    InetSocketAddress.createUnresolved(host, port)
+                }
             bareSocket.use { socket ->
                 socket.soTimeout = CONNECT_AND_READ_TIMEOUT_MS
                 socket.connect(
-                    InetSocketAddress(host, port),
+                    address,
                     CONNECT_AND_READ_TIMEOUT_MS,
                 )
                 // Do not close socket.getOutputStream() — on the JDK that closes the whole socket.

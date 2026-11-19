@@ -9,7 +9,9 @@ publish = false
 [features]
 default = ["darkirc", "nym"]
 darkirc = ["dep:darkirc"]
-nym = ["dep:nym-smolmix", "dep:hickory-proto", "dep:jni", "dep:rustls-platform-verifier"]
+# Core Nym (iOS + Android). Android adds JNI TLS via `nym-android`.
+nym = ["dep:nym-smolmix", "dep:hickory-proto"]
+nym-android = ["nym", "dep:jni", "dep:rustls-platform-verifier"]
 localnet = []
 
 [lib]

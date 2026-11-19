@@ -87,6 +87,7 @@ object MeshCoordinator {
         bind(context)
         MeshPersist.setEnabled(context, false)
         MeshNative.setGatewayEligible(false)
+        com.nighthawkapps.lib.android.sdk.net.TransportNative.setMesh(false)
         NighthawkMeshService.stop(context)
     }
 
@@ -126,7 +127,11 @@ private object MeshStartGate {
         if (!meshToggleGranted(activity)) return false
         MeshPersist.setEnabled(activity, true)
         MeshNative.setGatewayEligible(MeshCoordinator.gatewayOptIn)
-        return NighthawkMeshService.startFromForeground(activity)
+        val started = NighthawkMeshService.startFromForeground(activity)
+        if (started) {
+            com.nighthawkapps.lib.android.sdk.net.TransportNative.setMesh(true)
+        }
+        return started
     }
 
     fun meshToggleGranted(activity: Activity): Boolean {

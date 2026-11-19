@@ -92,6 +92,19 @@ class HomeViewModel(
 
     val sendDeepLinkDataFlow: StateFlow<DeepLinkUtil.SendDeepLinkData?> = sendDeepLinkDataState.asStateFlow()
 
+    private val pendingChatThreadState = MutableStateFlow<String?>(null)
+
+    var pendingChatThread: String?
+        get() = pendingChatThreadState.value
+        set(value) {
+            pendingChatThreadState.value = value
+        }
+
+    val pendingChatThreadFlow: StateFlow<String?> = pendingChatThreadState.asStateFlow()
+
+    /** Receipt posted from chat; marked Broadcasted when send returns a tx id. */
+    var pendingChatReceiptId: String? = null
+
     var shortcutAction: ShortcutAction? = null
 
     // Flag to track any expecting balance is there or not. We will show snackBar everytime user open the app until it is a confirmed transaction
