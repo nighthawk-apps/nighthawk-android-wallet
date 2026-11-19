@@ -1,0 +1,1 @@
+Dependency updates (Gradle 9.9.1, Rust crates). Japanese, Chinese, Korean, Indonesian, Spanish, Portuguese, and Arabic UI strings. Chat remains the opening tab.
