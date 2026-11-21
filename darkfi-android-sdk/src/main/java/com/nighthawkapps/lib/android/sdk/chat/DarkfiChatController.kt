@@ -3,6 +3,8 @@
 package com.nighthawkapps.lib.android.sdk.chat
 
 import android.content.Context
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.ProcessLifecycleOwner
 import androidx.work.WorkManager
 import com.nighthawkapps.lib.android.sdk.chat.darkirc.DarkircContactCryptoConfig
 import com.nighthawkapps.lib.android.sdk.chat.darkirc.DarkircCryptoManager
@@ -19,7 +21,9 @@ import com.nighthawkapps.lib.android.sdk.nym.AppNymCoordinator
 import com.nighthawkapps.lib.android.spackle.Twig
 import com.nighthawkapps.lib.uniffi.darkfi_mobile_ffi.DarkircEventCallback
 import com.nighthawkapps.lib.uniffi.darkfi_mobile_ffi.DarkircTransport
+import com.nighthawkapps.lib.uniffi.darkfi_mobile_ffi.configureDarkirc
 import com.nighthawkapps.lib.uniffi.darkfi_mobile_ffi.darkircConnectionPhase
+import com.nighthawkapps.lib.uniffi.darkfi_mobile_ffi.darkircOutboundSlots
 import com.nighthawkapps.lib.uniffi.darkfi_mobile_ffi.darkircStatus
 import com.nighthawkapps.lib.uniffi.darkfi_mobile_ffi.sendChatMessage
 import com.nighthawkapps.lib.uniffi.darkfi_mobile_ffi.startDarkirc
@@ -102,6 +106,9 @@ class DarkfiChatController(
         MutableStateFlow(OutboundPeerSlots.synthesize(phase = "stopped", daemonRunning = false))
     val outboundSlots: StateFlow<List<OutboundPeerSlot>> = _outboundSlots.asStateFlow()
 
+    private val _chatIdentityPublicId = MutableStateFlow<String?>(null)
+    val chatIdentityPublicId: StateFlow<String?> = _chatIdentityPublicId.asStateFlow()
+
     private var connectJob: Job? = null
     private var readJob: Job? = null
 
@@ -112,8 +119,10 @@ class DarkfiChatController(
     val defaultChannels: List<String> get() = DarkfiChatDefaults.DEFAULT_PUBLIC_CHANNELS
 
     init {
-        refreshDmStateFromDisk()
         scope.launch(Dispatchers.IO) {
+            DarkircCryptoManager.scrubLegacyBundleFiles(app)
+            refreshDmStateFromDisk()
+            refreshChatIdentity(DarkfiChatIdentity(app))
             val loaded = ChatHistoryStore.load(app)
             if (loaded.isEmpty()) return@launch
             _messagesByChannel.update { cur -> if (cur.isEmpty()) loaded else cur }
@@ -125,6 +134,36 @@ class DarkfiChatController(
         _dmConversations.value = DmConversationStore.loadAll(app)
     }
 
+    fun refreshChatIdentity(identity: DarkfiChatIdentity = DarkfiChatIdentity(app)) {
+        val pubHex = runCatching { identity.publicIdHex() }.getOrNull()?.takeIf { it.isNotBlank() }
+        _chatIdentityPublicId.value = pubHex
+        if (pubHex != null && preferences.ircNickname.isBlank()) {
+            preferences.ircNickname =
+                DarkfiChatPreferences.sanitizeNickname("hawk_${pubHex.take(IDENTITY_NICK_PREFIX_LEN)}")
+        }
+    }
+
+    fun onAppResume() {
+        scope.launch(Dispatchers.IO) {
+            refreshOutboundSlots()
+            if (isReadyForImmediateSend(
+                    runCatching { darkircStatus() }.getOrDefault("not_running"),
+                    runCatching { darkircConnectionPhase() }.getOrDefault("stopped"),
+                )
+            ) {
+                drainOutgoingQueue()
+            }
+        }
+    }
+
+    private fun isAppInForeground(): Boolean =
+        runCatching {
+            ProcessLifecycleOwner
+                .get()
+                .lifecycle.currentState
+                .isAtLeast(Lifecycle.State.STARTED)
+        }.getOrDefault(false)
+
     var ircNickname: String
         get() = preferences.ircNickname
         set(value) {
@@ -132,9 +171,9 @@ class DarkfiChatController(
         }
 
     fun connectOrRetry() {
-        if (connectJob?.isActive == true) {
-            return
-        }
+        val disabled = !preferences.runEmbeddedDarkirc
+        if (disabled) stop()
+        if (disabled || connectJob?.isActive == true) return
         // Daemon already up: keep the existing EventGraph subscription, but
         // always refresh UI connection state (previously we returned while the
         // Compose screen still showed Disconnected after process reuse).
@@ -142,13 +181,13 @@ class DarkfiChatController(
         if (status == "running" || status == "starting") {
             val transport = activeTransport ?: chatTransportFor(SessionTransport.effective(preferences))
             val connectedState = connectedStateFor(transport)
-            if (preferences.runEmbeddedDarkirc) {
+            if (preferences.runEmbeddedDarkirc && isAppInForeground()) {
                 DarkircDaemonService.start(app)
             }
-            applyDarkircPhaseToUi(connectedState, transport)
             if (readJob?.isActive != true) {
                 readJob =
                     scope.launch(Dispatchers.IO) {
+                        applyDarkircPhaseToUi(connectedState, transport)
                         while (isActive) {
                             when (darkircStatus()) {
                                 "failed" -> {
@@ -158,7 +197,12 @@ class DarkfiChatController(
                                 }
 
                                 "running", "starting" -> {
+                                    val wasConnected = _connectionState.value.isConnected
                                     applyDarkircPhaseToUi(connectedState, transport)
+                                    val nowConnected = _connectionState.value.isConnected
+                                    if (nowConnected && (!wasConnected || outgoingQueue.loadAll().any { it.delivery == "queued" })) {
+                                        drainOutgoingQueue()
+                                    }
                                 }
 
                                 "stopping", "not_running" -> {
@@ -170,6 +214,10 @@ class DarkfiChatController(
                             delay(2000)
                         }
                     }
+            } else {
+                scope.launch(Dispatchers.IO) {
+                    applyDarkircPhaseToUi(connectedState, transport)
+                }
             }
             return
         }
@@ -249,9 +297,15 @@ class DarkfiChatController(
                     }
                 }
 
-            // Rust loads then deletes this file inside start_darkirc. Write it here,
-            // on the IO dispatcher, not from the UI thread during send.
-            publishDmContactsForDaemon()
+            // Register DM contacts in native daemon memory without writing secrets to disk,
+            // and apply persisted darkirc DAG / fast-mode configuration before starting.
+            DarkircCryptoManager.syncContactsToNative(app)
+            runCatching {
+                configureDarkirc(
+                    preferences.darkircDagsCount.toUInt(),
+                    preferences.darkircFastMode,
+                )
+            }.onFailure { Twig.warn(it) { "configureDarkirc before start failed" } }
             startDarkirc(
                 datastorePath = sledDb.absolutePath,
                 transport = transport,
@@ -259,8 +313,8 @@ class DarkfiChatController(
                 callback = callback,
             )
             activeTransport = transport
-            // Raise FGS while chat is active so Android does not suspend P2P sockets.
-            if (preferences.runEmbeddedDarkirc) {
+            // Raise FGS while chat is active in foreground so Android does not suspend P2P sockets.
+            if (preferences.runEmbeddedDarkirc && isAppInForeground()) {
                 DarkircDaemonService.start(app)
             }
             _embeddedNodeStatus.value = EmbeddedDarkircNodeStatus.Starting
@@ -284,7 +338,7 @@ class DarkfiChatController(
                                 val wasConnected = _connectionState.value.isConnected
                                 applyDarkircPhaseToUi(connectedState, transport)
                                 val nowConnected = _connectionState.value.isConnected
-                                if (!wasConnected && nowConnected) {
+                                if (nowConnected && (!wasConnected || outgoingQueue.loadAll().any { it.delivery == "queued" })) {
                                     drainOutgoingQueue()
                                 }
                             }
@@ -407,44 +461,81 @@ class DarkfiChatController(
 
     private fun darkircDatastoreDir(): File = File(File(app.filesDir, "darkirc"), "darkirc_db")
 
-    /**
-     * Rust reads this file on each DM, then zeroes and deletes it.
-     * Must not run on the main thread — it writes DM secrets to disk.
-     */
-    private fun publishDmContactsForDaemon() {
-        check(!android.os.Looper.getMainLooper().isCurrentThread) {
-            "refusing to write DM secrets to darkirc_crypto_bundle.json on the main thread"
-        }
-        val contacts = DarkircCryptoManager.loadContacts(app)
-        val json =
-            buildString {
-                append("{\"contacts\":[")
-                contacts.forEachIndexed { index, contact ->
-                    if (index > 0) append(',')
-
-                    fun esc(value: String) = value.replace("\\", "\\\\").replace("\"", "\\\"")
-                    append("{\"nick\":\"${esc(contact.nick)}\",")
-                    append("\"myDmChachaSecretBase58\":\"${esc(contact.myDmChachaSecretBase58)}\",")
-                    append("\"dmChachaPublicBase58\":\"${esc(contact.dmChachaPublicBase58)}\"}")
-                }
-                append("]}")
-            }
-        runCatching {
-            val dir = darkircDatastoreDir()
-            if (!dir.exists()) dir.mkdirs()
-            File(dir, "darkirc_crypto_bundle.json").writeText(json)
-        }
-    }
-
     fun refreshOutboundSlots(phase: String? = null) {
         val resolvedPhase =
             phase ?: runCatching { darkircConnectionPhase() }.getOrDefault("stopped")
         val running =
             runCatching { darkircStatus() }.getOrDefault("not_running") in
                 setOf("running", "starting")
-        val json = OutboundPeerSlots.readFile(darkircDatastoreDir())
+        val nativeJson =
+            runCatching { darkircOutboundSlots() }
+                .getOrNull()
+                ?.takeIf { it.isNotBlank() }
+        val json = nativeJson ?: OutboundPeerSlots.readFile(darkircDatastoreDir())
         _outboundSlots.value = OutboundPeerSlots.resolve(json, resolvedPhase, running)
     }
+
+    suspend fun restartDaemon(): Boolean =
+        withContext(Dispatchers.IO) {
+            runCatching {
+                configureDarkirc(
+                    preferences.darkircDagsCount.toUInt(),
+                    preferences.darkircFastMode,
+                )
+            }
+            stopAndAwait()
+            runNativeDarkircSequence()
+            runCatching { darkircStatus() in setOf("running", "starting") }.getOrDefault(false)
+        }
+
+    suspend fun configureAndMaybeRestart(
+        dagsCount: Int,
+        fastMode: Boolean,
+        restart: Boolean,
+    ): Boolean =
+        withContext(Dispatchers.IO) {
+            runCatching {
+                configureDarkirc(dagsCount.toUInt(), fastMode)
+            }.onFailure { Twig.warn(it) { "configureDarkirc failed" } }
+            if (restart) {
+                restartDaemon()
+            } else {
+                true
+            }
+        }
+
+    suspend fun connectAndDrainHeadless(timeoutMs: Long = 60_000L): Boolean =
+        withContext(Dispatchers.IO) {
+            val pending = outgoingQueue.loadAll()
+            if (pending.none { it.delivery != "failed" }) {
+                if (pending.isEmpty()) {
+                    WorkManager.getInstance(app).cancelUniqueWork(OutgoingChatReconnectWorker.UNIQUE_WORK_NAME)
+                }
+                return@withContext true
+            }
+
+            if (!isReadyForImmediateSend(
+                    runCatching { darkircStatus() }.getOrDefault("not_running"),
+                    runCatching { darkircConnectionPhase() }.getOrDefault("stopped"),
+                )
+            ) {
+                connectOrRetry()
+                val deadline = System.currentTimeMillis() + timeoutMs
+                while (System.currentTimeMillis() < deadline) {
+                    val st = runCatching { darkircStatus() }.getOrDefault("not_running")
+                    val ph = runCatching { darkircConnectionPhase() }.getOrDefault("stopped")
+                    if (isReadyForImmediateSend(st, ph)) break
+                    if (st == "failed") break
+                    delay(1_000L)
+                }
+            }
+
+            val drained = drainOutgoingQueue()
+            if (drained && !isAppInForeground()) {
+                stop()
+            }
+            drained
+        }
 
     /**
      * Persist Tor on/off as the app network and restart the EventGraph so the HUD switch is real.
@@ -539,15 +630,8 @@ class DarkfiChatController(
             val next = cur.toMutableMap()
             val key = msg.channel
             val existing = next[key].orEmpty()
-            // Drop optimistic local echo once the real EventGraph id arrives
-            // (same nick + text on the same channel within the last minute).
-            val pruned =
-                existing.filterNot { line ->
-                    line.eventId.startsWith("local-") &&
-                        line.nick == msg.nick &&
-                        line.text == msg.text &&
-                        (msg.timestampMs - line.timestampMs) in -60_000..60_000
-                }
+            // Drop optimistic local/queued echo once the real EventGraph id arrives.
+            val pruned = pruneOptimisticMatch(existing, msg)
             next[key] = pruned + msg
             next
         }
@@ -624,32 +708,73 @@ class DarkfiChatController(
         }
     }
 
-    private fun drainOutgoingQueue() {
-        val pending = outgoingQueue.loadAll()
-        if (pending.isEmpty()) return
-        for (rec in pending) {
-            if (rec.delivery == "failed") continue
-            outgoingQueue.updateDelivery(rec.id, "sending")
-            try {
-                val body =
-                    DarkfiChatCrypto.encryptMessageIfPossible(
-                        app,
-                        rec.channelNormalized,
-                        rec.textSanitized,
-                        delegateWireCryptoToDaemon = true
-                    )
-                val nick = preferences.ensureIrcNickname()
-                publishDmContactsForDaemon()
-                sendChatMessage(rec.channelNormalized, nick, body)
-                outgoingQueue.remove(rec.id)
-            } catch (e: Exception) {
-                outgoingQueue.updateDelivery(rec.id, "failed")
-                Twig.warn(e) { "Stopping drain at ${rec.id}" }
-                break
+    private fun retagFirstQueuedOutgoing(
+        channel: String,
+        text: String,
+        prefix: String,
+    ) {
+        _messagesByChannel.update { cur ->
+            val next = cur.toMutableMap()
+            var retagged = false
+            next[channel] =
+                next[channel].orEmpty().map { line ->
+                    if (!retagged && line.eventId.startsWith("queued-") && line.text == text) {
+                        retagged = true
+                        line.copy(eventId = "$prefix-${line.eventId.substringAfter('-', line.eventId)}")
+                    } else {
+                        line
+                    }
+                }
+            next
+        }
+    }
+
+    private fun drainOutgoingQueue(): Boolean {
+        val pending = outgoingQueue.loadAll().filter { it.delivery != "failed" }
+        val status = runCatching { darkircStatus() }.getOrDefault("not_running")
+        val phase = runCatching { darkircConnectionPhase() }.getOrDefault("stopped")
+        if (pending.isNotEmpty() && isReadyForImmediateSend(status, phase)) {
+            DarkircCryptoManager.syncContactsToNative(app)
+            for (rec in pending) {
+                if (!trySendQueuedRecord(rec)) break
             }
         }
-        if (outgoingQueue.loadAll().isEmpty()) {
+        val remaining = outgoingQueue.loadAll()
+        if (remaining.isEmpty()) {
             WorkManager.getInstance(app).cancelUniqueWork(OutgoingChatReconnectWorker.UNIQUE_WORK_NAME)
+        }
+        return remaining.none { it.delivery != "failed" }
+    }
+
+    private fun trySendQueuedRecord(rec: PendingOutgoingChatRecord): Boolean {
+        val currentStatus = runCatching { darkircStatus() }.getOrDefault("not_running")
+        val currentPhase = runCatching { darkircConnectionPhase() }.getOrDefault("stopped")
+        if (!isReadyForImmediateSend(currentStatus, currentPhase)) {
+            return false
+        }
+        outgoingQueue.updateDelivery(rec.id, "sending")
+        return try {
+            val body =
+                DarkfiChatCrypto.encryptMessageIfPossible(
+                    app,
+                    rec.channelNormalized,
+                    rec.textSanitized,
+                    delegateWireCryptoToDaemon = true,
+                )
+            val nick = preferences.ensureIrcNickname()
+            sendChatMessage(rec.channelNormalized, nick, body)
+            outgoingQueue.remove(rec.id)
+            retagFirstQueuedOutgoing(rec.channelNormalized, rec.textSanitized, "local")
+            true
+        } catch (e: Exception) {
+            val retryable =
+                !isReadyForImmediateSend(
+                    runCatching { darkircStatus() }.getOrDefault("not_running"),
+                    runCatching { darkircConnectionPhase() }.getOrDefault("stopped"),
+                )
+            outgoingQueue.updateDelivery(rec.id, if (retryable) "queued" else "failed")
+            Twig.warn(e) { "Stopping drain at ${rec.id}" }
+            false
         }
     }
 
@@ -744,12 +869,13 @@ class DarkfiChatController(
                     if (arg.isNotEmpty()) {
                         val nick = preferences.ensureIrcNickname()
                         val actionText = "* $nick $arg"
-                        recordLocalOutgoing(normalized, actionText)
+                        val localId = recordLocalOutgoing(normalized, actionText)
                         scope.launch(Dispatchers.IO) {
                             try {
-                                publishDmContactsForDaemon()
+                                DarkircCryptoManager.syncContactsToNative(app)
                                 sendChatMessage(normalized, nick, actionText)
                             } catch (e: Exception) {
+                                retagOutgoing(normalized, localId, "failed")
                                 Twig.error(e) { "FFI send failed" }
                             }
                         }
@@ -764,17 +890,17 @@ class DarkfiChatController(
                     if (msgParts.size == 2) {
                         val target = msgParts[0].trim()
                         val msgContent = msgParts[1].trim()
-                        val nick = preferences.ensureIrcNickname()
-                        val wireBody =
-                            DarkfiChatCrypto.encryptMessageIfPossible(
-                                app,
-                                target,
-                                msgContent,
-                                delegateWireCryptoToDaemon = true,
-                            )
                         scope.launch(Dispatchers.IO) {
                             try {
-                                publishDmContactsForDaemon()
+                                val nick = preferences.ensureIrcNickname()
+                                val wireBody =
+                                    DarkfiChatCrypto.encryptMessageIfPossible(
+                                        app,
+                                        target,
+                                        msgContent,
+                                        delegateWireCryptoToDaemon = true,
+                                    )
+                                DarkircCryptoManager.syncContactsToNative(app)
                                 sendChatMessage(target, nick, wireBody)
                             } catch (e: Exception) {
                                 Twig.error(e) { "FFI send /msg failed" }
@@ -809,21 +935,22 @@ class DarkfiChatController(
             }
         }
 
-        val wireBody =
-            DarkfiChatCrypto.encryptMessageIfPossible(
-                app,
-                normalized,
-                body,
-                delegateWireCryptoToDaemon = true
-            )
-
-        if (darkircStatus() == "running") {
-            // Optimistic local bubble so public-channel sends are never invisible
-            // while waiting for EventGraph self-echo / peer relay.
-            val localId = recordLocalOutgoing(normalized, body)
-            scope.launch(Dispatchers.IO) {
+        scope.launch(Dispatchers.IO) {
+            val status = runCatching { darkircStatus() }.getOrDefault("not_running")
+            val phase = runCatching { darkircConnectionPhase() }.getOrDefault("stopped")
+            if (isReadyForImmediateSend(status, phase)) {
+                val wireBody =
+                    DarkfiChatCrypto.encryptMessageIfPossible(
+                        app,
+                        normalized,
+                        body,
+                        delegateWireCryptoToDaemon = true,
+                    )
+                // Optimistic local bubble so public-channel sends are never invisible
+                // while waiting for EventGraph self-echo / peer relay.
+                val localId = recordLocalOutgoing(normalized, body)
                 try {
-                    publishDmContactsForDaemon()
+                    DarkircCryptoManager.syncContactsToNative(app)
                     val nick = preferences.ensureIrcNickname()
                     sendChatMessage(normalized, nick, wireBody)
                 } catch (e: Exception) {
@@ -831,20 +958,18 @@ class DarkfiChatController(
                     Twig.error(e) { "FFI send failed" }
                     _diagnosticDetail.value = "Send failed: ${e.message ?: e.javaClass.simpleName}"
                 }
+                return@launch
             }
-            return
-        }
 
-        outgoingQueue.enqueue(
-            PendingOutgoingChatRecord(
-                channelNormalized = normalized,
-                textSanitized = body,
-                queuedAtEpochMs = System.currentTimeMillis(),
-            ),
-        )
-        OutgoingChatReconnectWorker.schedule(app)
+            outgoingQueue.enqueue(
+                PendingOutgoingChatRecord(
+                    channelNormalized = normalized,
+                    textSanitized = body,
+                    queuedAtEpochMs = System.currentTimeMillis(),
+                ),
+            )
+            OutgoingChatReconnectWorker.schedule(app)
 
-        scope.launch(Dispatchers.IO) {
             val nick = preferences.ensureIrcNickname()
             val line =
                 ChatChannelMessage(
@@ -948,8 +1073,12 @@ class DarkfiChatController(
         /** Cap for the seenEventIds dedup set. Oldest entries are pruned when
          *  the set exceeds this size to prevent unbounded memory growth. */
         private const val SEEN_EVENT_IDS_MAX = 10_000
+        private const val IDENTITY_NICK_PREFIX_LEN = 6
     }
 }
+
+private const val OPTIMISTIC_CLOCK_SKEW_BACKWARD_MS = 60_000L
+private const val OPTIMISTIC_LOCAL_FORWARD_WINDOW_MS = 300_000L
 
 internal fun chatTransportFor(network: PrivacyNetwork): DarkircTransport =
     when (network) {
@@ -957,3 +1086,36 @@ internal fun chatTransportFor(network: PrivacyNetwork): DarkircTransport =
         PrivacyNetwork.Tor -> DarkircTransport.TOR
         PrivacyNetwork.Direct -> DarkircTransport.DIRECT
     }
+
+internal fun isReadyForImmediateSend(
+    daemonStatus: String,
+    connectionPhase: String,
+): Boolean = daemonStatus == "running" && connectionPhase == "connected"
+
+internal fun pruneOptimisticMatch(
+    existing: List<ChatChannelMessage>,
+    msg: ChatChannelMessage,
+): List<ChatChannelMessage> {
+    var dropped = false
+    return existing.filterNot { line ->
+        if (dropped) return@filterNot false
+        val isOptimistic =
+            line.eventId.startsWith("local-") ||
+                line.eventId.startsWith("queued-") ||
+                line.eventId.startsWith("failed-")
+        val deltaMs = msg.timestampMs - line.timestampMs
+        val withinWindow =
+            if (line.eventId.startsWith("queued-")) {
+                deltaMs >= -OPTIMISTIC_CLOCK_SKEW_BACKWARD_MS
+            } else {
+                deltaMs in -OPTIMISTIC_CLOCK_SKEW_BACKWARD_MS..OPTIMISTIC_LOCAL_FORWARD_WINDOW_MS
+            }
+        val matches =
+            isOptimistic &&
+                line.nick == msg.nick &&
+                line.text == msg.text &&
+                withinWindow
+        if (matches) dropped = true
+        matches
+    }
+}

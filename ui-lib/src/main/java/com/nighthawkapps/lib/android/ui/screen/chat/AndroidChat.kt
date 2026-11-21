@@ -47,6 +47,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -69,6 +70,7 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.nighthawkapps.lib.android.global.AppWalletCoordinator
 import com.nighthawkapps.lib.android.global.DeepLinkUtil
 import com.nighthawkapps.lib.android.sdk.chat.ChatChannelMessage
 import com.nighthawkapps.lib.android.sdk.chat.ChatDeliveryLabel
@@ -79,12 +81,11 @@ import com.nighthawkapps.lib.android.sdk.chat.ChatReceipt
 import com.nighthawkapps.lib.android.sdk.chat.ChatReceiptCodec
 import com.nighthawkapps.lib.android.sdk.chat.ChatReceiptPhase
 import com.nighthawkapps.lib.android.sdk.chat.ChatReceiptStore
-import com.nighthawkapps.lib.android.sdk.chat.NighthawkContactStore
-import com.nighthawkapps.lib.android.sdk.mesh.NighthawkMeshService
 import com.nighthawkapps.lib.android.sdk.chat.DarkfiChatConnectionState
 import com.nighthawkapps.lib.android.sdk.chat.DarkfiChatController
 import com.nighthawkapps.lib.android.sdk.chat.DarkfiChatPreferences
 import com.nighthawkapps.lib.android.sdk.chat.EmbeddedDarkircNodeStatus
+import com.nighthawkapps.lib.android.sdk.chat.NighthawkContactStore
 import com.nighthawkapps.lib.android.sdk.chat.darkirc.DarkircCryptoManager
 import com.nighthawkapps.lib.android.sdk.chat.darkirc.DarkircDmPubkeyParser
 import com.nighthawkapps.lib.android.sdk.chat.fud.FudOfferInbox
@@ -96,6 +97,10 @@ import com.nighthawkapps.lib.android.sdk.chat.hud.ChatInlineSpan
 import com.nighthawkapps.lib.android.sdk.chat.hud.ChatMessageLexer
 import com.nighthawkapps.lib.android.sdk.chat.hud.ChatTimeline
 import com.nighthawkapps.lib.android.sdk.chat.hud.ChatTimelineItem
+import com.nighthawkapps.lib.android.sdk.mesh.NighthawkMeshService
+import com.nighthawkapps.lib.android.sdk.net.LightwalletTlsPin
+import com.nighthawkapps.lib.android.sdk.net.SessionTransport
+import com.nighthawkapps.lib.android.sdk.nym.AppNymCoordinator
 import com.nighthawkapps.lib.android.ui.MainActivity
 import com.nighthawkapps.lib.android.ui.R
 import com.nighthawkapps.lib.android.ui.common.SecureScreen
@@ -108,7 +113,6 @@ import com.nighthawkapps.lib.android.ui.screen.chat.view.ChatNetworkHud
 import com.nighthawkapps.lib.android.ui.screen.chat.view.ChatNewDmSheet
 import com.nighthawkapps.lib.android.ui.screen.home.viewmodel.HomeViewModel
 import com.nighthawkapps.lib.android.ui.screen.home.viewmodel.WalletViewModel
-
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -171,6 +175,7 @@ internal fun MainActivity.AndroidChat(
         onPayInvoice = onPayInvoice,
         receiveAddress = addresses?.privateAddresses?.firstOrNull().orEmpty(),
         chainTip = snapshot?.processorInfo?.chainTip ?: 0L,
+        syncStatusMessage = snapshot?.syncStatusMessage.orEmpty(),
         pendingThread = pendingThread,
         onConsumeThread = { homeViewModel.pendingChatThread = null },
         onBeginReceipt = { homeViewModel.pendingChatReceiptId = it },
@@ -185,6 +190,7 @@ private fun ChatScreen(
     onPayInvoice: (String) -> Unit,
     receiveAddress: String,
     chainTip: Long,
+    syncStatusMessage: String,
     pendingThread: String?,
     onConsumeThread: () -> Unit,
     onBeginReceipt: (String) -> Unit,
@@ -234,13 +240,24 @@ private fun ChatScreen(
     var showNetworkHud by remember { mutableStateOf(false) }
 
     val outboundSlots by controller.outboundSlots.collectAsStateWithLifecycle()
-    val useTor by controller.useTorForChat.collectAsStateWithLifecycle()
 
     val context = LocalContext.current
     val clipboard = LocalClipboard.current
     val scope = rememberCoroutineScope()
     val hasEmbedded = remember { DarkircCryptoManager.hasBundledDarkirc(context.applicationContext) }
     var meshOn by remember { mutableStateOf(false) }
+    var tlsPinSummary by remember { mutableStateOf<String?>(null) }
+    val chatPrefs = remember { DarkfiChatPreferences(context.applicationContext) }
+    var selectedPrivacyNetwork by remember { mutableStateOf(SessionTransport.effective(chatPrefs)) }
+    LaunchedEffect(showNetworkHud) {
+        if (showNetworkHud) {
+            selectedPrivacyNetwork = SessionTransport.effective(chatPrefs)
+            withContext(Dispatchers.IO) {
+                controller.refreshOutboundSlots()
+                tlsPinSummary = formatTlsPinSummary(LightwalletTlsPin.pinBytesOrNull(context))
+            }
+        }
+    }
     var threadDisplayNames by remember { mutableStateOf<Map<String, String>>(emptyMap()) }
     var localDisplayName by remember { mutableStateOf("") }
     var pendingPublicInvoice by remember { mutableStateOf<String?>(null) }
@@ -250,7 +267,6 @@ private fun ChatScreen(
     var drkMemo by remember { mutableStateOf("") }
     var drkAddress by remember { mutableStateOf("") }
     var fudPrompt by remember { mutableStateOf<FudPromptUi?>(null) }
-    val chatPrefs = remember { DarkfiChatPreferences(context.applicationContext) }
 
     LaunchedEffect(Unit) {
         val prefs = StandardPreferenceSingleton.getInstance(context.applicationContext)
@@ -474,8 +490,20 @@ private fun ChatScreen(
                         )
                         ChatNetworkHud(
                             slots = outboundSlots,
-                            torSelected = useTor,
-                            onSelectTor = { controller.applyChatTransport(it) },
+                            selectedNetwork = selectedPrivacyNetwork,
+                            onSelectNetwork = { network ->
+                                selectedPrivacyNetwork = network
+                                AppNymCoordinator.applyPrivacyNetworkAsync(
+                                    context.applicationContext,
+                                    network,
+                                    AppWalletCoordinator.get(context.applicationContext),
+                                )
+                            },
+                        )
+                        val connectedSlots = outboundSlots.count { it.state.name == "CONNECTED" }
+                        Text(
+                            text = "Outbound peers: $connectedSlots / ${outboundSlots.size}",
+                            style = MaterialTheme.typography.labelSmall,
                         )
                         if (meshOn) {
                             Text(
@@ -494,6 +522,27 @@ private fun ChatScreen(
                                 } else {
                                     stringResource(R.string.ns_chat_diag_height_unknown)
                                 },
+                            style = MaterialTheme.typography.labelSmall,
+                        )
+                        if (syncStatusMessage.isNotBlank()) {
+                            Text(
+                                text = stringResource(R.string.ns_chat_diag_sync_status, syncStatusMessage),
+                                style = MaterialTheme.typography.labelSmall,
+                                color =
+                                    if (syncStatusMessage.contains("stale", ignoreCase = true) ||
+                                        syncStatusMessage.contains("error", ignoreCase = true)
+                                    ) {
+                                        MaterialTheme.colorScheme.error
+                                    } else {
+                                        MaterialTheme.colorScheme.onSurfaceVariant
+                                    },
+                            )
+                        }
+                        Text(
+                            text =
+                                tlsPinSummary?.let { pin ->
+                                    stringResource(R.string.ns_chat_diag_tls_pin, pin)
+                                } ?: stringResource(R.string.ns_chat_diag_tls_unpinned),
                             style = MaterialTheme.typography.labelSmall,
                         )
                         Text(
@@ -624,6 +673,13 @@ private fun ChatScreen(
         val listState = rememberLazyListState()
         val threadMessages = messages[activeThreadKey].orEmpty()
         val timeline = remember(threadMessages) { ChatTimeline.group(threadMessages) }
+        val shouldAutoScroll by remember(listState) {
+            derivedStateOf {
+                val info = listState.layoutInfo
+                val lastVisible = info.visibleItemsInfo.lastOrNull()?.index ?: 0
+                shouldAutoScrollOnNewMessage(lastVisible, info.totalItemsCount)
+            }
+        }
 
         // Scroll to bottom on initial load and when switching channels/DM threads.
         LaunchedEffect(activeThreadKey) {
@@ -632,9 +688,14 @@ private fun ChatScreen(
             }
         }
 
-        // Auto-scroll to bottom when new messages arrive
+        // Auto-scroll to bottom only when already near bottom or sending our own message.
         LaunchedEffect(timeline.size) {
-            if (timeline.isNotEmpty()) {
+            if (timeline.isEmpty()) return@LaunchedEffect
+            val lastMessage = (timeline.lastOrNull() as? ChatTimelineItem.Message)?.message
+            val isOwnNewMessage =
+                lastMessage != null &&
+                    (lastMessage.eventId.startsWith("local-") || lastMessage.eventId.startsWith("queued-"))
+            if (shouldAutoScroll || isOwnNewMessage) {
                 listState.animateScrollToItem(timeline.lastIndex)
             }
         }
@@ -651,6 +712,7 @@ private fun ChatScreen(
                         // Index-qualified: out-of-order DAG can insert duplicate
                         // epochDay separators and crash LazyColumn on key collision.
                         is ChatTimelineItem.DateSeparator -> "day-${item.epochDay}-$index"
+
                         is ChatTimelineItem.Message -> item.message.eventId
                     }
                 },
@@ -717,11 +779,18 @@ private fun ChatScreen(
         ) {
             TextButton(
                 onClick = {
-                    drkAddress =
-                        selectedDmLabel
-                            ?.let { NighthawkContactStore.findByNick(context, it)?.walletAddress }
-                            .orEmpty()
-                    showDrkComposer = true
+                    val dmLabel = selectedDmLabel
+                    scope.launch {
+                        drkAddress =
+                            if (dmLabel != null) {
+                                withContext(Dispatchers.IO) {
+                                    NighthawkContactStore.findByNick(context, dmLabel)?.walletAddress
+                                }.orEmpty()
+                            } else {
+                                ""
+                            }
+                        showDrkComposer = true
+                    }
                 },
                 enabled = activeThreadKey.isNotBlank(),
             ) {
@@ -783,7 +852,10 @@ private fun ChatScreen(
         val uri = DeepLinkUtil.buildPaymentRequestUri(address, drkAmount.ifBlank { null }, memo) ?: return
         val receipt =
             ChatReceipt(
-                id = java.util.UUID.randomUUID().toString(),
+                id =
+                    java.util.UUID
+                        .randomUUID()
+                        .toString(),
                 phase = ChatReceiptPhase.Pending,
                 amount = drkAmount.ifBlank { "0" },
                 address = address,
@@ -1524,3 +1596,17 @@ private fun chatConnectionLabel(state: DarkfiChatConnectionState): String =
             DarkfiChatConnectionState.Error -> R.string.ns_chat_state_error
         },
     )
+
+internal fun shouldAutoScrollOnNewMessage(
+    lastVisibleIndex: Int,
+    totalItemsCount: Int,
+): Boolean {
+    if (totalItemsCount <= 0) return true
+    return lastVisibleIndex >= (totalItemsCount - 3).coerceAtLeast(0)
+}
+
+internal fun formatTlsPinSummary(pinBytes: List<UByte>?): String? {
+    val bytes = pinBytes?.takeIf { it.isNotEmpty() } ?: return null
+    val hex = bytes.take(8).joinToString("") { "%02x".format(it.toInt()) }
+    return "sha256:$hex..."
+}

@@ -739,4 +739,13 @@
     <string name="ns_share_app_chooser_title">Share Nighthawk APK</string>
     <string name="ns_share_app_no_bluetooth">Bluetooth sharing isn\'t available here, so pick another app.</string>
     <string name="ns_share_app_failed">Couldn\'t prepare the APK for sharing.</string>
+    <string name="ns_send_in_flight_hint">Broadcast in progress — closing this screen leaves the transfer in flight. Check transaction history.</string>
+    <string name="ns_close">Close</string>
+    <string name="ns_chat_transport_nym_short">Nym</string>
+    <string name="ns_chat_transport_direct_short">Direct</string>
+    <string name="ns_tor_network_apply">Apply Tor proxy</string>
+    <string name="ns_tor_network_applied">Tor proxy settings applied</string>
+    <string name="ns_chat_diag_tls_pin">LWD TLS pin: %1$s</string>
+    <string name="ns_chat_diag_tls_unpinned">LWD TLS pin: Not pinned (loopback only)</string>
+    <string name="ns_chat_diag_sync_status">Sync status: %1$s</string>
 </resources>

@@ -218,6 +218,26 @@ fun WalletView(
                         modifier = Modifier.align(Alignment.CenterHorizontally)
                     )
                 }
+                val statusMsg = walletSnapshot.syncStatusMessage.trim()
+                if (statusMsg.isNotEmpty()) {
+                    val isWarning =
+                        statusMsg.contains("stale", ignoreCase = true) ||
+                            statusMsg.contains("error", ignoreCase = true) ||
+                            statusMsg.contains("fail", ignoreCase = true) ||
+                            statusMsg.contains("mismatch", ignoreCase = true)
+                    Spacer(modifier = Modifier.height(4.dp))
+                    BodySmall(
+                        text = statusMsg,
+                        textAlign = TextAlign.Center,
+                        color =
+                            if (isWarning) {
+                                MaterialTheme.colorScheme.error
+                            } else {
+                                WalletTheme.colors.secondaryTitleText
+                            },
+                        modifier = Modifier.align(Alignment.CenterHorizontally),
+                    )
+                }
             }
             // Receive QR stacked above Scan on the top-right.
             Column(
@@ -261,7 +281,7 @@ fun WalletView(
             }
         }
 
-        // Balance / sync status centered in remaining space (not stuck under the logo).
+        // Balance / portfolio always visible (last-known while syncing/reconnecting); sync status shown alongside.
         Box(
             modifier =
                 Modifier
@@ -269,63 +289,66 @@ fun WalletView(
                     .fillMaxWidth(),
             contentAlignment = Alignment.Center,
         ) {
-            if (walletSnapshot.status == DarkfiSyncStatus.SYNCED) {
-                val pages = remember { BalanceViewType.pages() }
-                val state = rememberPagerState(initialPage = 0) { pages.size }
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    HorizontalPager(state = state) { pageNo ->
-                        val page = pages[pageNo]
-                        when (page) {
-                            BalanceViewType.SWIPE -> {
-                                val balanceDisplayValues =
-                                    BalanceDisplayValues.getNextValue(
-                                        LocalContext.current,
-                                        page,
-                                        walletSnapshot,
-                                        isFiatCurrencyPreferred,
-                                        fiatCurrencyUiState
-                                    )
-                                BalanceView(
-                                    balanceDisplayValues = balanceDisplayValues,
-                                    showFlipCurrencyIcon = false,
-                                    onFlipCurrency = {},
+            val pages = remember { BalanceViewType.pages() }
+            val state = rememberPagerState(initialPage = 0) { pages.size }
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                HorizontalPager(state = state) { pageNo ->
+                    val page = pages[pageNo]
+                    when (page) {
+                        BalanceViewType.SWIPE -> {
+                            val balanceDisplayValues =
+                                BalanceDisplayValues.getNextValue(
+                                    LocalContext.current,
+                                    page,
+                                    walletSnapshot,
+                                    isFiatCurrencyPreferred,
+                                    fiatCurrencyUiState
                                 )
-                            }
+                            BalanceView(
+                                balanceDisplayValues = balanceDisplayValues,
+                                showFlipCurrencyIcon = false,
+                                onFlipCurrency = {},
+                            )
+                        }
 
-                            BalanceViewType.ASSETS -> {
-                                TokenPortfolio(
-                                    nativeAtomic = walletSnapshot.spendableBalanceAtomic(),
-                                    balances = tokenBalances,
-                                    onTokenClick = onTokenClick,
-                                    modifier = Modifier.fillMaxWidth(),
-                                )
-                            }
+                        BalanceViewType.ASSETS -> {
+                            TokenPortfolio(
+                                nativeAtomic = walletSnapshot.spendableBalanceAtomic(),
+                                balances = tokenBalances,
+                                onTokenClick = onTokenClick,
+                                modifier = Modifier.fillMaxWidth(),
+                            )
                         }
                     }
-                    val balanceViewType = pages.getOrElse(state.currentPage) { BalanceViewType.SWIPE }
-                    PageIndicator(pageCount = pages.size, pagerState = state)
-                    LaunchedEffect(balanceViewType) {
-                        isBalancePrivateMode = balanceViewType == BalanceViewType.SWIPE
-                    }
                 }
-            } else {
-                val walletDisplayValues =
-                    WalletDisplayValues.getNextValues(
-                        LocalContext.current,
-                        walletSnapshot,
-                        false
-                    )
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Image(
-                        painter = painterResource(id = walletDisplayValues.statusIconDrawable),
-                        contentDescription = null,
-                        contentScale = ContentScale.Inside,
-                    )
+                val balanceViewType = pages.getOrElse(state.currentPage) { BalanceViewType.SWIPE }
+                PageIndicator(pageCount = pages.size, pagerState = state)
+                LaunchedEffect(balanceViewType) {
+                    isBalancePrivateMode = balanceViewType == BalanceViewType.SWIPE
+                }
+                if (walletSnapshot.status != DarkfiSyncStatus.SYNCED) {
+                    val walletDisplayValues =
+                        WalletDisplayValues.getNextValues(
+                            LocalContext.current,
+                            walletSnapshot,
+                            false
+                        )
                     Spacer(modifier = Modifier.height(8.dp))
-                    BodySmall(
-                        text = walletDisplayValues.statusText,
-                        textAlign = TextAlign.Center,
-                    )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        Image(
+                            painter = painterResource(id = walletDisplayValues.statusIconDrawable),
+                            contentDescription = null,
+                            contentScale = ContentScale.Inside,
+                            modifier = Modifier.size(20.dp),
+                        )
+                        BodySmall(
+                            text = walletDisplayValues.statusText,
+                            textAlign = TextAlign.Center,
+                        )
+                    }
                 }
             }
         }

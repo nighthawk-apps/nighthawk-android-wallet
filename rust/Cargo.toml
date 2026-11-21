@@ -17,8 +17,8 @@ form_urlencoded = { git = "https://github.com/darkrenaissance/rust-url", branch 
 # and cannot be freshly resolved. sqlx 0.9 coexists with rusqlite 0.37.
 # Pin choice (Android + iOS lockstep): 5f0dba82. Do not advance one platform alone.
 nym-smolmix = { git = "https://github.com/nymtech/nym.git", rev = "5f0dba82d7a4c3d32fb21f78a0e3ddb6320b4ae8" }
-# Shared with iOS builds of this crate (open_files + RTM_IFINFO2).
-sysinfo = { path = "../../nighthawk-ios-wallet/rust/vendor/sysinfo-0.38.4" }
+# Self-contained vendored sysinfo 0.38.4 (open_files + RTM_IFINFO2 iOS/macOS build fix).
+sysinfo = { path = "./vendor/sysinfo-0.38.4" }
 
 [profile.release]
 opt-level = 3

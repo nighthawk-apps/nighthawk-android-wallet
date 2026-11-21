@@ -10,6 +10,7 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import com.nighthawkapps.lib.android.sdk.util.SecureDataStoreSerializer
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import java.io.File
@@ -54,7 +55,7 @@ internal object DrkWalletPassStore {
     }
 
     fun getOrCreate(context: Context): String =
-        runBlocking {
+        runBlocking(Dispatchers.IO) {
             val ds = getDataStore(context)
             val prefs = ds.data.first()
             val existing = prefs[KEY_PASS]
@@ -90,7 +91,7 @@ internal object DrkWalletPassStore {
     }
 
     private fun peek(context: Context): String? =
-        runBlocking {
+        runBlocking(Dispatchers.IO) {
             getDataStore(context).data.first()[KEY_PASS]
         }
 }

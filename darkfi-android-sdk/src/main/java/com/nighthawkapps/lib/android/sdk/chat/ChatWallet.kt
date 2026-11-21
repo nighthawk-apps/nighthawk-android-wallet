@@ -190,8 +190,7 @@ object ChatNotificationPolicy {
         return true
     }
 
-    fun deepLink(thread: String): String =
-        "nighthawk://chat?thread=" + java.net.URLEncoder.encode(thread, Charsets.UTF_8.name())
+    fun deepLink(thread: String): String = "nighthawk://chat?thread=" + java.net.URLEncoder.encode(thread, Charsets.UTF_8.name())
 }
 
 object ChatLinkGuard {

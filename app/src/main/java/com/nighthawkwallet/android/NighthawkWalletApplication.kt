@@ -1,9 +1,13 @@
 package com.nighthawkwallet.android
 
+import androidx.lifecycle.DefaultLifecycleObserver
+import androidx.lifecycle.LifecycleOwner
+import androidx.lifecycle.ProcessLifecycleOwner
 import com.nighthawkapps.lib.android.global.AppDaemonCoordinator
-import com.nighthawkapps.lib.android.sdk.nym.AppNymCoordinator
 import com.nighthawkapps.lib.android.sdk.net.TransportLifecycle
+import com.nighthawkapps.lib.android.sdk.nym.AppNymCoordinator
 import com.nighthawkapps.lib.android.sdk.tor.AppTorCoordinator
+import com.nighthawkapps.lib.android.sdk.wallet.darkfid.DarkfidDaemonBootstrap
 import com.nighthawkapps.lib.android.spackle.StrictModeCompat
 import com.nighthawkapps.lib.android.spackle.Twig
 
@@ -16,14 +20,26 @@ class NighthawkWalletApplication : CoroutineApplication() {
 
         configureStrictMode()
 
-        AppNymCoordinator.warmStartIfEnabled(this)
-        AppTorCoordinator.warmStartIfEnabled(this)
         TransportLifecycle.install(this)
-        com.nighthawkapps.lib.android.sdk.wallet.darkfid.DarkfidDaemonBootstrap
-            .maybeStart(this)
-        // Embedded darkirc is started from [DarkfiDaemonLifecycleCoordinator] / chat connect (not here —
-        // cold-start FGS here caused ANRs before [Service.startForeground]).
-        AppDaemonCoordinator.install(this)
+        // Register coordinator without booting daemons/FGS during background WorkManager
+        // or BroadcastReceiver process wakeups; daemons start on foreground ON_START.
+        AppDaemonCoordinator.install(this, autoStart = false)
+        ProcessLifecycleOwner.get().lifecycle.addObserver(
+            object : DefaultLifecycleObserver {
+                override fun onStart(owner: LifecycleOwner) {
+                    AppNymCoordinator.warmStartIfEnabled(this@NighthawkWalletApplication)
+                    AppTorCoordinator.warmStartIfEnabled(this@NighthawkWalletApplication)
+                    DarkfidDaemonBootstrap.maybeStart(this@NighthawkWalletApplication)
+                    AppDaemonCoordinator.get().onForeground()
+                }
+
+                override fun onStop(owner: LifecycleOwner) {
+                    AppDaemonCoordinator.get().onBackground()
+                    com.nighthawkapps.lib.android.global.AppWalletCoordinator
+                        .setUserAuthenticated(false)
+                }
+            },
+        )
     }
 
     private fun configureLogging() {

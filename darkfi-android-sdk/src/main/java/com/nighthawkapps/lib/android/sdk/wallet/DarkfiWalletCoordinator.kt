@@ -14,14 +14,17 @@ import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.getAndUpdate
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 
 class DarkfiWalletCoordinator internal constructor(
     private val context: Context,
     walletFlow: Flow<PersistableDarkfiWallet?>,
-    private val useNativeSynchronizer: Boolean = DarkfiNativeProbe.run() is DarkfiNativeProbe.Ok,
+    private val useNativeSynchronizer: Boolean? = null,
     synchronizerAllowed: Flow<Boolean> = flowOf(true),
 ) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
@@ -39,7 +42,10 @@ class DarkfiWalletCoordinator internal constructor(
         synchronizerAllowed.stateIn(scope, SharingStarted.Eagerly, true)
 
     /** One live Fjall cache at a time — Tor reload vs collectLatest used to overlap `Drk::new`. */
-    private val replaceLock = Any()
+    private val replaceMutex = Mutex()
+    private val resolvedUseNative: Boolean by lazy {
+        useNativeSynchronizer ?: (DarkfiNativeProbe.run() is DarkfiNativeProbe.Ok)
+    }
 
     init {
         scope.launch(Dispatchers.IO) {
@@ -51,23 +57,19 @@ class DarkfiWalletCoordinator internal constructor(
         }
     }
 
-    private fun replaceSynchronizer(
+    private suspend fun replaceSynchronizer(
         wallet: PersistableDarkfiWallet?,
         allowed: Boolean,
     ) {
-        synchronized(replaceLock) {
-            _synchronizer.value?.close()
-            try {
-                Thread.sleep(250)
-            } catch (_: InterruptedException) {
-                Thread.currentThread().interrupt()
-            }
+        replaceMutex.withLock {
+            val previous = _synchronizer.getAndUpdate { null }
+            previous?.close()
             // Do not construct DarkfiWalletHandle (Arti wait ≤120s + LWD tip
             // probe) until the user finishes seed backup. Create Wallet used
             // to look dead because persist immediately opened the handle.
             _synchronizer.value =
                 if (wallet != null && allowed) {
-                    DarkfiSynchronizerFactory.create(wallet, appContext, useNativeSynchronizer)
+                    DarkfiSynchronizerFactory.create(wallet, appContext, resolvedUseNative)
                 } else {
                     null
                 }

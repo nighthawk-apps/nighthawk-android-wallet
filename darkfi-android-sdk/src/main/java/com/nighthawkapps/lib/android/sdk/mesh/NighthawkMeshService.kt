@@ -61,12 +61,14 @@ class NighthawkMeshService : Service() {
                 networkCapabilities: NetworkCapabilities,
             ) {
                 applyPower()
-                com.nighthawkapps.lib.android.sdk.net.TransportNative.onNetworkChanged()
+                com.nighthawkapps.lib.android.sdk.net.TransportNative
+                    .onNetworkChanged()
             }
 
             override fun onLost(network: Network) {
                 applyPower()
-                com.nighthawkapps.lib.android.sdk.net.TransportNative.onNetworkChanged()
+                com.nighthawkapps.lib.android.sdk.net.TransportNative
+                    .onNetworkChanged()
             }
         }
 
@@ -87,13 +89,15 @@ class NighthawkMeshService : Service() {
                     appForeground = true
                     ensureRadio()
                     applyPower()
-                    com.nighthawkapps.lib.android.sdk.net.TransportNative.onForeground()
+                    com.nighthawkapps.lib.android.sdk.net.TransportNative
+                        .onForeground()
                 }
 
                 Lifecycle.Event.ON_STOP -> {
                     appForeground = false
                     applyPower()
-                    com.nighthawkapps.lib.android.sdk.net.TransportNative.onBackground()
+                    com.nighthawkapps.lib.android.sdk.net.TransportNative
+                        .onBackground()
                     if (!MeshCoordinator.alwaysOn) {
                         Twig.debug { "mesh: pausing FGS — always-on is off" }
                         stopSelf()

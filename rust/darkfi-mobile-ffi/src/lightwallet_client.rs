@@ -533,10 +533,10 @@ pub struct LightwalletClient {
     /// S13: when true (default), refuse cleartext `http://` to remote hosts
     /// even when dialling via SOCKS5/Tor. Prefer `https://` + TLS pin.
     require_https_over_socks: bool,
-    /// Persistent cloneable gRPC channel — `OnceCell` so concurrent RPCs
-    /// clone the ready channel without holding a session-wide mutex.
-    /// Pooled clients share one cell per endpoint, pin list, and SOCKS route.
-    channel: Arc<tokio::sync::OnceCell<tonic::transport::Channel>>,
+    /// Persistent cloneable gRPC channel — cleared on transport error so stale
+    /// connections recover immediately on the next RPC.
+    /// Pooled clients share one slot per endpoint, pin list, and SOCKS route.
+    channel: Arc<tokio::sync::Mutex<Option<tonic::transport::Channel>>>,
     /// RPC request metrics (chain tip, OMR, PIR, block requests).
     metrics: Arc<RpcMetrics>,
     omr_limiter: Arc<SlidingWindowLimiter>,
@@ -553,7 +553,7 @@ struct ClientPoolKey {
 
 #[derive(Clone)]
 struct SharedDial {
-    channel: Arc<tokio::sync::OnceCell<tonic::transport::Channel>>,
+    channel: Arc<tokio::sync::Mutex<Option<tonic::transport::Channel>>>,
     metrics: Arc<RpcMetrics>,
     omr_limiter: Arc<SlidingWindowLimiter>,
     chain_tip_limiter: Arc<SlidingWindowLimiter>,
@@ -776,7 +776,7 @@ impl LightwalletClient {
             tls_pins: Vec::new(),
             socks5_proxy,
             require_https_over_socks: true,
-            channel: Arc::new(tokio::sync::OnceCell::new()),
+            channel: Arc::new(tokio::sync::Mutex::new(None)),
             metrics: Arc::new(RpcMetrics::default()),
             omr_limiter: Arc::new(SlidingWindowLimiter::new(
                 Self::OMR_RATE_LIMIT_PER_MIN,
@@ -822,7 +822,7 @@ impl LightwalletClient {
             tls_pins: pins,
             socks5_proxy,
             require_https_over_socks: true,
-            channel: Arc::new(tokio::sync::OnceCell::new()),
+            channel: Arc::new(tokio::sync::Mutex::new(None)),
             metrics: Arc::new(RpcMetrics::default()),
             omr_limiter: Arc::new(SlidingWindowLimiter::new(
                 Self::OMR_RATE_LIMIT_PER_MIN,
@@ -880,7 +880,7 @@ impl LightwalletClient {
             };
             pool.entry(key)
                 .or_insert_with(|| SharedDial {
-                    channel: Arc::new(tokio::sync::OnceCell::new()),
+                    channel: Arc::new(tokio::sync::Mutex::new(None)),
                     metrics: Arc::new(RpcMetrics::default()),
                     omr_limiter: Arc::new(SlidingWindowLimiter::new(
                         Self::OMR_RATE_LIMIT_PER_MIN,
@@ -1058,11 +1058,62 @@ impl LightwalletClient {
         }
     }
 
+    /// Per-RPC deadline for fast metadata, broadcast, and single-item lookups.
+    pub(crate) fn fast_rpc_timeout(&self) -> Duration {
+        if self.socks5_proxy.is_some() {
+            Duration::from_secs(60)
+        } else {
+            Duration::from_secs(30)
+        }
+    }
+
+    /// Per-RPC deadline for bounded compact-block / commitment / nullifier streams.
+    pub(crate) fn stream_rpc_timeout(&self) -> Duration {
+        Duration::from_secs(300)
+    }
+
+    fn timed_request<T>(&self, msg: T, timeout: Duration) -> tonic::Request<T> {
+        let mut req = tonic::Request::new(msg);
+        req.set_timeout(timeout);
+        req
+    }
+
+    pub(crate) fn is_transport_error_status(status: &tonic::Status) -> bool {
+        matches!(
+            status.code(),
+            tonic::Code::Unavailable
+                | tonic::Code::Unknown
+                | tonic::Code::DeadlineExceeded
+                | tonic::Code::Cancelled
+                | tonic::Code::Internal
+        )
+    }
+
+    /// Evict the cached channel so the next RPC immediately dials a fresh one.
+    pub(crate) async fn evict_channel(&self) {
+        *self.channel.lock().await = None;
+    }
+
+    async fn handle_rpc_status(&self, label: &str, status: tonic::Status) -> String {
+        if Self::is_transport_error_status(&status) {
+            tracing::warn!(
+                target: "lightwallet-client",
+                "{label} hit transport error ({}); evicting pooled channel",
+                status.code()
+            );
+            self.evict_channel().await;
+        }
+        format!("{label}: {status}")
+    }
+
     async fn connect_channel(&self) -> Result<tonic::transport::Channel, String> {
-        self.channel
-            .get_or_try_init(|| self.dial_fresh_channel())
-            .await
-            .cloned()
+        let mut guard = self.channel.lock().await;
+        if let Some(ch) = guard.as_ref() {
+            return Ok(ch.clone());
+        }
+        let fresh = self.dial_fresh_channel().await?;
+        *guard = Some(fresh.clone());
+        Ok(fresh)
     }
 
     async fn dial_fresh_channel(&self) -> Result<tonic::transport::Channel, String> {
@@ -1265,15 +1316,21 @@ impl LightwalletClient {
     pub async fn get_light_info(&self) -> Result<LightServerInfo, String> {
         self.chain_tip_limiter.try_acquire()?;
         let start = Instant::now();
+        let timeout = self.fast_rpc_timeout();
         let result = async_compat::Compat::new(async {
             let channel = self.connect_channel().await?;
 
             let mut client = lwd_client(channel);
 
-            let resp = client
-                .get_light_info(lightwallet_proto::Empty {})
+            let resp = match client
+                .get_light_info(self.timed_request(lightwallet_proto::Empty {}, timeout))
                 .await
-                .map_err(|e| format!("GetLightInfo RPC: {e}"))?;
+            {
+                Ok(resp) => resp,
+                Err(status) => {
+                    return Err(self.handle_rpc_status("GetLightInfo RPC", status).await)
+                }
+            };
 
             let info = resp.into_inner();
             let proto_version = info.proto_version.clone();
@@ -1356,6 +1413,7 @@ impl LightwalletClient {
         filter_end: u32,
     ) -> Result<Vec<LightCompactBlock>, String> {
         let start = Instant::now();
+        let timeout = self.stream_rpc_timeout();
         let blocks: Vec<LightCompactBlock> = async_compat::Compat::new(async {
             let channel = self.connect_channel().await?;
 
@@ -1366,20 +1424,26 @@ impl LightwalletClient {
                 end_height: request_end,
             };
 
-            let mut stream = client
-                .get_block_range(request)
+            let mut stream = match client
+                .get_block_range(self.timed_request(request, timeout))
                 .await
-                .map_err(|e| format!("GetBlockRange RPC: {e}"))?
-                .into_inner();
+            {
+                Ok(resp) => resp.into_inner(),
+                Err(status) => {
+                    return Err(self.handle_rpc_status("GetBlockRange RPC", status).await);
+                }
+            };
 
             let expected_count = (request_end.saturating_sub(request_start) + 1) as usize;
             let mut blocks = Vec::with_capacity(expected_count.min(10_000));
-            while let Some(proto_block) = stream
-                .message()
-                .await
-                .map_err(|e| format!("GetBlockRange stream: {e}"))?
-            {
-                blocks.push(proto_compact_to_light(proto_block));
+            loop {
+                match stream.message().await {
+                    Ok(Some(proto_block)) => blocks.push(proto_compact_to_light(proto_block)),
+                    Ok(None) => break,
+                    Err(status) => {
+                        return Err(self.handle_rpc_status("GetBlockRange stream", status).await);
+                    }
+                }
             }
 
             Ok::<Vec<LightCompactBlock>, String>(blocks)
@@ -1404,13 +1468,17 @@ impl LightwalletClient {
 
     /// Fetch a single compact block by height.
     pub async fn get_block(&self, height: u32) -> Result<LightCompactBlock, String> {
+        let timeout = self.fast_rpc_timeout();
         async_compat::Compat::new(async {
             let channel = self.connect_channel().await?;
             let mut client = lwd_client(channel);
-            let resp = client
-                .get_block(lightwallet_proto::BlockHeight { height })
+            let resp = match client
+                .get_block(self.timed_request(lightwallet_proto::BlockHeight { height }, timeout))
                 .await
-                .map_err(|e| format!("GetBlock RPC: {e}"))?;
+            {
+                Ok(resp) => resp,
+                Err(status) => return Err(self.handle_rpc_status("GetBlock RPC", status).await),
+            };
             Ok(proto_compact_to_light(resp.into_inner()))
         })
         .await
@@ -1432,29 +1500,41 @@ impl LightwalletClient {
         unique.dedup();
 
         let start = Instant::now();
+        let timeout = self.stream_rpc_timeout();
         let result = async_compat::Compat::new(async {
             let channel = self.connect_channel().await?;
             let mut client = lwd_client(channel);
 
             match client
-                .get_compact_blocks_at_heights(lightwallet_proto::HeightList {
-                    heights: unique.clone(),
-                })
+                .get_compact_blocks_at_heights(self.timed_request(
+                    lightwallet_proto::HeightList {
+                        heights: unique.clone(),
+                    },
+                    timeout,
+                ))
                 .await
             {
                 Ok(response) => {
                     let mut stream = response.into_inner();
                     let mut blocks = Vec::with_capacity(unique.len());
-                    while let Some(proto_block) = stream
-                        .message()
-                        .await
-                        .map_err(|e| format!("GetCompactBlocksAtHeights stream: {e}"))?
-                    {
-                        blocks.push(proto_compact_to_light(proto_block));
+                    loop {
+                        match stream.message().await {
+                            Ok(Some(proto_block)) => {
+                                blocks.push(proto_compact_to_light(proto_block));
+                            }
+                            Ok(None) => break,
+                            Err(status) => {
+                                return Err(self
+                                    .handle_rpc_status("GetCompactBlocksAtHeights stream", status)
+                                    .await);
+                            }
+                        }
                     }
                     Ok(blocks)
                 }
-                Err(status) => Err(format!("GetCompactBlocksAtHeights RPC: {status}")),
+                Err(status) => Err(self
+                    .handle_rpc_status("GetCompactBlocksAtHeights RPC", status)
+                    .await),
             }
         })
         .await;
@@ -1477,25 +1557,39 @@ impl LightwalletClient {
     ) -> Result<Vec<(u32, Vec<Vec<u8>>)>, String> {
         validate_block_range(start_height, end_height)?;
         let start = Instant::now();
+        let timeout = self.stream_rpc_timeout();
         let updates = async_compat::Compat::new(async {
             let channel = self.connect_channel().await?;
             let mut client = lwd_client(channel);
-            let mut stream = client
-                .get_note_commitments(lightwallet_proto::BlockRange {
-                    start_height,
-                    end_height,
-                })
+            let mut stream = match client
+                .get_note_commitments(self.timed_request(
+                    lightwallet_proto::BlockRange {
+                        start_height,
+                        end_height,
+                    },
+                    timeout,
+                ))
                 .await
-                .map_err(|e| format!("GetNoteCommitments RPC: {e}"))?
-                .into_inner();
+            {
+                Ok(resp) => resp.into_inner(),
+                Err(status) => {
+                    return Err(self
+                        .handle_rpc_status("GetNoteCommitments RPC", status)
+                        .await);
+                }
+            };
 
             let mut out = Vec::new();
-            while let Some(update) = stream
-                .message()
-                .await
-                .map_err(|e| format!("GetNoteCommitments stream: {e}"))?
-            {
-                out.push((update.height, update.coins));
+            loop {
+                match stream.message().await {
+                    Ok(Some(update)) => out.push((update.height, update.coins)),
+                    Ok(None) => break,
+                    Err(status) => {
+                        return Err(self
+                            .handle_rpc_status("GetNoteCommitments stream", status)
+                            .await);
+                    }
+                }
             }
             Ok::<Vec<(u32, Vec<Vec<u8>>)>, String>(out)
         })
@@ -1518,25 +1612,35 @@ impl LightwalletClient {
     ) -> Result<Vec<(u32, Vec<Vec<u8>>)>, String> {
         validate_block_range(start_height, end_height)?;
         let start = Instant::now();
+        let timeout = self.stream_rpc_timeout();
         let updates = async_compat::Compat::new(async {
             let channel = self.connect_channel().await?;
             let mut client = lwd_client(channel);
-            let mut stream = client
-                .get_nullifiers(lightwallet_proto::BlockRange {
-                    start_height,
-                    end_height,
-                })
+            let mut stream = match client
+                .get_nullifiers(self.timed_request(
+                    lightwallet_proto::BlockRange {
+                        start_height,
+                        end_height,
+                    },
+                    timeout,
+                ))
                 .await
-                .map_err(|e| format!("GetNullifiers RPC: {e}"))?
-                .into_inner();
+            {
+                Ok(resp) => resp.into_inner(),
+                Err(status) => {
+                    return Err(self.handle_rpc_status("GetNullifiers RPC", status).await);
+                }
+            };
 
             let mut out = Vec::new();
-            while let Some(update) = stream
-                .message()
-                .await
-                .map_err(|e| format!("GetNullifiers stream: {e}"))?
-            {
-                out.push((update.height, update.nullifiers));
+            loop {
+                match stream.message().await {
+                    Ok(Some(update)) => out.push((update.height, update.nullifiers)),
+                    Ok(None) => break,
+                    Err(status) => {
+                        return Err(self.handle_rpc_status("GetNullifiers stream", status).await);
+                    }
+                }
             }
             Ok::<Vec<(u32, Vec<Vec<u8>>)>, String>(out)
         })
@@ -1553,15 +1657,23 @@ impl LightwalletClient {
 
     /// Query the server's OMR capabilities.
     pub async fn get_omr_capabilities(&self) -> Result<OmrServerCapabilities, String> {
+        let timeout = self.fast_rpc_timeout();
         async_compat::Compat::new(async {
             let channel = self.connect_channel().await?;
 
             let mut client = lwd_client(channel);
 
-            let resp = client
-                .get_omr_capabilities(lightwallet_proto::Empty {})
+            let resp = match client
+                .get_omr_capabilities(self.timed_request(lightwallet_proto::Empty {}, timeout))
                 .await
-                .map_err(|e| format!("GetOmrCapabilities RPC: {e}"))?;
+            {
+                Ok(resp) => resp,
+                Err(status) => {
+                    return Err(self
+                        .handle_rpc_status("GetOmrCapabilities RPC", status)
+                        .await);
+                }
+            };
 
             let caps = resp.into_inner();
             Ok(OmrServerCapabilities {
@@ -1586,20 +1698,26 @@ impl LightwalletClient {
             return Err("omr_clue cannot be empty".to_string());
         }
 
+        let timeout = self.fast_rpc_timeout();
         async_compat::Compat::new(async {
             let channel = self.connect_channel().await?;
             let mut client = lwd_client(channel);
-            client
-                .register_omr_clue(lightwallet_proto::OmrClueRegistration {
-                    tx_hash,
-                    omr_clue,
-                    omr_clue_output_index: 0, // payment output
-                    // No recipient-encrypted metadata on the standalone
-                    // registration path; SendTransaction carries it instead.
-                    omr_metadata_enc: Vec::new(),
-                })
+            if let Err(status) = client
+                .register_omr_clue(self.timed_request(
+                    lightwallet_proto::OmrClueRegistration {
+                        tx_hash,
+                        omr_clue,
+                        omr_clue_output_index: 0, // payment output
+                        // No recipient-encrypted metadata on the standalone
+                        // registration path; SendTransaction carries it instead.
+                        omr_metadata_enc: Vec::new(),
+                    },
+                    timeout,
+                ))
                 .await
-                .map_err(|e| format!("RegisterOmrClue RPC: {e}"))?;
+            {
+                return Err(self.handle_rpc_status("RegisterOmrClue RPC", status).await);
+            }
             Ok(())
         })
         .await
@@ -1684,20 +1802,29 @@ impl LightwalletClient {
         if tx_data.is_empty() {
             return Err("transaction data cannot be empty".into());
         }
+        let timeout = Duration::from_secs(60);
         let result = async_compat::Compat::new(async {
             let channel = self.connect_channel().await?;
             let mut client = lwd_client(channel);
             let had_clue = !omr_clue.is_empty();
-            let resp = client
-                .send_transaction(lightwallet_proto::RawTransaction {
-                    data: tx_data,
-                    omr_clue,
-                    omr_clue_output_index,
-                    omr_metadata_enc,
-                    extra_omr_clues,
-                })
+            let resp = match client
+                .send_transaction(self.timed_request(
+                    lightwallet_proto::RawTransaction {
+                        data: tx_data,
+                        omr_clue,
+                        omr_clue_output_index,
+                        omr_metadata_enc,
+                        extra_omr_clues,
+                    },
+                    timeout,
+                ))
                 .await
-                .map_err(|e| format!("SendTransaction RPC: {e}"))?;
+            {
+                Ok(resp) => resp,
+                Err(status) => {
+                    return Err(self.handle_rpc_status("SendTransaction RPC", status).await);
+                }
+            };
             let inner = resp.into_inner();
             // Finding 5.5: validate server error format — empty means success
             if !inner.error.is_empty() {
@@ -1738,11 +1865,14 @@ impl LightwalletClient {
             return Err(format!("tx_hash must be 32 bytes, got {}", tx_hash.len()));
         }
         let tx_hash = tx_hash.to_vec();
+        let timeout = self.fast_rpc_timeout();
         async_compat::Compat::new(async {
             let channel = self.connect_channel().await?;
             let mut client = lwd_client(channel);
             match client
-                .get_transaction(lightwallet_proto::TxHash { hash: tx_hash })
+                .get_transaction(
+                    self.timed_request(lightwallet_proto::TxHash { hash: tx_hash }, timeout),
+                )
                 .await
             {
                 Ok(resp) => {
@@ -1754,7 +1884,7 @@ impl LightwalletClient {
                     }
                 }
                 Err(status) if status.code() == tonic::Code::NotFound => Ok(None),
-                Err(status) => Err(format!("GetTransaction RPC: {status}")),
+                Err(status) => Err(self.handle_rpc_status("GetTransaction RPC", status).await),
             }
         })
         .await
@@ -1820,10 +1950,15 @@ impl LightwalletClient {
                     }
                 }
             };
-            let resp = client
-                .get_unif_omr_digest(tonic::Request::new(stream))
+            let resp = match client
+                .get_unif_omr_digest(self.timed_request(stream, self.request_timeout))
                 .await
-                .map_err(|e| format!("GetUnifOmrDigest RPC: {e}"))?;
+            {
+                Ok(resp) => resp,
+                Err(status) => {
+                    return Err(self.handle_rpc_status("GetUnifOmrDigest RPC", status).await);
+                }
+            };
             let inner = resp.into_inner();
             Ok((inner.encrypted_digest, inner.slot_heights, inner.complete))
         })
@@ -1867,10 +2002,17 @@ impl LightwalletClient {
                     };
                 }
             };
-            let resp = client
-                .register_detection_key(tonic::Request::new(stream))
+            let resp = match client
+                .register_detection_key(self.timed_request(stream, self.request_timeout))
                 .await
-                .map_err(|e| format!("RegisterDetectionKey RPC: {e}"))?;
+            {
+                Ok(resp) => resp,
+                Err(status) => {
+                    return Err(self
+                        .handle_rpc_status("RegisterDetectionKey RPC", status)
+                        .await);
+                }
+            };
             let inner = resp.into_inner();
             if inner.handle.len() != 32 {
                 return Err(format!(
@@ -1904,14 +2046,24 @@ impl LightwalletClient {
         let result = async_compat::Compat::new(async {
             let channel = self.connect_channel().await?;
             let mut client = lwd_client(channel);
-            let resp = client
-                .get_unif_omr_digest_from_pool(lightwallet_proto::PoolDigestRequest {
-                    handle,
-                    start_height,
-                    end_height,
-                })
+            let resp = match client
+                .get_unif_omr_digest_from_pool(self.timed_request(
+                    lightwallet_proto::PoolDigestRequest {
+                        handle,
+                        start_height,
+                        end_height,
+                    },
+                    self.request_timeout,
+                ))
                 .await
-                .map_err(|e| format!("GetUnifOmrDigestFromPool RPC: {e}"))?;
+            {
+                Ok(resp) => resp,
+                Err(status) => {
+                    return Err(self
+                        .handle_rpc_status("GetUnifOmrDigestFromPool RPC", status)
+                        .await);
+                }
+            };
             let inner = resp.into_inner();
             Ok((inner.encrypted_digest, inner.slot_heights, inner.complete))
         })
@@ -1928,34 +2080,48 @@ impl LightwalletClient {
         end_height: u32,
     ) -> Result<Vec<CompactOutputBodyDto>, String> {
         validate_block_range(start_height, end_height)?;
+        let timeout = self.stream_rpc_timeout();
         async_compat::Compat::new(async {
             let channel = self.connect_channel().await?;
             let mut client = lwd_client(channel);
-            let mut stream = client
-                .get_compact_output_bodies(lightwallet_proto::BlockRange {
-                    start_height,
-                    end_height,
-                })
+            let mut stream = match client
+                .get_compact_output_bodies(self.timed_request(
+                    lightwallet_proto::BlockRange {
+                        start_height,
+                        end_height,
+                    },
+                    timeout,
+                ))
                 .await
-                .map_err(|e| format!("GetCompactOutputBodies RPC: {e}"))?
-                .into_inner();
-            let mut out = Vec::new();
-            while let Some(body) = stream
-                .message()
-                .await
-                .map_err(|e| format!("GetCompactOutputBodies stream: {e}"))?
             {
-                out.push(CompactOutputBodyDto {
-                    height: body.height,
-                    hash: body.hash,
-                    prev_hash: body.prev_hash,
-                    coin: body.coin,
-                    encrypted_note: body.encrypted_note,
-                    omr_clue: body.omr_clue,
-                    omr_metadata_enc: body.omr_metadata_enc,
-                    tx_hash: body.tx_hash,
-                    func_code: body.func_code,
-                });
+                Ok(resp) => resp.into_inner(),
+                Err(status) => {
+                    return Err(self
+                        .handle_rpc_status("GetCompactOutputBodies RPC", status)
+                        .await);
+                }
+            };
+            let mut out = Vec::new();
+            loop {
+                match stream.message().await {
+                    Ok(Some(body)) => out.push(CompactOutputBodyDto {
+                        height: body.height,
+                        hash: body.hash,
+                        prev_hash: body.prev_hash,
+                        coin: body.coin,
+                        encrypted_note: body.encrypted_note,
+                        omr_clue: body.omr_clue,
+                        omr_metadata_enc: body.omr_metadata_enc,
+                        tx_hash: body.tx_hash,
+                        func_code: body.func_code,
+                    }),
+                    Ok(None) => break,
+                    Err(status) => {
+                        return Err(self
+                            .handle_rpc_status("GetCompactOutputBodies stream", status)
+                            .await);
+                    }
+                }
             }
             Ok(out)
         })
@@ -1971,35 +2137,49 @@ impl LightwalletClient {
         func_code: u32,
     ) -> Result<Vec<CompactOutputBodyDto>, String> {
         validate_block_range(start_height, end_height)?;
+        let timeout = self.stream_rpc_timeout();
         async_compat::Compat::new(async {
             let channel = self.connect_channel().await?;
             let mut client = lwd_client(channel);
-            let mut stream = client
-                .get_compact_outputs_by_func(lightwallet_proto::FuncBlockRange {
-                    start_height,
-                    end_height,
-                    func_code,
-                })
+            let mut stream = match client
+                .get_compact_outputs_by_func(self.timed_request(
+                    lightwallet_proto::FuncBlockRange {
+                        start_height,
+                        end_height,
+                        func_code,
+                    },
+                    timeout,
+                ))
                 .await
-                .map_err(|e| format!("GetCompactOutputsByFunc RPC: {e}"))?
-                .into_inner();
-            let mut out = Vec::new();
-            while let Some(body) = stream
-                .message()
-                .await
-                .map_err(|e| format!("GetCompactOutputsByFunc stream: {e}"))?
             {
-                out.push(CompactOutputBodyDto {
-                    height: body.height,
-                    hash: body.hash,
-                    prev_hash: body.prev_hash,
-                    coin: body.coin,
-                    encrypted_note: body.encrypted_note,
-                    omr_clue: body.omr_clue,
-                    omr_metadata_enc: body.omr_metadata_enc,
-                    tx_hash: body.tx_hash,
-                    func_code: body.func_code,
-                });
+                Ok(resp) => resp.into_inner(),
+                Err(status) => {
+                    return Err(self
+                        .handle_rpc_status("GetCompactOutputsByFunc RPC", status)
+                        .await);
+                }
+            };
+            let mut out = Vec::new();
+            loop {
+                match stream.message().await {
+                    Ok(Some(body)) => out.push(CompactOutputBodyDto {
+                        height: body.height,
+                        hash: body.hash,
+                        prev_hash: body.prev_hash,
+                        coin: body.coin,
+                        encrypted_note: body.encrypted_note,
+                        omr_clue: body.omr_clue,
+                        omr_metadata_enc: body.omr_metadata_enc,
+                        tx_hash: body.tx_hash,
+                        func_code: body.func_code,
+                    }),
+                    Ok(None) => break,
+                    Err(status) => {
+                        return Err(self
+                            .handle_rpc_status("GetCompactOutputsByFunc stream", status)
+                            .await);
+                    }
+                }
             }
             Ok(out)
         })
@@ -2013,30 +2193,44 @@ impl LightwalletClient {
         end_height: u32,
     ) -> Result<Vec<crate::dao_compact::CompactDaoCall>, String> {
         validate_block_range(start_height, end_height)?;
+        let timeout = self.stream_rpc_timeout();
         async_compat::Compat::new(async {
             let channel = self.connect_channel().await?;
             let mut client = lwd_client(channel);
-            let mut stream = client
-                .get_compact_dao_calls(lightwallet_proto::BlockRange {
-                    start_height,
-                    end_height,
-                })
+            let mut stream = match client
+                .get_compact_dao_calls(self.timed_request(
+                    lightwallet_proto::BlockRange {
+                        start_height,
+                        end_height,
+                    },
+                    timeout,
+                ))
                 .await
-                .map_err(|e| format!("GetCompactDaoCalls RPC: {e}"))?
-                .into_inner();
-            let mut out = Vec::new();
-            while let Some(call) = stream
-                .message()
-                .await
-                .map_err(|e| format!("GetCompactDaoCalls stream: {e}"))?
             {
-                out.push(crate::dao_compact::CompactDaoCall {
-                    height: call.height,
-                    tx_hash: call.tx_hash,
-                    kind: call.kind,
-                    bulla: call.bulla,
-                    payload: call.payload,
-                });
+                Ok(resp) => resp.into_inner(),
+                Err(status) => {
+                    return Err(self
+                        .handle_rpc_status("GetCompactDaoCalls RPC", status)
+                        .await);
+                }
+            };
+            let mut out = Vec::new();
+            loop {
+                match stream.message().await {
+                    Ok(Some(call)) => out.push(crate::dao_compact::CompactDaoCall {
+                        height: call.height,
+                        tx_hash: call.tx_hash,
+                        kind: call.kind,
+                        bulla: call.bulla,
+                        payload: call.payload,
+                    }),
+                    Ok(None) => break,
+                    Err(status) => {
+                        return Err(self
+                            .handle_rpc_status("GetCompactDaoCalls stream", status)
+                            .await);
+                    }
+                }
             }
             Ok(out)
         })
@@ -2045,13 +2239,19 @@ impl LightwalletClient {
 
     pub async fn get_chain_tip(&self) -> Result<ChainTipNotice, String> {
         self.chain_tip_limiter.try_acquire()?;
+        let timeout = self.fast_rpc_timeout();
         async_compat::Compat::new(async {
             let channel = self.connect_channel().await?;
             let mut client = lwd_client(channel);
-            let resp = client
-                .get_chain_tip(lightwallet_proto::Empty {})
+            let resp = match client
+                .get_chain_tip(self.timed_request(lightwallet_proto::Empty {}, timeout))
                 .await
-                .map_err(|e| format!("GetChainTip RPC: {e}"))?;
+            {
+                Ok(resp) => resp,
+                Err(status) => {
+                    return Err(self.handle_rpc_status("GetChainTip RPC", status).await);
+                }
+            };
             Ok(chain_tip_notice(resp.into_inner()))
         })
         .await
@@ -2069,14 +2269,21 @@ impl LightwalletClient {
         last_hash: &[u8],
     ) -> Result<Option<ChainTipNotice>, String> {
         let last_hash = last_hash.to_vec();
+        let subscribe_timeout = wait.saturating_add(self.fast_rpc_timeout());
         async_compat::Compat::new(async move {
             let channel = self.connect_channel().await?;
             let mut client = lwd_client(channel);
-            let mut stream = client
-                .subscribe_blocks(lightwallet_proto::Empty {})
+            let mut stream = match client
+                .subscribe_blocks(
+                    self.timed_request(lightwallet_proto::Empty {}, subscribe_timeout),
+                )
                 .await
-                .map_err(|e| format!("SubscribeBlocks RPC: {e}"))?
-                .into_inner();
+            {
+                Ok(resp) => resp.into_inner(),
+                Err(status) => {
+                    return Err(self.handle_rpc_status("SubscribeBlocks RPC", status).await);
+                }
+            };
             let deadline = tokio::time::Instant::now() + wait;
             loop {
                 let left = deadline.saturating_duration_since(tokio::time::Instant::now());
@@ -2094,7 +2301,11 @@ impl LightwalletClient {
                         }
                     }
                     Ok(Ok(None)) => return Err("SubscribeBlocks ended".into()),
-                    Ok(Err(e)) => return Err(format!("SubscribeBlocks stream: {e}")),
+                    Ok(Err(status)) => {
+                        return Err(self
+                            .handle_rpc_status("SubscribeBlocks stream", status)
+                            .await);
+                    }
                     Err(_) => return Ok(None),
                 }
             }
@@ -2109,18 +2320,26 @@ impl LightwalletClient {
         ownership_proof: Vec<u8>,
         key_version: u64,
     ) -> Result<(), String> {
+        let timeout = self.fast_rpc_timeout();
         let result = async_compat::Compat::new(async {
             let channel = self.connect_channel().await?;
             let mut client = lwd_client(channel);
-            client
-                .register_clue_public_key(lightwallet_proto::CluePublicKeyRegistration {
-                    payment_pubkey,
-                    clue_public_key,
-                    ownership_proof,
-                    key_version,
-                })
+            if let Err(status) = client
+                .register_clue_public_key(self.timed_request(
+                    lightwallet_proto::CluePublicKeyRegistration {
+                        payment_pubkey,
+                        clue_public_key,
+                        ownership_proof,
+                        key_version,
+                    },
+                    timeout,
+                ))
                 .await
-                .map_err(|e| format!("RegisterCluePublicKey RPC: {e}"))?;
+            {
+                return Err(self
+                    .handle_rpc_status("RegisterCluePublicKey RPC", status)
+                    .await);
+            }
             Ok(())
         })
         .await;
@@ -2131,13 +2350,23 @@ impl LightwalletClient {
         &self,
         payment_pubkey: Vec<u8>,
     ) -> Result<(bool, Vec<u8>, Vec<u8>, u64), String> {
+        let timeout = self.fast_rpc_timeout();
         let result = async_compat::Compat::new(async {
             let channel = self.connect_channel().await?;
             let mut client = lwd_client(channel);
-            let resp = client
-                .get_clue_public_key(lightwallet_proto::PaymentPubkey { payment_pubkey })
-                .await
-                .map_err(|e| format!("GetCluePublicKey RPC: {e}"))?;
+            let resp =
+                match client
+                    .get_clue_public_key(self.timed_request(
+                        lightwallet_proto::PaymentPubkey { payment_pubkey },
+                        timeout,
+                    ))
+                    .await
+                {
+                    Ok(resp) => resp,
+                    Err(status) => {
+                        return Err(self.handle_rpc_status("GetCluePublicKey RPC", status).await);
+                    }
+                };
             let inner = resp.into_inner();
             Ok((
                 inner.found,
@@ -2284,25 +2513,32 @@ impl LightwalletClient {
         end_height: u32,
         limb_index: u32,
     ) -> Result<Vec<Vec<u8>>, String> {
+        let timeout = self.fast_rpc_timeout().max(Duration::from_secs(60));
         async_compat::Compat::new(async {
             let channel = self.connect_channel().await?;
             let mut client = lwd_client(channel);
 
-            let resp = client
-                .fetch_pir_batch(lightwallet_proto::BatchPirRequest {
-                    query_ciphertexts,
-                    start_height,
-                    end_height,
-                    limb_index,
-                })
+            let resp = match client
+                .fetch_pir_batch(self.timed_request(
+                    lightwallet_proto::BatchPirRequest {
+                        query_ciphertexts,
+                        start_height,
+                        end_height,
+                        limb_index,
+                    },
+                    timeout,
+                ))
                 .await
-                .map_err(|e| {
-                    if e.code() == tonic::Code::ResourceExhausted {
-                        format!("FetchPirBatch RPC ResourceExhausted: {e}")
+            {
+                Ok(resp) => resp,
+                Err(status) => {
+                    return Err(if status.code() == tonic::Code::ResourceExhausted {
+                        format!("FetchPirBatch RPC ResourceExhausted: {status}")
                     } else {
-                        format!("FetchPirBatch RPC: {e}")
-                    }
-                })?;
+                        self.handle_rpc_status("FetchPirBatch RPC", status).await
+                    });
+                }
+            };
             Ok(resp.into_inner().payload_ciphertexts)
         })
         .await
@@ -2314,13 +2550,23 @@ impl LightwalletClient {
         height: u32,
     ) -> Result<AuthenticatedTreeState, String> {
         let start = Instant::now();
+        let timeout = self.fast_rpc_timeout().max(Duration::from_secs(60));
         let result = async_compat::Compat::new(async {
             let channel = self.connect_channel().await?;
             let mut client = lwd_client(channel);
-            let resp = client
-                .get_tree_state(lightwallet_proto::BlockHeight { height })
+            let resp = match client
+                .get_tree_state(
+                    self.timed_request(lightwallet_proto::BlockHeight { height }, timeout),
+                )
                 .await
-                .map_err(|e| format!("GetTreeState({height}) RPC: {e}"))?;
+            {
+                Ok(resp) => resp,
+                Err(status) => {
+                    return Err(self
+                        .handle_rpc_status(&format!("GetTreeState({height}) RPC"), status)
+                        .await);
+                }
+            };
             let ts = resp.into_inner();
 
             if !ts.state_root.is_empty() && !ts.tree_data.is_empty() {
@@ -2358,26 +2604,42 @@ impl LightwalletClient {
         let result = async_compat::Compat::new(async {
             let channel = self.connect_channel().await?;
             let mut client = lwd_client(channel);
-            let resp = client
-                .get_checkpoint_snapshot(lightwallet_proto::CheckpointRequest { preferred_height })
+            let mut stream = match client
+                .get_checkpoint_snapshot(self.timed_request(
+                    lightwallet_proto::CheckpointRequest { preferred_height },
+                    self.request_timeout,
+                ))
                 .await
-                .map_err(|e| format!("GetCheckpointSnapshot({preferred_height}) RPC: {e}"))?;
-            let mut stream = resp.into_inner();
-            let mut chunks = Vec::new();
-            while let Some(chunk) = stream
-                .message()
-                .await
-                .map_err(|e| format!("Snapshot stream error: {e}"))?
             {
-                chunks.push(CheckpointSnapshotDto {
-                    height: chunk.height,
-                    block_hash: chunk.block_hash,
-                    state_root: chunk.state_root,
-                    tree_data: chunk.tree_data,
-                    nullifier_index: chunk.nullifier_index,
-                    scan_cursor: chunk.scan_cursor,
-                    snapshot_hash: chunk.snapshot_hash,
-                });
+                Ok(resp) => resp.into_inner(),
+                Err(status) => {
+                    return Err(self
+                        .handle_rpc_status(
+                            &format!("GetCheckpointSnapshot({preferred_height}) RPC"),
+                            status,
+                        )
+                        .await);
+                }
+            };
+            let mut chunks = Vec::new();
+            loop {
+                match stream.message().await {
+                    Ok(Some(chunk)) => chunks.push(CheckpointSnapshotDto {
+                        height: chunk.height,
+                        block_hash: chunk.block_hash,
+                        state_root: chunk.state_root,
+                        tree_data: chunk.tree_data,
+                        nullifier_index: chunk.nullifier_index,
+                        scan_cursor: chunk.scan_cursor,
+                        snapshot_hash: chunk.snapshot_hash,
+                    }),
+                    Ok(None) => break,
+                    Err(status) => {
+                        return Err(self
+                            .handle_rpc_status("Snapshot stream error", status)
+                            .await);
+                    }
+                }
             }
             crate::checkpoint::assemble_checkpoint_chunks(chunks)
         })
@@ -2394,15 +2656,26 @@ impl LightwalletClient {
     /// Look up compiled zkas bincodes for a contract ID.
     pub async fn lookup_zkas(&self, contract_id: &str) -> Result<Vec<(String, Vec<u8>)>, String> {
         let start = Instant::now();
+        let timeout = self.fast_rpc_timeout().max(Duration::from_secs(60));
         let result = async_compat::Compat::new(async {
             let channel = self.connect_channel().await?;
             let mut client = lwd_client(channel);
-            let resp = client
-                .lookup_zkas(lightwallet_proto::ContractId {
-                    id: contract_id.to_string(),
-                })
+            let resp = match client
+                .lookup_zkas(self.timed_request(
+                    lightwallet_proto::ContractId {
+                        id: contract_id.to_string(),
+                    },
+                    timeout,
+                ))
                 .await
-                .map_err(|e| format!("LookupZkas({contract_id}) RPC: {e}"))?;
+            {
+                Ok(resp) => resp,
+                Err(status) => {
+                    return Err(self
+                        .handle_rpc_status(&format!("LookupZkas({contract_id}) RPC"), status)
+                        .await);
+                }
+            };
             let zkas = resp.into_inner();
             let bincodes = zkas
                 .bincodes
@@ -3649,5 +3922,39 @@ mod tests {
         .await;
         assert!(offline.is_err());
         assert!(offline.unwrap_err().contains("transport error"));
+    }
+
+    #[test]
+    fn per_rpc_timeouts_distinguish_fast_stream_and_heavy() {
+        let direct = LightwalletClient::new("http://127.0.0.1:9067");
+        assert_eq!(direct.fast_rpc_timeout(), Duration::from_secs(30));
+        assert_eq!(direct.stream_rpc_timeout(), Duration::from_secs(300));
+        assert_eq!(direct.request_timeout, Duration::from_secs(1800));
+
+        let proxied = LightwalletClient::new("socks5://127.0.0.1:1080/lw.example:9067");
+        assert_eq!(proxied.fast_rpc_timeout(), Duration::from_secs(60));
+        assert_eq!(proxied.stream_rpc_timeout(), Duration::from_secs(300));
+        assert_eq!(proxied.request_timeout, Duration::from_secs(1800));
+    }
+
+    #[tokio::test]
+    async fn handle_rpc_status_evicts_cached_channel_on_transport_error() {
+        let endpoint =
+            tonic::transport::Endpoint::from_shared("http://127.0.0.1:1".to_string()).unwrap();
+        let ch = endpoint.connect_lazy();
+        let client = LightwalletClient::new("http://127.0.0.1:9067");
+        *client.channel.lock().await = Some(ch.clone());
+
+        // Non-transport status (NotFound) preserves the channel.
+        let _ = client
+            .handle_rpc_status("GetTransaction RPC", tonic::Status::not_found("missing"))
+            .await;
+        assert!(client.channel.lock().await.is_some());
+
+        // Transport status (Unavailable) evicts the cached channel.
+        let _ = client
+            .handle_rpc_status("GetLightInfo RPC", tonic::Status::unavailable("broken"))
+            .await;
+        assert!(client.channel.lock().await.is_none());
     }
 }

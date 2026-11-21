@@ -236,6 +236,7 @@ fn derive_omr_memo_key(secret_bytes: &[u8; 32], recipient_pk: &[u8; 32], nonce: 
     out
 }
 
+
 pub async fn build_transfer(
     drk: &Drk,
     recipient_address: &str,
@@ -275,11 +276,17 @@ pub async fn build_transfer(
             .await
             .map_err(|e| format!("merkle rebuild for spend: {e}"))?;
         prefetch_money_zkas(lightwallet_server_url, lightwallet_tls_pin).await?;
-        // Pinned drk::transfer has no memo argument. Validate the memo so a
-        // bad string still fails, but do not patch DarkFi to carry it.
-        let _memo = crate::memo::parse_payment_memo(payment_memo)?;
+        let memo_bytes = crate::memo::parse_payment_memo(payment_memo)?.unwrap_or_default();
         let tx = drk
-            .transfer(amount, token, *recipient.public_key(), None, None, false)
+            .transfer(
+                amount,
+                token,
+                *recipient.public_key(),
+                None,
+                None,
+                false,
+                memo_bytes,
+            )
             .await
             .map_err(|e| format!("transfer: {e}"))?;
         return Ok(serialize_async(&tx).await);
@@ -296,7 +303,7 @@ pub async fn build_transfer(
 
     // Per-tx memo key (domain-separated) — never reuse raw spending key bytes.
     let mut nonce = [0u8; 16];
-    rand::RngCore::fill_bytes(&mut rand::thread_rng(), &mut nonce);
+    rand::RngCore::fill_bytes(&mut rand::rngs::OsRng, &mut nonce);
     let memo_key = derive_omr_memo_key(&secret_bytes, &recipient_pk_bytes, &nonce);
 
     let omr_memo = crate::memo::build_omr_memo(
@@ -323,10 +330,7 @@ pub async fn build_transfer(
         payment_memo.map(str::trim).filter(|s| !s.is_empty()).is_some()
     );
 
-    let _plain_memo = payment_memo
-        .map(str::trim)
-        .filter(|s| !s.is_empty())
-        .map(|s| s.as_bytes().to_vec());
+    let memo_bytes = crate::memo::parse_payment_memo(payment_memo)?.unwrap_or_default();
 
     crate::sync::ensure_spendable_money_tree(drk, lightwallet_server_url, lightwallet_tls_pin)
         .await
@@ -335,7 +339,15 @@ pub async fn build_transfer(
     prefetch_money_zkas(lightwallet_server_url, lightwallet_tls_pin).await?;
 
     let tx = drk
-        .transfer(amount, token, *recipient.public_key(), None, None, false)
+        .transfer(
+            amount,
+            token,
+            *recipient.public_key(),
+            None,
+            None,
+            false,
+            memo_bytes,
+        )
         .await
         .map_err(|e| format!("transfer: {e}"))?;
 
@@ -660,8 +672,10 @@ pub async fn get_transaction_recipient(drk: &Drk, tx_hash: &str) -> Result<Optio
     Ok(outgoing_recipient(drk, tx_hash))
 }
 
-async fn decrypt_user_memo_from_tx(drk: &Drk, tx: &Transaction) -> Result<Option<String>, String> {
-    let secret = drk.default_secret().await.map_err(|e| e.to_string())?;
+async fn decrypt_user_memo_from_secrets(
+    secrets: &[darkfi_sdk::crypto::SecretKey],
+    tx: &Transaction,
+) -> Result<Option<String>, String> {
     for call in &tx.calls {
         if call.data.contract_id != *MONEY_CONTRACT_ID || call.data.data.is_empty() {
             continue;
@@ -679,20 +693,31 @@ async fn decrypt_user_memo_from_tx(drk: &Drk, tx: &Transaction) -> Result<Option
             if output.tx_local {
                 continue;
             }
-            if let Ok(note) = output.note.decrypt::<MoneyNote>(&secret) {
-                // MoneyNote::memo is plain user text (OMR metadata is in omr_metadata_enc).
-                if !note.memo.is_empty() {
-                    if let Ok(s) = String::from_utf8(note.memo) {
-                        let t = s.trim();
-                        if !t.is_empty() {
-                            return Ok(Some(t.to_string()));
+            for secret in secrets {
+                if let Ok(note) = output.note.decrypt::<MoneyNote>(secret) {
+                    // MoneyNote::memo is plain user text (OMR metadata is in omr_metadata_enc).
+                    if !note.memo.is_empty() {
+                        if let Ok(s) = String::from_utf8(note.memo) {
+                            let t = s.trim();
+                            if !t.is_empty() {
+                                return Ok(Some(t.to_string()));
+                            }
                         }
                     }
+                    break;
                 }
             }
         }
     }
     Ok(None)
+}
+
+async fn decrypt_user_memo_from_tx(drk: &Drk, tx: &Transaction) -> Result<Option<String>, String> {
+    let mut secrets = drk.get_money_secrets().await.unwrap_or_default();
+    if secrets.is_empty() {
+        secrets.push(drk.default_secret().await.map_err(|e| e.to_string())?);
+    }
+    decrypt_user_memo_from_secrets(&secrets, tx).await
 }
 
 pub(crate) fn is_outgoing_transaction(
@@ -1007,5 +1032,90 @@ mod tests {
             .read()
             .map(|m| !m.contains_key(txid))
             .unwrap_or(false));
+    }
+
+    #[test]
+    fn transfer_note_memo_encrypts_and_decrypts_from_tx() {
+        use darkfi::tx::Transaction;
+        use darkfi::zk::halo2::Field;
+        use darkfi_money_contract::model::{Coin, Output, DARK_TOKEN_ID};
+        use darkfi_sdk::{
+            crypto::{
+                note::AeadEncryptedNote, BaseBlind, FuncId, PublicKey, ScalarBlind, SecretKey,
+            },
+            dark_tree::DarkLeaf,
+            pasta::pallas,
+            ContractCall,
+        };
+        use darkfi_serial::AsyncEncodable;
+        use rand::rngs::OsRng;
+
+        let recipient_sk = SecretKey::random(&mut OsRng);
+        let recipient_pk = PublicKey::from_secret(recipient_sk);
+        let sender_sk = SecretKey::random(&mut OsRng);
+        let sender_pk = PublicKey::from_secret(sender_sk);
+
+        let memo_bytes = crate::memo::parse_payment_memo(Some("  invoice #42  "))
+            .unwrap()
+            .unwrap();
+        let recipient_note = MoneyNote {
+            value: 100_000_000,
+            token_id: *DARK_TOKEN_ID,
+            spend_hook: FuncId::none(),
+            user_data: pallas::Base::ZERO,
+            coin_blind: BaseBlind::random(&mut OsRng),
+            value_blind: ScalarBlind::random(&mut OsRng),
+            token_blind: BaseBlind::random(&mut OsRng),
+            memo: memo_bytes,
+        };
+        let change_note = MoneyNote {
+            memo: Vec::new(),
+            ..recipient_note.clone()
+        };
+
+        let enc_recipient =
+            AeadEncryptedNote::encrypt(&recipient_note, &recipient_pk, &mut OsRng).unwrap();
+        let enc_change = AeadEncryptedNote::encrypt(&change_note, &sender_pk, &mut OsRng).unwrap();
+        let dummy_coin = Coin::from(pallas::Base::ZERO);
+
+        let params = MoneyTransferParamsV1 {
+            inputs: Vec::new(),
+            outputs: vec![
+                Output {
+                    value_commit: pallas::Point::default(),
+                    token_commit: pallas::Base::ZERO,
+                    coin: dummy_coin,
+                    note: enc_change,
+                    tx_local: false,
+                },
+                Output {
+                    value_commit: pallas::Point::default(),
+                    token_commit: pallas::Base::ZERO,
+                    coin: dummy_coin,
+                    note: enc_recipient,
+                    tx_local: false,
+                },
+            ],
+        };
+        let mut data = vec![MoneyFunction::TransferV1 as u8];
+        smol::block_on(params.encode_async(&mut data)).unwrap();
+        let tx = Transaction {
+            calls: vec![DarkLeaf {
+                data: ContractCall {
+                    contract_id: *MONEY_CONTRACT_ID,
+                    data,
+                },
+                parent_index: None,
+                children_indexes: Vec::new(),
+            }],
+            proofs: Vec::new(),
+            signatures: Vec::new(),
+        };
+
+        let found = smol::block_on(decrypt_user_memo_from_secrets(&[recipient_sk], &tx)).unwrap();
+        assert_eq!(found.as_deref(), Some("invoice #42"));
+        let sender_found =
+            smol::block_on(decrypt_user_memo_from_secrets(&[sender_sk], &tx)).unwrap();
+        assert_eq!(sender_found, None);
     }
 }

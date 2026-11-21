@@ -43,7 +43,6 @@ import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
-import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -86,12 +85,10 @@ class WalletViewModel(
             emitAll(StandardPreferenceKeys.IS_USER_BACKUP_COMPLETE.observe(preferenceProvider))
         }
 
-    private val isUserAuthenticated = MutableStateFlow(false)
-
     private val resetAuthOnBackground =
         object : DefaultLifecycleObserver {
             override fun onStop(owner: LifecycleOwner) {
-                isUserAuthenticated.value = false
+                AppWalletCoordinator.setUserAuthenticated(false)
             }
         }
 
@@ -120,13 +117,9 @@ class WalletViewModel(
     }
 
     private val isAuthenticationRequire =
-        flow {
-            emit(
-                withContext(Dispatchers.IO) {
-                    WalletPinSecureStore.isConfigured(application)
-                },
-            )
-        }.combine(isUserAuthenticated) { isAuthenticationEnabled, authenticated ->
+        WalletPinSecureStore.isConfiguredFlow(application).combine(
+            AppWalletCoordinator.isUserAuthenticated,
+        ) { isAuthenticationEnabled, authenticated ->
             if (isAuthenticationEnabled) {
                 authenticated.not()
             } else {
@@ -343,7 +336,7 @@ class WalletViewModel(
     }
 
     fun updateAuthenticationState(isUserAuthenticated: Boolean) {
-        this.isUserAuthenticated.update { isUserAuthenticated }
+        AppWalletCoordinator.setUserAuthenticated(isUserAuthenticated)
     }
 }
 

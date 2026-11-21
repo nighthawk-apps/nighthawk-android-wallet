@@ -12,8 +12,7 @@ object SessionTransport {
 
     fun isSessionDirect(): Boolean = sessionDirect
 
-    fun effective(prefs: DarkfiChatPreferences): PrivacyNetwork =
-        if (sessionDirect) PrivacyNetwork.Direct else prefs.privacyNetwork
+    fun effective(prefs: DarkfiChatPreferences): PrivacyNetwork = if (sessionDirect) PrivacyNetwork.Direct else prefs.privacyNetwork
 
     fun continueWithoutNym() {
         sessionDirect = true

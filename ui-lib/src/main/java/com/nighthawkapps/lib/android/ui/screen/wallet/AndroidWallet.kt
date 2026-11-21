@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.width
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -18,6 +19,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.platform.LocalContext
@@ -30,7 +32,6 @@ import com.nighthawkapps.lib.android.sdk.wallet.DarkfiAmountParser
 import com.nighthawkapps.lib.android.sdk.wallet.DarkfiTransactionOverview
 import com.nighthawkapps.lib.android.ui.MainActivity
 import com.nighthawkapps.lib.android.ui.R
-import com.nighthawkapps.lib.android.ui.common.ShortcutAction
 import com.nighthawkapps.lib.android.ui.common.removeTrailingZero
 import com.nighthawkapps.lib.android.ui.common.setPlainText
 import com.nighthawkapps.lib.android.ui.common.showMessage
@@ -116,30 +117,16 @@ internal fun WrapWallet(
     }
 
     if (null == walletSnapshot) {
-        // We can show progress bar
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center,
+        ) {
+            CircularProgressIndicator()
+        }
     } else {
         LaunchedEffect(key1 = Unit) {
             launch {
                 delay(500)
-                homeViewModel.shortcutAction?.let {
-                    when (it) {
-                        ShortcutAction.SEND_MONEY_SCAN_QR_CODE -> {
-                            onSendFromDeepLink()
-                        }
-
-                        ShortcutAction.RECEIVE_MONEY_QR_CODE -> {
-                            onAddressQrCodes()
-                            homeViewModel.shortcutAction = null
-                        }
-                    }
-                }
-                homeViewModel.intentDataUriForDeepLink?.let {
-                    DeepLinkUtil.getSendDeepLinkData(it)?.let { sendDeepLinkData ->
-                        homeViewModel.sendDeepLinkData = sendDeepLinkData
-                        onSendFromDeepLink()
-                        homeViewModel.intentDataUriForDeepLink = null
-                    }
-                }
                 sendArgumentsWrapper?.let {
                     it.recipientAddress?.let { address ->
                         homeViewModel.sendDeepLinkData =

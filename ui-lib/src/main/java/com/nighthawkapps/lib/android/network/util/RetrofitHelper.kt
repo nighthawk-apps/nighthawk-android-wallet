@@ -2,7 +2,11 @@ package com.nighthawkapps.lib.android.network.util
 
 import android.content.Context
 import com.nighthawkapps.lib.android.network.CoinMetricsApiService
+import com.nighthawkapps.lib.android.sdk.chat.DarkfiChatPreferences
+import com.nighthawkapps.lib.android.sdk.net.PrivacyNetwork
+import com.nighthawkapps.lib.android.sdk.net.SessionTransport
 import com.nighthawkapps.lib.android.sdk.net.TorOutboundSocks
+import com.nighthawkapps.lib.android.sdk.net.TransportNative
 import okhttp3.CertificatePinner
 import okhttp3.Dns
 import okhttp3.OkHttpClient
@@ -62,10 +66,25 @@ object RetrofitHelper {
                 .addInterceptor(
                     HttpLoggingInterceptor().setLevel(loggingLevel),
                 )
-        val proxy = TorOutboundSocks.proxyForClearnetHttp(app)
-        if (proxy != null) {
-            builder.proxy(proxy)
+        val prefs = DarkfiChatPreferences(app)
+        val socksEndpoint = TorOutboundSocks.walletSocksEndpoint(prefs)
+        if (socksEndpoint != null) {
+            val effectiveNetwork = SessionTransport.effective(prefs)
+            val isInProcessProxy =
+                effectiveNetwork == PrivacyNetwork.Nym ||
+                    (effectiveNetwork == PrivacyNetwork.Tor && prefs.useEmbeddedTor)
             builder.dns(socksRemoteDns)
+            builder.socketFactory(
+                Socks5AuthSocketFactory(
+                    proxyAddress = socksEndpoint,
+                    credentialsProvider = {
+                        TransportNative.socksAuth()?.let { auth ->
+                            Socks5Credentials(auth.username, auth.password)
+                        }
+                    },
+                    requireAuth = isInProcessProxy,
+                ),
+            )
         }
         return builder.build()
     }

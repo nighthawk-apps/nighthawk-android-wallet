@@ -132,18 +132,44 @@ pub fn mesh_enabled() -> bool {
     lock().mesh_enabled
 }
 
-/// RFC 1929 credentials for the local SOCKS5 proxies. Clients that only offer
-/// method `0x00` are still accepted so DarkIRC and unit tests keep working.
+/// RFC 1929 credentials for the local SOCKS5 proxies.
+///
+/// NOTE: `third_party/darkfi/src/net/transport/socks5.rs` (`Socks5Client`)
+/// hardcodes `[0x05, 0x01, 0x00]` (NO_AUTH only; `auth_user`/`auth_pass` are
+/// commented out in upstream `9d7ceaf77`), so `socks_method` keeps `0x00`
+/// fallback to avoid breaking DarkIRC over Nym/Tor while preferring `0x02`
+/// whenever offered (e.g. `LightwalletClient` and platform HTTP clients).
 pub fn current_socks_auth() -> SocksAuth {
     lock().socks_auth.clone()
 }
 
-/// Pick a SOCKS5 method. Prefer username/password when the client offers it.
+/// JSON-encoded RFC 1929 credentials (`{"username":"...","password":"..."}`)
+/// for platform HTTP clients (OkHttp / URLSession).
+pub fn socks_auth_json() -> String {
+    let auth = current_socks_auth();
+    format!(
+        "{{\"username\":\"{}\",\"password\":\"{}\"}}",
+        auth.username, auth.password
+    )
+}
+
+/// Pick a SOCKS5 method. Prefer username/password (`0x02`) when offered,
+/// falling back to `0x00` for DarkFi P2P `Socks5Client` which lacks RFC 1929.
 pub fn socks_method(offered: &[u8]) -> u8 {
     if offered.contains(&0x02) {
         0x02
     } else if offered.contains(&0x00) {
         0x00
+    } else {
+        0xff
+    }
+}
+
+/// Strict RFC 1929 method selector (rejects `0x00` NO_AUTH).
+#[allow(dead_code)]
+pub fn socks_method_strict(offered: &[u8]) -> u8 {
+    if offered.contains(&0x02) {
+        0x02
     } else {
         0xff
     }
@@ -321,6 +347,7 @@ pub fn continue_without_nym() {
     }
     #[cfg(feature = "nym")]
     crate::nym::stop_nym_proxy();
+    crate::tor::stop_arti_proxy();
     crate::lightwallet_client::set_default_socks5_proxy(None);
     crate::lightwallet_client::invalidate_lightwallet_client_pool();
 }

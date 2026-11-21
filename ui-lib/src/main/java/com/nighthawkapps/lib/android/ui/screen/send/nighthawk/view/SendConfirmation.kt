@@ -50,6 +50,8 @@ fun SendConfirmation(
     onDone: () -> Unit,
     txId: String? = null,
     errorMessage: String? = null,
+    sendingSubtitle: String? = null,
+    sendingCancelLabel: String? = null,
 ) {
     Column(
         modifier =
@@ -66,6 +68,15 @@ fun SendConfirmation(
             modifier = Modifier.align(Alignment.CenterHorizontally),
             color = WalletTheme.colors.secondaryTitleText
         )
+        if (sendConfirmationState is SendConfirmationState.Sending && !sendingSubtitle.isNullOrBlank()) {
+            Spacer(modifier = Modifier.height(WalletTheme.dimens.spacingSmall))
+            BodyMedium(
+                text = sendingSubtitle,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.align(Alignment.CenterHorizontally),
+                color = WalletTheme.colors.secondaryTitleText,
+            )
+        }
         if (sendConfirmationState is SendConfirmationState.Success) {
             Spacer(modifier = Modifier.height(WalletTheme.dimens.spacingSmall))
             BodyMedium(
@@ -140,7 +151,7 @@ fun SendConfirmation(
             SendConfirmationState.Sending -> {
                 PrimaryButton(
                     onClick = onCancel,
-                    text = stringResource(id = R.string.ns_cancel).uppercase(),
+                    text = sendingCancelLabel ?: stringResource(id = R.string.ns_cancel).uppercase(),
                     modifier =
                         Modifier
                             .align(Alignment.CenterHorizontally)

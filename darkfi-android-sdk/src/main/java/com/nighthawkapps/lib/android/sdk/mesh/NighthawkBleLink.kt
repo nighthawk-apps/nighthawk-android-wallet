@@ -65,6 +65,8 @@ class NighthawkBleLink(
     internal var gattServer: BluetoothGattServer? = null
     internal var scanning = false
     internal var advertising = false
+    /** Advertise mode last started. Scan duty must not tear this down. */
+    private var advertisedForeground: Boolean? = null
     internal var started = false
     internal var foreground = true
     internal var charging = false
@@ -164,6 +166,7 @@ class NighthawkBleLink(
         } catch (_: Exception) {
         }
         advertising = false
+        advertisedForeground = null
         advertiser = null
         clientGatts.values.forEach { gatt ->
             try {
@@ -270,7 +273,14 @@ class NighthawkBleLink(
                 gatewayArmed = gatewayArmed,
                 alwaysOn = alwaysOn,
             )
-        adapter?.let { restartAdvertisingLocked(it) }
+        adapter?.let { ad ->
+            // The scan window restarts every few seconds. Stopping the
+            // advertiser on that timer makes the other phone miss the radio.
+            if (!advertising || advertisedForeground != foreground) {
+                restartAdvertisingLocked(ad)
+                advertisedForeground = foreground
+            }
+        }
         stopScanLocked()
         if (duty.scanOnMs == 0L) {
             return

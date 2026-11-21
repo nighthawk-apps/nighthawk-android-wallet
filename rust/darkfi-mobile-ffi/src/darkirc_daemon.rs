@@ -4,15 +4,49 @@
 //! It connects to the DarkFi P2P network and syncs the event graph (DAG).
 //! Messages are passed directly to the UI via UniFFI callbacks.
 
-use std::collections::HashSet;
+use std::collections::{HashSet, VecDeque};
 use std::path::PathBuf;
-use std::sync::atomic::{AtomicU8, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU32, AtomicU8, Ordering};
 use std::sync::{Arc, Mutex};
 
 use darkfi_serial::{deserialize_async, deserialize_async_partial, serialize_async};
 use smol::Executor;
+use zeroize::{Zeroize, Zeroizing};
 
 use crate::{DarkfiWalletNativeError, DarkircEventCallback};
+
+const MAX_RELAYED_IDS: usize = 10_000;
+
+struct BoundedIdSet {
+    set: HashSet<String>,
+    order: VecDeque<String>,
+    cap: usize,
+}
+
+impl BoundedIdSet {
+    fn new(cap: usize) -> Self {
+        Self {
+            set: HashSet::with_capacity(cap.min(1024)),
+            order: VecDeque::with_capacity(cap.min(1024)),
+            cap: cap.max(1),
+        }
+    }
+
+    fn insert(&mut self, id: String) -> bool {
+        if self.set.contains(&id) {
+            return false;
+        }
+        while self.set.len() >= self.cap {
+            if let Some(oldest) = self.order.pop_front() {
+                self.set.remove(&oldest);
+            } else {
+                break;
+            }
+        }
+        self.order.push_back(id.clone());
+        self.set.insert(id)
+    }
+}
 
 fn dispatch_darkirc_message(
     cb: &dyn DarkircEventCallback,
@@ -29,11 +63,11 @@ fn dispatch_darkirc_message(
 }
 
 /// Deliver DAG history to the UI, skipping ids already sent by the live relay or
-/// an earlier replay.
+/// an earlier replay. Undecryptable foreign DMs are dropped cleanly.
 async fn replay_history(
     history: Vec<darkfi::event_graph::Event>,
     callback: &Option<Arc<dyn DarkircEventCallback>>,
-    seen: &smol::lock::Mutex<HashSet<String>>,
+    seen: &smol::lock::Mutex<BoundedIdSet>,
 ) {
     let Some(cb) = callback else { return };
     let mut seen = seen.lock().await;
@@ -43,16 +77,17 @@ async fn replay_history(
             continue;
         }
         if let Ok((privmsg, _)) = deserialize_async_partial::<Privmsg>(ev.content()).await {
-            let shown = present_privmsg(privmsg);
-            dispatch_darkirc_message(
-                cb.as_ref(),
-                eid,
-                shown.channel,
-                shown.nick,
-                shown.msg,
-                ev.header.timestamp,
-                shown.is_outgoing,
-            );
+            if let Some(shown) = present_privmsg(privmsg) {
+                dispatch_darkirc_message(
+                    cb.as_ref(),
+                    eid,
+                    shown.channel,
+                    shown.nick,
+                    shown.msg,
+                    ev.header.timestamp,
+                    shown.is_outgoing,
+                );
+            }
         }
     }
 }
@@ -116,7 +151,18 @@ static MESH_SOURCED: std::sync::LazyLock<Mutex<HashSet<[u8; 16]>>> =
 const OUTBOUND_HUD_SLOTS: usize = 3;
 const OUTBOUND_SLOTS_FILE: &str = "outbound_slots.json";
 
-static DATASTORE_PATH: std::sync::OnceLock<PathBuf> = std::sync::OnceLock::new();
+static DATASTORE_PATH: std::sync::LazyLock<std::sync::RwLock<Option<PathBuf>>> =
+    std::sync::LazyLock::new(|| std::sync::RwLock::new(None));
+
+fn set_datastore_path(path: PathBuf) {
+    if let Ok(mut g) = DATASTORE_PATH.write() {
+        *g = Some(path);
+    }
+}
+
+fn current_datastore_path() -> Option<PathBuf> {
+    DATASTORE_PATH.read().ok().and_then(|g| g.clone())
+}
 
 #[allow(dead_code)]
 fn json_escape(s: &str) -> String {
@@ -184,7 +230,7 @@ pub fn darkirc_outbound_slots() -> String {
 
 fn publish_outbound_slots() {
     let json = darkirc_outbound_slots();
-    let Some(dir) = DATASTORE_PATH.get() else {
+    let Some(dir) = current_datastore_path() else {
         return;
     };
     let dest = dir.join(OUTBOUND_SLOTS_FILE);
@@ -232,49 +278,113 @@ fn new_privmsg(channel: String, nick: String, msg: String) -> Privmsg {
 const MAX_PRIVMSG_FIELD_LEN: usize = 512;
 const MAX_NICK_LEN: usize = 24;
 
+static DARKIRC_DAGS_COUNT: AtomicU32 = AtomicU32::new(DARKIRC_MAX_DAGS as u32);
+static DARKIRC_FAST_MODE: AtomicBool = AtomicBool::new(false);
+
+/// Configure DarkIRC DAG retention/sync parameters without breaking `start_darkirc`.
+pub fn configure_darkirc(dags_count: u32, fast_mode: bool) {
+    let clamped = if dags_count == 0 {
+        DARKIRC_MAX_DAGS as u32
+    } else {
+        dags_count.min(DARKIRC_MAX_DAGS as u32)
+    };
+    DARKIRC_DAGS_COUNT.store(clamped, Ordering::Relaxed);
+    DARKIRC_FAST_MODE.store(fast_mode, Ordering::Relaxed);
+}
+
 /// Contact saltboxes for DM encryption (channel/nick/msg), keyed by contact nick.
 static DM_CONTACTS: std::sync::LazyLock<
-    std::sync::Mutex<std::collections::HashMap<String, DmContactBoxes>>,
-> = std::sync::LazyLock::new(|| std::sync::Mutex::new(std::collections::HashMap::new()));
+    std::sync::RwLock<std::collections::HashMap<String, DmContactBoxes>>,
+> = std::sync::LazyLock::new(|| std::sync::RwLock::new(std::collections::HashMap::new()));
 
 static LAST_SELF_NICK: std::sync::Mutex<String> = std::sync::Mutex::new(String::new());
 
 struct DmContactBoxes {
+    my_secret: Zeroizing<[u8; 32]>,
     saltbox: crypto_box::ChaChaBox,
     self_saltbox: crypto_box::ChaChaBox,
 }
 
-/// Register a DM contact so `send_chat_message` can encrypt channel+nick+msg.
-pub fn register_dm_contact(
+impl Drop for DmContactBoxes {
+    fn drop(&mut self) {
+        self.my_secret.zeroize();
+    }
+}
+
+/// Validate and register a DM contact in memory.
+pub(crate) fn register_dm_contact_checked(
     nick: &str,
     my_secret: &[u8],
     their_public: &[u8],
 ) -> Result<(), String> {
-    let my_sk = crypto_box::SecretKey::from_slice(my_secret).map_err(|e| e.to_string())?;
+    if nick.trim().is_empty() {
+        return Err("DM contact nick cannot be empty".into());
+    }
+    let secret_arr: [u8; 32] = my_secret
+        .try_into()
+        .map_err(|_| format!("invalid DM secret key length: {}", my_secret.len()))?;
+    let mut secret_zero = Zeroizing::new(secret_arr);
+    let my_sk = crypto_box::SecretKey::from(*secret_zero);
     let their_pk = crypto_box::PublicKey::from_slice(their_public).map_err(|e| e.to_string())?;
     let my_pk = my_sk.public_key();
     let boxes = DmContactBoxes {
+        my_secret: Zeroizing::new(*secret_zero),
         saltbox: crypto_box::ChaChaBox::new(&their_pk, &my_sk),
         self_saltbox: crypto_box::ChaChaBox::new(&my_pk, &my_sk),
     };
+    secret_zero.zeroize();
     DM_CONTACTS
-        .lock()
+        .write()
         .map_err(|e| e.to_string())?
         .insert(nick.to_string(), boxes);
     Ok(())
 }
 
+/// Register a DM contact in memory for UniFFI callers (never touches disk).
+/// The error names the failure (empty nick, bad key length) and does not include key bytes.
+pub fn register_dm_contact(
+    nick: String,
+    mut my_secret: Vec<u8>,
+    their_public: Vec<u8>,
+) -> Result<(), crate::DarkfiWalletNativeError> {
+    let result = register_dm_contact_checked(&nick, &my_secret, &their_public);
+    my_secret.zeroize();
+    result.map_err(|e| {
+        tracing::warn!(target: "darkirc", "register_dm_contact skipped: {e}");
+        crate::DarkfiWalletNativeError::CryptoError(e)
+    })
+}
+
+/// Unregister a DM contact from memory (zeroizing stored secret on drop).
+pub fn unregister_dm_contact(nick: String) {
+    if let Ok(mut contacts) = DM_CONTACTS.write() {
+        contacts.remove(&nick);
+    }
+}
+
+/// Clear all registered DM contacts from memory (zeroizing secrets on drop).
+pub fn clear_dm_contacts() {
+    if let Ok(mut contacts) = DM_CONTACTS.write() {
+        contacts.clear();
+    }
+    if let Ok(mut self_nick) = LAST_SELF_NICK.lock() {
+        self_nick.zeroize();
+    }
+}
+
 fn load_dm_contacts_from_datastore(dir: &std::path::Path) {
     let path = dir.join("darkirc_crypto_bundle.json");
-    let Ok(raw) = std::fs::read_to_string(&path) else {
+    let Ok(mut raw) = std::fs::read_to_string(&path) else {
         return;
     };
-    for contact in parse_dm_contacts_json(&raw) {
-        let _ = register_dm_contact(&contact.0, &contact.1, &contact.2);
+    for (nick, mut sk, pk) in parse_dm_contacts_json(&raw) {
+        let _ = register_dm_contact_checked(&nick, &sk, &pk);
+        sk.zeroize();
     }
-    // The bundle holds DM private keys. Keep them in memory only.
+    // The legacy bundle holds DM private keys. Overwrite, unlink, and keep in memory only.
     let _ = std::fs::write(&path, vec![0u8; raw.len()]);
     let _ = std::fs::remove_file(&path);
+    raw.zeroize();
 }
 
 fn parse_dm_contacts_json(raw: &str) -> Vec<(String, Vec<u8>, Vec<u8>)> {
@@ -288,7 +398,7 @@ fn parse_dm_contacts_json(raw: &str) -> Vec<(String, Vec<u8>, Vec<u8>)> {
             continue;
         };
         let obj = &chunk[..end];
-        let nick = json_string_field(obj, "nick").or_else(|| json_string_field(obj, "nick"));
+        let nick = json_string_field(obj, "nick");
         let secret = json_string_field(obj, "myDmChachaSecretBase58")
             .or_else(|| json_string_field(obj, "my_dm_chacha_secret_base58"));
         let public = json_string_field(obj, "dmChachaPublicBase58")
@@ -317,8 +427,8 @@ fn json_string_field<'a>(obj: &'a str, key: &str) -> Option<&'a str> {
 }
 
 fn reload_dm_contacts() {
-    if let Some(dir) = DATASTORE_PATH.get() {
-        load_dm_contacts_from_datastore(dir);
+    if let Some(dir) = current_datastore_path() {
+        load_dm_contacts_from_datastore(&dir);
     }
 }
 
@@ -329,34 +439,15 @@ struct PresentedPrivmsg {
     is_outgoing: bool,
 }
 
-/// Decrypt a DM the way upstream darkirc does, or pass a public channel through.
-fn present_privmsg(privmsg: Privmsg) -> PresentedPrivmsg {
-    if privmsg.channel.starts_with('#') {
-        let self_nick = LAST_SELF_NICK
-            .lock()
-            .map(|guard| guard.clone())
-            .unwrap_or_default();
-        let is_outgoing = !self_nick.is_empty() && privmsg.nick == self_nick;
-        return PresentedPrivmsg {
-            channel: privmsg.channel.clone(),
-            nick: privmsg.nick,
-            msg: privmsg.msg,
-            is_outgoing,
-        };
-    }
-    let Ok(contacts) = DM_CONTACTS.lock() else {
-        return PresentedPrivmsg {
-            channel: privmsg.channel,
-            nick: privmsg.nick,
-            msg: privmsg.msg,
-            is_outgoing: false,
-        };
-    };
-    let channel_ct = bs58::decode(&privmsg.channel)
-        .into_vec()
-        .unwrap_or_default();
-    let nick_ct = bs58::decode(&privmsg.nick).into_vec().unwrap_or_default();
-    let msg_ct = bs58::decode(&privmsg.msg).into_vec().unwrap_or_default();
+/// Attempt to decrypt a DM against in-memory `DM_CONTACTS`.
+/// Returns `None` if no registered contact decrypts the payload.
+fn try_decrypt_privmsg(privmsg: &Privmsg) -> Option<PresentedPrivmsg> {
+    reload_dm_contacts();
+    let contacts = DM_CONTACTS.read().ok()?;
+    let channel_ct = bs58::decode(&privmsg.channel).into_vec().ok()?;
+    let nick_ct = bs58::decode(&privmsg.nick).into_vec().ok()?;
+    let msg_ct = bs58::decode(&privmsg.msg).into_vec().ok()?;
+    let self_nick = LAST_SELF_NICK.lock().map(|g| g.clone()).unwrap_or_default();
     for (name, contact) in contacts.iter() {
         if irc2::crypto::saltbox::try_decrypt(&contact.saltbox, &channel_ct).is_none() {
             continue;
@@ -366,8 +457,7 @@ fn present_privmsg(privmsg: Privmsg) -> PresentedPrivmsg {
         let Some(msg_dec) = irc2::crypto::saltbox::try_decrypt(&contact.saltbox, &msg_ct) else {
             continue;
         };
-        let self_nick = LAST_SELF_NICK.lock().map(|g| g.clone()).unwrap_or_default();
-        return PresentedPrivmsg {
+        return Some(PresentedPrivmsg {
             channel: name.clone(),
             nick: if outgoing && !self_nick.is_empty() {
                 self_nick
@@ -376,14 +466,28 @@ fn present_privmsg(privmsg: Privmsg) -> PresentedPrivmsg {
             },
             msg: String::from_utf8_lossy(&msg_dec).into_owned(),
             is_outgoing: outgoing,
-        };
+        });
     }
-    PresentedPrivmsg {
-        channel: privmsg.channel,
-        nick: privmsg.nick,
-        msg: privmsg.msg,
-        is_outgoing: false,
+    None
+}
+
+/// Decrypt a DM using in-memory `DM_CONTACTS`, or pass a public `#channel` through.
+/// Undecryptable foreign DMs return `None` and are dropped cleanly.
+fn present_privmsg(privmsg: Privmsg) -> Option<PresentedPrivmsg> {
+    if privmsg.channel.starts_with('#') {
+        let self_nick = LAST_SELF_NICK
+            .lock()
+            .map(|guard| guard.clone())
+            .unwrap_or_default();
+        let is_outgoing = !self_nick.is_empty() && privmsg.nick == self_nick;
+        return Some(PresentedPrivmsg {
+            channel: privmsg.channel,
+            nick: privmsg.nick,
+            msg: privmsg.msg,
+            is_outgoing,
+        });
     }
+    try_decrypt_privmsg(&privmsg)
 }
 
 /// Encrypt channel, nick, and message for DMs exactly as upstream `try_encrypt`.
@@ -392,7 +496,7 @@ fn try_encrypt_privmsg(privmsg: &mut Privmsg) -> Result<(), String> {
         return Ok(());
     }
     reload_dm_contacts();
-    let contacts = DM_CONTACTS.lock().map_err(|e| e.to_string())?;
+    let contacts = DM_CONTACTS.read().map_err(|e| e.to_string())?;
     let Some(contact) = contacts.get(&privmsg.channel) else {
         return Err(format!(
             "DM contact '{}' is not registered; refusing plaintext channel/nick on the wire",
@@ -444,7 +548,7 @@ async fn drain_mesh_inbound(eg: &darkfi::event_graph::EventGraph) {
                     mark_mesh_sourced(id16);
                 }
             }
-            Err(e) => log::debug!("mesh ingest skipped: {e}"),
+            Err(e) => tracing::debug!("mesh ingest skipped: {e}"),
         }
     }
 }
@@ -505,9 +609,17 @@ fn write_logcat(line: &str) {
     }
 }
 
-#[cfg(not(target_os = "android"))]
+#[cfg(target_os = "ios")]
 fn write_logcat(line: &str) {
-    log::info!(target: "darkfi-net", "{line}");
+    // `drk` enables `log/release_max_level_off`, which compiles `log::*!` out in
+    // release builds. Write directly to stderr so Xcode / iOS unified logging
+    // receives release diagnostics without `log` macro stripping.
+    eprintln!("[darkfi-net] {line}");
+}
+
+#[cfg(all(not(target_os = "android"), not(target_os = "ios")))]
+fn write_logcat(line: &str) {
+    eprintln!("[darkfi-net] {line}");
 }
 
 impl<'a> tracing_subscriber::fmt::MakeWriter<'a> for LogcatWriter {
@@ -650,7 +762,7 @@ fn start_darkirc_inner(
     init_logging();
 
     let db_path = PathBuf::from(&datastore_path);
-    let _ = DATASTORE_PATH.set(db_path.clone());
+    set_datastore_path(db_path.clone());
     load_dm_contacts_from_datastore(&db_path);
     let cb: Option<Arc<dyn DarkircEventCallback>> = callback.map(Arc::from);
     DAG_SYNCED.store(0, Ordering::Relaxed);
@@ -717,7 +829,7 @@ fn start_darkirc_inner(
                             set_phase(PHASE_STOPPED);
                         }
                         Err(e) => {
-                            log::error!("darkirc daemon failed: {e}");
+                            tracing::error!("darkirc daemon failed: {e}");
                             DAEMON_STATUS.store(STATUS_FAILED, Ordering::Relaxed);
                             set_phase(PHASE_FAILED);
                         }
@@ -725,7 +837,7 @@ fn start_darkirc_inner(
                 }));
 
                 if outcome.is_err() {
-                    log::error!("darkirc daemon thread panicked — forcing status to FAILED");
+                    tracing::error!("darkirc daemon thread panicked — forcing status to FAILED");
                     DAEMON_STATUS.store(STATUS_FAILED, Ordering::Relaxed);
                     set_phase(PHASE_FAILED);
                 }
@@ -774,8 +886,10 @@ pub fn stop_darkirc() -> Result<(), DarkfiWalletNativeError> {
     crate::block_on(async {
         if let Some((ref tx, _)) = *STOP_CHANNEL.read().await {
             let _ = tx.try_send(());
+            tx.close();
         }
     });
+    crate::mesh::notify_mesh_wake();
     Ok(())
 }
 
@@ -833,7 +947,7 @@ fn send_chat_message_inner(
             {
                 Ok(ev) => ev,
                 Err(e) => {
-                    log::error!("Failed building Event: {}", e);
+                    tracing::error!("Failed building Event: {}", e);
                     return Err(DarkfiWalletNativeError::NativeDrkUnavailable(format!(
                         "Event::new failed: {}",
                         e
@@ -853,7 +967,7 @@ fn send_chat_message_inner(
             let inserted = match eg.insert_signal_with_blob(&event, &blob, &dag_name).await {
                 Ok(ids) => ids,
                 Err(e) => {
-                    log::error!("Failed inserting signal event to DAG: {}", e);
+                    tracing::error!("Failed inserting signal event to DAG: {}", e);
                     return Err(DarkfiWalletNativeError::NativeDrkUnavailable(format!(
                         "insert_signal_with_blob failed: {}",
                         e
@@ -865,7 +979,7 @@ fn send_chat_message_inner(
             // Treat as failure so the UI does not clear the compose box thinking
             // the send succeeded while nothing was relayed.
             if inserted.is_empty() {
-                log::error!(
+                tracing::error!(
                     "insert_signal_with_blob returned no ids for channel={} nick={} (event skipped)",
                     channel,
                     nick
@@ -881,7 +995,7 @@ fn send_chat_message_inner(
                 .broadcast(&darkfi::event_graph::proto::EventPut(event, blob))
                 .await
             {
-                log::error!("Event broadcast was not admitted: {}", e);
+                tracing::error!("Event broadcast was not admitted: {}", e);
                 return Err(DarkfiWalletNativeError::NativeDrkUnavailable(format!(
                     "EventPut broadcast failed: {}",
                     e
@@ -904,7 +1018,7 @@ fn send_chat_message_inner(
                 );
             }
 
-            log::info!(
+            tracing::info!(
                 "send_chat_message ok channel={} nick={} event={}",
                 channel,
                 nick,
@@ -998,6 +1112,41 @@ fn transport_plan(transport: crate::DarkircTransport, socks_port: u16) -> Transp
     }
 }
 
+async fn wait_for_stop(stop_rx: &smol::channel::Receiver<()>) {
+    if DAEMON_STATUS.load(Ordering::SeqCst) == STATUS_STOPPING {
+        return;
+    }
+    let _ = stop_rx.recv().await;
+}
+
+async fn sleep_or_stop(stop_rx: &smol::channel::Receiver<()>, dur: std::time::Duration) {
+    smol::future::race(wait_for_stop(stop_rx), async {
+        smol::Timer::after(dur).await;
+    })
+    .await;
+}
+
+struct FailedProtocol(String);
+
+impl darkfi::net::protocol::protocol_base::ProtocolBase for FailedProtocol {
+    fn start<'life0, 'async_trait>(
+        self: Arc<Self>,
+        _executor: Arc<Executor<'life0>>,
+    ) -> std::pin::Pin<
+        Box<dyn std::future::Future<Output = darkfi::Result<()>> + Send + 'async_trait>,
+    >
+    where
+        'life0: 'async_trait,
+        Self: 'async_trait,
+    {
+        Box::pin(async move { Err(darkfi::Error::Custom(self.0.clone())) })
+    }
+
+    fn name(&self) -> &'static str {
+        "ProtocolEventGraphInitFailed"
+    }
+}
+
 /// The actual darkirc daemon loop. Runs until stopped or error.
 async fn run_darkirc_daemon(
     datastore_path: PathBuf,
@@ -1023,7 +1172,13 @@ async fn run_darkirc_daemon(
     let mut kvdb_result = Database::open_default(&datastore_path);
     if kvdb_result.is_err() {
         for _ in 0..5 {
-            smol::Timer::after(std::time::Duration::from_millis(200)).await;
+            if DAEMON_STATUS.load(Ordering::SeqCst) == STATUS_STOPPING {
+                return Ok(());
+            }
+            sleep_or_stop(&stop_rx, std::time::Duration::from_millis(200)).await;
+            if DAEMON_STATUS.load(Ordering::SeqCst) == STATUS_STOPPING {
+                return Ok(());
+            }
             kvdb_result = Database::open_default(&datastore_path);
             if kvdb_result.is_ok() {
                 break;
@@ -1128,14 +1283,23 @@ async fn run_darkirc_daemon(
     .await
     .map_err(|e| format!("EventGraph init: {e}"))?;
 
-    let prune_task = event_graph.prune_task.get().unwrap();
+    let prune_task = event_graph.prune_task.get();
 
     let event_graph_ = Arc::clone(&event_graph);
     let registry = p2p.protocol_registry();
     registry
         .register(SESSION_DEFAULT, move |channel, _| {
             let eg = event_graph_.clone();
-            async move { ProtocolEventGraph::init(eg, channel).await.unwrap() }
+            async move {
+                match ProtocolEventGraph::init(eg, channel.clone()).await {
+                    Ok(proto) => proto,
+                    Err(e) => {
+                        tracing::error!("ProtocolEventGraph::init failed: {e}");
+                        channel.stop().await;
+                        Arc::new(FailedProtocol(format!("ProtocolEventGraph::init: {e}")))
+                    }
+                }
+            }
         })
         .await;
 
@@ -1143,26 +1307,55 @@ async fn run_darkirc_daemon(
     *EVENT_GRAPH.write().await = Some(event_graph.clone());
     *P2P.write().await = Some(p2p.clone());
 
-    p2p.clone()
-        .start()
-        .await
-        .map_err(|e| format!("P2P start: {e}"))?;
+    let p2p_started = smol::future::race(
+        async {
+            wait_for_stop(&stop_rx).await;
+            None
+        },
+        async { Some(p2p.clone().start().await) },
+    )
+    .await;
+    match p2p_started {
+        None => {
+            p2p.stop().await;
+            if let Some(prune) = prune_task {
+                prune.stop().await;
+            }
+            *EVENT_GRAPH.write().await = None;
+            *P2P.write().await = None;
+            let _ = kvdb.flush_default_mode_async().await;
+            return Ok(());
+        }
+        Some(Err(e)) => {
+            p2p.stop().await;
+            if let Some(prune) = prune_task {
+                prune.stop().await;
+            }
+            *EVENT_GRAPH.write().await = None;
+            *P2P.write().await = None;
+            let _ = kvdb.flush_default_mode_async().await;
+            return Err(format!("P2P start: {e}"));
+        }
+        Some(Ok(())) => {}
+    }
 
     DAEMON_STATUS.store(STATUS_RUNNING, Ordering::Relaxed);
     set_phase(PHASE_WAITING_FOR_PEERS);
-    log::info!(
+    tracing::info!(
         "darkirc daemon started over {:?} ({}) transport, syncing DAG...",
         transport,
         profile_name
     );
 
-    let dags_count = DARKIRC_MAX_DAGS;
+    let dags_count =
+        (DARKIRC_DAGS_COUNT.load(Ordering::Relaxed) as usize).clamp(1, DARKIRC_MAX_DAGS);
+    let fast_mode = DARKIRC_FAST_MODE.load(Ordering::Relaxed);
     let comms_timeout = 5u64;
     const DAG_REFRESH_SECS: u64 = 3600;
 
-    // Relay events — track relayed IDs so the history replay can skip them.
-    let relayed_ids: Arc<smol::lock::Mutex<std::collections::HashSet<String>>> =
-        Arc::new(smol::lock::Mutex::new(std::collections::HashSet::new()));
+    // Relay events — track bounded relayed IDs so history replay skips them.
+    let relayed_ids: Arc<smol::lock::Mutex<BoundedIdSet>> =
+        Arc::new(smol::lock::Mutex::new(BoundedIdSet::new(MAX_RELAYED_IDS)));
     let ev_sub = event_graph.event_pub.clone().subscribe().await;
     let cb_clone = callback.clone();
     let relayed_ids_clone = Arc::clone(&relayed_ids);
@@ -1176,26 +1369,45 @@ async fn run_darkirc_daemon(
                 if let Ok((privmsg, _)) = deserialize_async_partial::<Privmsg>(ev.content()).await {
                     let eid = ev.id().to_hex().to_string();
                     relayed_ids_clone.lock().await.insert(eid.clone());
-                    let shown = present_privmsg(privmsg);
-                    dispatch_darkirc_message(
-                        cb.as_ref(),
-                        eid,
-                        shown.channel,
-                        shown.nick,
-                        shown.msg,
-                        ev.header.timestamp,
-                        shown.is_outgoing,
-                    );
+                    if let Some(shown) = present_privmsg(privmsg) {
+                        dispatch_darkirc_message(
+                            cb.as_ref(),
+                            eid,
+                            shown.channel,
+                            shown.nick,
+                            shown.msg,
+                            ev.header.timestamp,
+                            shown.is_outgoing,
+                        );
+                    }
                 }
             }
         }
     });
 
     let mesh_eg = event_graph.clone();
+    let mesh_stop_rx = stop_rx.clone();
     let mesh_task = ex.spawn(async move {
         loop {
+            if DAEMON_STATUS.load(Ordering::SeqCst) == STATUS_STOPPING {
+                break;
+            }
+            if !crate::transport_manager::mesh_enabled() {
+                smol::future::race(
+                    wait_for_stop(&mesh_stop_rx),
+                    crate::mesh::wait_for_mesh_wake(),
+                )
+                .await;
+                continue;
+            }
             drain_mesh_inbound(&mesh_eg).await;
-            smol::Timer::after(std::time::Duration::from_millis(250)).await;
+            smol::future::race(
+                wait_for_stop(&mesh_stop_rx),
+                smol::future::race(crate::mesh::wait_for_mesh_wake(), async {
+                    smol::Timer::after(std::time::Duration::from_millis(250)).await;
+                }),
+            )
+            .await;
         }
     });
 
@@ -1203,13 +1415,13 @@ async fn run_darkirc_daemon(
     // tens of seconds. The post-sync replay below skips these ids.
     match event_graph.order_events().await {
         Ok(cached) => {
-            log::info!(
+            tracing::info!(
                 "darkirc daemon replaying {} cached events before peer sync",
                 cached.len()
             );
             replay_history(cached, &callback, &relayed_ids).await;
         }
-        Err(e) => log::warn!("darkirc daemon cached history unavailable: {e}"),
+        Err(e) => tracing::warn!("darkirc daemon cached history unavailable: {e}"),
     }
 
     // Sync while connected; on peer loss, wait briefly and retry so background
@@ -1217,103 +1429,110 @@ async fn run_darkirc_daemon(
     // Failed sync steps always retry (do not park in the monitor loop).
     let mut logged_waiting = false;
     loop {
-        if DAEMON_STATUS.load(Ordering::Relaxed) == STATUS_STOPPING {
+        if DAEMON_STATUS.load(Ordering::SeqCst) == STATUS_STOPPING {
             break;
         }
 
         if !p2p.is_connected() {
             set_phase(PHASE_WAITING_FOR_PEERS);
             if !logged_waiting {
-                log::info!("darkirc daemon waiting for P2P peers...");
+                tracing::info!("darkirc daemon waiting for P2P peers...");
                 logged_waiting = true;
             }
             // `is_connected` is a cheap local check; poll it often so sync
             // starts as soon as the first channel is up.
-            smol::future::race(
-                async {
-                    let _ = stop_rx.recv().await;
-                },
-                async {
-                    smol::Timer::after(std::time::Duration::from_secs(1)).await;
-                },
-            )
-            .await;
+            sleep_or_stop(&stop_rx, std::time::Duration::from_secs(1)).await;
             continue;
         }
         logged_waiting = false;
 
         set_phase(PHASE_STATIC_SYNC);
-        log::info!("darkirc daemon connected, waiting for static sync...");
-        if event_graph.static_sync().await.is_err() {
-            log::warn!("darkirc daemon static_sync failed — retrying");
-            set_phase(PHASE_WAITING_FOR_PEERS);
-            smol::future::race(
-                async {
-                    let _ = stop_rx.recv().await;
-                },
-                async {
-                    smol::Timer::after(std::time::Duration::from_secs(comms_timeout)).await;
-                },
-            )
-            .await;
-            continue;
+        tracing::info!("darkirc daemon connected, waiting for static sync...");
+        let static_res = smol::future::race(
+            async {
+                wait_for_stop(&stop_rx).await;
+                None
+            },
+            async { Some(event_graph.static_sync().await) },
+        )
+        .await;
+        match static_res {
+            None => break,
+            Some(Err(_)) => {
+                tracing::warn!("darkirc daemon static_sync failed — retrying");
+                set_phase(PHASE_WAITING_FOR_PEERS);
+                sleep_or_stop(&stop_rx, std::time::Duration::from_secs(comms_timeout)).await;
+                continue;
+            }
+            Some(Ok(())) => {}
         }
 
         set_phase(PHASE_SYNCING_DAG);
-        log::info!("darkirc daemon static sync complete. Starting sync_selected...");
-        // Full sync (bodies + headers). Header-only clients use
-        // `sync_selected_headers` instead (darkirc `--fast-mode`).
-        if event_graph.sync_selected(dags_count).await.is_err() {
-            log::warn!("darkirc daemon sync_selected failed — retrying");
-            set_phase(PHASE_WAITING_FOR_PEERS);
-            smol::future::race(
-                async {
-                    let _ = stop_rx.recv().await;
-                },
-                async {
-                    smol::Timer::after(std::time::Duration::from_secs(comms_timeout)).await;
-                },
-            )
-            .await;
-            continue;
+        tracing::info!("darkirc daemon static sync complete. Starting sync_selected...");
+        // Full sync (bodies + headers), or header-only when fast_mode is enabled.
+        let sync_res = smol::future::race(
+            async {
+                wait_for_stop(&stop_rx).await;
+                None
+            },
+            async {
+                let res = if fast_mode {
+                    event_graph.sync_selected_headers(dags_count).await
+                } else {
+                    event_graph.sync_selected(dags_count).await
+                };
+                Some(res)
+            },
+        )
+        .await;
+        match sync_res {
+            None => break,
+            Some(Err(_)) => {
+                tracing::warn!("darkirc daemon sync_selected failed — retrying");
+                set_phase(PHASE_WAITING_FOR_PEERS);
+                sleep_or_stop(&stop_rx, std::time::Duration::from_secs(comms_timeout)).await;
+                continue;
+            }
+            Some(Ok(())) => {}
         }
 
         set_phase(PHASE_LOADING_HISTORY);
-        log::info!("darkirc daemon sync_selected complete. Fetching historical events...");
-        let history = match event_graph.order_events().await {
-            Ok(events) => events,
-            Err(e) => {
-                log::error!("darkirc daemon order_events failed: {e}");
+        tracing::info!("darkirc daemon sync_selected complete. Fetching historical events...");
+        let order_res = smol::future::race(
+            async {
+                wait_for_stop(&stop_rx).await;
+                None
+            },
+            async { Some(event_graph.order_events().await) },
+        )
+        .await;
+        let history = match order_res {
+            None => break,
+            Some(Ok(events)) => events,
+            Some(Err(e)) => {
+                tracing::error!("darkirc daemon order_events failed: {e}");
                 set_phase(PHASE_WAITING_FOR_PEERS);
-                smol::future::race(
-                    async {
-                        let _ = stop_rx.recv().await;
-                    },
-                    async {
-                        smol::Timer::after(std::time::Duration::from_secs(comms_timeout)).await;
-                    },
-                )
-                .await;
+                sleep_or_stop(&stop_rx, std::time::Duration::from_secs(comms_timeout)).await;
                 continue;
             }
         };
-        log::info!("darkirc daemon fetched {} historical events", history.len());
+        tracing::info!("darkirc daemon fetched {} historical events", history.len());
         replay_history(history, &callback, &relayed_ids).await;
         DAG_SYNCED.store(1, Ordering::Relaxed);
         set_phase(PHASE_CONNECTED);
         publish_outbound_slots();
-        log::info!("darkirc daemon DAG synced and history replayed");
+        tracing::info!("darkirc daemon DAG synced and history replayed");
 
         // Monitor until stop or loss of all peers, then outer loop resyncs.
         // Periodic sync_selected covers missed live relays / DAG rotation.
         let net_sub = p2p.hosts().subscribe_disconnect().await;
         let mut last_dag_refresh = std::time::Instant::now();
         loop {
-            if DAEMON_STATUS.load(Ordering::Relaxed) == STATUS_STOPPING {
+            if DAEMON_STATUS.load(Ordering::SeqCst) == STATUS_STOPPING {
                 break;
             }
             if !p2p.is_connected() {
-                log::info!("darkirc daemon disconnected (0 peers), preparing resync...");
+                tracing::info!("darkirc daemon disconnected (0 peers), preparing resync...");
                 DAG_SYNCED.store(0, Ordering::Relaxed);
                 set_phase(PHASE_WAITING_FOR_PEERS);
                 break;
@@ -1326,7 +1545,7 @@ async fn run_darkirc_daemon(
                 },
                 smol::future::race(
                     async {
-                        let _ = stop_rx.recv().await;
+                        wait_for_stop(&stop_rx).await;
                         "stop"
                     },
                     async {
@@ -1337,12 +1556,12 @@ async fn run_darkirc_daemon(
             )
             .await;
 
-            if stop_or_disc == "stop" || DAEMON_STATUS.load(Ordering::Relaxed) == STATUS_STOPPING {
+            if stop_or_disc == "stop" || DAEMON_STATUS.load(Ordering::SeqCst) == STATUS_STOPPING {
                 break;
             }
 
             if stop_or_disc == "disconnect" && !p2p.is_connected() {
-                log::info!("darkirc daemon detected disconnection, preparing resync...");
+                tracing::info!("darkirc daemon detected disconnection, preparing resync...");
                 DAG_SYNCED.store(0, Ordering::Relaxed);
                 set_phase(PHASE_WAITING_FOR_PEERS);
                 break;
@@ -1355,29 +1574,47 @@ async fn run_darkirc_daemon(
             if stop_or_disc == "timer"
                 && last_dag_refresh.elapsed() >= std::time::Duration::from_secs(DAG_REFRESH_SECS)
             {
-                match event_graph.sync_selected(dags_count).await {
-                    Ok(()) => {
+                let refresh_res = smol::future::race(
+                    async {
+                        wait_for_stop(&stop_rx).await;
+                        None
+                    },
+                    async {
+                        let res = if fast_mode {
+                            event_graph.sync_selected_headers(dags_count).await
+                        } else {
+                            event_graph.sync_selected(dags_count).await
+                        };
+                        Some(res)
+                    },
+                )
+                .await;
+                match refresh_res {
+                    None => break,
+                    Some(Ok(())) => {
                         last_dag_refresh = std::time::Instant::now();
-                        log::info!("darkirc daemon periodic sync_selected ok");
+                        tracing::info!("darkirc daemon periodic sync_selected ok");
                     }
-                    Err(e) => {
-                        log::warn!("darkirc daemon periodic sync_selected failed: {e}");
+                    Some(Err(e)) => {
+                        tracing::warn!("darkirc daemon periodic sync_selected failed: {e}");
                     }
                 }
             }
         }
 
-        if DAEMON_STATUS.load(Ordering::Relaxed) == STATUS_STOPPING {
+        if DAEMON_STATUS.load(Ordering::SeqCst) == STATUS_STOPPING {
             break;
         }
 
         if !p2p.is_connected() {
-            smol::Timer::after(std::time::Duration::from_secs(comms_timeout)).await;
+            sleep_or_stop(&stop_rx, std::time::Duration::from_secs(comms_timeout)).await;
         }
     }
 
     p2p.stop().await;
-    prune_task.stop().await;
+    if let Some(prune) = prune_task {
+        prune.stop().await;
+    }
     mesh_task.cancel().await;
     relay_task.cancel().await;
 
@@ -1560,16 +1797,126 @@ mod tests {
         assert_eq!(msg.msg, "hello");
     }
 
+    static DM_TEST_MUTEX: Mutex<()> = Mutex::new(());
+
     #[test]
     fn dm_encrypts_channel_nick_and_message() {
+        let _guard = DM_TEST_MUTEX.lock().unwrap();
+        clear_dm_contacts();
         let kp = crate::generate_dm_keypair();
         let sk = bs58::decode(&kp.secret_b58).into_vec().unwrap();
         let pk = bs58::decode(&kp.public_b58).into_vec().unwrap();
-        register_dm_contact("bob", &sk, &pk).unwrap();
+        register_dm_contact("bob".into(), sk, pk).unwrap();
         let mut msg = new_privmsg("bob".into(), "alice".into(), "hello".into());
         try_encrypt_privmsg(&mut msg).unwrap();
         assert_ne!(msg.channel, "bob");
         assert_ne!(msg.nick, "alice");
         assert_ne!(msg.msg, "hello");
+        clear_dm_contacts();
+    }
+
+    #[test]
+    fn dm_register_encrypt_decrypt_unregister_clear_in_memory_only() {
+        let _guard = DM_TEST_MUTEX.lock().unwrap();
+        clear_dm_contacts();
+        // Ensure zero disk datastore path is needed or touched.
+        assert!(current_datastore_path().is_none());
+
+        let alice = crate::generate_dm_keypair();
+        let bob = crate::generate_dm_keypair();
+        let alice_sk = bs58::decode(&alice.secret_b58).into_vec().unwrap();
+        let alice_pk = bs58::decode(&alice.public_b58).into_vec().unwrap();
+        let bob_sk = bs58::decode(&bob.secret_b58).into_vec().unwrap();
+        let bob_pk = bs58::decode(&bob.public_b58).into_vec().unwrap();
+
+        // Alice registers Bob, encrypts a DM in memory.
+        register_dm_contact("bob".into(), alice_sk, bob_pk).unwrap();
+        let mut wire = new_privmsg("bob".into(), "alice".into(), "secret hello".into());
+        try_encrypt_privmsg(&mut wire).unwrap();
+
+        // Now unregister Bob on Alice's side -> cannot send or decrypt.
+        unregister_dm_contact("bob".into());
+        let mut blocked = new_privmsg("bob".into(), "alice".into(), "blocked".into());
+        assert!(try_encrypt_privmsg(&mut blocked).is_err());
+        assert!(present_privmsg(wire.clone()).is_none());
+
+        // Bob registers Alice in memory -> decrypts Alice's wire message cleanly.
+        register_dm_contact("alice".into(), bob_sk, alice_pk).unwrap();
+        let decrypted = present_privmsg(wire.clone()).expect("bob decrypts alice DM");
+        assert_eq!(decrypted.channel, "alice");
+        assert_eq!(decrypted.nick, "alice");
+        assert_eq!(decrypted.msg, "secret hello");
+        assert!(!decrypted.is_outgoing);
+
+        // clear_dm_contacts wipes everything from memory.
+        clear_dm_contacts();
+        assert!(present_privmsg(wire).is_none());
+    }
+
+    #[test]
+    fn undecryptable_foreign_dm_is_dropped_not_forwarded_raw() {
+        let _guard = DM_TEST_MUTEX.lock().unwrap();
+        clear_dm_contacts();
+
+        let alice = crate::generate_dm_keypair();
+        let bob = crate::generate_dm_keypair();
+        let carol = crate::generate_dm_keypair();
+        let alice_sk = bs58::decode(&alice.secret_b58).into_vec().unwrap();
+        let bob_pk = bs58::decode(&bob.public_b58).into_vec().unwrap();
+        let carol_sk = bs58::decode(&carol.secret_b58).into_vec().unwrap();
+        let carol_pk = bs58::decode(&carol.public_b58).into_vec().unwrap();
+
+        // Alice encrypts to Bob.
+        register_dm_contact("bob".into(), alice_sk, bob_pk).unwrap();
+        let mut wire = new_privmsg("bob".into(), "alice".into(), "for bob only".into());
+        try_encrypt_privmsg(&mut wire).unwrap();
+        clear_dm_contacts();
+
+        // Carol only has a contact with herself; foreign DM for Bob MUST drop cleanly.
+        register_dm_contact("dave".into(), carol_sk, carol_pk).unwrap();
+        assert!(present_privmsg(wire).is_none());
+        clear_dm_contacts();
+    }
+
+    #[test]
+    fn dm_register_rejects_empty_nick_and_short_key() {
+        let empty = register_dm_contact(String::new(), vec![0; 32], vec![0; 32]);
+        assert!(empty.is_err());
+        let short = register_dm_contact("bob".into(), vec![1; 16], vec![0; 32]);
+        assert!(short.is_err());
+    }
+
+    #[test]
+    fn bounded_id_set_caps_size_and_evicts_oldest() {
+        let mut set = BoundedIdSet::new(3);
+        assert!(set.insert("e1".into()));
+        assert!(!set.insert("e1".into()));
+        assert!(set.insert("e2".into()));
+        assert!(set.insert("e3".into()));
+        assert!(set.insert("e4".into()));
+        assert_eq!(set.set.len(), 3);
+        assert!(!set.set.contains("e1"));
+        assert!(set.set.contains("e2"));
+        assert!(set.set.contains("e4"));
+    }
+
+    #[test]
+    fn configure_darkirc_clamps_dags_and_sets_fast_mode() {
+        configure_darkirc(0, true);
+        assert_eq!(
+            DARKIRC_DAGS_COUNT.load(Ordering::Relaxed),
+            DARKIRC_MAX_DAGS as u32
+        );
+        assert!(DARKIRC_FAST_MODE.load(Ordering::Relaxed));
+
+        configure_darkirc(6, false);
+        assert_eq!(DARKIRC_DAGS_COUNT.load(Ordering::Relaxed), 6);
+        assert!(!DARKIRC_FAST_MODE.load(Ordering::Relaxed));
+
+        configure_darkirc(999, false);
+        assert_eq!(
+            DARKIRC_DAGS_COUNT.load(Ordering::Relaxed),
+            DARKIRC_MAX_DAGS as u32
+        );
     }
 }

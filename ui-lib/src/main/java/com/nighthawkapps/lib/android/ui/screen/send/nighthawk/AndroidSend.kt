@@ -12,6 +12,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
@@ -23,6 +24,7 @@ import com.nighthawkapps.lib.android.sdk.wallet.DarkfiAmountFormatter
 import com.nighthawkapps.lib.android.sdk.wallet.DarkfiAmountParser
 import com.nighthawkapps.lib.android.sdk.wallet.SendBalanceCheck
 import com.nighthawkapps.lib.android.sdk.wallet.maxSpendableAtomic
+import com.nighthawkapps.lib.android.sdk.wallet.resolveSelectedAsset
 import com.nighthawkapps.lib.android.ui.MainActivity
 import com.nighthawkapps.lib.android.ui.R
 import com.nighthawkapps.lib.android.ui.common.authenticate
@@ -41,6 +43,7 @@ import com.nighthawkapps.lib.android.ui.screen.send.nighthawk.view.ReviewSend
 import com.nighthawkapps.lib.android.ui.screen.send.nighthawk.view.SendConfirmation
 import com.nighthawkapps.lib.android.ui.screen.send.viewmodel.SendViewModel
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 /**
  * Full Nighthawk send wizard.
@@ -83,7 +86,9 @@ private fun NighthawkSendFlow(
     val feeAtomic by sendViewModel.feeAtomic.collectAsStateWithLifecycle()
     val isEstimatingFee by sendViewModel.isEstimatingFee.collectAsStateWithLifecycle()
     val isSubmitting by sendViewModel.isSubmitting.collectAsStateWithLifecycle()
+    val broadcastStarted by sendViewModel.broadcastStarted.collectAsStateWithLifecycle()
     val errorMessage by sendViewModel.errorMessage.collectAsStateWithLifecycle()
+    val scope = rememberCoroutineScope()
     val lastTxId by sendViewModel.lastTxId.collectAsStateWithLifecycle()
     val stageName by sendViewModel.stage.collectAsStateWithLifecycle()
     val amountText by sendViewModel.amountText.collectAsStateWithLifecycle()
@@ -185,16 +190,19 @@ private fun NighthawkSendFlow(
     ) {
         when (stage) {
             SendStage.Amount -> {
-                val unit =
-                    tokenBalances.firstOrNull { it.tokenId == selectedTokenId }?.displayName
-                        ?: "DRK"
+                val selectedAsset =
+                    resolveSelectedAsset(
+                        confirmedDrkAtomic = balanceAtomic,
+                        tokenBalances = tokenBalances,
+                        selectedTokenId = selectedTokenId,
+                    )
                 EnterAmount(
                     amountText = amountText,
                     spendableBalanceLabel =
                         stringResource(
                             R.string.ns_spendable_balance,
-                            DarkfiAmountFormatter.formatAtomic(balanceAtomic),
-                            unit,
+                            DarkfiAmountFormatter.formatAtomic(selectedAsset.availableAtomic),
+                            selectedAsset.unit,
                         ),
                     tokenBalances = tokenBalances,
                     selectedTokenId = selectedTokenId,
@@ -208,20 +216,27 @@ private fun NighthawkSendFlow(
                     onAmountChanged = { sendViewModel.setAmountText(it) },
                     onTokenSelected = { sendViewModel.setSelectedTokenId(it) },
                     onMaxAmount = {
-                        val token = tokenBalances.firstOrNull { it.tokenId == selectedTokenId }
-                        val rawAtomic = token?.balanceAtomic ?: balanceAtomic
-                        val feeFromThisAsset =
-                            token == null ||
-                                token.displayName.equals("DRK", ignoreCase = true)
-                        sendViewModel.setAmountText(
-                            DarkfiAmountFormatter.formatAtomic(
-                                maxSpendableAtomic(
-                                    availableAtomic = rawAtomic,
-                                    feeAtomic = feeAtomic,
-                                    feePaidFromThisAsset = feeFromThisAsset,
+                        scope.launch {
+                            val reservedFee =
+                                if (selectedAsset.isNativeDrk) {
+                                    sendViewModel.resolveFeeForMax(
+                                        recipientAddress = recipient,
+                                        tokenId = selectedTokenId,
+                                        paymentMemo = memoText.ifBlank { null },
+                                    )
+                                } else {
+                                    0L
+                                }
+                            sendViewModel.setAmountText(
+                                DarkfiAmountFormatter.formatAtomic(
+                                    maxSpendableAtomic(
+                                        availableAtomic = selectedAsset.availableAtomic,
+                                        feeAtomic = reservedFee,
+                                        feePaidFromThisAsset = selectedAsset.isNativeDrk,
+                                    ),
                                 ),
-                            ),
-                        )
+                            )
+                        }
                     },
                     onContinue = { sendViewModel.setStage(SendStage.Recipient) },
                     onScanPaymentRequest = onScan,
@@ -270,6 +285,7 @@ private fun NighthawkSendFlow(
                                     confirmedBalanceAtomic = balanceAtomic,
                                     tokenId = selectedTokenId,
                                     paymentMemo = memoText.ifBlank { null },
+                                    tokenBalances = tokenBalances,
                                 ) {
                                     sendViewModel.setStage(SendStage.Success)
                                 }
@@ -292,6 +308,7 @@ private fun NighthawkSendFlow(
                                     confirmedBalanceAtomic = balanceAtomic,
                                     tokenId = selectedTokenId,
                                     paymentMemo = memoText.ifBlank { null },
+                                    tokenBalances = tokenBalances,
                                 ) {
                                     sendViewModel.setStage(SendStage.Success)
                                 }
@@ -301,7 +318,12 @@ private fun NighthawkSendFlow(
                 } else {
                     val balanceCheck =
                         if (fieldsReady) {
-                            sendViewModel.evaluateBalance(balanceAtomic, amountText)
+                            sendViewModel.evaluateBalance(
+                                confirmedDrkBalanceAtomic = balanceAtomic,
+                                tokenBalances = tokenBalances,
+                                selectedTokenId = selectedTokenId,
+                                amountDisplay = amountText,
+                            )
                         } else {
                             null
                         }
@@ -310,14 +332,17 @@ private fun NighthawkSendFlow(
                             balanceCheck == SendBalanceCheck.Ok &&
                             !isSubmitting &&
                             isPinConfigured != null
-                    val unit =
-                        tokenBalances.firstOrNull { it.tokenId == selectedTokenId }?.displayName
-                            ?: "DRK"
+                    val selectedAsset =
+                        resolveSelectedAsset(
+                            confirmedDrkAtomic = balanceAtomic,
+                            tokenBalances = tokenBalances,
+                            selectedTokenId = selectedTokenId,
+                        )
                     ReviewSend(
-                        amountLabel = "$amountText $unit",
+                        amountLabel = "$amountText ${selectedAsset.unit}",
                         recipient = recipient,
                         memo = memoText.ifBlank { null },
-                        feeLabel = sendViewModel.formatFeeAtomic(feeAtomic)?.let { "$it $unit" },
+                        feeLabel = sendViewModel.formatFeeAtomic(feeAtomic)?.let { "$it DRK" },
                         isEstimatingFee = isEstimatingFee,
                         isSendEnabled = canSend,
                         errorMessage =
@@ -327,10 +352,12 @@ private fun NighthawkSendFlow(
                                 }
 
                                 balanceCheck is SendBalanceCheck.Insufficient -> {
+                                    val req = DarkfiAmountFormatter.formatAtomic(balanceCheck.requiredAtomic)
+                                    val avail = DarkfiAmountFormatter.formatAtomic(balanceCheck.availableAtomic)
                                     stringResource(
                                         R.string.send_insufficient_balance,
-                                        DarkfiAmountFormatter.formatAtomic(balanceCheck.requiredAtomic),
-                                        DarkfiAmountFormatter.formatAtomic(balanceCheck.availableAtomic),
+                                        "$req ${balanceCheck.unit}",
+                                        "$avail ${balanceCheck.unit}",
                                     )
                                 }
 
@@ -342,7 +369,10 @@ private fun NighthawkSendFlow(
                         onSend = {
                             // null = PIN config still loading — do not fail-open to send.
                             when (isPinConfigured) {
-                                true -> isAuthenticatingToSend = true
+                                true -> {
+                                    isAuthenticatingToSend = true
+                                }
+
                                 false -> {
                                     sendViewModel.setStage(SendStage.Sending)
                                     sendViewModel.submitTransfer(
@@ -351,11 +381,15 @@ private fun NighthawkSendFlow(
                                         confirmedBalanceAtomic = balanceAtomic,
                                         tokenId = selectedTokenId,
                                         paymentMemo = memoText.ifBlank { null },
+                                        tokenBalances = tokenBalances,
                                     ) {
                                         sendViewModel.setStage(SendStage.Success)
                                     }
                                 }
-                                null -> Unit
+
+                                null -> {
+                                    Unit
+                                }
                             }
                         },
                     )
@@ -366,7 +400,20 @@ private fun NighthawkSendFlow(
                 SendConfirmation(
                     sendConfirmationState = SendConfirmationState.Sending,
                     errorMessage = errorMessage,
+                    sendingSubtitle =
+                        if (broadcastStarted) {
+                            stringResource(R.string.ns_send_in_flight_hint)
+                        } else {
+                            null
+                        },
+                    sendingCancelLabel =
+                        if (broadcastStarted) {
+                            stringResource(R.string.ns_close).uppercase()
+                        } else {
+                            null
+                        },
                     onCancel = {
+                        sendViewModel.cancelPendingSubmit()
                         sendViewModel.onFlowExit()
                         onExit()
                     },

@@ -8,12 +8,16 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
 import com.nighthawkapps.lib.android.global.AppWalletCoordinator
 import com.nighthawkapps.lib.android.global.DeepLinkUtil
+import com.nighthawkapps.lib.android.sdk.wallet.DEFAULT_TRANSFER_FEE_ATOMIC
 import com.nighthawkapps.lib.android.sdk.wallet.DarkfiAmountFormatter
 import com.nighthawkapps.lib.android.sdk.wallet.DarkfiPaymentMemo
 import com.nighthawkapps.lib.android.sdk.wallet.DarkfiSynchronizer
+import com.nighthawkapps.lib.android.sdk.wallet.DarkfiTokenBalance
 import com.nighthawkapps.lib.android.sdk.wallet.DarkfiTransferResult
 import com.nighthawkapps.lib.android.sdk.wallet.SendBalanceCheck
+import com.nighthawkapps.lib.android.sdk.wallet.evaluateAssetAndFeeBalance
 import com.nighthawkapps.lib.android.sdk.wallet.evaluateSendBalance
+import com.nighthawkapps.lib.android.sdk.wallet.resolveSelectedAsset
 import com.nighthawkapps.lib.android.sdk.wallet.validateAddressStub
 import com.nighthawkapps.lib.android.ui.R
 import com.nighthawkapps.lib.android.ui.common.ANDROID_STATE_FLOW_TIMEOUT
@@ -47,6 +51,9 @@ class SendViewModel(
     private val _isSubmitting = MutableStateFlow(false)
     val isSubmitting: StateFlow<Boolean> = _isSubmitting
 
+    private val _broadcastStarted = MutableStateFlow(false)
+    val broadcastStarted: StateFlow<Boolean> = _broadcastStarted
+
     private val _errorMessage = MutableStateFlow<String?>(null)
     val errorMessage: StateFlow<String?> = _errorMessage
 
@@ -54,6 +61,7 @@ class SendViewModel(
     val lastTxId: StateFlow<String?> = _lastTxId
 
     private var feeJob: Job? = null
+    private var submitJob: Job? = null
     private var submitGeneration = 0
 
     val stage: StateFlow<String> = savedStateHandle.getStateFlow(KEY_STAGE, SendStage.Amount.name)
@@ -225,17 +233,81 @@ class SendViewModel(
             feeAtomic = _feeAtomic.value,
         )
 
+    fun evaluateBalance(
+        confirmedDrkBalanceAtomic: Long,
+        tokenBalances: List<DarkfiTokenBalance>,
+        selectedTokenId: String?,
+        amountDisplay: String,
+    ): SendBalanceCheck {
+        val asset = resolveSelectedAsset(confirmedDrkBalanceAtomic, tokenBalances, selectedTokenId)
+        return evaluateAssetAndFeeBalance(
+            assetAvailableAtomic = asset.availableAtomic,
+            drkAvailableAtomic = confirmedDrkBalanceAtomic,
+            amountDisplay = amountDisplay,
+            feeAtomic = _feeAtomic.value,
+            isNativeDrk = asset.isNativeDrk,
+            assetUnit = asset.unit,
+        )
+    }
+
+    suspend fun resolveFeeForMax(
+        recipientAddress: String,
+        tokenId: String?,
+        paymentMemo: String?,
+    ): Long {
+        _feeAtomic.value?.let { return it }
+        val sync = synchronizer.value
+        val trimmedRecipient = recipientAddress.trim()
+        if (sync != null && sync.supportsNativeTransfer && trimmedRecipient.isNotEmpty()) {
+            val result =
+                sync.estimateTransferFee(
+                    recipientAddress = trimmedRecipient,
+                    amountDisplay = "0.00000001",
+                    tokenId = tokenId,
+                    paymentMemo = paymentMemo,
+                )
+            if (result is DarkfiTransferResult.Success) {
+                _feeAtomic.value = result.value
+                return result.value
+            }
+        }
+        return DEFAULT_TRANSFER_FEE_ATOMIC
+    }
+
+    fun cancelPendingSubmit(): Boolean {
+        if (_broadcastStarted.value) {
+            return false
+        }
+        submitGeneration++
+        submitJob?.cancel()
+        submitJob = null
+        _isSubmitting.value = false
+        _errorMessage.value = null
+        return true
+    }
+
     fun insufficientBalanceMessage(check: SendBalanceCheck.Insufficient): String {
         val shortfall =
             (check.requiredAtomic - check.availableAtomic).coerceAtLeast(0L)
         return buildString {
-            append("Insufficient balance. You need ")
+            append("Insufficient ")
+            append(check.unit)
+            append(" balance. You need ")
             append(DarkfiAmountFormatter.formatAtomic(check.requiredAtomic))
-            append(" DRK (amount + fee) but only have ")
+            append(' ')
+            append(check.unit)
+            if (check.unit.equals("DRK", ignoreCase = true)) {
+                append(" (including fee)")
+            }
+            append(" but only have ")
             append(DarkfiAmountFormatter.formatAtomic(check.availableAtomic))
-            append(" DRK. Add at least ")
+            append(' ')
+            append(check.unit)
+            append(". Add at least ")
             append(DarkfiAmountFormatter.formatAtomic(shortfall))
-            append(" DRK more to complete this transfer.")
+            append(' ')
+            append(check.unit)
+            append(" more to complete this transfer.")
         }
     }
 
@@ -245,10 +317,12 @@ class SendViewModel(
         confirmedBalanceAtomic: Long,
         tokenId: String? = null,
         paymentMemo: String? = null,
+        tokenBalances: List<DarkfiTokenBalance> = emptyList(),
         onSuccess: () -> Unit,
     ) {
         if (_isSubmitting.value) return
         _isSubmitting.value = true
+        _broadcastStarted.value = false
         val generation = submitGeneration
         val sync = synchronizer.value
         if (sync == null) {
@@ -262,7 +336,15 @@ class SendViewModel(
             return
         }
 
-        when (val balanceCheck = evaluateBalance(confirmedBalanceAtomic, amountDisplay)) {
+        when (
+            val balanceCheck =
+                evaluateBalance(
+                    confirmedDrkBalanceAtomic = confirmedBalanceAtomic,
+                    tokenBalances = tokenBalances,
+                    selectedTokenId = tokenId,
+                    amountDisplay = amountDisplay,
+                )
+        ) {
             SendBalanceCheck.FeePending -> {
                 _errorMessage.value = "Waiting for fee estimate — try again in a moment"
                 _isSubmitting.value = false
@@ -282,57 +364,69 @@ class SendViewModel(
 
         _errorMessage.value = null
         _lastTxId.value = null
-        viewModelScope.launch {
-            try {
-                if (generation != submitGeneration) return@launch
-                when (val balanceCheck = evaluateBalance(confirmedBalanceAtomic, amountDisplay)) {
-                    SendBalanceCheck.FeePending -> {
-                        _errorMessage.value = "Waiting for fee estimate — try again in a moment"
-                        return@launch
-                    }
+        submitJob =
+            viewModelScope.launch {
+                try {
+                    if (generation != submitGeneration) return@launch
+                    when (
+                        val balanceCheck =
+                            evaluateBalance(
+                                confirmedDrkBalanceAtomic = confirmedBalanceAtomic,
+                                tokenBalances = tokenBalances,
+                                selectedTokenId = tokenId,
+                                amountDisplay = amountDisplay,
+                            )
+                    ) {
+                        SendBalanceCheck.FeePending -> {
+                            _errorMessage.value = "Waiting for fee estimate — try again in a moment"
+                            return@launch
+                        }
 
-                    is SendBalanceCheck.Insufficient -> {
-                        _errorMessage.value = insufficientBalanceMessage(balanceCheck)
-                        return@launch
-                    }
+                        is SendBalanceCheck.Insufficient -> {
+                            _errorMessage.value = insufficientBalanceMessage(balanceCheck)
+                            return@launch
+                        }
 
-                    SendBalanceCheck.Ok -> {
-                        Unit
-                    }
-                }
-
-                val addressType = sync.validateAddressStub(recipientAddress.trim())
-                if (addressType == com.nighthawkapps.lib.android.sdk.wallet.DarkfiAddressType.Invalid) {
-                    _errorMessage.value = "Invalid recipient address"
-                    return@launch
-                }
-
-                when (
-                    val result =
-                        sync.submitTransfer(
-                            recipientAddress = recipientAddress,
-                            amountDisplay = amountDisplay,
-                            tokenId = tokenId,
-                            paymentMemo = paymentMemo,
-                        )
-                ) {
-                    is DarkfiTransferResult.Success -> {
-                        if (generation != submitGeneration) return@launch
-                        _lastTxId.value = result.value
-                        walletCoordinator.rescanBlockchain()
-                        onSuccess()
-                    }
-
-                    is DarkfiTransferResult.Failure -> {
-                        if (generation == submitGeneration) {
-                            _errorMessage.value = result.message
+                        SendBalanceCheck.Ok -> {
+                            Unit
                         }
                     }
+
+                    val addressType = sync.validateAddressStub(recipientAddress.trim())
+                    if (addressType == com.nighthawkapps.lib.android.sdk.wallet.DarkfiAddressType.Invalid) {
+                        _errorMessage.value = "Invalid recipient address"
+                        return@launch
+                    }
+
+                    if (generation != submitGeneration) return@launch
+                    _broadcastStarted.value = true
+                    when (
+                        val result =
+                            sync.submitTransfer(
+                                recipientAddress = recipientAddress,
+                                amountDisplay = amountDisplay,
+                                tokenId = tokenId,
+                                paymentMemo = paymentMemo,
+                            )
+                    ) {
+                        is DarkfiTransferResult.Success -> {
+                            if (generation != submitGeneration) return@launch
+                            _lastTxId.value = result.value
+                            walletCoordinator.rescanBlockchain()
+                            onSuccess()
+                        }
+
+                        is DarkfiTransferResult.Failure -> {
+                            if (generation == submitGeneration) {
+                                _errorMessage.value = result.message
+                            }
+                        }
+                    }
+                } finally {
+                    _broadcastStarted.value = false
+                    _isSubmitting.value = false
                 }
-            } finally {
-                _isSubmitting.value = false
             }
-        }
     }
 
     fun formatFeeAtomic(feeAtomic: Long?): String? = feeAtomic?.let { DarkfiAmountFormatter.formatAtomic(it) }

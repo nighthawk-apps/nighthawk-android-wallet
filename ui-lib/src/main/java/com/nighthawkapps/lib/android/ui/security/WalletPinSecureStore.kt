@@ -9,7 +9,11 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.runBlocking
 import java.io.File
 import java.security.MessageDigest
@@ -58,8 +62,14 @@ object WalletPinSecureStore {
         ) : PinVerifyResult
     }
 
+    fun isConfiguredFlow(context: Context): Flow<Boolean> =
+        getDataStore(context)
+            .data
+            .map { prefs -> !prefs[KEY_HASH].isNullOrBlank() }
+            .distinctUntilChanged()
+
     fun isConfigured(context: Context): Boolean =
-        runBlocking {
+        runBlocking(Dispatchers.IO) {
             getDataStore(context)
                 .data
                 .first()[KEY_HASH]
@@ -72,9 +82,9 @@ object WalletPinSecureStore {
         pin: String,
     ) {
         require(pin.length == 6 && pin.all { it.isDigit() }) { "PIN must be six digits" }
-        val salt = ByteArray(SALT_BYTES).also { SecureRandom().nextBytes(it) }
-        val hash = hashPin(pin, salt)
-        runBlocking {
+        runBlocking(Dispatchers.IO) {
+            val salt = ByteArray(SALT_BYTES).also { SecureRandom().nextBytes(it) }
+            val hash = hashPin(pin, salt)
             getDataStore(context).edit { prefs ->
                 prefs[KEY_SALT] = Base64.encodeToString(salt, Base64.NO_WRAP)
                 prefs[KEY_HASH] = Base64.encodeToString(hash, Base64.NO_WRAP)
@@ -88,7 +98,7 @@ object WalletPinSecureStore {
         context: Context,
         pin: String,
     ): PinVerifyResult =
-        runBlocking {
+        runBlocking(Dispatchers.IO) {
             val ds = getDataStore(context)
             val prefs = ds.data.first()
 
@@ -126,7 +136,7 @@ object WalletPinSecureStore {
         }
 
     fun lockoutRemainingSeconds(context: Context): Long =
-        runBlocking {
+        runBlocking(Dispatchers.IO) {
             val prefs = getDataStore(context).data.first()
             val lockoutUntil = prefs[KEY_LOCKOUT_UNTIL_MS] ?: 0L
             val now = System.currentTimeMillis()
@@ -135,7 +145,7 @@ object WalletPinSecureStore {
         }
 
     fun clear(context: Context) {
-        runBlocking { getDataStore(context).edit { it.clear() } }
+        runBlocking(Dispatchers.IO) { getDataStore(context).edit { it.clear() } }
     }
 
     private fun hashPin(

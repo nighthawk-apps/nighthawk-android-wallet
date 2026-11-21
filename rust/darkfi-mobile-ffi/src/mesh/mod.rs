@@ -51,20 +51,40 @@ fn hold() -> &'static Mutex<VecDeque<Vec<u8>>> {
     HOLD.get_or_init(|| Mutex::new(VecDeque::new()))
 }
 
+fn mesh_wake_channel() -> &'static (smol::channel::Sender<()>, smol::channel::Receiver<()>) {
+    static WAKE: OnceLock<(smol::channel::Sender<()>, smol::channel::Receiver<()>)> =
+        OnceLock::new();
+    WAKE.get_or_init(|| smol::channel::bounded(1))
+}
+
+/// Wake the DarkIRC mesh polling task immediately when mesh state or inbound data changes.
+pub fn notify_mesh_wake() {
+    let _ = mesh_wake_channel().0.try_send(());
+}
+
+/// Wait for a mesh enable/disable toggle or new inbound mesh packet.
+pub async fn wait_for_mesh_wake() {
+    let _ = mesh_wake_channel().1.recv().await;
+}
+
 pub fn start_mesh() -> Result<(), String> {
-    crate::panic_fence::catch_string("start_mesh", || {
+    let res = crate::panic_fence::catch_string("start_mesh", || {
         let mut g = lock_engine();
         g.set_mesh_on(true);
         Ok(())
-    })
+    });
+    notify_mesh_wake();
+    res
 }
 
 pub fn stop_mesh() -> Result<(), String> {
-    crate::panic_fence::catch_string("stop_mesh", || {
+    let res = crate::panic_fence::catch_string("stop_mesh", || {
         let mut g = lock_engine();
         g.set_mesh_on(false);
         Ok(())
-    })
+    });
+    notify_mesh_wake();
+    res
 }
 
 pub fn mesh_status() -> String {
@@ -175,13 +195,15 @@ pub fn mesh_set_os_power_state(
 }
 
 pub fn mesh_ingest_link_bytes(bytes: Vec<u8>) -> Result<(), String> {
-    crate::panic_fence::catch_string("mesh_ingest_link_bytes", || {
+    let res = crate::panic_fence::catch_string("mesh_ingest_link_bytes", || {
         let mut g = lock_engine();
         match g.ingest_bytes(&bytes) {
             Ok(()) | Err(EngErr::DroppedDuplicate) => Ok(()),
             Err(e) => Err(format!("{e:?}")),
         }
-    })
+    });
+    notify_mesh_wake();
+    res
 }
 
 pub fn mesh_pop_outbound() -> Vec<Vec<u8>> {

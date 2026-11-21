@@ -7,8 +7,10 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import com.nighthawkapps.lib.android.sdk.util.SecureDataStoreSerializer
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withContext
 import java.io.File
 
 /**
@@ -34,37 +36,57 @@ internal object DarkfiChatSecureStore {
         }
     }
 
-    fun getString(
+    suspend fun getStringSuspend(
         context: Context,
         key: String
     ): String? =
-        runBlocking {
+        withContext(Dispatchers.IO) {
             getDataStore(context).data.first()[stringPreferencesKey(key)]
         }
 
-    fun putString(
+    suspend fun putStringSuspend(
         context: Context,
         key: String,
         value: String
     ) {
-        runBlocking {
+        withContext(Dispatchers.IO) {
             getDataStore(context).edit { it[stringPreferencesKey(key)] = value }
         }
     }
 
-    fun remove(
+    suspend fun removeSuspend(
         context: Context,
         vararg keys: String
     ) {
-        runBlocking {
+        withContext(Dispatchers.IO) {
             getDataStore(context).edit { prefs ->
                 keys.forEach { prefs.remove(stringPreferencesKey(it)) }
             }
         }
     }
 
+    fun getString(
+        context: Context,
+        key: String
+    ): String? = runBlocking(Dispatchers.IO) { getStringSuspend(context, key) }
+
+    fun putString(
+        context: Context,
+        key: String,
+        value: String
+    ) {
+        runBlocking(Dispatchers.IO) { putStringSuspend(context, key, value) }
+    }
+
+    fun remove(
+        context: Context,
+        vararg keys: String
+    ) {
+        runBlocking(Dispatchers.IO) { removeSuspend(context, *keys) }
+    }
+
     fun clear(context: Context) {
-        runBlocking {
+        runBlocking(Dispatchers.IO) {
             getDataStore(context).edit { it.clear() }
         }
     }

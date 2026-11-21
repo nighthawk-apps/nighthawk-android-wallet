@@ -247,7 +247,10 @@ pub struct SyncEngine {
     /// Wallet birthday height (never trial-decrypt below this).
     birthday_height: std::sync::atomic::AtomicU32,
     /// Last compact block (height, hash) accepted after parent-hash chaining (R2).
+    /// Last block accepted by sync (height, 32-byte hash) for fork/reorg checks.
     last_accepted_block: std::sync::Mutex<Option<(u32, [u8; 32])>>,
+    /// Recent accepted blocks (up to 32) for exact fork discovery on reorg.
+    accepted_blocks: std::sync::Mutex<Vec<(u32, [u8; 32])>>,
     /// Last verified lightwalletd `chain_name` (S3). Survives in-process until reset.
     verified_chain_name: std::sync::Mutex<Option<String>>,
     /// App cache dir for persisting `lwd_chain_identity`.
@@ -298,6 +301,7 @@ impl SyncEngine {
             reorg_callback: std::sync::Mutex::new(None),
             birthday_height: std::sync::atomic::AtomicU32::new(0),
             last_accepted_block: std::sync::Mutex::new(None),
+            accepted_blocks: std::sync::Mutex::new(Vec::new()),
             verified_chain_name: std::sync::Mutex::new(None),
             data_dir: std::sync::Mutex::new(None),
             stop: std::sync::atomic::AtomicBool::new(false),
@@ -331,6 +335,7 @@ impl SyncEngine {
             reorg_callback: std::sync::Mutex::new(None),
             birthday_height: std::sync::atomic::AtomicU32::new(0),
             last_accepted_block: std::sync::Mutex::new(None),
+            accepted_blocks: std::sync::Mutex::new(Vec::new()),
             verified_chain_name: std::sync::Mutex::new(None),
             data_dir: std::sync::Mutex::new(None),
             stop: std::sync::atomic::AtomicBool::new(false),
@@ -417,6 +422,10 @@ impl SyncEngine {
         *self.last_accepted_block.lock().unwrap()
     }
 
+    pub fn recent_accepted_blocks(&self) -> Vec<(u32, [u8; 32])> {
+        self.accepted_blocks.lock().unwrap().clone()
+    }
+
     pub fn record_accepted_block(&self, height: u32, hash: &[u8]) {
         if hash.len() != 32 {
             return;
@@ -424,10 +433,24 @@ impl SyncEngine {
         let mut h = [0u8; 32];
         h.copy_from_slice(hash);
         *self.last_accepted_block.lock().unwrap() = Some((height, h));
+        let mut ring = self.accepted_blocks.lock().unwrap();
+        if ring.last().is_some_and(|(prev_h, _)| *prev_h >= height) {
+            ring.retain(|(existing_h, _)| *existing_h < height);
+        }
+        ring.push((height, h));
+        if ring.len() > 32 {
+            let excess = ring.len() - 32;
+            ring.drain(0..excess);
+        }
     }
 
     pub fn clear_last_accepted_block(&self) {
         *self.last_accepted_block.lock().unwrap() = None;
+        self.accepted_blocks.lock().unwrap().clear();
+    }
+
+    pub fn mark_reorg_detected(&self) {
+        self.state.lock().unwrap().reorg_detected = true;
     }
 
     /// Record pipeline prefetch / apply heights for UI / tracing.
@@ -598,7 +621,17 @@ impl SyncEngine {
         let tip_regression =
             prev_height > 0 && height < prev_height && !state.chain_tip_hash.is_empty();
 
-        let reorg_detected = same_height_reorg || tip_regression;
+        // Detect reorg case 3: server tip matches a previously accepted height
+        // with a different block hash.
+        let accepted_mismatch =
+            self.last_accepted_block
+                .lock()
+                .unwrap()
+                .is_some_and(|(ah, ahash)| {
+                    ah == height && !hash.is_empty() && ahash.as_slice() != hash
+                });
+
+        let reorg_detected = same_height_reorg || tip_regression || accepted_mismatch;
 
         if reorg_detected {
             if tip_regression {
