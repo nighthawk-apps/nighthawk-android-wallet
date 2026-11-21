@@ -4,6 +4,11 @@
 # `git submodule update --init`). Tip bin/drk = turso + aegis256; no SQLCipher.
 set -euo pipefail
 
+# The crate lives outside third_party/darkfi, so DarkFi's stable toolchain file
+# is not picked up. Nightly after 2026-11-11 cannot compile branches 0.4.6
+# (`core::intrinsics::abort` was removed).
+export RUSTUP_TOOLCHAIN="${RUSTUP_TOOLCHAIN:-stable}"
+
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 ARTIFACTS="$ROOT/artifacts/mobile-ffi"
 JNILIBS="$ROOT/darkfi-android-sdk/src/main/jniLibs"
