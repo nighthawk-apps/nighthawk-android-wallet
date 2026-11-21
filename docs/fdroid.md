@@ -45,10 +45,13 @@ Tagging alone does **not** run this repo’s GitHub `Deploy` workflow (that is b
 | `WALLET_VERSION_CODE` | `30100815` |
 | Suggested git tag | `v3.01.15` |
 | Fastlane changelog | `fastlane/metadata/android/en-US/changelogs/30100815.txt` |
-| DarkFi pin | `9d7ceaf77da7ccfd29ead3ba168fab284decd8c8` (`nighthawk-testnet`, Arti 0.48) |
+| DarkFi pin | `6e61deb26f4c0064d15fd3da1a300456ea26ef37` (contains `9d7ceaf77`) |
 | nym-smolmix | `5f0dba82` |
+| F-Droid NDK | `30.0.16248370` (`ANDROID_NDK_VERSION`) |
+| F-Droid ABIs | `arm64-v8a`, `x86_64` |
+| Rust toolchain | `1.99.1` (`cargo-ndk` 4.1.2) |
 
-`FDROID_BUILD=1` sets `CARGO_PROFILE_RELEASE_LTO=off` and remaps machine paths so native `.so` rebuilds match. Aligns with iOS 3.01.15, desktop 3.1.13, Moonshine 3.1.12, and lightwalletd 0.3.9. Not tagged and not pushed.
+`FDROID_BUILD=1` refuses any other NDK, turns LTO off, and remaps machine paths so `libdarkfi_mobile_ffi.so` can match a second build. Fastlane what's new is `fastlane/metadata/android/en-US/changelogs/30100815.txt`. The reproducible comparison file is `nighthawk-testnet-3.01.15.apk` on the GitHub release `v3.01.15`, signed with the testnet upload key in `AllowedAPKSigningKeys`. That tag and asset are not published yet. Aligns with iOS 3.01.15, desktop 3.1.13, Moonshine 3.1.12, and lightwalletd 0.3.9.
 
 ## 3.01.14
 
