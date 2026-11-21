@@ -70,7 +70,7 @@ class NighthawkBleLink(
     internal var advertiseStartPending = false
 
     /** Advertise mode last requested. Scan duty must not tear this down. */
-    private var advertisedForeground: Boolean? = null
+    internal var advertisedForeground: Boolean? = null
     internal var started = false
     internal var foreground = true
     internal var charging = false
