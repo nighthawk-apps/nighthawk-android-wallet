@@ -157,6 +157,12 @@ export NDK="$ANDROID_NDK_HOME"
 export CARGO_HOME="${CARGO_HOME:-$ROOT/.cargo-home}"
 mkdir -p "$CARGO_HOME"
 if [[ "${FDROID_BUILD:-0}" == "1" ]]; then
+  pinned_rev="$(pinned_ndk_version)"
+  found_rev="$(awk -F= '/^Pkg\.Revision/{gsub(/[ \r]/,"",$2); print $2; exit}' "$ANDROID_NDK_HOME/source.properties")"
+  if [[ "$found_rev" != "$pinned_rev" ]]; then
+    echo "error: FDROID_BUILD requires NDK ${pinned_rev}, found ${found_rev:-unknown} at ${ANDROID_NDK_HOME}" >&2
+    exit 1
+  fi
   export CARGO_INCREMENTAL=0
   export CARGO_PROFILE_RELEASE_INCREMENTAL=false
   export CARGO_PROFILE_RELEASE_CODEGEN_UNITS=1
