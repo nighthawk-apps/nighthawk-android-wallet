@@ -28,22 +28,31 @@ import androidx.compose.ui.unit.dp
 import com.nighthawkapps.lib.android.sdk.chat.hud.OutboundPeerSlot
 import com.nighthawkapps.lib.android.sdk.chat.hud.OutboundPeerState
 import com.nighthawkapps.lib.android.sdk.chat.hud.PeerHostDisplay
+import com.nighthawkapps.lib.android.sdk.net.PrivacyNetwork
 import com.nighthawkapps.lib.android.ui.R
 import com.nighthawkapps.lib.android.ui.design.component.CommonTag
 import com.nighthawkapps.lib.android.ui.design.component.NighthawkHudPanel
 import com.nighthawkapps.lib.android.ui.design.component.PeerSlotRow
 import com.nighthawkapps.lib.android.ui.design.component.TransportSegment
 
+private val HUD_NETWORK_ORDER =
+    listOf(
+        PrivacyNetwork.Nym,
+        PrivacyNetwork.Tor,
+        PrivacyNetwork.Direct,
+    )
+
 @Composable
 internal fun ChatNetworkHud(
     slots: List<OutboundPeerSlot>,
-    torSelected: Boolean,
-    onSelectTor: (Boolean) -> Unit,
+    selectedNetwork: PrivacyNetwork,
+    onSelectNetwork: (PrivacyNetwork) -> Unit,
     modifier: Modifier = Modifier,
     transportEnabled: Boolean = true,
 ) {
     var showPeers by remember { mutableStateOf(false) }
     val connected = slots.any { it.state == OutboundPeerState.CONNECTED }
+    val selectedIndex = HUD_NETWORK_ORDER.indexOf(selectedNetwork).coerceAtLeast(0)
     NighthawkHudPanel(
         modifier = modifier.fillMaxWidth(),
         connectedGlow = connected,
@@ -73,10 +82,16 @@ internal fun ChatNetworkHud(
             )
             Spacer(modifier = Modifier.weight(1f))
             TransportSegment(
-                torSelected = torSelected,
-                tcpLabel = stringResource(R.string.ns_chat_transport_tcp),
-                torLabel = stringResource(R.string.ns_chat_transport_tor_short),
-                onSelectTor = onSelectTor,
+                options =
+                    listOf(
+                        stringResource(R.string.ns_chat_transport_nym_short),
+                        stringResource(R.string.ns_chat_transport_tor_short),
+                        stringResource(R.string.ns_chat_transport_direct_short),
+                    ),
+                selectedIndex = selectedIndex,
+                onSelectIndex = { idx ->
+                    HUD_NETWORK_ORDER.getOrNull(idx)?.let(onSelectNetwork)
+                },
                 enabled = transportEnabled,
                 compact = true,
             )
@@ -101,7 +116,7 @@ private fun PeerNamesDialog(
         title = { Text(stringResource(R.string.ns_chat_hud_peers)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                if (slots.none { !it.url.isNullOrBlank() }) {
+                if (slots.none { it.state == OutboundPeerState.CONNECTED || !it.url.isNullOrBlank() }) {
                     Text(
                         text = stringResource(R.string.ns_chat_hud_peers_empty),
                         style = MaterialTheme.typography.bodySmall,

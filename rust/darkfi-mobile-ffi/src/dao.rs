@@ -768,6 +768,7 @@ pub async fn fund_dao(
             Some(dao_exec_spend_hook()),
             Some(dao.bulla().inner()),
             false,
+            Vec::new(),
         )
         .await
         .map_err(|e| format!("fund dao: {e}"))?;

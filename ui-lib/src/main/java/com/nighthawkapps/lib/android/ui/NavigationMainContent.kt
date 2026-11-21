@@ -41,16 +41,8 @@ internal fun MainActivity.NavigationMainContent() {
                 when (event) {
                     Lifecycle.Event.ON_RESUME -> {
                         // After backgrounding the daemon may have died, lost P2P peers,
-                        // or Android OS may have recycled the process. Re-check state.
-                        val state = chatController.connectionState.value
-                        val ffiStatus =
-                            com.nighthawkapps.lib.uniffi.darkfi_mobile_ffi
-                                .darkircStatus()
-                        if (!state.isConnected) {
-                            chatController.connectOrRetry()
-                        } else if (ffiStatus == "not_running" || ffiStatus == "failed") {
-                            chatController.connectOrRetry()
-                        }
+                        // or Android OS may have recycled the process. Re-check state off Main.
+                        chatController.onAppResume()
                     }
 
                     // Let the daemon + FGS survive backgrounding. Do NOT tear down on

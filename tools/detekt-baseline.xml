@@ -1,125 +1,229 @@
 <?xml version="1.0" ?>
 <SmellBaseline>
-  <ManuallySuppressedIssues></ManuallySuppressedIssues>
+  <ManuallySuppressedIssues/>
   <CurrentIssues>
+    <ID>ComplexCondition:DaoDialogs.kt$quorumValue != null &amp;&amp; proposerValue != null &amp;&amp; earlyValue != null &amp;&amp; share != null</ID>
+    <ID>ComplexCondition:DarkfiExplorer.kt$DarkfiExplorer$trimmed.any { it == '/' || it == '?' || it == '#' || it == '\\' }</ID>
+    <ID>ComplexCondition:FudTransfer.kt$FudUri.Companion$name.isEmpty() || name == "." || name == ".." || name.length &gt; 255</ID>
+    <ID>ComplexCondition:build.gradle.kts$isReleaseTask &amp;&amp; (tlsPin.isEmpty() || tlsPin == "0".repeat(64) || tlsPin.equals("PLACEHOLDER", true))</ID>
+    <ID>ComposableNaming:MeshSettingsSection.kt$MeshSettingsBits$Handler</ID>
+    <ID>ComposableParamOrder:EnterAmount.kt$EnterAmount</ID>
+    <ID>ComposableParamOrder:NighthawkBranding.kt$NighthawkBrandingHeader</ID>
     <ID>ComposableParamOrder:SeedBackup.kt$SeedItem</ID>
+    <ID>ComposableParamOrder:TopBar.kt$NighthawkTopBar</ID>
     <ID>ComposableParamOrder:TransactionOverviewHistoryRow.kt$TransactionOverviewHistoryRow</ID>
     <ID>CompositionLocalAllowlist:ChatCompositionLocals.kt$LocalDarkfiChatController</ID>
+    <ID>CompositionLocalAllowlist:WalletTheme.kt$LocalCyberpunkChrome</ID>
     <ID>CompositionLocalNaming:ConfigurationLocal.kt$RemoteConfig</ID>
+    <ID>ContentSlotReused:Override.kt$content</ID>
+    <ID>CyclomaticComplexMethod:AndroidChat.kt$@OptIn(ExperimentalFoundationApi::class) @Composable private fun ChatMessageLine( line: ChatChannelMessage, myNick: String, isEncryptedThread: Boolean, onLongPress: () -&gt; Unit, onPayInvoice: (String) -&gt; Unit, onClearnetLink: (String) -&gt; Unit, onRetry: () -&gt; Unit, onFudTap: (String) -&gt; Unit, )</ID>
+    <ID>CyclomaticComplexMethod:AppNymCoordinator.kt$AppNymCoordinator$suspend fun ensureReady(context: Context): Int?</ID>
+    <ID>CyclomaticComplexMethod:AppTorCoordinator.kt$AppTorCoordinator$suspend fun ensureSocksReady(context: Context): Int?</ID>
+    <ID>CyclomaticComplexMethod:AuthenticatePin.kt$@Composable fun AuthenticatePin( verifyPin: suspend (String) -&gt; WalletPinSecureStore.PinVerifyResult, onBack: () -&gt; Unit, onAuthentication: (Boolean) -&gt; Unit, @StringRes pinPromptResId: Int = R.string.enter_six_digit_pin_code, )</ID>
+    <ID>CyclomaticComplexMethod:CertificateVerifier.kt$CertificateVerifier$@JvmStatic private fun verifyCertificateChain( @Suppress("UNUSED_PARAMETER") context: Context, serverName: String, authMethod: String, allowedEkus: Array&lt;String&gt;, ocspResponse: ByteArray?, time: Long, certChain: Array&lt;ByteArray&gt;, ): VerificationResult</ID>
     <ID>CyclomaticComplexMethod:ChatSettingsScreen.kt$@Composable internal fun ChatSettingsScreen( controller: DarkfiChatController, identity: DarkfiChatIdentity, onBack: () -&gt; Unit, )</ID>
-    <ID>CyclomaticComplexMethod:DarkfiChatController.kt$DarkfiChatController$private suspend fun runIrcConnectSequence()</ID>
-    <ID>CyclomaticComplexMethod:DarkircIrcClient.kt$DarkircIrcClient$suspend fun connectAndJoin(joinChannels: List&lt;String&gt;): Unit</ID>
-    <ID>CyclomaticComplexMethod:DarkircIrcClientHandshakeTest.kt$DarkircIrcClientHandshakeTest$@Test fun connectAndJoin_completesAgainstMinimalDarkircLikeServer()</ID>
+    <ID>CyclomaticComplexMethod:ChatWallet.kt$ChatInvoices$fun parse(raw: String): ChatInvoice?</ID>
+    <ID>CyclomaticComplexMethod:DarkfiChatController.kt$DarkfiChatController$fun connectOrRetry()</ID>
+    <ID>CyclomaticComplexMethod:DarkfiChatController.kt$DarkfiChatController$fun sendToChannel( channel: String, text: String )</ID>
+    <ID>CyclomaticComplexMethod:DarkfiChatController.kt$DarkfiChatController$private fun applyDarkircPhaseToUi( connectedState: DarkfiChatConnectionState, transport: DarkircTransport, )</ID>
+    <ID>CyclomaticComplexMethod:DarkfiChatController.kt$DarkfiChatController$private suspend fun runNativeDarkircSequence()</ID>
+    <ID>CyclomaticComplexMethod:DeepLinkUtil.kt$DeepLinkUtil$fun getSendDeepLinkData(uri: Uri): SendDeepLinkData?</ID>
+    <ID>CyclomaticComplexMethod:HomeView.kt$@Composable @Suppress("LongMethod", "MagicNumber") private fun Status( walletSnapshot: WalletSnapshot, updateAvailable: Boolean, isFiatConversionEnabled: Boolean, isCircularProgressBarEnabled: Boolean )</ID>
+    <ID>CyclomaticComplexMethod:MainActivity.kt$MainActivity$@Composable private fun MainContent()</ID>
+    <ID>CyclomaticComplexMethod:MainActivity.kt$MainActivity$@Composable private fun SplashConnectingScreen(splash: SplashNetworkState)</ID>
+    <ID>CyclomaticComplexMethod:NativeDarkfiSynchronizer.kt$NativeDarkfiSynchronizer$private fun applySyncSnapshotBestEffort()</ID>
     <ID>CyclomaticComplexMethod:SetUpPin.kt$@Composable fun SetUpPin( onBack: () -&gt; Unit, onPinSelected: (String) -&gt; Unit )</ID>
+    <ID>CyclomaticComplexMethod:ShareAppDialog.kt$@Composable fun ShareAppDialog(onDismiss: () -&gt; Unit)</ID>
     <ID>CyclomaticComplexMethod:TransactionDetails.kt$@Composable fun TransactionDetails( transactionDetailsUIModel: TransactionDetailsUIModel?, balanceUIModel: BalanceUIModel, isNavigateAwayFromAppWarningShown: Boolean, onBack: () -&gt; Unit, viewOnBlockExplorer: (url: String, updateWarningStatus: Boolean) -&gt; Unit )</ID>
-    <ID>ForbiddenComment:AndroidSupport.kt$// TODO [#386]:</ID>
-    <ID>ForbiddenComment:NotEnoughSpaceView.kt$// TODO [#883]:</ID>
-    <ID>ForbiddenComment:QrCodeAnalyzer.kt$QrCodeAnalyzer$// TODO [#437]:</ID>
-    <ID>ForbiddenComment:ReceiveView.kt$// TODO [#163]:</ID>
-    <ID>ForbiddenComment:RestoreView.kt$// TODO [#672]:</ID>
-    <ID>ForbiddenComment:ScanView.kt$// TODO [#423]:</ID>
-    <ID>ForbiddenComment:ScanView.kt$// TODO [#437]:</ID>
-    <ID>ForbiddenComment:TimeInfo.kt$TimeInfo$// TODO [#388]:</ID>
-    <ID>ForbiddenComment:WalletAddressView.kt$// TODO [#160]:</ID>
+    <ID>CyclomaticComplexMethod:WalletView.kt$@OptIn(ExperimentalFoundationApi::class) @Composable fun WalletView( walletSnapshot: WalletSnapshot, transactionSnapshot: ImmutableList&lt;DarkfiTransactionOverview&gt;, isKeepScreenOnWhileSyncing: Boolean?, isFiatCurrencyPreferred: Boolean, fiatCurrencyUiState: FiatCurrencyUiState, onAddressQrCodes: () -&gt; Unit, onTransactionDetail: (String) -&gt; Unit, onViewTransactionHistory: () -&gt; Unit, onLongItemClick: (DarkfiTransactionOverview) -&gt; Unit, onFlipCurrency: (isFiatCurrencyPreferredOverNative: Boolean) -&gt; Unit, onScanToSend: () -&gt; Unit, daemonStatus: DarkfiDaemonStatus = DarkfiDaemonStatus.Unknown, onDaemonStatusClick: () -&gt; Unit = {}, tokenBalances: List&lt;DarkfiTokenBalance&gt; = emptyList(), onTokenClick: (String) -&gt; Unit = {}, meshOn: Boolean = false, onSendMoney: () -&gt; Unit = {}, onReceiveMoney: () -&gt; Unit = {}, onRequestMoney: () -&gt; Unit = {}, sendDisabled: Boolean = false, )</ID>
+    <ID>EmptyElseBlock:ChatSettingsScreen.kt${ }</ID>
+    <ID>FunctionOnlyReturningConstant:AppTorCoordinator.kt$AppTorCoordinator$fun isKeepingSplash(): Boolean</ID>
+    <ID>FunctionOnlyReturningConstant:DarkircCryptoManager.kt$DarkircCryptoManager$fun hasBundledDarkirc(context: Context): Boolean</ID>
     <ID>FunctionOnlyReturningConstant:WalletSnapshot.kt$@Suppress("unused") fun WalletSnapshot.changePendingBalance(): Long</ID>
     <ID>FunctionOnlyReturningConstant:WalletSnapshot.kt$@Suppress("unused") fun WalletSnapshot.valuePendingBalance(): Long</ID>
     <ID>FunctionOnlyReturningConstant:WalletSnapshot.kt$fun WalletSnapshot.hasChangePending(): Boolean</ID>
     <ID>FunctionOnlyReturningConstant:WalletSnapshot.kt$fun WalletSnapshot.hasValuePending(): Boolean</ID>
     <ID>FunctionOnlyReturningConstant:WalletSnapshot.kt$fun WalletSnapshot.pendingBalanceAtomic(): Long</ID>
     <ID>ImplicitDefaultLocale:Extensions.kt$String.format("%02x", this[i])</ID>
-    <ID>LongMethod:AdvanceSetting.kt$@Composable fun AdvanceSetting( isScreenOnEnabled: Boolean?, isBanditAvailable: Boolean, preferredLogo: AvailableLogo?, themeVariant: AppThemeVariant, allAvailableLogo: PersistentList&lt;AvailableLogo&gt;, onScreenOnEnabledChanged: (isEnabled: Boolean) -&gt; Unit, onBack: () -&gt; Unit, onNukeWallet: () -&gt; Unit, onLogoPreferenceChanged: (availableLogo: AvailableLogo) -&gt; Unit, onThemeVariantChanged: (AppThemeVariant) -&gt; Unit )</ID>
-    <ID>LongMethod:AndroidChat.kt$@Composable private fun ChatScreen(controller: DarkfiChatController)</ID>
-    <ID>LongMethod:AndroidSend.kt$@Suppress("UNUSED_PARAMETER") @Composable private fun WrapSend( activity: ComponentActivity, sendArgumentsWrapper: SendArgumentsWrapper?, goToQrScanner: () -&gt; Unit, goBack: () -&gt; Unit, )</ID>
-    <ID>LongMethod:AndroidSettings.kt$@Composable private fun SettingsHubIdentitySection(activity: ComponentActivity)</ID>
-    <ID>LongMethod:AndroidWallet.kt$@Composable internal fun WrapWallet( activity: ComponentActivity, sendArgumentsWrapper: SendArgumentsWrapper?, onAddressQrCodes: () -&gt; Unit, onTransactionDetail: (String) -&gt; Unit, onViewTransactionHistory: () -&gt; Unit, onSendFromDeepLink: () -&gt; Unit, onScanToSend: () -&gt; Unit, )</ID>
-    <ID>LongMethod:AuthenticatePin.kt$@Composable fun AuthenticatePin( lastPin: String, onBack: () -&gt; Unit, onAuthentication: (Boolean) -&gt; Unit )</ID>
-    <ID>LongMethod:AutoShieldingInfo.kt$@Composable fun AutoShieldingInfo(onNext: () -&gt; Unit)</ID>
+    <ID>LambdaParameterEventTrailing:Text.kt$onClick</ID>
+    <ID>LambdaParameterInRestartableEffect:AndroidChat.kt$onConsumeThread</ID>
+    <ID>LambdaParameterInRestartableEffect:AndroidWallet.kt$onSendFromDeepLink</ID>
+    <ID>LambdaParameterInRestartableEffect:AuthenticatePin.kt$onAuthentication</ID>
+    <ID>LambdaParameterInRestartableEffect:AuthenticatePin.kt$verifyPin</ID>
+    <ID>LambdaParameterInRestartableEffect:ScanView.kt$onBack</ID>
+    <ID>LambdaParameterInRestartableEffect:ScanView.kt$onScanStateChanged</ID>
+    <ID>LargeClass:DarkfiChatController.kt$DarkfiChatController</ID>
+    <ID>LongMethod:AdvanceSetting.kt$@Composable fun AdvanceSetting( isScreenOnEnabled: Boolean?, isStrictOmrOnly: Boolean, isBanditAvailable: Boolean, preferredLogo: AvailableLogo?, themeVariant: AppThemeVariant, allAvailableLogo: PersistentList&lt;AvailableLogo&gt;, onScreenOnEnabledChanged: (isEnabled: Boolean) -&gt; Unit, onStrictOmrOnlyChanged: (isEnabled: Boolean) -&gt; Unit, onBack: () -&gt; Unit, onNukeWallet: () -&gt; Unit, onLogoPreferenceChanged: (availableLogo: AvailableLogo) -&gt; Unit, onThemeVariantChanged: (AppThemeVariant) -&gt; Unit )</ID>
+    <ID>LongMethod:AndroidChat.kt$@Composable private fun CompactConnectionStatusBlock( nodeStatus: EmbeddedDarkircNodeStatus, connectionState: DarkfiChatConnectionState, diagnostic: String?, nickname: String, showRetry: Boolean, onRetry: () -&gt; Unit, onToggleHud: () -&gt; Unit, )</ID>
+    <ID>LongMethod:AndroidChat.kt$@OptIn(ExperimentalFoundationApi::class) @Composable private fun ChatMessageLine( line: ChatChannelMessage, myNick: String, isEncryptedThread: Boolean, onLongPress: () -&gt; Unit, onPayInvoice: (String) -&gt; Unit, onClearnetLink: (String) -&gt; Unit, onRetry: () -&gt; Unit, onFudTap: (String) -&gt; Unit, )</ID>
+    <ID>LongMethod:AndroidRequest.kt$@Composable internal fun RequestMoneyScreen( receiveAddress: String, onBack: () -&gt; Unit, )</ID>
+    <ID>LongMethod:AndroidSettings.kt$@Composable internal fun WrapSettings( activity: ComponentActivity, navigation: NighthawkSettingsNavigationCallbacks, onSetPin: () -&gt; Unit = {}, onDisablePin: () -&gt; Unit = {}, )</ID>
+    <ID>LongMethod:AndroidWallet.kt$@Composable internal fun WrapWallet( activity: ComponentActivity, sendArgumentsWrapper: SendArgumentsWrapper?, onAddressQrCodes: () -&gt; Unit, onTransactionDetail: (String) -&gt; Unit, onViewTransactionHistory: () -&gt; Unit, onSendFromDeepLink: () -&gt; Unit, onScanToSend: () -&gt; Unit, onSendToken: (String) -&gt; Unit = {}, onSendMoney: () -&gt; Unit = {}, onReceiveMoney: () -&gt; Unit = {}, onRequestMoney: () -&gt; Unit = {}, )</ID>
+    <ID>LongMethod:AppTorCoordinator.kt$AppTorCoordinator$suspend fun ensureSocksReady(context: Context): Int?</ID>
+    <ID>LongMethod:AuthenticatePin.kt$@Composable fun AuthenticatePin( verifyPin: suspend (String) -&gt; WalletPinSecureStore.PinVerifyResult, onBack: () -&gt; Unit, onAuthentication: (Boolean) -&gt; Unit, @StringRes pinPromptResId: Int = R.string.enter_six_digit_pin_code, )</ID>
+    <ID>LongMethod:CertificateVerifier.kt$CertificateVerifier$@JvmStatic private fun verifyCertificateChain( @Suppress("UNUSED_PARAMETER") context: Context, serverName: String, authMethod: String, allowedEkus: Array&lt;String&gt;, ocspResponse: ByteArray?, time: Long, certChain: Array&lt;ByteArray&gt;, ): VerificationResult</ID>
     <ID>LongMethod:ChangeServer.kt$@Composable fun ChangeServer( onBack: () -&gt; Unit, presetOptionList: ImmutableList&lt;DarkfiEndpointPreset&gt;, selectedPreset: DarkfiEndpointPreset?, onPresetSelected: (DarkfiEndpointPreset?) -&gt; Unit, )</ID>
+    <ID>LongMethod:ChatMessageNotifier.kt$ChatMessageNotifier$fun maybeNotify( context: Context, channel: String, nick: String, preview: String, isOutgoing: Boolean = false, timestampMs: Long = System.currentTimeMillis(), ownNick: String? = null, )</ID>
+    <ID>LongMethod:ChatNewDmSheet.kt$@OptIn(ExperimentalMaterial3Api::class) @Composable internal fun ChatNewDmSheet( controller: DarkfiChatController, initialPeerPublicKey: String?, onDismiss: () -&gt; Unit, onStarted: (contactLabel: String) -&gt; Unit, )</ID>
     <ID>LongMethod:ChatSettingsScreen.kt$@Composable internal fun ChatSettingsScreen( controller: DarkfiChatController, identity: DarkfiChatIdentity, onBack: () -&gt; Unit, )</ID>
-    <ID>LongMethod:DarkfiChatController.kt$DarkfiChatController$private suspend fun runIrcConnectSequence()</ID>
-    <ID>LongMethod:DarkircIrcClient.kt$DarkircIrcClient$suspend fun connectAndJoin(joinChannels: List&lt;String&gt;): Unit</ID>
+    <ID>LongMethod:DarkfiChatController.kt$DarkfiChatController$fun sendToChannel( channel: String, text: String )</ID>
+    <ID>LongMethod:DarkfiChatController.kt$DarkfiChatController$private suspend fun runNativeDarkircSequence()</ID>
+    <ID>LongMethod:DarkfidEmbeddedConfigGenerator.kt$DarkfidEmbeddedConfigGenerator$private fun netSectionFor( network: DarkfiNetwork, networkLabel: String, p2pRoot: String, p2pTransport: DarkfidP2pTransport, ): String</ID>
     <ID>LongMethod:EncryptedPdfDialog.kt$@Composable fun EncryptedPdfDialog( onDismissRequest: () -&gt; Unit, onExportPdf: (password: String) -&gt; Unit )</ID>
+    <ID>LongMethod:EnterAmount.kt$@OptIn(ExperimentalMaterial3Api::class) @Composable fun EnterAmount( amountText: String, spendableBalanceLabel: String, tokenBalances: List&lt;DarkfiTokenBalance&gt;, selectedTokenId: String?, isContinueEnabled: Boolean, errorMessage: String?, onBack: () -&gt; Unit, onAmountChanged: (String) -&gt; Unit, onTokenSelected: (String?) -&gt; Unit, onMaxAmount: (() -&gt; Unit)? = null, onContinue: () -&gt; Unit, onScanPaymentRequest: () -&gt; Unit, )</ID>
+    <ID>LongMethod:EnterMemo.kt$@Composable fun EnterMemo( memoText: String, onBack: () -&gt; Unit, onMemoChanged: (String) -&gt; Unit, onContinue: () -&gt; Unit, onSkip: () -&gt; Unit, )</ID>
     <ID>LongMethod:EnterPinCommonUI.kt$@Composable fun EnterPinCommonUI( incorrectPassword: Boolean, enteredPassword: String, message: String, onKeyPressed: (NumberPadValueTypes) -&gt; Unit )</ID>
     <ID>LongMethod:EnterReceiverAddress.kt$@Composable fun EnterReceiverAddress( receiverAddress: String, isContinueBtnEnabled: Boolean, onBack: () -&gt; Unit, onValueChanged: (String) -&gt; Unit, onContinue: (String) -&gt; Unit, onScan: () -&gt; Unit )</ID>
     <ID>LongMethod:GetStarted.kt$@Composable fun GetStarted( onCreateWallet: () -&gt; Unit, onRestore: () -&gt; Unit, createWalletError: String? = null, )</ID>
+    <ID>LongMethod:LocalnetMoonshineE2eTest.kt$LocalnetMoonshineE2eTest$private fun runLocalnet()</ID>
     <ID>LongMethod:LongNewWalletBackupView.kt$@Composable private fun TestInProgress( splitSeedPhrase: ImmutableList&lt;String&gt;, selectedTestChoices: TestChoices, onChoicesChanged: ((choicesCount: Int) -&gt; Unit)?, backupState: BackupState )</ID>
-    <ID>LongMethod:MainNavigation.kt$@Composable internal fun MainActivity.MainNavigation( navHostController: NavHostController, paddingValues: PaddingValues )</ID>
+    <ID>LongMethod:MainActivity.kt$MainActivity$@Composable private fun MainContent()</ID>
+    <ID>LongMethod:MainActivity.kt$MainActivity$@Composable private fun SplashConnectingScreen(splash: SplashNetworkState)</ID>
+    <ID>LongMethod:MainActivity.kt$MainActivity$private fun setupUiContent()</ID>
     <ID>LongMethod:PdfUtil.kt$PdfUtil$fun exportPasswordProtectedPdf( context: Context, password: String, seedWords: List&lt;String&gt;, birthDay: Long? )</ID>
-    <ID>LongMethod:ReceiveQrCodes.kt$@OptIn(ExperimentalFoundationApi::class) @Composable fun ReceiveQrCodes( walletAddresses: DarkfiWalletAddresses, onBack: () -&gt; Unit, onSeeMoreTopUpOption: () -&gt; Unit )</ID>
-    <ID>LongMethod:ReceiveView.kt$@Composable fun ReceiveView( onBack: () -&gt; Unit, onShowQrCode: () -&gt; Unit, onCopyPrivateAddress: () -&gt; Unit, onTopUpWallet: () -&gt; Unit, onCopyTransparentAddress: () -&gt; Unit )</ID>
     <ID>LongMethod:Restore.kt$@Composable internal fun Restore( isSeedValid: Boolean, onSeedValueChanged: (seed: String) -&gt; Unit, onContinue: (seedPhrase: String, birthdayHeight: Long?) -&gt; Unit, onBack: () -&gt; Unit, )</ID>
+    <ID>LongMethod:RestoreView.kt$@OptIn(ExperimentalComposeUiApi::class) @Suppress("LongParameterList") @Composable private fun RestoreSeedMainContent( userWordList: WordList, textState: String, setTextState: (String) -&gt; Unit, focusRequester: FocusRequester, parseResult: ParseResult, goNext: () -&gt; Unit, seedPhraseValidation: StateFlow&lt;SeedPhraseValidation?&gt;, modifier: Modifier = Modifier )</ID>
+    <ID>LongMethod:ReviewSend.kt$@Composable fun ReviewSend( amountLabel: String, recipient: String, memo: String?, feeLabel: String?, isEstimatingFee: Boolean, isSendEnabled: Boolean, errorMessage: String?, onBack: () -&gt; Unit, onSend: () -&gt; Unit, )</ID>
     <ID>LongMethod:Security.kt$@Composable fun Security( onBack: () -&gt; Unit, isPinEnabled: Boolean, isTouchIdOrFaceEnabled: Boolean, isBioMetricEnabledOnMobile: Boolean, onDisablePin: () -&gt; Unit, onSetPin: () -&gt; Unit, onTouchIdToggleChanged: (Boolean) -&gt; Unit )</ID>
     <ID>LongMethod:SeedBackup.kt$@Composable fun SeedBackupContent( seedWords: ImmutableList&lt;String&gt;, birthday: Long?, navigationFromSettings: Boolean, onContinue: () -&gt; Unit, onBack: () -&gt; Unit, )</ID>
-    <ID>LongMethod:SendConfirmation.kt$@Composable fun SendConfirmation( sendConfirmationState: SendConfirmationState, onCancel: () -&gt; Unit, onTryAgain: () -&gt; Unit, onDone: () -&gt; Unit, // onMoreDetails: (Long) -&gt; Unit, )</ID>
+    <ID>LongMethod:SendConfirmation.kt$@Composable fun SendConfirmation( sendConfirmationState: SendConfirmationState, onCancel: () -&gt; Unit, onTryAgain: () -&gt; Unit, onDone: () -&gt; Unit, txId: String? = null, errorMessage: String? = null, sendingSubtitle: String? = null, sendingCancelLabel: String? = null, )</ID>
     <ID>LongMethod:SetUpPin.kt$@Composable fun SetUpPin( onBack: () -&gt; Unit, onPinSelected: (String) -&gt; Unit )</ID>
-    <ID>LongMethod:ShieldFunds.kt$@Composable fun ShieldFunds( onBack: () -&gt; Unit, shieldingProcessState: ShieldingProcessState )</ID>
+    <ID>LongMethod:SettingsView.kt$@Composable fun SettingsView( versionInfo: VersionInfo, navigation: NighthawkSettingsNavigationCallbacks, onRescan: (ReScanType) -&gt; Unit, )</ID>
+    <ID>LongMethod:ShareAppDialog.kt$@Composable fun ShareAppDialog(onDismiss: () -&gt; Unit)</ID>
+    <ID>LongMethod:SyncNotification.kt$@OptIn(ExperimentalPermissionsApi::class) @Composable fun SyncNotification( selectedSyncOption: SyncNotificationViewModel.SyncIntervalOption, onBack: () -&gt; Unit, onSyncOptionSelected: (SyncNotificationViewModel.SyncIntervalOption) -&gt; Unit, openSettings: () -&gt; Unit )</ID>
+    <ID>LongMethod:TorNetworkSettingsScreen.kt$@Composable internal fun TorNetworkSettingsScreen(onBack: () -&gt; Unit)</ID>
     <ID>LongMethod:TransactionDetails.kt$@Composable fun TransactionDetails( transactionDetailsUIModel: TransactionDetailsUIModel?, balanceUIModel: BalanceUIModel, isNavigateAwayFromAppWarningShown: Boolean, onBack: () -&gt; Unit, viewOnBlockExplorer: (url: String, updateWarningStatus: Boolean) -&gt; Unit )</ID>
     <ID>LongMethod:TransactionOverviewHistoryRow.kt$@OptIn(ExperimentalFoundationApi::class) @Composable fun TransactionOverviewHistoryRow( transactionOverview: DarkfiTransactionOverview, fiatCurrencyUiState: FiatCurrencyUiState, isBalancePrivateMode: Boolean = false, isFiatCurrencyPreferred: Boolean = false, onItemClick: (DarkfiTransactionOverview) -&gt; Unit, onItemLongClick: (DarkfiTransactionOverview) -&gt; Unit = {}, )</ID>
-    <ID>LongMethod:TransferMainView.kt$@Composable fun TransferMainView( onSendMoney: () -&gt; Unit, onReceiveMoney: () -&gt; Unit, onTopUp: () -&gt; Unit, )</ID>
-    <ID>LongMethod:WalletView.kt$@OptIn(ExperimentalFoundationApi::class) @Composable fun WalletView( walletSnapshot: WalletSnapshot, transactionSnapshot: ImmutableList&lt;DarkfiTransactionOverview&gt;, isKeepScreenOnWhileSyncing: Boolean?, isFiatCurrencyPreferred: Boolean, fiatCurrencyUiState: FiatCurrencyUiState, isBandit: Boolean, onAddressQrCodes: () -&gt; Unit, onTransactionDetail: (String) -&gt; Unit, onViewTransactionHistory: () -&gt; Unit, onLongItemClick: (DarkfiTransactionOverview) -&gt; Unit, onFlipCurrency: (isFiatCurrencyPreferredOverNative: Boolean) -&gt; Unit, onScanToSend: () -&gt; Unit )</ID>
-    <ID>LongParameterList:AdvanceSetting.kt$( isScreenOnEnabled: Boolean?, isBanditAvailable: Boolean, preferredLogo: AvailableLogo?, themeVariant: AppThemeVariant, allAvailableLogo: PersistentList&lt;AvailableLogo&gt;, onScreenOnEnabledChanged: (isEnabled: Boolean) -&gt; Unit, onBack: () -&gt; Unit, onNukeWallet: () -&gt; Unit, onLogoPreferenceChanged: (availableLogo: AvailableLogo) -&gt; Unit, onThemeVariantChanged: (AppThemeVariant) -&gt; Unit )</ID>
+    <ID>LongParameterList:AdvanceSetting.kt$( isScreenOnEnabled: Boolean?, isStrictOmrOnly: Boolean, isBanditAvailable: Boolean, preferredLogo: AvailableLogo?, themeVariant: AppThemeVariant, allAvailableLogo: PersistentList&lt;AvailableLogo&gt;, onScreenOnEnabledChanged: (isEnabled: Boolean) -&gt; Unit, onStrictOmrOnlyChanged: (isEnabled: Boolean) -&gt; Unit, onBack: () -&gt; Unit, onNukeWallet: () -&gt; Unit, onLogoPreferenceChanged: (availableLogo: AvailableLogo) -&gt; Unit, onThemeVariantChanged: (AppThemeVariant) -&gt; Unit )</ID>
     <ID>LongParameterList:AlertDialog.kt$( title: String, desc: String, confirmText: String, dismissText: String, onConfirm: () -&gt; Unit = {}, onDismiss: () -&gt; Unit = {}, onDismissRequest: () -&gt; Unit = {} )</ID>
-    <ID>LongParameterList:AndroidWallet.kt$( activity: ComponentActivity, sendArgumentsWrapper: SendArgumentsWrapper?, onAddressQrCodes: () -&gt; Unit, onTransactionDetail: (String) -&gt; Unit, onViewTransactionHistory: () -&gt; Unit, onSendFromDeepLink: () -&gt; Unit, onScanToSend: () -&gt; Unit, )</ID>
-    <ID>LongParameterList:AndroidWallet.kt$( sendArgumentsWrapper: SendArgumentsWrapper?, onAddressQrCodes: () -&gt; Unit, onTransactionDetail: (String) -&gt; Unit, onViewTransactionHistory: () -&gt; Unit, onSendFromDeepLink: () -&gt; Unit, onScanToSend: () -&gt; Unit, )</ID>
+    <ID>LongParameterList:AndroidChat.kt$( controller: DarkfiChatController, onChatSettings: () -&gt; Unit, onPayInvoice: (String) -&gt; Unit, receiveAddress: String, chainTip: Long, syncStatusMessage: String, pendingThread: String?, onConsumeThread: () -&gt; Unit, onBeginReceipt: (String) -&gt; Unit, )</ID>
+    <ID>LongParameterList:AndroidChat.kt$( line: ChatChannelMessage, myNick: String, isEncryptedThread: Boolean, onLongPress: () -&gt; Unit, onPayInvoice: (String) -&gt; Unit, onClearnetLink: (String) -&gt; Unit, onRetry: () -&gt; Unit, onFudTap: (String) -&gt; Unit, )</ID>
+    <ID>LongParameterList:AndroidChat.kt$( nodeStatus: EmbeddedDarkircNodeStatus, connectionState: DarkfiChatConnectionState, diagnostic: String?, nickname: String, showRetry: Boolean, onRetry: () -&gt; Unit, onToggleHud: () -&gt; Unit, )</ID>
+    <ID>LongParameterList:AndroidSettings.kt$( activity: MainActivity, route: String?, onBack: () -&gt; Unit, onSetPin: () -&gt; Unit, onDisablePin: () -&gt; Unit, versionInfo: VersionInfo, )</ID>
+    <ID>LongParameterList:AndroidWallet.kt$( activity: ComponentActivity, sendArgumentsWrapper: SendArgumentsWrapper?, onAddressQrCodes: () -&gt; Unit, onTransactionDetail: (String) -&gt; Unit, onViewTransactionHistory: () -&gt; Unit, onSendFromDeepLink: () -&gt; Unit, onScanToSend: () -&gt; Unit, onSendToken: (String) -&gt; Unit = {}, onSendMoney: () -&gt; Unit = {}, onReceiveMoney: () -&gt; Unit = {}, onRequestMoney: () -&gt; Unit = {}, )</ID>
+    <ID>LongParameterList:AndroidWallet.kt$( sendArgumentsWrapper: SendArgumentsWrapper?, onAddressQrCodes: () -&gt; Unit, onTransactionDetail: (String) -&gt; Unit, onViewTransactionHistory: () -&gt; Unit, onSendFromDeepLink: () -&gt; Unit, onScanToSend: () -&gt; Unit, onSendToken: (String) -&gt; Unit = {}, onSendMoney: () -&gt; Unit = {}, onReceiveMoney: () -&gt; Unit = {}, onRequestMoney: () -&gt; Unit = {}, )</ID>
+    <ID>LongParameterList:CertificateVerifier.kt$CertificateVerifier$( @Suppress("UNUSED_PARAMETER") context: Context, serverName: String, authMethod: String, allowedEkus: Array&lt;String&gt;, ocspResponse: ByteArray?, time: Long, certChain: Array&lt;ByteArray&gt;, )</ID>
+    <ID>LongParameterList:ChatMessageNotifier.kt$ChatMessageNotifier$( context: Context, channel: String, nick: String, preview: String, isOutgoing: Boolean = false, timestampMs: Long = System.currentTimeMillis(), ownNick: String? = null, )</ID>
     <ID>LongParameterList:DarkfiTransactionOverviewFixture.kt$DarkfiTransactionOverviewFixture$( rawId: String = "preview_tx_${System.nanoTime()}", minedHeight: Long? = 1L, timestampEpochMillis: Long? = System.currentTimeMillis(), totalFeeAtomic: Long = 1_000L, isSentTransaction: Boolean = false, netValueAtomic: Long = 50_000_000L, )</ID>
+    <ID>LongParameterList:DarkfiTransferInstrumentedTest.kt$DarkfiTransferInstrumentedTest$( seedWords: List&lt;String&gt;, recipient: String, amount: String, lwd: String, darkfid: String, birthday: Long, tlsPinHex: String, )</ID>
+    <ID>LongParameterList:EnterAmount.kt$( amountText: String, spendableBalanceLabel: String, tokenBalances: List&lt;DarkfiTokenBalance&gt;, selectedTokenId: String?, isContinueEnabled: Boolean, errorMessage: String?, onBack: () -&gt; Unit, onAmountChanged: (String) -&gt; Unit, onTokenSelected: (String?) -&gt; Unit, onMaxAmount: (() -&gt; Unit)? = null, onContinue: () -&gt; Unit, onScanPaymentRequest: () -&gt; Unit, )</ID>
     <ID>LongParameterList:EnterReceiverAddress.kt$( receiverAddress: String, isContinueBtnEnabled: Boolean, onBack: () -&gt; Unit, onValueChanged: (String) -&gt; Unit, onContinue: (String) -&gt; Unit, onScan: () -&gt; Unit )</ID>
-    <ID>LongParameterList:RestoreView.kt$( userWordList: WordList, parseResult: ParseResult, setTextState: (String) -&gt; Unit, focusRequester: FocusRequester, seedPhraseValidation: StateFlow&lt;DarkfiMnemonic.SeedPhraseValidation?&gt;, modifier: Modifier = Modifier )</ID>
+    <ID>LongParameterList:NighthawkHud.kt$( label: String, selected: Boolean, enabled: Boolean, onClick: () -&gt; Unit, modifier: Modifier = Modifier, compact: Boolean = false, )</ID>
+    <ID>LongParameterList:NighthawkHud.kt$( options: List&lt;String&gt;, selectedIndex: Int, onSelectIndex: (Int) -&gt; Unit, modifier: Modifier = Modifier, enabled: Boolean = true, compact: Boolean = false, )</ID>
+    <ID>LongParameterList:NighthawkHud.kt$( torSelected: Boolean, tcpLabel: String, torLabel: String, onSelectTor: (Boolean) -&gt; Unit, modifier: Modifier = Modifier, enabled: Boolean = true, compact: Boolean = false, )</ID>
+    <ID>LongParameterList:ReviewSend.kt$( amountLabel: String, recipient: String, memo: String?, feeLabel: String?, isEstimatingFee: Boolean, isSendEnabled: Boolean, errorMessage: String?, onBack: () -&gt; Unit, onSend: () -&gt; Unit, )</ID>
     <ID>LongParameterList:Security.kt$( onBack: () -&gt; Unit, isPinEnabled: Boolean, isTouchIdOrFaceEnabled: Boolean, isBioMetricEnabledOnMobile: Boolean, onDisablePin: () -&gt; Unit, onSetPin: () -&gt; Unit, onTouchIdToggleChanged: (Boolean) -&gt; Unit )</ID>
+    <ID>LongParameterList:SendConfirmation.kt$( sendConfirmationState: SendConfirmationState, onCancel: () -&gt; Unit, onTryAgain: () -&gt; Unit, onDone: () -&gt; Unit, txId: String? = null, errorMessage: String? = null, sendingSubtitle: String? = null, sendingCancelLabel: String? = null, )</ID>
     <ID>LongParameterList:SettingsListItem.kt$( @DrawableRes iconRes: Int, title: String, desc: String, modifier: Modifier = Modifier, rotateByDegree: Float = 0f, showDivider: Boolean = true )</ID>
     <ID>LongParameterList:Text.kt$( text: String, modifier: Modifier = Modifier, maxLines: Int = Int.MAX_VALUE, overflow: TextOverflow = TextOverflow.Clip, textAlign: TextAlign = TextAlign.Start, color: Color = MaterialTheme.colorScheme.onBackground )</ID>
     <ID>LongParameterList:TransactionHistory.kt$( transactionSnapshot: ImmutableList&lt;DarkfiTransactionOverview&gt;, fiatCurrencyUiState: FiatCurrencyUiState, isFiatCurrencyPreferred: Boolean, onBack: () -&gt; Unit, onTransactionDetail: (String) -&gt; Unit, onItemLongClick: (DarkfiTransactionOverview) -&gt; Unit, )</ID>
     <ID>LongParameterList:TransactionOverviewHistoryRow.kt$( transactionOverview: DarkfiTransactionOverview, fiatCurrencyUiState: FiatCurrencyUiState, isBalancePrivateMode: Boolean = false, isFiatCurrencyPreferred: Boolean = false, onItemClick: (DarkfiTransactionOverview) -&gt; Unit, onItemLongClick: (DarkfiTransactionOverview) -&gt; Unit = {}, )</ID>
-    <ID>LongParameterList:WalletView.kt$( walletSnapshot: WalletSnapshot, transactionSnapshot: ImmutableList&lt;DarkfiTransactionOverview&gt;, isKeepScreenOnWhileSyncing: Boolean?, isFiatCurrencyPreferred: Boolean, fiatCurrencyUiState: FiatCurrencyUiState, isBandit: Boolean, onAddressQrCodes: () -&gt; Unit, onTransactionDetail: (String) -&gt; Unit, onViewTransactionHistory: () -&gt; Unit, onLongItemClick: (DarkfiTransactionOverview) -&gt; Unit, onFlipCurrency: (isFiatCurrencyPreferredOverNative: Boolean) -&gt; Unit, onScanToSend: () -&gt; Unit )</ID>
-    <ID>LoopWithTooManyJumpStatements:DarkircIrcClientHandshakeTest.kt$DarkircIrcClientHandshakeTest$while</ID>
+    <ID>LoopWithTooManyJumpStatements:AppNymCoordinator.kt$AppNymCoordinator$while</ID>
+    <ID>LoopWithTooManyJumpStatements:AppTorCoordinator.kt$AppTorCoordinator$while</ID>
+    <ID>LoopWithTooManyJumpStatements:CertificateVerifier.kt$CertificateVerifier$while</ID>
+    <ID>LoopWithTooManyJumpStatements:DarkfiChatController.kt$DarkfiChatController$while</ID>
+    <ID>LoopWithTooManyJumpStatements:EncryptedPreferenceSingleton.kt$EncryptedPreferenceSingleton$for</ID>
     <ID>MagicNumber:AboutView.kt$12f</ID>
+    <ID>MagicNumber:AndroidChat.kt$0.114f</ID>
+    <ID>MagicNumber:AndroidChat.kt$0.299f</ID>
+    <ID>MagicNumber:AndroidChat.kt$0.587f</ID>
+    <ID>MagicNumber:AndroidChat.kt$0.5f</ID>
+    <ID>MagicNumber:AndroidChat.kt$0xFF6B1A6B</ID>
+    <ID>MagicNumber:AndroidChat.kt$0xFFC94BB8</ID>
+    <ID>MagicNumber:AndroidChat.kt$0xFFFFD6F6</ID>
+    <ID>MagicNumber:AndroidChat.kt$3</ID>
+    <ID>MagicNumber:AndroidChat.kt$8</ID>
+    <ID>MagicNumber:AndroidSend.kt$400</ID>
     <ID>MagicNumber:AndroidWallet.kt$500</ID>
+    <ID>MagicNumber:AppNymCoordinator.kt$AppNymCoordinator$500</ID>
+    <ID>MagicNumber:AppTorCoordinator.kt$AppTorCoordinator$250</ID>
+    <ID>MagicNumber:AppTorCoordinator.kt$AppTorCoordinator$500</ID>
+    <ID>MagicNumber:AttFrameCodec.kt$AttFrameAssembler$1024</ID>
+    <ID>MagicNumber:AttFrameCodec.kt$AttFrameAssembler$64</ID>
     <ID>MagicNumber:AuthenticatePin.kt$1000</ID>
-    <ID>MagicNumber:AutoShieldingInfo.kt$0.8f</ID>
     <ID>MagicNumber:Button.kt$10f</ID>
     <ID>MagicNumber:Button.kt$44</ID>
+    <ID>MagicNumber:CertificateVerifier.kt$CertificateVerifier$3</ID>
+    <ID>MagicNumber:CertificateVerifier.kt$CertificateVerifier$4</ID>
+    <ID>MagicNumber:CertificateVerifier.kt$CertificateVerifier$8</ID>
+    <ID>MagicNumber:CertificateVerifier.kt$StatusCode.InvalidEncoding$5</ID>
+    <ID>MagicNumber:CertificateVerifier.kt$StatusCode.InvalidExtension$6</ID>
+    <ID>MagicNumber:CertificateVerifier.kt$StatusCode.Revoked$4</ID>
+    <ID>MagicNumber:CertificateVerifier.kt$StatusCode.UnknownCert$3</ID>
     <ID>MagicNumber:ChangeServer.kt$0.4f</ID>
     <ID>MagicNumber:ChangeServer.kt$0.6f</ID>
+    <ID>MagicNumber:ChatChrome.kt$ChatChrome$0x7FFF_FFFF</ID>
+    <ID>MagicNumber:ChatChrome.kt$ChatChrome$31</ID>
+    <ID>MagicNumber:ChatMessageNotifier.kt$ChatMessageNotifier$0xff</ID>
+    <ID>MagicNumber:ChatMessageNotifier.kt$ChatMessageNotifier$33</ID>
+    <ID>MagicNumber:ChatMessageNotifier.kt$ChatMessageNotifier$750L</ID>
+    <ID>MagicNumber:ChatMessageNotifier.kt$ChatMessageNotifier$80</ID>
+    <ID>MagicNumber:ChatReadability.kt$ChatTimeline$4</ID>
+    <ID>MagicNumber:ChatThreadDisplayNames.kt$ChatThreadDisplayNames$32</ID>
+    <ID>MagicNumber:ChatWallet.kt$ChatInvoices$256</ID>
+    <ID>MagicNumber:ChatWallet.kt$ChatInvoices$4</ID>
+    <ID>MagicNumber:ChatWallet.kt$ChatInvoices$7</ID>
+    <ID>MagicNumber:ChatWallet.kt$ChatNotificationPolicy$5_000L</ID>
+    <ID>MagicNumber:ChatWallet.kt$ChatReceiptCodec$5</ID>
+    <ID>MagicNumber:ChatWallet.kt$ChatReceiptCodec$6</ID>
+    <ID>MagicNumber:ChatWallet.kt$ChatReceiptCodec$7</ID>
+    <ID>MagicNumber:ChatWallet.kt$NighthawkContacts$100_000</ID>
+    <ID>MagicNumber:ChatWallet.kt$NighthawkContacts$15</ID>
     <ID>MagicNumber:Constants.kt$100L</ID>
     <ID>MagicNumber:Constants.kt$200L</ID>
     <ID>MagicNumber:Constants.kt$50L</ID>
     <ID>MagicNumber:Constants.kt$800L</ID>
-    <ID>MagicNumber:DarkfiChatController.kt$DarkfiChatController.Companion$3</ID>
-    <ID>MagicNumber:DarkfiChatPreferences.kt$DarkfiChatPreferences$1000</ID>
+    <ID>MagicNumber:DarkfiChatController.kt$DarkfiChatController$1000</ID>
+    <ID>MagicNumber:DarkfiChatController.kt$DarkfiChatController$1_000L</ID>
+    <ID>MagicNumber:DarkfiChatController.kt$DarkfiChatController$200</ID>
+    <ID>MagicNumber:DarkfiChatController.kt$DarkfiChatController$2000</ID>
+    <ID>MagicNumber:DarkfiChatController.kt$DarkfiChatController$24</ID>
+    <ID>MagicNumber:DarkfiChatPreferences.kt$DarkfiChatPreferences$100</ID>
     <ID>MagicNumber:DarkfiChatPreferences.kt$DarkfiChatPreferences$65535</ID>
-    <ID>MagicNumber:DarkfiChatPreferences.kt$DarkfiChatPreferences$9999</ID>
-    <ID>MagicNumber:DarkfiChatPreferences.kt$DarkfiChatPreferences.Companion$1000</ID>
-    <ID>MagicNumber:DarkfiChatPreferences.kt$DarkfiChatPreferences.Companion$9999</ID>
+    <ID>MagicNumber:DarkfiChatPreferences.kt$DarkfiChatPreferences$999</ID>
+    <ID>MagicNumber:DarkfiChatPreferences.kt$DarkfiChatPreferences.Companion$100</ID>
+    <ID>MagicNumber:DarkfiChatPreferences.kt$DarkfiChatPreferences.Companion$999</ID>
+    <ID>MagicNumber:DarkfiEndpointNetworkGuard.kt$DarkfiEndpointNetworkGuard$443</ID>
+    <ID>MagicNumber:DarkfiEndpointNetworkGuard.kt$DarkfiEndpointNetworkGuard$9068</ID>
     <ID>MagicNumber:DarkfiEndpointPreset.kt$65535</ID>
-    <ID>MagicNumber:DarkfiMnemonic.kt$DarkfiEnglishWordList$2048</ID>
-    <ID>MagicNumber:DarkfiMnemonic.kt$DarkfiMnemonic$0xFF</ID>
-    <ID>MagicNumber:DarkfiMnemonic.kt$DarkfiMnemonic$10</ID>
-    <ID>MagicNumber:DarkfiMnemonic.kt$DarkfiMnemonic$11</ID>
-    <ID>MagicNumber:DarkfiMnemonic.kt$DarkfiMnemonic$12</ID>
-    <ID>MagicNumber:DarkfiMnemonic.kt$DarkfiMnemonic$128</ID>
-    <ID>MagicNumber:DarkfiMnemonic.kt$DarkfiMnemonic$2047</ID>
-    <ID>MagicNumber:DarkfiMnemonic.kt$DarkfiMnemonic$24</ID>
-    <ID>MagicNumber:DarkfiMnemonic.kt$DarkfiMnemonic$256</ID>
-    <ID>MagicNumber:DarkfiMnemonic.kt$DarkfiMnemonic$32</ID>
-    <ID>MagicNumber:DarkfiMnemonic.kt$DarkfiMnemonic$7</ID>
-    <ID>MagicNumber:DarkfiMnemonic.kt$DarkfiMnemonic$8</ID>
+    <ID>MagicNumber:DarkfiPaymentMemo.kt$DarkfiPaymentMemo$0x80</ID>
+    <ID>MagicNumber:DarkfiPaymentMemo.kt$DarkfiPaymentMemo$0xC0</ID>
     <ID>MagicNumber:DarkfiPercent.kt$DarkfiPercent$1e-4f</ID>
     <ID>MagicNumber:DarkfiSynchronizer.kt$32</ID>
     <ID>MagicNumber:DarkfiWalletCoordinator.kt$DarkfiWalletCoordinator$5_000</ID>
-    <ID>MagicNumber:DarkircIrcClient.kt$DarkircIrcClient$16</ID>
-    <ID>MagicNumber:DarkircIrcClient.kt$DarkircIrcClient$256</ID>
-    <ID>MagicNumber:DarkircIrcClient.kt$DarkircIrcClient$48</ID>
-    <ID>MagicNumber:DarkircWireParser.kt$DarkircWireParser$3</ID>
-    <ID>MagicNumber:DarkircWireParser.kt$DarkircWireParser$4</ID>
+    <ID>MagicNumber:DarkircDaemonService.kt$DarkircDaemonService$34</ID>
+    <ID>MagicNumber:DeepLinkUtil.kt$DeepLinkUtil$8</ID>
+    <ID>MagicNumber:DeviceAddressBook.kt$DeviceAddressBook$50</ID>
+    <ID>MagicNumber:DeviceAddressBook.kt$DeviceAddressBook$64</ID>
+    <ID>MagicNumber:EmbeddedPackagedExecutable.kt$EmbeddedPackagedExecutable$8192</ID>
     <ID>MagicNumber:EncryptedPdfDialog.kt$0.96f</ID>
     <ID>MagicNumber:EnterPinCommonUI.kt$.75f</ID>
     <ID>MagicNumber:EnterPinCommonUI.kt$3</ID>
+    <ID>MagicNumber:EnterReceiverAddress.kt$12</ID>
+    <ID>MagicNumber:FudTransfer.kt$FudUri.Companion$128</ID>
+    <ID>MagicNumber:FudTransfer.kt$FudUri.Companion$255</ID>
+    <ID>MagicNumber:FudTransfer.kt$FudUri.Companion$4</ID>
+    <ID>MagicNumber:FudTransfer.kt$FudUri.Companion$6</ID>
     <ID>MagicNumber:GetStarted.kt$0.1f</ID>
     <ID>MagicNumber:GetStarted.kt$0.7f</ID>
-    <ID>MagicNumber:GetStarted.kt$12f</ID>
+    <ID>MagicNumber:GetStarted.kt$0.8f</ID>
     <ID>MagicNumber:JvmQrCodeGenerator.kt$JvmQrCodeGenerator$3</ID>
+    <ID>MagicNumber:LightwalletTlsPin.kt$LightwalletTlsPin$16</ID>
+    <ID>MagicNumber:LightwalletTlsPin.kt$LightwalletTlsPin$64</ID>
+    <ID>MagicNumber:MainActivity.kt$MainActivity$0.02f</ID>
     <ID>MagicNumber:MainActivity.kt$MainActivity$0.03f</ID>
+    <ID>MagicNumber:MainActivity.kt$MainActivity$0x80050810</ID>
+    <ID>MagicNumber:MainActivity.kt$MainActivity$0xFF05060A</ID>
+    <ID>MagicNumber:MainActivity.kt$MainActivity$12f</ID>
     <ID>MagicNumber:MainActivity.kt$MainActivity$13f</ID>
-    <ID>MagicNumber:MainActivity.kt$MainActivity$36</ID>
+    <ID>MagicNumber:MainActivity.kt$MainActivity$1_000L</ID>
+    <ID>MagicNumber:MainActivity.kt$MainActivity$24</ID>
+    <ID>MagicNumber:MainActivity.kt$MainActivity$35</ID>
+    <ID>MagicNumber:MainActivity.kt$MainActivity$48</ID>
+    <ID>MagicNumber:MainActivity.kt$MainActivity$72</ID>
+    <ID>MagicNumber:NativeDarkfiSynchronizer.kt$NativeDarkfiSynchronizer$1_000</ID>
+    <ID>MagicNumber:NighthawkContactStore.kt$NighthawkContactStore$200</ID>
+    <ID>MagicNumber:NymSplashProgress.kt$NymSplashProgress$1_000L</ID>
     <ID>MagicNumber:PdfUtil.kt$PdfUtil$1.5f</ID>
     <ID>MagicNumber:PdfUtil.kt$PdfUtil$128</ID>
     <ID>MagicNumber:PdfUtil.kt$PdfUtil$12f</ID>
@@ -128,27 +232,20 @@
     <ID>MagicNumber:PdfUtil.kt$PdfUtil$50f</ID>
     <ID>MagicNumber:PdfUtil.kt$PdfUtil$6</ID>
     <ID>MagicNumber:PdfUtil.kt$PdfUtil$700f</ID>
-    <ID>MagicNumber:ReceiveQrCodes.kt$3</ID>
-    <ID>MagicNumber:ReceiveQrCodes.kt$4</ID>
+    <ID>MagicNumber:PeerHostDisplay.kt$PeerHostDisplay$16</ID>
+    <ID>MagicNumber:PeerHostDisplay.kt$PeerHostDisplay$6</ID>
+    <ID>MagicNumber:PeerHostDisplay.kt$PeerHostDisplay$8</ID>
     <ID>MagicNumber:Restore.kt$0.7f</ID>
-    <ID>MagicNumber:RestoreViewModel.kt$DarkfiEnglishWordListForRestore$2048</ID>
     <ID>MagicNumber:SeedBackup.kt$0.3f</ID>
     <ID>MagicNumber:SeedBackup.kt$3</ID>
     <ID>MagicNumber:SetUpPin.kt$1000</ID>
-    <ID>MagicNumber:StubDarkfiSynchronizer.kt$StubDarkfiSynchronizer$0.99f</ID>
-    <ID>MagicNumber:StubDarkfiSynchronizer.kt$StubDarkfiSynchronizer$100_000_000L</ID>
-    <ID>MagicNumber:StubDarkfiSynchronizer.kt$StubDarkfiSynchronizer$10L</ID>
+    <ID>MagicNumber:StorageChecker.kt$StorageChecker$500</ID>
     <ID>MagicNumber:StubDarkfiSynchronizer.kt$StubDarkfiSynchronizer$16</ID>
-    <ID>MagicNumber:StubDarkfiSynchronizer.kt$StubDarkfiSynchronizer$48</ID>
     <ID>MagicNumber:SyncNotificationViewModel.kt$SyncNotificationViewModel.SyncIntervalOption.MONTHLY$30</ID>
     <ID>MagicNumber:SyncNotificationViewModel.kt$SyncNotificationViewModel.SyncIntervalOption.WEEKLY$7</ID>
-    <ID>MagicNumber:SyncNotificationWorker.kt$SyncNotificationWorker$100</ID>
-    <ID>MagicNumber:SyncNotificationWorker.kt$SyncNotificationWorker$200</ID>
-    <ID>MagicNumber:SyncNotificationWorker.kt$SyncNotificationWorker$300</ID>
-    <ID>MagicNumber:SyncNotificationWorker.kt$SyncNotificationWorker.Companion$24</ID>
     <ID>MagicNumber:SyncNotificationWorker.kt$SyncNotificationWorker.Companion$7</ID>
-    <ID>MagicNumber:TorSocksReadiness.kt$TorSocksReadiness$1500</ID>
-    <ID>MagicNumber:TorSocksReadiness.kt$TorSocksReadiness$200</ID>
+    <ID>MagicNumber:TorNetworkSettingsScreen.kt$65535</ID>
+    <ID>MagicNumber:TorSocksReadiness.kt$TorSocksReadiness$5000</ID>
     <ID>MagicNumber:TransactionDetails.kt$10</ID>
     <ID>MagicNumber:TransactionDetails.kt$180f</ID>
     <ID>MagicNumber:TransactionDetails.kt$20</ID>
@@ -156,86 +253,146 @@
     <ID>MagicNumber:TransactionHistory.kt$25.25</ID>
     <ID>MagicNumber:TransactionOverviewHistoryRow.kt$180f</ID>
     <ID>MagicNumber:TransactionOverviewHistoryRow.kt$25.24</ID>
+    <ID>MagicNumber:TransportNative.kt$TransportNative$2_000L</ID>
+    <ID>MagicNumber:Typography.kt$18f</ID>
+    <ID>MagicNumber:Typography.kt$400</ID>
+    <ID>MagicNumber:Typography.kt$500</ID>
+    <ID>MagicNumber:Typography.kt$600</ID>
+    <ID>MagicNumber:Typography.kt$700</ID>
+    <ID>MagicNumber:WalletPinSecureStore.kt$WalletPinSecureStore$1000</ID>
+    <ID>MagicNumber:WalletPinSecureStore.kt$WalletPinSecureStore$6</ID>
+    <ID>MagicNumber:WalletPinSecureStore.kt$WalletPinSecureStore$8</ID>
+    <ID>MagicNumber:WalletPinSecureStore.kt$WalletPinSecureStore$999</ID>
+    <ID>MagicNumber:WalletView.kt$0.18f</ID>
+    <ID>MagicNumber:WalletView.kt$0.28f</ID>
+    <ID>MagicNumber:WalletView.kt$0.38f</ID>
+    <ID>MagicNumber:WalletView.kt$0.55f</ID>
     <ID>MagicNumber:WalletView.kt$0.8f</ID>
     <ID>MagicNumber:WalletView.kt$25.8</ID>
-    <ID>MagicNumber:WalletView.kt$90</ID>
+    <ID>MatchingDeclarationName:Navigation.kt$NavigationArguments</ID>
     <ID>MatchingDeclarationName:NumberPadKeys.kt$NumberPadValueTypes</ID>
     <ID>MatchingDeclarationName:SyncNotificationIntervalOptionPreferenceDefault.kt$SyncIntervalOptionPreferenceDefault : PreferenceDefault</ID>
+    <ID>MatchingDeclarationName:TopBar.kt$NighthawkTopBarLeading</ID>
     <ID>MatchingDeclarationName:WalletCoordinator.kt$AppWalletCoordinator</ID>
     <ID>MaxLineLength:AlertDialog.kt$AlertDialog(title = "Dialog Title", desc = "Description for Dialog", confirmText = "OK", dismissText = "Cancel")</ID>
-    <ID>MaxLineLength:AuthenticatePin.kt$id = if (incorrectPassword.value) R.string.ns_security_try_again else R.string.enter_six_digit_pin_code</ID>
-    <ID>MaxLineLength:BalanceDisplayValues.kt$BalanceDisplayValues.Companion$DarkfiAmountFormatter.formatAtomic(totalBalance - availableBalance).removeTrailingZero()</ID>
+    <ID>MaxLineLength:AndroidRequest.kt$RequestQr(data = uri, logoId = R.drawable.ic_icon_biometric, backGroundColor = MaterialTheme.colorScheme.primary)</ID>
+    <ID>MaxLineLength:AndroidSend.kt$text = { Text("${token.displayName} (${DarkfiAmountFormatter.formatAtomic(token.balanceAtomic)})") }</ID>
+    <ID>MaxLineLength:AndroidWallet.kt$amount = it.amount?.let { display -&gt; DarkfiAmountParser.parseDisplayAmountToAtomic(display) }</ID>
+    <ID>MaxLineLength:CertificateVerifier.kt$CertificateVerifier$// "Note that when a `PKIXRevocationChecker` is added to `PKIXParameters`, it clones the `PKIXRevocationChecker`;</ID>
+    <ID>MaxLineLength:CertificateVerifier.kt$CertificateVerifier$// Known means installed in root CA store, either a preset public CA or a custom one installed by an enterprise/user.</ID>
+    <ID>MaxLineLength:CertificateVerifier.kt$CertificateVerifier$if</ID>
     <ID>MaxLineLength:ChangeServerViewModel.kt$ChangeServerViewModel$fun presetOptions(): ImmutableList&lt;DarkfiEndpointPreset&gt;</ID>
+    <ID>MaxLineLength:ChatE2eCryptoSettings.kt$if (ok) R.string.ns_chat_e2e_removed_ok else R.string.ns_chat_e2e_saved_failed</ID>
+    <ID>MaxLineLength:ChatReadability.kt$ChatMessageLexer$private fun trimTrailingPunctuation(value: String): String</ID>
     <ID>MaxLineLength:ChatSettingsScreen.kt$Toast.makeText(context, R.string.ns_chat_identity_generate_failed, Toast.LENGTH_SHORT).show()</ID>
-    <ID>MaxLineLength:DarkfiChatController.kt$DarkfiChatController$"IRC host is loopback — SOCKS skipped. Desktop tip: run darkirc then `adb reverse tcp:6667 tcp:6667`.\n"</ID>
-    <ID>MaxLineLength:DarkfiChatController.kt$DarkfiChatController$"Tip: start `darkirc` on a workstation (default tcp://127.0.0.1:6667) or expose IRC/TLS via tunnel.\n"</ID>
-    <ID>MaxLineLength:DarkfiChatController.kt$DarkfiChatController$fun activeSeedUrls(): List&lt;String&gt;</ID>
-    <ID>MaxLineLength:DarkfiChatIdentity.kt$DarkfiChatIdentity$*</ID>
+    <ID>MaxLineLength:ChatWallet.kt$ChatNotificationPolicy$fun deepLink(thread: String): String</ID>
+    <ID>MaxLineLength:DarkfiChatCryptoTest.kt$DarkfiChatCryptoTest$val msg = ChatChannelMessage(eventId = "msg1", channel = "#dev", nick = "alice", text = "Hello", timestampMs = 0L)</ID>
+    <ID>MaxLineLength:DarkfiChatIdentity.kt$DarkfiChatIdentity$fun hasIdentity(): Boolean</ID>
     <ID>MaxLineLength:DarkfiChatIdentity.kt$DarkfiChatIdentity$fun publicIdHex(): String?</ID>
+    <ID>MaxLineLength:DarkfiTransferInstrumentedTest.kt$DarkfiTransferInstrumentedTest$"E2E_SYNC status=${snap.status} type=${snap.syncType} scanned=${snap.scannedHeight} tip=${snap.chainTip} omr=${snap.omrAvailable} msg=${snap.statusMessage}"</ID>
+    <ID>MaxLineLength:DarkfiTransferInstrumentedTest.kt$DarkfiTransferInstrumentedTest$"E2E_SYNC_DONE status=${snap.status} scanned=${snap.scannedHeight} tip=${snap.chainTip} omr=${snap.omrAvailable}"</ID>
+    <ID>MaxLineLength:DarkfiTransferInstrumentedTest.kt$DarkfiTransferInstrumentedTest$"Timed out waiting for UnifOMR sync. status=${snap.status} scanned=${snap.scannedHeight} tip=${snap.chainTip} msg=${snap.statusMessage}"</ID>
+    <ID>MaxLineLength:DarkircCryptoManager.kt$DarkircCryptoManager$fun generateDmKeypair(context: Context): DarkircCliKeygen.DmKeypair?</ID>
+    <ID>MaxLineLength:DarkircDaemonService.kt$DarkircDaemonService$*</ID>
     <ID>MaxLineLength:EncryptedPdfDialog.kt$visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation()</ID>
     <ID>MaxLineLength:EncryptedPreferenceKeys.kt$EncryptedPreferenceKeys$val IS_FIAT_CURRENCY_PREFERRED = BooleanPreferenceDefault(PreferenceKey("is_fiat_currency_preferred_over_drk"), false)</ID>
+    <ID>MaxLineLength:EncryptedPreferenceSingleton.kt$EncryptedPreferenceSingleton$Log.w(TAG, "Skipping unsupported plaintext preference key=$name (${value?.javaClass?.simpleName})")</ID>
     <ID>MaxLineLength:EnterPinCommonUI.kt$BodyMedium(text = message, textAlign = TextAlign.Center, modifier = Modifier.align(Alignment.CenterHorizontally))</ID>
     <ID>MaxLineLength:EnterPinCommonUI.kt$EnterPinCommonUI(incorrectPassword = false, enteredPassword = "11", message = "Enter Six Digit Pin", onKeyPressed = {})</ID>
     <ID>MaxLineLength:EnterPinCommonUI.kt$Modifier.background(color = WalletTheme.colors.onBackgroundHeader, shape = CircleShape)</ID>
-    <ID>MaxLineLength:EnterPinCommonUI.kt$color = colorResource(id = com.nighthawkapps.lib.android.ui.design.R.color.nh_gray)</ID>
-    <ID>MaxLineLength:GetStarted.kt$style = TextStyle(fontSize = TextUnit(12f, TextUnitType.Sp), textDecoration = TextDecoration.Underline)</ID>
     <ID>MaxLineLength:HistoryViewTest.kt$HistoryViewTest$private</ID>
     <ID>MaxLineLength:HomeViewModel.kt$HomeViewModel$// Flag to track any expecting balance is there or not. We will show snackBar everytime user open the app until it is a confirmed transaction</ID>
     <ID>MaxLineLength:MainActivity.kt$MainActivity$homeViewModel.shortcutAction = ShortcutAction.getShortcutAction(intent?.getStringExtra(ShortcutAction.KEY_SHORT_CUT_CLICK))</ID>
-    <ID>MaxLineLength:MainNavigation.kt$/* onMoreDetails = { navHostController.popBackStack(BottomNavItem.Transfer.route, false) navHostController.navigateJustOnce(NavigationTargets.navigationRouteTransactionDetails(transactionId = it)) },*/</ID>
+    <ID>MaxLineLength:MainNavigation.kt$/* onMoreDetails = { navHostController.popBackStack(BottomNavItem.Wallet.route, false) navHostController.navigateJustOnce(NavigationTargets.navigationRouteTransactionDetails(transactionId = it)) },*/</ID>
     <ID>MaxLineLength:MainNavigation.kt$NavHost</ID>
     <ID>MaxLineLength:MainNavigation.kt$icon = { Icon(painter = painterResource(id = bottomNavItem.icon), contentDescription = bottomNavItem.route) }</ID>
+    <ID>MaxLineLength:MainNavigation.kt$navHostController.getBackStackEntry(SEND_MONEY).savedStateHandle[NavigationArguments.SEND_TOKEN_ID]</ID>
     <ID>MaxLineLength:MainNavigation.kt$onSetPin = { navHostController.navigateJustOnce(NavigationTargets.navigateToPinScreen(isPinSetUp = true)) }</ID>
     <ID>MaxLineLength:MergingConfigurationProviderTest.kt$MergingConfigurationProviderTest$StringConfiguration(persistentMapOf(BooleanDefaultEntryFixture.KEY.key to false.toString()), newer)</ID>
     <ID>MaxLineLength:MergingConfigurationProviderTest.kt$MergingConfigurationProviderTest$StringConfiguration(persistentMapOf(BooleanDefaultEntryFixture.KEY.key to false.toString()), null)</ID>
     <ID>MaxLineLength:MergingConfigurationProviderTest.kt$MergingConfigurationProviderTest$StringConfiguration(persistentMapOf(BooleanDefaultEntryFixture.KEY.key to true.toString()), null)</ID>
     <ID>MaxLineLength:MergingConfigurationProviderTest.kt$MergingConfigurationProviderTest$StringConfiguration(persistentMapOf(BooleanDefaultEntryFixture.KEY.key to true.toString()), older)</ID>
+    <ID>MaxLineLength:MeshCoordinator.kt$MeshStartGate$private fun toggleAndPersisted(activity: Activity): Boolean</ID>
+    <ID>MaxLineLength:NighthawkBleLink.kt$private fun NighthawkBleLink.meshHex(id: ByteArray): String</ID>
     <ID>MaxLineLength:PdfUtil.kt$PdfUtil$context.packageManager.queryIntentActivities(intentChooser, PackageManager.MATCH_DEFAULT_ONLY)</ID>
-    <ID>MaxLineLength:RetrofitHelper.kt$RetrofitHelper$fun getCoinMetricsApiService(): CoinMetricsApiService</ID>
-    <ID>MaxLineLength:ScreenshotTest.kt$ScreenshotTest$/** Screenshot baselines were removed with the DarkFi-only refactor; replace once Compose previews stabilize again. */</ID>
+    <ID>MaxLineLength:RetrofitHelper.kt$RetrofitHelper$*</ID>
     <ID>MaxLineLength:SendConfirmation.kt$/*TextButton( onClick = { onMoreDetails(sendConfirmationState.id) }, modifier = Modifier.align(Alignment.CenterHorizontally) ) { BodyMedium(text = stringResource(id = R.string.ns_more_details).uppercase(), color = WalletTheme.colors.onBackgroundHeader) }*/</ID>
     <ID>MaxLineLength:SendConfirmation.kt$BodyMedium(text = stringResource(id = R.string.ns_cancel).uppercase(), color = WalletTheme.colors.onBackgroundHeader)</ID>
-    <ID>MaxLineLength:SettingsView.kt$BodyMedium(text = stringResource(id = R.string.ns_chat_settings_section_title), color = WalletTheme.colors.surfaceEnd)</ID>
+    <ID>MaxLineLength:SessionTransport.kt$SessionTransport$fun effective(prefs: DarkfiChatPreferences): PrivacyNetwork</ID>
+    <ID>MaxLineLength:ShareAppDialog.kt$BodyMedium(text = stringResource(id = R.string.ns_share_app_split_warning), color = contentColor)</ID>
+    <ID>MaxLineLength:ShareAppDialog.kt$title = { Body(text = stringResource(id = R.string.ns_share_app_title), color = MaterialTheme.colorScheme.onSurface) }</ID>
     <ID>MaxLineLength:StandardPreferenceKeys.kt$StandardPreferenceKeys$val IS_NAVIGATE_AWAY_FROM_APP_WARNING_SHOWN = BooleanPreferenceDefault(PreferenceKey("is_navigate_from_app_warning_shown"), false)</ID>
     <ID>MaxLineLength:StandardPreferenceKeys.kt$StandardPreferenceKeys$val IS_UNSTOPPABLE_SERVICE_ENABLED = BooleanPreferenceDefault(PreferenceKey("is_unstoppable_service_enabled"), false)</ID>
     <ID>MaxLineLength:SyncNotificationIntervalOptionPreferenceDefault.kt$SyncIntervalOptionPreferenceDefault$override suspend</ID>
     <ID>MaxLineLength:SyncNotificationIntervalOptionPreferenceDefault.kt$SyncIntervalOptionPreferenceDefault$preferenceProvider.getString(key)?.let { SyncNotificationViewModel.SyncIntervalOption.getSyncIntervalByText(it) }</ID>
-    <ID>MaxLineLength:SyncNotificationWorker.kt$SyncNotificationWorker$val channelPeriodic = NotificationChannel(WorkIds.SYNC_NOTIFICATION_CHANNEL_ID, WorkIds.SYNC_NOTIFICATION_CHANNEL_NAME, importance)</ID>
+    <ID>MaxLineLength:SyncWorkerTest.kt$SyncWorkerTest.TestSynchronizer$override suspend fun getRecipients(tx: DarkfiTransactionOverview,): List&lt;DarkfiTransactionRecipient&gt;</ID>
     <ID>MaxLineLength:TimeInfo.kt$TimeInfo$// Use a slightly more human friendly format instead of ISO, since this will appear in the emails that users see</ID>
+    <ID>MaxLineLength:TorDarkfidEndpointTest.kt$TorDarkfidEndpointTest$"socks5://127.0.0.1:${PrivacyNetwork.DEFAULT_NYM_SOCKS_PORT}/node.dark.fi:${DarkfiEndpoint.LIGHTWALLET_GRPC_PORT}"</ID>
     <ID>MaxLineLength:TransactionDetails.kt$transactionRecipient = DarkfiTransactionRecipient("jhasdgjhagsdjagsjadjhgasjhdgajshdgjahsgdjasgdjasgdjsad")</ID>
-    <ID>MaxLineLength:TransactionOverviewHistoryRow.kt$Body(text = transactionText, color = colorResource(id = com.nighthawkapps.lib.android.ui.design.R.color.ns_parmaviolet))</ID>
-    <ID>MaxLineLength:TransferMainView.kt$BodyMedium(text = stringResource(id = R.string.ns_send_and_receive_drk), color = WalletTheme.colors.secondaryTitleText)</ID>
-    <ID>MaxLineLength:WalletView.kt$if (pagerState.currentPage == iteration) WalletTheme.colors.selectedPageIndicator else MaterialTheme.colorScheme.primary</ID>
+    <ID>MaxLineLength:WalletCreationTest.kt$WalletCreationTest$"Status: $status | Type: $syncType | Progress: $progress | Msg: $syncStatusMessage | TypeMsg: $syncTypeMessage | Error: $error"</ID>
+    <ID>MaxLineLength:WalletCreationTest.kt$WalletCreationTest$var persistableWallet = PersistableDarkfiWallet.create(context, DarkfiNetwork.Testnet, WalletInitMode.NewWallet)</ID>
+    <ID>MaxLineLength:WalletImportTest.kt$WalletImportTest$"mercy accuse survey carry chronic report fix oval drill hood tumble note safe canal once enforce property school easily best energy that"</ID>
+    <ID>MaxLineLength:WalletImportTest.kt$WalletImportTest$var persistableWallet = PersistableDarkfiWallet.create(context, DarkfiNetwork.Testnet, WalletInitMode.ImportWallet(seedPhrase))</ID>
+    <ID>MaxLineLength:WalletView.kt$fun isSyncing(status: DarkfiSyncStatus): Boolean</ID>
     <ID>MaxLineLength:WalletView.kt$text = balanceDisplayValues.balanceUIModel.fiatBalance + " ${balanceDisplayValues.balanceUIModel.fiatUnit}"</ID>
-    <ID>MaxLineLength:WalletViewModel.kt$WalletViewModel$EncryptedPreferenceKeys.PERSISTABLE_DARKFI_WALLET.getValue(preferenceProvider)?.copyWithEndpoint(endpoint)</ID>
-    <ID>MaxLineLength:stealth.android-build-conventions.gradle.kts$resourceConfigurations.addAll(listOf("en", "en-rUS", "en-rGB", "en-rAU", "en_XA", "ar_XB", "ar", "bg", "bn", "da", "de", "el", "es", "fi", "fr", "he", "hi", "id", "is", "it", "ja", "kn", "ko", "mr", "ne", "nl", "no", "pa", "pt", "ro", "ru", "sa", "ta", "te", "th", "ug", "uk", "ur", "zh"))</ID>
+    <ID>MaxLineLength:WalletViewModel.kt$WalletViewModel$"Create wallet failed (rebuild ./scripts/build-darkfi-mobile-ffi-android.sh if UniFFI checksum mismatch)"</ID>
+    <ID>MaxLineLength:stealth.android-build-conventions.gradle.kts$apiLevel = project.property("ANDROID_TARGET_SDK_VERSION").toString().substringBefore('.').toInt()</ID>
+    <ID>MaxLineLength:stealth.emulator-wtf-conventions.gradle.kts$/*pluginManager.withPlugin("wtf.emulator.gradle") { project.the&lt;wtf.emulator.EwExtension&gt;().apply { val tokenString = project.properties["WALLET_EMULATOR_WTF_API_KEY"].toString() if (tokenString.isNotEmpty()) { token.set(tokenString) } if (project.properties["IS_ANDROID_INSTRUMENTATION_TEST_COVERAGE_ENABLED"].toString().toBoolean()) { withCoverage.set(true) environmentVariables.set(mapOf("useTestStorageService" to "false")) } val minSdkVersion = run { val buildMinSdk = project.properties["ANDROID_MIN_SDK_VERSION"].toString().toInt() buildMinSdk.coerceAtLeast(EMULATOR_WTF_MIN_SDK).toString() } val targetSdkVersion = run { val buildTargetSdk = project.properties["ANDROID_TARGET_SDK_VERSION"].toString().substringBefore('.').toInt() buildTargetSdk.coerceAtMost(EMULATOR_WTF_MAX_SDK).toString() } devices.set( listOf( mapOf("model" to "Pixel2", "version" to minSdkVersion), mapOf("model" to "Pixel2", "version" to targetSdkVersion) ) ) } }*/</ID>
     <ID>MayBeConst:EncryptedPreferenceProviderTest.kt$EncryptedPreferenceProviderTest.Companion$private val FILENAME = "encrypted_preference_test"</ID>
     <ID>MayBeConst:StandardPreferenceProviderTest.kt$StandardPreferenceProviderTest.Companion$private val FILENAME = "encrypted_preference_test"</ID>
     <ID>MayBeConst:SupportViewTest.kt$SupportViewTest.Companion$internal val DEFAULT_MESSAGE = "I can haz cheezburger?"</ID>
     <ID>ModifierNotUsedAtRoot:ReceiveQrCodes.kt$modifier = modifier</ID>
-    <ID>ModifierReused:ReceiveQrCodes.kt$Box(modifier = modifier, contentAlignment = Alignment.Center) { Column(modifier = modifier) { BrightenScreen() DisableScreenTimeout() val sizePixels = with(LocalDensity.current) { size.toPx() }.roundToInt() // In the future, use actual/expect to switch QR code generator implementations for multiplatform // Note that our implementation has an extra array copy to BooleanArray, which is a cross-platform // representation. This should have minimal performance impact since the QR code is relatively // small and we only generate QR codes infrequently. val qrCodePixelArray = JvmQrCodeGenerator.generate(data, sizePixels) val qrCodeImage = AndroidQrCodeImageGenerator.generate(qrCodePixelArray, sizePixels) Image( bitmap = qrCodeImage, contentDescription = stringResource(R.string.receive_qr_code_content_description) ) } QrLogo(logoId = logoId, backGroundColor = backGroundColor) }</ID>
-    <ID>ModifierReused:ReceiveQrCodes.kt$Column(modifier = modifier) { BrightenScreen() DisableScreenTimeout() val sizePixels = with(LocalDensity.current) { size.toPx() }.roundToInt() // In the future, use actual/expect to switch QR code generator implementations for multiplatform // Note that our implementation has an extra array copy to BooleanArray, which is a cross-platform // representation. This should have minimal performance impact since the QR code is relatively // small and we only generate QR codes infrequently. val qrCodePixelArray = JvmQrCodeGenerator.generate(data, sizePixels) val qrCodeImage = AndroidQrCodeImageGenerator.generate(qrCodePixelArray, sizePixels) Image( bitmap = qrCodeImage, contentDescription = stringResource(R.string.receive_qr_code_content_description) ) }</ID>
     <ID>ModifierWithoutDefault:Divider.kt$modifier</ID>
-    <ID>MultipleEmitters:LongOnboardingView.kt$OnboardingBottomNav</ID>
-    <ID>MultipleEmitters:LongOnboardingView.kt$WalletStageBottomNav</ID>
+    <ID>MultipleEmitters:MeshSettingsSection.kt$MeshSettingsBits$OemCopy</ID>
     <ID>MultipleEmitters:SeedBackup.kt$SeedItemRow</ID>
+    <ID>MultipleEmitters:TorNetworkSettingsScreen.kt$TorSectionDivider</ID>
+    <ID>MultipleEmitters:TorNetworkSettingsScreen.kt$TorSectionHeading</ID>
+    <ID>NestedBlockDepth:AppTorCoordinator.kt$AppTorCoordinator$suspend fun ensureSocksReady(context: Context): Int?</ID>
+    <ID>NestedBlockDepth:CertificateVerifier.kt$CertificateVerifier$fun isKnownRoot(root: X509Certificate): Boolean</ID>
+    <ID>NestedBlockDepth:ChatWallet.kt$ChatInvoices$fun parse(raw: String): ChatInvoice?</ID>
+    <ID>NestedBlockDepth:DarkfiChatController.kt$DarkfiChatController$fun sendToChannel( channel: String, text: String )</ID>
+    <ID>NestedBlockDepth:EmbeddedPackagedExecutable.kt$EmbeddedPackagedExecutable$private fun sha256Hex(file: File): String?</ID>
+    <ID>ParameterNaming:AdvanceSetting.kt$onLogoPreferenceChanged</ID>
+    <ID>ParameterNaming:AdvanceSetting.kt$onScreenOnEnabledChanged</ID>
+    <ID>ParameterNaming:AdvanceSetting.kt$onStrictOmrOnlyChanged</ID>
+    <ID>ParameterNaming:AdvanceSetting.kt$onThemeVariantChanged</ID>
+    <ID>ParameterNaming:ChangeServer.kt$onPresetSelected</ID>
+    <ID>ParameterNaming:ChatE2eCryptoSettings.kt$onApplied</ID>
+    <ID>ParameterNaming:ChatNewDmSheet.kt$onStarted</ID>
+    <ID>ParameterNaming:ChipDropDown.kt$onChoiceSelected</ID>
+    <ID>ParameterNaming:EnterAmount.kt$onAmountChanged</ID>
+    <ID>ParameterNaming:EnterAmount.kt$onTokenSelected</ID>
+    <ID>ParameterNaming:EnterMemo.kt$onMemoChanged</ID>
+    <ID>ParameterNaming:EnterPinCommonUI.kt$onKeyPressed</ID>
+    <ID>ParameterNaming:EnterReceiverAddress.kt$onValueChanged</ID>
+    <ID>ParameterNaming:FiatCurrency.kt$onPreferredFiatCurrencyUpdated</ID>
+    <ID>ParameterNaming:LongNewWalletBackupView.kt$onChoicesChanged</ID>
+    <ID>ParameterNaming:Restore.kt$onSeedValueChanged</ID>
+    <ID>ParameterNaming:RestoreView.kt$onFinished</ID>
+    <ID>ParameterNaming:RestoreView.kt$onSuggestionSelected</ID>
+    <ID>ParameterNaming:ScanView.kt$onScanStateChanged</ID>
+    <ID>ParameterNaming:ScanView.kt$onScanned</ID>
+    <ID>ParameterNaming:Security.kt$onTouchIdToggleChanged</ID>
+    <ID>ParameterNaming:SetUpPin.kt$onPinSelected</ID>
+    <ID>ParameterNaming:SettingsView.kt$onAnalyticsSettingsChanged</ID>
+    <ID>ParameterNaming:SettingsView.kt$onBackgroundSyncSettingsChanged</ID>
+    <ID>ParameterNaming:SettingsView.kt$onIsKeepScreenOnDuringSyncSettingsChanged</ID>
+    <ID>ParameterNaming:SyncNotification.kt$onSyncOptionSelected</ID>
     <ID>PreviewPublic:AboutView.kt$AboutViewPreview</ID>
     <ID>PreviewPublic:AdvanceSetting.kt$AdvanceSettingPreview</ID>
     <ID>PreviewPublic:AlertDialog.kt$AlertDialogPreview</ID>
     <ID>PreviewPublic:AuthenticatePin.kt$AuthenticatePinPreview</ID>
-    <ID>PreviewPublic:AutoShieldingInfo.kt$AutoShieldingInfoPreview</ID>
     <ID>PreviewPublic:ChangeServer.kt$ChangeServerPreview</ID>
+    <ID>PreviewPublic:DexComingSoonView.kt$DexComingSoonPreview</ID>
     <ID>PreviewPublic:Divider.kt$PreviewMaxWidthDivider</ID>
     <ID>PreviewPublic:EncryptedPdfDialog.kt$EncryptedPdfDialogPreview</ID>
     <ID>PreviewPublic:EnterPinCommonUI.kt$EnterPinCommonUIPreview</ID>
     <ID>PreviewPublic:EnterReceiverAddress.kt$EnterReceiverAddressPreview</ID>
-    <ID>PreviewPublic:ExternalServices.kt$ExternalServicesPreview</ID>
     <ID>PreviewPublic:FiatCurrency.kt$FiatCurrencyPreview</ID>
     <ID>PreviewPublic:GetStarted.kt$ComposablePreview</ID>
     <ID>PreviewPublic:LicencesView.kt$LicenceViewPreview</ID>
     <ID>PreviewPublic:ReceiveQrCodes.kt$QrAddressCardPreview</ID>
     <ID>PreviewPublic:ReceiveQrCodes.kt$ReceiveQrCodesPreview</ID>
-    <ID>PreviewPublic:ReceiveQrCodes.kt$TopUpCardPreview</ID>
     <ID>PreviewPublic:ReceiveView.kt$ReceiveViewPreview</ID>
     <ID>PreviewPublic:Restore.kt$RestorePreview</ID>
     <ID>PreviewPublic:Security.kt$SecurityPreview</ID>
@@ -244,37 +401,96 @@
     <ID>PreviewPublic:SetUpPin.kt$SetUpPinPreview</ID>
     <ID>PreviewPublic:SettingsListItem.kt$SettingListItemPreview</ID>
     <ID>PreviewPublic:SettingsView.kt$SettingsPreview</ID>
-    <ID>PreviewPublic:ShieldFunds.kt$FundsAvailablePreview</ID>
     <ID>PreviewPublic:SyncNotification.kt$SyncNotificationPreview</ID>
     <ID>PreviewPublic:TopUp.kt$TopUpPreview</ID>
     <ID>PreviewPublic:TransactionDetails.kt$TransactionDetailsDarkPreview</ID>
     <ID>PreviewPublic:TransactionDetails.kt$TransactionDetailsPreview</ID>
     <ID>PreviewPublic:TransactionHistory.kt$TransactionHistoryPreview</ID>
     <ID>PreviewPublic:TransactionOverviewHistoryRow.kt$TransactionOverviewHistoryRowPreview</ID>
-    <ID>PreviewPublic:TransferMainView.kt$WalletPreview</ID>
     <ID>PreviewPublic:WalletView.kt$BalanceViewPreview</ID>
     <ID>PreviewPublic:WalletView.kt$WalletPreview</ID>
-    <ID>ReturnCount:DarkfiChatController.kt$DarkfiChatController.Companion$fun extractHostFromSeed(seedUrl: String): String?</ID>
-    <ID>ReturnCount:DarkfiChatSecureStore.kt$DarkfiChatSecureStore$fun sharedPreferences(context: Context): SharedPreferences</ID>
-    <ID>ReturnCount:DarkfiMnemonic.kt$DarkfiMnemonic$suspend fun decodeChatEntropyIfValid( words: List&lt;String&gt;, assetManager: AssetManager ): ByteArray?</ID>
-    <ID>ReturnCount:DarkfiMnemonic.kt$DarkfiMnemonic$suspend fun validate( words: List&lt;String&gt;, assetManager: AssetManager ): SeedPhraseValidation</ID>
+    <ID>PrintStackTrace:SecureDataStoreSerializer.kt$SecureDataStoreSerializer$e</ID>
+    <ID>PrintStackTrace:SecurePreferencesSerializer.kt$SecurePreferencesSerializer$e</ID>
+    <ID>ReturnCount:CertificateVerifier.kt$CertificateVerifier$@JvmStatic private fun verifyCertificateChain( @Suppress("UNUSED_PARAMETER") context: Context, serverName: String, authMethod: String, allowedEkus: Array&lt;String&gt;, ocspResponse: ByteArray?, time: Long, certChain: Array&lt;ByteArray&gt;, ): VerificationResult</ID>
+    <ID>ReturnCount:CertificateVerifier.kt$CertificateVerifier$fun isKnownRoot(root: X509Certificate): Boolean</ID>
+    <ID>ReturnCount:CertificateVerifier.kt$CertificateVerifier$private fun createTrustManager(keystore: KeyStore?): X509TrustManagerExtensions?</ID>
+    <ID>ReturnCount:CertificateVerifier.kt$CertificateVerifier$private fun verifyCertUsage( certificate: X509Certificate, allowedEkus: Array&lt;String&gt; ): Boolean</ID>
+    <ID>ReturnCount:ChatMessageNotifier.kt$ChatMessageNotifier$fun maybeNotify( context: Context, channel: String, nick: String, preview: String, isOutgoing: Boolean = false, timestampMs: Long = System.currentTimeMillis(), ownNick: String? = null, )</ID>
+    <ID>ReturnCount:ChatReceiptStore.kt$ChatReceiptStore$private fun ensureLoaded(context: Context)</ID>
+    <ID>ReturnCount:ChatWallet.kt$ChatInvoices$fun parse(raw: String): ChatInvoice?</ID>
+    <ID>ReturnCount:ChatWallet.kt$ChatInvoices$private fun decodeMemo(value: String): String?</ID>
+    <ID>ReturnCount:ChatWallet.kt$ChatNotificationPolicy$fun shouldAlert( isOutgoing: Boolean, ownNick: String, nick: String, timestampMs: Long, nowMs: Long, ): Boolean</ID>
+    <ID>ReturnCount:ChatWallet.kt$ChatReceiptCodec$fun parse(text: String): ChatReceipt?</ID>
+    <ID>ReturnCount:DarkfiChatController.kt$DarkfiChatController$fun sendToChannel( channel: String, text: String )</ID>
+    <ID>ReturnCount:DarkfiChatOutgoingQueueCrypto.kt$DarkfiChatOutgoingQueueCrypto$fun readText(): String?</ID>
+    <ID>ReturnCount:DarkfiChatOutgoingQueueStore.kt$DarkfiChatOutgoingQueueStore$private fun readRawText(): String?</ID>
+    <ID>ReturnCount:DarkfiExplorer.kt$DarkfiExplorer$fun sanitizedPathComponent(raw: String): String?</ID>
+    <ID>ReturnCount:DarkfiTransferInstrumentedTest.kt$DarkfiTransferInstrumentedTest$private fun isRealExplorerBody( body: String, txHash: String ): Boolean</ID>
+    <ID>ReturnCount:DarkfidConnectionProbe.kt$DarkfidConnectionProbe$suspend fun awaitLoopbackRpc( context: Context, endpoint: DarkfiEndpoint, deadlineMs: Long = 120_000L, ): Boolean</ID>
+    <ID>ReturnCount:DarkircCryptoManager.kt$DarkircCryptoManager$fun ensureShareKeypair(context: Context): DarkircCliKeygen.DmKeypair?</ID>
+    <ID>ReturnCount:DarkircCryptoManager.kt$DarkircCryptoManager$fun loadShareKeypair(context: Context): DarkircCliKeygen.DmKeypair?</ID>
+    <ID>ReturnCount:DarkircDmPubkeyParser.kt$DarkircDmPubkeyParser$fun extractFromText(text: String): String?</ID>
+    <ID>ReturnCount:DeepLinkUtil.kt$DeepLinkUtil$fun buildPaymentRequestUri( address: String, amountDisplay: String? = null, memo: String? = null, ): String?</ID>
     <ID>ReturnCount:DeepLinkUtil.kt$DeepLinkUtil$fun getSendDeepLinkData(uri: Uri): SendDeepLinkData?</ID>
+    <ID>ReturnCount:DrkWalletPassStore.kt$DrkWalletPassStore$fun resolve( context: Context, seedPhrase: List&lt;String&gt;, ): String</ID>
+    <ID>ReturnCount:EmbeddedPackagedExecutable.kt$EmbeddedPackagedExecutable$fun hasBundled( context: Context, jniLibFileName: String, assetSubdir: String, assetBinaryName: String, ): Boolean</ID>
+    <ID>ReturnCount:EmbeddedPackagedExecutable.kt$EmbeddedPackagedExecutable$fun resolve( context: Context, jniLibFileName: String, assetSubdir: String, assetBinaryName: String, legacyRelativePath: String, ): File?</ID>
+    <ID>ReturnCount:EmbeddedPackagedExecutable.kt$EmbeddedPackagedExecutable$private fun extractAssetOnce( context: Context, assetSubdir: String, assetBinaryName: String, out: File, ): File?</ID>
+    <ID>ReturnCount:EmbeddedPackagedExecutable.kt$EmbeddedPackagedExecutable$private fun verifyOrNull(file: File): File?</ID>
     <ID>ReturnCount:Extensions.kt$internal fun Double.toFiatAtomicDrk( fiatCurrencyUiState: FiatCurrencyUiState, isFiatCurrencyPreferredOverDrk: Boolean ): Long?</ID>
+    <ID>ReturnCount:FudTransfer.kt$FudTransferPolicy$fun decide( enabled: Boolean, torReady: Boolean, meshOn: Boolean, uri: FudUri?, ): FudTransferDecision</ID>
+    <ID>ReturnCount:FudTransfer.kt$FudUri.Companion$fun parse(raw: String): FudUri?</ID>
+    <ID>ReturnCount:FudTransfer.kt$FudUri.Companion$internal fun sanitizeFileName(path: String): String?</ID>
+    <ID>ReturnCount:LightwalletTlsPin.kt$LightwalletTlsPin$fun parseHexPin(hex: String?): List&lt;UByte&gt;?</ID>
     <ID>ReturnCount:MainActivity.kt$MainActivity$@SuppressLint("NewApi") private fun findSplashScreenView(view: View): SplashScreenView?</ID>
+    <ID>ReturnCount:MeshRadioScenario.kt$MeshRadioScenario$private fun acceptFrame( to: Phone, frame: ByteArray, pkt: MeshWirePacket, ): Boolean</ID>
+    <ID>ReturnCount:PeerHostDisplay.kt$PeerHostDisplay$fun dnsName( url: String?, placeholder: String, peerIndex: Int = 0, ): String</ID>
+    <ID>ReturnCount:PeerHostDisplay.kt$PeerHostDisplay$fun hostFromUrl(url: String?): String?</ID>
+    <ID>ReturnCount:PeerHostDisplay.kt$PeerHostDisplay$fun isIpLiteral(host: String): Boolean</ID>
     <ID>ReturnCount:PersistableDarkfiWallet.kt$fun darkfiNetworkFromPackage(context: Context): DarkfiNetwork</ID>
+    <ID>ReturnCount:SeedBackup.kt$internal fun isSeedChallengeSatisfied( seedWords: List&lt;String&gt;, challengeIndices: List&lt;Int&gt;, answers: Map&lt;Int, String&gt;, ): Boolean</ID>
+    <ID>ReturnCount:TorOutboundSocks.kt$TorOutboundSocks$private fun socksProxyForDestination( appContext: Context, tcpDestinationHost: String?, ): Proxy?</ID>
+    <ID>ReturnCount:TorSocksReadiness.kt$TorSocksReadiness$suspend fun awaitTcpReachable( host: String, port: Int, deadlineMs: Long, pollMs: Long = 500L, ): Boolean</ID>
+    <ID>SwallowedException:CertificateVerifier.kt$CertificateVerifier$e: CertificateException</ID>
+    <ID>SwallowedException:CertificateVerifier.kt$CertificateVerifier$e: CertificateExpiredException</ID>
+    <ID>SwallowedException:CertificateVerifier.kt$CertificateVerifier$e: CertificateNotYetValidException</ID>
     <ID>SwallowedException:Extensions.kt$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:CertificateVerifier.kt$CertificateVerifier$e: RuntimeException</ID>
     <ID>TooGenericExceptionCaught:CoinMetricsRepositoryImpl.kt$CoinMetricsRepositoryImpl$e: Exception</ID>
     <ID>TooGenericExceptionCaught:DarkfiChatController.kt$DarkfiChatController$e: Exception</ID>
-    <ID>TooGenericExceptionCaught:DarkfiChatSecureStore.kt$DarkfiChatSecureStore$e: Exception</ID>
-    <ID>TooGenericExceptionCaught:DarkircIrcClient.kt$DarkircIrcClient$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:DarkfiTransferInstrumentedTest.kt$DarkfiTransferInstrumentedTest$t: Throwable</ID>
     <ID>TooGenericExceptionCaught:DeepLinkUtil.kt$DeepLinkUtil$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:EmbeddedPackagedExecutable.kt$EmbeddedPackagedExecutable$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:EncryptedPreferenceSingleton.kt$EncryptedPreferenceSingleton$t: Throwable</ID>
     <ID>TooGenericExceptionCaught:Extensions.kt$e: Exception</ID>
     <ID>TooGenericExceptionCaught:Extensions.kt$t: Throwable</ID>
     <ID>TooGenericExceptionCaught:HomeViewModel.kt$HomeViewModel$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:LocalnetMoonshineE2eTest.kt$LocalnetMoonshineE2eTest$t: Throwable</ID>
     <ID>TooGenericExceptionCaught:PdfUtil.kt$PdfUtil$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:SecureDataStoreSerializer.kt$SecureDataStoreSerializer$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:SecurePreferencesSerializer.kt$SecurePreferencesSerializer$e: Exception</ID>
     <ID>TooGenericExceptionCaught:SettingsViewModel.kt$SettingsViewModel$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:TorSocksReadiness.kt$TorSocksReadiness$e: Exception</ID>
+    <ID>TooGenericExceptionThrown:CertificateVerifier.kt$CertificateVerifier$throw Exception("attempted to add a mock root outside a test!")</ID>
+    <ID>TooManyFunctions:AndroidChat.kt$com.nighthawkapps.lib.android.ui.screen.chat.AndroidChat.kt</ID>
+    <ID>TooManyFunctions:ApkShare.kt$ApkShare</ID>
+    <ID>TooManyFunctions:AppTorCoordinator.kt$AppTorCoordinator</ID>
+    <ID>TooManyFunctions:DarkfiSynchronizer.kt$DarkfiSynchronizer : Closeable</ID>
+    <ID>TooManyFunctions:DarkircCryptoManager.kt$DarkircCryptoManager</ID>
+    <ID>TooManyFunctions:MainActivity.kt$MainActivity : FragmentActivity</ID>
+    <ID>TooManyFunctions:NighthawkBleLink.kt$NighthawkBleLink</ID>
+    <ID>TooManyFunctions:StubDarkfiSynchronizer.kt$StubDarkfiSynchronizer : DarkfiSynchronizer</ID>
     <ID>TooManyFunctions:Text.kt$com.nighthawkapps.lib.android.ui.design.component.Text.kt</ID>
+    <ID>TooManyFunctions:TorNetworkSettingsScreen.kt$com.nighthawkapps.lib.android.ui.screen.settings.nighthawk.view.TorNetworkSettingsScreen.kt</ID>
+    <ID>UnusedParameter:AndroidBackup.kt$activity: ComponentActivity</ID>
+    <ID>UnusedParameter:DarkircCliKeygen.kt$DarkircCliKeygen$app: Context</ID>
+    <ID>UnusedParameter:DarkircCryptoManager.kt$DarkircCryptoManager$context: Context</ID>
+    <ID>UnusedParameter:ReceiveQrCodes.kt$onSeeMoreTopUpOption: () -&gt; Unit</ID>
+    <ID>UnusedParameter:WalletView.kt$onFlipCurrency: (isFiatCurrencyPreferredOverNative: Boolean) -&gt; Unit</ID>
+    <ID>UnusedPrivateMember:DarkfiTransferInstrumentedTest.kt$DarkfiTransferInstrumentedTest$private fun darkfidPendingHasTx(txHash: String): Boolean</ID>
+    <ID>UnusedPrivateMember:MainActivity.kt$MainActivity$@Composable private fun SplashConnectingScreen(splash: SplashNetworkState)</ID>
     <ID>UnusedPrivateProperty:CrashInfo.kt$// If you change this, be sure to update the test case under /docs/testing/manual_testing/Contact Support.md private const val MAX_EXCEPTIONS_TO_REPORT = 5</ID>
+    <ID>UnusedPrivateProperty:DarkfiChatOutgoingQueueStore.kt$DarkfiChatOutgoingQueueStore.Companion$private const val FILE_NAME = "darkfi_chat_outgoing_queue.json"</ID>
     <ID>ViewModelInjection:AndroidAdvancedSetting.kt$settingsViewModel</ID>
     <ID>ViewModelInjection:AndroidChangeServer.kt$changeServerViewModel</ID>
     <ID>ViewModelInjection:AndroidFiatCurrency.kt$fiatCurrencyViewModel</ID>

@@ -118,10 +118,9 @@ fun PeerSlotRow(
 
 @Composable
 fun TransportSegment(
-    torSelected: Boolean,
-    tcpLabel: String,
-    torLabel: String,
-    onSelectTor: (Boolean) -> Unit,
+    options: List<String>,
+    selectedIndex: Int,
+    onSelectIndex: (Int) -> Unit,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
     compact: Boolean = false,
@@ -138,23 +137,37 @@ fun TransportSegment(
                 .testTag(CommonTag.HUD_TRANSPORT)
         }
     Row(modifier = rowModifier) {
-        TransportChip(
-            label = tcpLabel,
-            selected = !torSelected,
-            enabled = enabled,
-            compact = compact,
-            onClick = { onSelectTor(false) },
-            modifier = if (compact) Modifier else Modifier.weight(1f),
-        )
-        TransportChip(
-            label = torLabel,
-            selected = torSelected,
-            enabled = enabled,
-            compact = compact,
-            onClick = { onSelectTor(true) },
-            modifier = if (compact) Modifier else Modifier.weight(1f),
-        )
+        options.forEachIndexed { index, label ->
+            TransportChip(
+                label = label,
+                selected = index == selectedIndex,
+                enabled = enabled,
+                compact = compact,
+                onClick = { onSelectIndex(index) },
+                modifier = if (compact) Modifier else Modifier.weight(1f),
+            )
+        }
     }
+}
+
+@Composable
+fun TransportSegment(
+    torSelected: Boolean,
+    tcpLabel: String,
+    torLabel: String,
+    onSelectTor: (Boolean) -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+    compact: Boolean = false,
+) {
+    TransportSegment(
+        options = listOf(tcpLabel, torLabel),
+        selectedIndex = if (torSelected) 1 else 0,
+        onSelectIndex = { idx -> onSelectTor(idx == 1) },
+        modifier = modifier,
+        enabled = enabled,
+        compact = compact,
+    )
 }
 
 @Composable

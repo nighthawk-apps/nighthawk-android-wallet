@@ -13,12 +13,14 @@ import androidx.compose.material3.NavigationBarDefaults
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavController
 import androidx.navigation.NavHostController
@@ -33,6 +35,7 @@ import com.nighthawkapps.lib.android.spackle.Twig
 import com.nighthawkapps.lib.android.ui.MainActivity
 import com.nighthawkapps.lib.android.ui.NavigationArguments
 import com.nighthawkapps.lib.android.ui.R
+import com.nighthawkapps.lib.android.ui.common.ShortcutAction
 import com.nighthawkapps.lib.android.ui.design.component.BodySmall
 import com.nighthawkapps.lib.android.ui.design.theme.LocalCyberpunkChrome
 import com.nighthawkapps.lib.android.ui.design.theme.WalletTheme
@@ -101,6 +104,40 @@ internal fun MainActivity.MainNavigation(
     paddingValues: PaddingValues,
 ) {
     val homeViewModel by viewModels<HomeViewModel>()
+    val pendingDeepLinkUri by homeViewModel.intentDataUriForDeepLinkFlow.collectAsStateWithLifecycle()
+    val pendingShortcutAction by homeViewModel.shortcutActionFlow.collectAsStateWithLifecycle()
+    val pendingChatThread by homeViewModel.pendingChatThreadFlow.collectAsStateWithLifecycle()
+
+    LaunchedEffect(pendingChatThread) {
+        if (!pendingChatThread.isNullOrBlank()) {
+            navHostController.navigateBottomDestination(BottomNavItem.Chat.route)
+        }
+    }
+
+    LaunchedEffect(pendingShortcutAction) {
+        val action = pendingShortcutAction ?: return@LaunchedEffect
+        homeViewModel.shortcutAction = null
+        when (action) {
+            ShortcutAction.SEND_MONEY_SCAN_QR_CODE -> {
+                navHostController.navigateJustOnce(SEND_MONEY)
+            }
+
+            ShortcutAction.RECEIVE_MONEY_QR_CODE -> {
+                navHostController.navigateJustOnce(RECEIVE_QR_CODES)
+            }
+        }
+    }
+
+    LaunchedEffect(pendingDeepLinkUri) {
+        val uri = pendingDeepLinkUri ?: return@LaunchedEffect
+        val sendDeepLinkData = DeepLinkUtil.getSendDeepLinkData(uri)
+        homeViewModel.intentDataUriForDeepLink = null
+        if (sendDeepLinkData != null) {
+            homeViewModel.sendDeepLinkData = sendDeepLinkData
+            navHostController.navigateJustOnce(SEND_MONEY)
+        }
+    }
+
     NavHost(navController = navHostController, startDestination = BottomNavItem.Chat.route, modifier = Modifier.padding(paddingValues)) {
         composable(BottomNavItem.Chat.route) {
             AndroidChat(

@@ -13,6 +13,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -48,21 +49,27 @@ internal fun ChatE2eCryptoSettings(
     val scope = rememberCoroutineScope()
     val appContext = context.applicationContext
 
-    var contacts by remember { mutableStateOf(DarkircCryptoManager.loadContacts(appContext)) }
+    var contacts by remember { mutableStateOf<List<DarkircContactCryptoConfig>>(emptyList()) }
     val hasBinary = remember { DarkircCryptoManager.hasBundledDarkirc(appContext) }
 
     var showAddContact by remember { mutableStateOf(false) }
 
-    fun reload() {
-        contacts = DarkircCryptoManager.loadContacts(appContext)
+    LaunchedEffect(Unit) {
+        contacts = withContext(Dispatchers.IO) { DarkircCryptoManager.loadContacts(appContext) }
+    }
+
+    suspend fun reload() {
+        contacts = withContext(Dispatchers.IO) { DarkircCryptoManager.loadContacts(appContext) }
     }
 
     fun applyCrypto(onDone: (Boolean) -> Unit) {
         scope.launch(Dispatchers.IO) {
             val ok = DarkircCryptoManager.applyAndRestartEmbeddedDaemon(appContext)
+            if (ok) {
+                reload()
+            }
             withContext(Dispatchers.Main) {
                 if (ok) {
-                    reload()
                     onApplied()
                 }
                 onDone(ok)
@@ -112,14 +119,23 @@ internal fun ChatE2eCryptoSettings(
                     Text(text = contact.nick, style = MaterialTheme.typography.bodyMedium)
                     TextButton(
                         onClick = {
-                            DarkircCryptoManager.removeContact(appContext, contact.nick)
-                            applyCrypto { ok ->
-                                Toast
-                                    .makeText(
-                                        context,
-                                        if (ok) R.string.ns_chat_e2e_removed_ok else R.string.ns_chat_e2e_saved_failed,
-                                        Toast.LENGTH_SHORT,
-                                    ).show()
+                            scope.launch(Dispatchers.IO) {
+                                DarkircCryptoManager.removeContact(appContext, contact.nick)
+                                val ok = DarkircCryptoManager.applyAndRestartEmbeddedDaemon(appContext)
+                                if (ok) {
+                                    reload()
+                                }
+                                withContext(Dispatchers.Main) {
+                                    if (ok) {
+                                        onApplied()
+                                    }
+                                    Toast
+                                        .makeText(
+                                            context,
+                                            if (ok) R.string.ns_chat_e2e_removed_ok else R.string.ns_chat_e2e_saved_failed,
+                                            Toast.LENGTH_SHORT,
+                                        ).show()
+                                }
                             }
                         },
                     ) {
@@ -143,26 +159,39 @@ internal fun ChatE2eCryptoSettings(
             onDismiss = { showAddContact = false },
             onSave = { nick, theirPublic, mySecret ->
                 showAddContact = false
-                runCatching {
-                    DarkircCryptoManager.saveContact(
-                        appContext,
-                        DarkircContactCryptoConfig(
-                            nick = nick.trim(),
-                            dmChachaPublicBase58 = theirPublic.trim(),
-                            myDmChachaSecretBase58 = mySecret.trim(),
-                        ),
-                    )
-                }.onSuccess {
-                    applyCrypto { ok ->
-                        Toast
-                            .makeText(
-                                context,
-                                if (ok) R.string.ns_chat_e2e_saved_ok else R.string.ns_chat_e2e_saved_failed,
-                                Toast.LENGTH_SHORT,
-                            ).show()
+                scope.launch(Dispatchers.IO) {
+                    val saved =
+                        runCatching {
+                            DarkircCryptoManager.saveContact(
+                                appContext,
+                                DarkircContactCryptoConfig(
+                                    nick = nick.trim(),
+                                    dmChachaPublicBase58 = theirPublic.trim(),
+                                    myDmChachaSecretBase58 = mySecret.trim(),
+                                ),
+                            )
+                        }.isSuccess
+                    if (!saved) {
+                        withContext(Dispatchers.Main) {
+                            Toast.makeText(context, R.string.ns_chat_e2e_saved_failed, Toast.LENGTH_SHORT).show()
+                        }
+                    } else {
+                        val ok = DarkircCryptoManager.applyAndRestartEmbeddedDaemon(appContext)
+                        if (ok) {
+                            reload()
+                        }
+                        withContext(Dispatchers.Main) {
+                            if (ok) {
+                                onApplied()
+                            }
+                            Toast
+                                .makeText(
+                                    context,
+                                    if (ok) R.string.ns_chat_e2e_saved_ok else R.string.ns_chat_e2e_saved_failed,
+                                    Toast.LENGTH_SHORT,
+                                ).show()
+                        }
                     }
-                }.onFailure {
-                    Toast.makeText(context, R.string.ns_chat_e2e_saved_failed, Toast.LENGTH_SHORT).show()
                 }
             },
             onGenerateKeypair = {

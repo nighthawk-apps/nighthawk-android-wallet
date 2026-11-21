@@ -37,6 +37,7 @@ import com.nighthawkapps.lib.android.sdk.chat.DarkfiChatController
 import com.nighthawkapps.lib.android.sdk.chat.DarkfiChatDefaults
 import com.nighthawkapps.lib.android.sdk.chat.DarkfiChatIdentity
 import com.nighthawkapps.lib.android.sdk.chat.DarkfiChatPreferences
+import com.nighthawkapps.lib.android.sdk.chat.darkirc.DarkircDaemonService
 import com.nighthawkapps.lib.android.sdk.net.PrivacyNetwork
 import com.nighthawkapps.lib.android.ui.R
 import com.nighthawkapps.lib.android.ui.common.AlertDialog
@@ -67,8 +68,8 @@ internal fun ChatSettingsScreen(
     var dagsCountText by remember { mutableStateOf(chatPrefs.darkircDagsCount.toString()) }
     var darkircFastMode by remember { mutableStateOf(chatPrefs.darkircFastMode) }
 
-    var publicId by remember { mutableStateOf(identity.publicIdHex()) }
-    var hasIdentity by remember { mutableStateOf(identity.hasIdentity()) }
+    var publicId by remember { mutableStateOf<String?>(null) }
+    var hasIdentity by remember { mutableStateOf(false) }
     var ircNick by remember { mutableStateOf(controller.ircNickname.ifBlank { "" }) }
 
     var importPhraseText by remember { mutableStateOf("") }
@@ -78,8 +79,20 @@ internal fun ChatSettingsScreen(
     var revealedPhrase by remember { mutableStateOf<String?>(null) }
 
     LaunchedEffect(Unit) {
-        publicId = identity.publicIdHex()
-        hasIdentity = identity.hasIdentity()
+        val (loadedPub, loadedHas, loadedNick) =
+            withContext(Dispatchers.IO) {
+                controller.refreshChatIdentity(identity)
+                Triple(
+                    identity.publicIdHex(),
+                    identity.hasIdentity(),
+                    controller.ircNickname.ifBlank { "" },
+                )
+            }
+        publicId = loadedPub
+        hasIdentity = loadedHas
+        if (ircNick.isBlank() && loadedNick.isNotBlank()) {
+            ircNick = loadedNick
+        }
     }
 
     fun persistDarkircRuntime(restartNode: Boolean) {
@@ -91,12 +104,12 @@ internal fun ChatSettingsScreen(
         dagsCountText = count.toString()
         chatPrefs.darkircDagsCount = count
         chatPrefs.darkircFastMode = darkircFastMode
-        if (restartNode && embeddedDarkirc) {
-            scope.launch(Dispatchers.IO) {
-                withContext(Dispatchers.Main) {
-                    controller.connectOrRetry()
-                }
-            }
+        scope.launch {
+            controller.configureAndMaybeRestart(
+                dagsCount = count,
+                fastMode = darkircFastMode,
+                restart = restartNode && embeddedDarkirc,
+            )
         }
     }
 
@@ -149,13 +162,20 @@ internal fun ChatSettingsScreen(
                     showGenerateConfirm = true
                 } else {
                     scope.launch {
-                        val ok =
+                        val (ok, newPub, newHas) =
                             withContext(Dispatchers.IO) {
-                                identity.generateNew(context.assets)
+                                val generated = identity.generateNew(context.assets)
+                                if (generated) {
+                                    controller.refreshChatIdentity(identity)
+                                }
+                                Triple(generated, identity.publicIdHex(), identity.hasIdentity())
                             }
                         if (ok) {
-                            publicId = identity.publicIdHex()
-                            hasIdentity = identity.hasIdentity()
+                            publicId = newPub
+                            hasIdentity = newHas
+                            if (ircNick.isBlank()) {
+                                ircNick = controller.ircNickname.ifBlank { "" }
+                            }
                             Toast.makeText(context, R.string.ns_chat_identity_generated, Toast.LENGTH_SHORT).show()
                         } else {
                             Toast.makeText(context, R.string.ns_chat_identity_generate_failed, Toast.LENGTH_SHORT).show()
@@ -228,9 +248,11 @@ internal fun ChatSettingsScreen(
         PrimaryButton(
             enabled = hasIdentity,
             onClick = {
-                val words = identity.secretPhraseWords()
-                revealedPhrase = words?.joinToString(" ")
-                showRevealPhrase = true
+                scope.launch {
+                    val words = withContext(Dispatchers.IO) { identity.secretPhraseWords() }
+                    revealedPhrase = words?.joinToString(" ")
+                    showRevealPhrase = true
+                }
             },
             text = stringResource(R.string.ns_chat_reveal_secret_phrase),
             modifier = Modifier.fillMaxWidth(),
@@ -291,9 +313,11 @@ internal fun ChatSettingsScreen(
                     chatPrefs.runEmbeddedDarkirc = on
                     if (on) {
                         chatPrefs.ircServerHost = "127.0.0.1"
+                        controller.connectOrRetry()
                     } else {
+                        DarkircDaemonService.stop(context.applicationContext)
+                        controller.stop()
                     }
-                    controller.connectOrRetry()
                 },
             )
         }
@@ -349,19 +373,28 @@ internal fun ChatSettingsScreen(
             Spacer(modifier = Modifier.height(8.dp))
             PrimaryButton(
                 onClick = {
-                    persistDarkircRuntime(restartNode = false)
-                    scope.launch(Dispatchers.IO) {
-                        val ok = true
-                        withContext(Dispatchers.Main) {
-                            val msg =
-                                if (ok) {
-                                    R.string.ns_chat_embedded_darkirc_restart_ok
-                                } else {
-                                    R.string.ns_chat_embedded_darkirc_restart_failed
-                                }
-                            Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
-                            controller.connectOrRetry()
-                        }
+                    val count =
+                        dagsCountText.toIntOrNull()?.coerceIn(
+                            DarkfiChatDefaults.MIN_DAGS_COUNT,
+                            DarkfiChatDefaults.MAX_DAGS_COUNT,
+                        ) ?: DarkfiChatDefaults.DEFAULT_DAGS_COUNT
+                    dagsCountText = count.toString()
+                    chatPrefs.darkircDagsCount = count
+                    chatPrefs.darkircFastMode = darkircFastMode
+                    scope.launch {
+                        val ok =
+                            controller.configureAndMaybeRestart(
+                                dagsCount = count,
+                                fastMode = darkircFastMode,
+                                restart = true,
+                            )
+                        val msg =
+                            if (ok) {
+                                R.string.ns_chat_embedded_darkirc_restart_ok
+                            } else {
+                                R.string.ns_chat_embedded_darkirc_restart_failed
+                            }
+                        Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
                     }
                 },
                 text = stringResource(R.string.ns_chat_embedded_darkirc_restart),
@@ -397,13 +430,20 @@ internal fun ChatSettingsScreen(
             onConfirm = {
                 showGenerateConfirm = false
                 scope.launch {
-                    val ok =
+                    val (ok, newPub, newHas) =
                         withContext(Dispatchers.IO) {
-                            identity.generateNew(context.assets)
+                            val generated = identity.generateNew(context.assets)
+                            if (generated) {
+                                controller.refreshChatIdentity(identity)
+                            }
+                            Triple(generated, identity.publicIdHex(), identity.hasIdentity())
                         }
                     if (ok) {
-                        publicId = identity.publicIdHex()
-                        hasIdentity = identity.hasIdentity()
+                        publicId = newPub
+                        hasIdentity = newHas
+                        if (ircNick.isBlank()) {
+                            ircNick = controller.ircNickname.ifBlank { "" }
+                        }
                         Toast.makeText(context, R.string.ns_chat_identity_generated, Toast.LENGTH_SHORT).show()
                     } else {
                         Toast.makeText(context, R.string.ns_chat_identity_generate_failed, Toast.LENGTH_SHORT).show()
@@ -461,13 +501,20 @@ internal fun ChatSettingsScreen(
                         showImportPhrase = false
                         importPhraseText = ""
                         scope.launch {
-                            val ok =
+                            val (ok, newPub, newHas) =
                                 withContext(Dispatchers.IO) {
-                                    identity.restoreFromPhraseText(raw, context.assets)
+                                    val restored = identity.restoreFromPhraseText(raw, context.assets)
+                                    if (restored) {
+                                        controller.refreshChatIdentity(identity)
+                                    }
+                                    Triple(restored, identity.publicIdHex(), identity.hasIdentity())
                                 }
                             if (ok) {
-                                publicId = identity.publicIdHex()
-                                hasIdentity = identity.hasIdentity()
+                                publicId = newPub
+                                hasIdentity = newHas
+                                if (ircNick.isBlank()) {
+                                    ircNick = controller.ircNickname.ifBlank { "" }
+                                }
                                 Toast.makeText(context, R.string.ns_chat_import_success, Toast.LENGTH_SHORT).show()
                             } else {
                                 Toast.makeText(context, R.string.ns_chat_import_failed, Toast.LENGTH_SHORT).show()

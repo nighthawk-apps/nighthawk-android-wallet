@@ -60,10 +60,24 @@ object EncryptedPreferenceSingleton {
         var failed = false
         for ((name, value) in entries) {
             if (name == MIGRATION_FLAG) continue
-            if (value !is String) continue
+            val serializedValue =
+                when (value) {
+                    is String -> {
+                        value
+                    }
+
+                    is Boolean, is Int, is Long, is Float, is Double -> {
+                        value.toString()
+                    }
+
+                    else -> {
+                        Log.w(TAG, "Skipping unsupported plaintext preference key=$name (${value?.javaClass?.simpleName})")
+                        continue
+                    }
+                }
             try {
-                encrypted.putString(PreferenceKey(name), value)
-                if (encrypted.getString(PreferenceKey(name)) != value) {
+                encrypted.putString(PreferenceKey(name), serializedValue)
+                if (encrypted.getString(PreferenceKey(name)) != serializedValue) {
                     failed = true
                     Log.e(TAG, "Encrypted read-back mismatch for key=$name; keeping plaintext")
                 }
@@ -77,6 +91,10 @@ object EncryptedPreferenceSingleton {
             // Release still uses the keystore store — never newStandard.
             return@withContext
         }
-        plain.edit().clear().putBoolean(MIGRATION_FLAG, true).commit()
+        plain
+            .edit()
+            .clear()
+            .putBoolean(MIGRATION_FLAG, true)
+            .commit()
     }
 }

@@ -80,7 +80,15 @@ class HomeViewModel(
             AppThemeVariant.CYBERPUNK,
         )
 
-    var intentDataUriForDeepLink: Uri? = null
+    private val intentDataUriForDeepLinkState = MutableStateFlow<Uri?>(null)
+
+    var intentDataUriForDeepLink: Uri?
+        get() = intentDataUriForDeepLinkState.value
+        set(value) {
+            intentDataUriForDeepLinkState.value = value
+        }
+
+    val intentDataUriForDeepLinkFlow: StateFlow<Uri?> = intentDataUriForDeepLinkState.asStateFlow()
 
     private val sendDeepLinkDataState = MutableStateFlow<DeepLinkUtil.SendDeepLinkData?>(null)
 
@@ -105,7 +113,15 @@ class HomeViewModel(
     /** Receipt posted from chat; marked Broadcasted when send returns a tx id. */
     var pendingChatReceiptId: String? = null
 
-    var shortcutAction: ShortcutAction? = null
+    private val shortcutActionState = MutableStateFlow<ShortcutAction?>(null)
+
+    var shortcutAction: ShortcutAction?
+        get() = shortcutActionState.value
+        set(value) {
+            shortcutActionState.value = value
+        }
+
+    val shortcutActionFlow: StateFlow<ShortcutAction?> = shortcutActionState.asStateFlow()
 
     // Flag to track any expecting balance is there or not. We will show snackBar everytime user open the app until it is a confirmed transaction
     var expectingPendingAtomic = 0L

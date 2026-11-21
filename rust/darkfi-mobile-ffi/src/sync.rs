@@ -172,6 +172,9 @@ pub enum RouteGate {
 
 impl RouteGate {
     pub(crate) fn ready(self) -> bool {
+        if crate::transport_manager::session_direct() {
+            return true;
+        }
         match self {
             RouteGate::Direct => true,
             RouteGate::Nym => crate::is_nym_running(),
@@ -181,6 +184,9 @@ impl RouteGate {
 
     /// Bootstrap gave up or the proxy was stopped; only a proxy restart helps.
     fn failed(self) -> bool {
+        if crate::transport_manager::session_direct() {
+            return false;
+        }
         match self {
             RouteGate::Nym => matches!(crate::nym_status().as_str(), "failed" | "stopped"),
             RouteGate::Tor => crate::tor::arti_failed(),
@@ -322,9 +328,8 @@ pub fn start_background_sync(
                     // sync cycles so we don't hang forever on a slow server.
                     // The same race observes `request_stop` so close() can
                     // join this thread and release the wallet database.
-                    let cycle_result = smol::future::or(
-                        run_sync_cycle_fenced(&drk, &sync_engine),
-                        async {
+                    let cycle_result =
+                        smol::future::or(run_sync_cycle_fenced(&drk, &sync_engine), async {
                             let mut waited = 0u64;
                             loop {
                                 if sync_engine.is_stopped() {
@@ -336,9 +341,8 @@ pub fn start_background_sync(
                                 sleep(1).await;
                                 waited += 1;
                             }
-                        },
-                    )
-                    .await;
+                        })
+                        .await;
 
                     if sync_engine.is_stopped() {
                         break;
@@ -408,6 +412,7 @@ pub fn start_background_sync(
 
 async fn checkpoint_wallet(drk: &DrkPtr) {
     let guard = drk.read().await;
+    ensure_no_dangling_coin_tx(&guard).await;
     if let Err(e) = guard
         .wallet
         .exec_sql("PRAGMA wal_checkpoint(TRUNCATE)", Vec::new())
@@ -591,7 +596,32 @@ async fn run_sync_cycle_fenced(drk: &DrkPtr, sync_engine: &SyncEngine) -> Result
     }
 }
 
+async fn discover_reorg_rollback_height(
+    client: &crate::lightwallet_client::LightwalletClient,
+    sync_engine: &SyncEngine,
+    current_scanned: u32,
+    confirmation_threshold: u32,
+) -> u32 {
+    let fallback = current_scanned.saturating_sub(confirmation_threshold);
+    let recent = sync_engine.recent_accepted_blocks();
+    for (height, expected_hash) in recent.into_iter().rev() {
+        if height > current_scanned {
+            continue;
+        }
+        if let Ok(block) = client.get_block(height).await {
+            if block.hash.as_slice() == expected_hash.as_slice() {
+                return height;
+            }
+        }
+    }
+    fallback
+}
+
 async fn try_lightwallet_sync(drk: &DrkPtr, sync_engine: &SyncEngine) -> Result<(), String> {
+    {
+        let guard = drk.read().await;
+        ensure_no_dangling_coin_tx(&guard).await;
+    }
     let client = sync_engine.lightwallet_client();
 
     // Network I/O without the wallet write lock so spends are not blocked for
@@ -659,70 +689,76 @@ async fn try_lightwallet_sync(drk: &DrkPtr, sync_engine: &SyncEngine) -> Result<
         );
     }
 
+    // Discover exact fork height outside drk.write().await so RPCs never stall readers.
+    let mut reorg_plan: Option<(u32, u32)> = None;
+    if sync_engine.needs_reorg_recovery() {
+        let (current_scanned, network) = {
+            let drk_guard = drk.read().await;
+            let (scanned, _) = drk_guard
+                .get_last_scanned_block()
+                .map_err(|e| e.to_string())?;
+            (scanned, drk_guard.network)
+        };
+        let confirmation_threshold: u32 = match network {
+            darkfi_sdk::crypto::keypair::Network::Mainnet => 11,
+            darkfi_sdk::crypto::keypair::Network::Testnet => 6,
+        };
+        let rollback_height = discover_reorg_rollback_height(
+            &client,
+            sync_engine,
+            current_scanned,
+            confirmation_threshold,
+        )
+        .await;
+        reorg_plan = Some((current_scanned, rollback_height));
+    }
+
     // Write lock covers reorg SQL only. Sync fetches run without it and
     // take the lock again for Merkle appends, coin inserts, and cursor flushes.
     let mut pending_reorg: Option<crate::ReorgEvent> = None;
-    {
+    if let Some((current_scanned, rollback_height)) = reorg_plan {
         let drk_guard = drk.write().await;
 
-        // Security audit R1: if a reorg was detected, rewind wallet state
-        // before proceeding with the sync cycle.
-        if sync_engine.needs_reorg_recovery() {
-            // Matches upstream darkfid_config.toml / DarkfidChainDefaults:
-            // testnet (and localnet) confirm at 6 blocks, mainnet at 11.
-            let confirmation_threshold: u32 = match drk_guard.network {
-                darkfi_sdk::crypto::keypair::Network::Mainnet => 11,
-                darkfi_sdk::crypto::keypair::Network::Testnet => 6,
-            };
-            let (current_scanned, _) = drk_guard
-                .get_last_scanned_block()
-                .map_err(|e| e.to_string())?;
-            let rollback_height = current_scanned.saturating_sub(confirmation_threshold);
+        tracing::warn!(
+            target: "wallet-sync",
+            "Executing reorg recovery: rolling back from {} to {}",
+            current_scanned, rollback_height,
+        );
 
-            tracing::warn!(
-                target: "wallet-sync",
-                "Executing reorg recovery: rolling back from {} to {} \
-                 (confirmation threshold: {})",
-                current_scanned, rollback_height, confirmation_threshold,
-            );
+        let blocks_invalidated = current_scanned.saturating_sub(rollback_height);
 
-            // 1. Rewind the sync engine scan cursor
-            sync_engine.rewind_to_height(rollback_height);
+        // Rewind wallet DB/Merkle/history FIRST; only clear reorg_detected and
+        // update SyncEngine cursor after DB rewind succeeds.
+        let txs_affected =
+            rewind_wallet_after_reorg(&drk_guard, Some(&client), rollback_height).await?;
+        sync_engine.rewind_to_height(rollback_height);
 
-            let blocks_invalidated = current_scanned.saturating_sub(rollback_height);
+        tracing::info!(
+            target: "wallet-sync",
+            "Reorg recovery complete. Wallet will re-scan from height {} ({} txs affected).",
+            rollback_height,
+            txs_affected,
+        );
 
-            // 2–5. Coins, Money Merkle tree, scan cursor, tx history
-            let txs_affected =
-                rewind_wallet_after_reorg(&drk_guard, Some(&client), rollback_height)
-                    .await
-                    .unwrap_or(0);
-
-            tracing::info!(
-                target: "wallet-sync",
-                "Reorg recovery complete. Wallet will re-scan from height {}.",
-                rollback_height,
-            );
-
-            // Collect the event; fire the callback after dropping `drk_guard`
-            // so Kotlin `onReorg` can re-enter `confirmed_balance` / `list_transactions`.
-            pending_reorg = Some(crate::ReorgEvent {
-                detected_at_height: current_scanned,
-                rewound_to: rollback_height,
-                blocks_invalidated,
-                txs_affected,
-                summary_message: if txs_affected > 0 {
-                    format!(
-                    "Chain reorganization detected at height {}. Rewound to {} — {} blocks and {} transactions affected.",
-                    current_scanned, rollback_height, blocks_invalidated, txs_affected
-                )
-                } else {
-                    format!(
-                    "Chain reorganization detected at height {}. Rewound to {} — {} blocks invalidated.",
-                    current_scanned, rollback_height, blocks_invalidated
-                )
-                },
-            });
-        }
+        // Collect the event; fire the callback after dropping `drk_guard`
+        // so Kotlin `onReorg` can re-enter `confirmed_balance` / `list_transactions`.
+        pending_reorg = Some(crate::ReorgEvent {
+            detected_at_height: current_scanned,
+            rewound_to: rollback_height,
+            blocks_invalidated,
+            txs_affected,
+            summary_message: if txs_affected > 0 {
+                format!(
+                "Chain reorganization detected at height {}. Rewound to {} — {} blocks and {} transactions affected.",
+                current_scanned, rollback_height, blocks_invalidated, txs_affected
+            )
+            } else {
+                format!(
+                "Chain reorganization detected at height {}. Rewound to {} — {} blocks invalidated.",
+                current_scanned, rollback_height, blocks_invalidated
+            )
+            },
+        });
     }
 
     // Step 2: Determine best sync type
@@ -980,6 +1016,7 @@ async fn prepare_omr_window(
     birthday: u32,
     max_range: u32,
     secret_bytes: &[u8],
+    wallet_secrets: &[darkfi_sdk::crypto::SecretKey],
     network: u8,
     trial_decrypt_all: bool,
 ) -> Result<Option<PreparedOmrWindow>, String> {
@@ -1052,6 +1089,21 @@ async fn prepare_omr_window(
     }
     let (dao_calls, func_events) =
         contract_records_for_range(client, commit_start, commit_end).await?;
+    let matching_set: std::collections::HashSet<u32> = matching_heights.iter().copied().collect();
+    let precomputed_hits =
+        if !wallet_secrets.is_empty() && (trial_decrypt_all || !matching_heights.is_empty()) {
+            Some(precompute_window_note_hits(
+                wallet_secrets,
+                &blocks,
+                scan_start,
+                scan_end,
+                birthday,
+                trial_decrypt_all,
+                &matching_set,
+            ))
+        } else {
+            None
+        };
     Ok(Some(PreparedOmrWindow {
         scan_start,
         scan_end,
@@ -1063,6 +1115,7 @@ async fn prepare_omr_window(
         trial_decrypt_all,
         dao_calls,
         func_events,
+        precomputed_hits,
     }))
 }
 
@@ -1105,7 +1158,7 @@ async fn try_omr_sync(
 ) -> Result<(), String> {
     // Copy wallet secrets before any gRPC. The read guard must not span the
     // digest, commitment, or PIR calls.
-    let (mut scanned, secret_bytes, mut recipient_pubkeys, addr_rows, omr_network) = {
+    let (mut scanned, secret_bytes, wallet_secrets, mut recipient_pubkeys, addr_rows, omr_network) = {
         let wallet = drk.read().await;
         let (scanned, _) = wallet.get_last_scanned_block().map_err(|e| e.to_string())?;
         let secret = wallet
@@ -1113,6 +1166,7 @@ async fn try_omr_sync(
             .await
             .map_err(|e| format!("Failed to get wallet secret: {e}"))?;
         let secret_bytes = zeroize::Zeroizing::new(secret.inner().to_repr());
+        let wallet_secrets = wallet.get_money_secrets().await.unwrap_or_default();
         let mut recipient_pubkeys: Vec<[u8; 32]> = Vec::new();
         let default_pk = wallet
             .default_address()
@@ -1134,6 +1188,7 @@ async fn try_omr_sync(
         (
             scanned,
             secret_bytes,
+            wallet_secrets,
             recipient_pubkeys,
             addr_rows,
             omr_network,
@@ -1311,6 +1366,7 @@ async fn try_omr_sync(
                 birthday,
                 max_range,
                 &secret_bytes[..],
+                &wallet_secrets,
                 omr_network.to_byte(),
                 trial_decrypt_all,
             )
@@ -1343,6 +1399,7 @@ async fn try_omr_sync(
                 let wallet = drk.write().await;
                 apply_omr_sparse_window(&wallet, &window).await?;
                 sync_engine.set_scanned_height(window.scan_end);
+                record_window_accepted_block(sync_engine, &window.blocks);
                 Ok::<(), String>(())
             };
             let prefetch_fut = prepare_omr_window(
@@ -1353,6 +1410,7 @@ async fn try_omr_sync(
                 birthday,
                 max_range,
                 &secret_bytes[..],
+                &wallet_secrets,
                 omr_network.to_byte(),
                 trial_decrypt_all,
             );
@@ -1366,6 +1424,7 @@ async fn try_omr_sync(
             let wallet = drk.write().await;
             apply_omr_sparse_window(&wallet, &window).await?;
             sync_engine.set_scanned_height(window.scan_end);
+            record_window_accepted_block(sync_engine, &window.blocks);
         }
         cursor = next_cursor;
     }
@@ -1393,6 +1452,7 @@ struct TrialBatch {
 /// is not a hole.
 async fn prepare_trial_batch(
     client: &crate::lightwallet_client::LightwalletClient,
+    wallet_secrets: &[darkfi_sdk::crypto::SecretKey],
     start: u32,
     end: u32,
     tip: u32,
@@ -1439,6 +1499,19 @@ async fn prepare_trial_batch(
         .collect();
     let (dao_calls, func_events) =
         contract_records_for_range(client, padded_start, padded_end).await?;
+    let precomputed_hits = if !wallet_secrets.is_empty() {
+        Some(precompute_window_note_hits(
+            wallet_secrets,
+            &blocks_for_window,
+            start,
+            scan_end,
+            0,
+            true,
+            &std::collections::HashSet::new(),
+        ))
+    } else {
+        None
+    };
     Ok(TrialBatch {
         reached,
         window: PreparedOmrWindow {
@@ -1455,6 +1528,7 @@ async fn prepare_trial_batch(
             trial_decrypt_all: true,
             dao_calls,
             func_events,
+            precomputed_hits,
         },
     })
 }
@@ -1491,6 +1565,7 @@ async fn contract_records_for_range(
 
 async fn trial_decrypt_range(
     drk: &DrkPtr,
+    sync_engine: &SyncEngine,
     client: &crate::lightwallet_client::LightwalletClient,
     start: u32,
     end: u32,
@@ -1505,6 +1580,11 @@ async fn trial_decrypt_range(
         start, end, end - start + 1
     );
 
+    let wallet_secrets = {
+        let wallet = drk.read().await;
+        wallet.get_money_secrets().await.unwrap_or_default()
+    };
+
     // One secret load and one tree load per 500-block window. The next
     // window's bodies are fetched while this window is applied.
     const BATCH_SIZE: u32 = 500;
@@ -1516,7 +1596,7 @@ async fn trial_decrypt_range(
         let prepared = if let Some(prepared) = pending.take() {
             prepared
         } else {
-            prepare_trial_batch(client, batch_start, batch_end, tip).await?
+            prepare_trial_batch(client, &wallet_secrets, batch_start, batch_end, tip).await?
         };
         let Some(reached) = prepared.reached else {
             return Ok(if cursor == start {
@@ -1528,13 +1608,15 @@ async fn trial_decrypt_range(
         let next_start = batch_end.saturating_add(1);
         let apply_fut = async {
             let wallet = drk.write().await;
-            apply_omr_sparse_window(&wallet, &prepared.window).await
+            apply_omr_sparse_window(&wallet, &prepared.window).await?;
+            record_window_accepted_block(sync_engine, &prepared.window.blocks);
+            Ok::<(), String>(())
         };
         if reached == batch_end && next_start <= end {
             let next_end = (next_start + BATCH_SIZE - 1).min(end);
             let (applied, next) = futures::future::join(
                 apply_fut,
-                prepare_trial_batch(client, next_start, next_end, tip),
+                prepare_trial_batch(client, &wallet_secrets, next_start, next_end, tip),
             )
             .await;
             applied?;
@@ -1555,6 +1637,14 @@ async fn trial_decrypt_range(
     })
 }
 
+type DecryptedHitMap = std::collections::HashMap<
+    Vec<u8>,
+    (
+        darkfi_money_contract::client::MoneyNote,
+        darkfi_sdk::crypto::SecretKey,
+    ),
+>;
+
 /// One OMR window after the network reads have finished.
 struct PreparedOmrWindow {
     scan_start: u32,
@@ -1567,6 +1657,43 @@ struct PreparedOmrWindow {
     trial_decrypt_all: bool,
     dao_calls: Vec<crate::dao_compact::CompactDaoCall>,
     func_events: Vec<crate::dao_compact::CompactFuncEvent>,
+    precomputed_hits: Option<DecryptedHitMap>,
+}
+
+fn record_window_accepted_block(
+    sync_engine: &SyncEngine,
+    blocks: &[crate::lightwallet_client::LightCompactBlock],
+) {
+    let mut valid: Vec<&crate::lightwallet_client::LightCompactBlock> =
+        blocks.iter().filter(|b| b.hash.len() == 32).collect();
+    valid.sort_by_key(|b| b.height);
+    for b in valid {
+        sync_engine.record_accepted_block(b.height, &b.hash);
+    }
+}
+
+fn precompute_window_note_hits(
+    secrets: &[darkfi_sdk::crypto::SecretKey],
+    blocks: &[crate::lightwallet_client::LightCompactBlock],
+    scan_start: u32,
+    scan_end: u32,
+    birthday: u32,
+    trial_decrypt_all: bool,
+    matching: &std::collections::HashSet<u32>,
+) -> DecryptedHitMap {
+    let mut blocks_by_height = std::collections::HashMap::new();
+    for block in blocks {
+        if crate::sync_pipeline::in_scan_window(block.height, scan_start, scan_end) {
+            blocks_by_height.insert(block.height, block.clone());
+        }
+    }
+    window_note_hits(
+        secrets,
+        &blocks_by_height,
+        birthday,
+        trial_decrypt_all,
+        matching,
+    )
 }
 
 const COIN_INSERT_BATCH: usize = 256;
@@ -1656,20 +1783,26 @@ async fn apply_omr_sparse_window(drk: &drk::Drk, window: &PreparedOmrWindow) -> 
         &blocks_by_height.values().cloned().collect::<Vec<_>>(),
     )?;
 
-    let secrets = drk
-        .get_money_secrets()
-        .await
-        .map_err(|e| format!("Failed to load wallet secrets: {e}"))?;
-    if (trial_decrypt_all || !matching_heights.is_empty()) && secrets.is_empty() {
-        return Err("No wallet secrets available for trial decryption".into());
-    }
-    let hits = window_note_hits(
-        &secrets,
-        &blocks_by_height,
-        birthday,
-        trial_decrypt_all,
-        &matching_set,
-    );
+    let owned_hits;
+    let hits = if let Some(precomputed) = &window.precomputed_hits {
+        precomputed
+    } else {
+        let secrets = drk
+            .get_money_secrets()
+            .await
+            .map_err(|e| format!("Failed to load wallet secrets: {e}"))?;
+        if (trial_decrypt_all || !matching_heights.is_empty()) && secrets.is_empty() {
+            return Err("No wallet secrets available for trial decryption".into());
+        }
+        owned_hits = window_note_hits(
+            &secrets,
+            &blocks_by_height,
+            birthday,
+            trial_decrypt_all,
+            &matching_set,
+        );
+        &owned_hits
+    };
 
     let mut tree = drk
         .get_money_tree()
@@ -2044,6 +2177,17 @@ fn publish_scan_status(sync_engine: &SyncEngine, drk: &drk::Drk) {
     }
 }
 
+pub(crate) fn trial_decrypt_window_bounds(
+    scanned: u32,
+    birthday: u32,
+    tip: u32,
+    max_window: u32,
+) -> (u32, u32) {
+    let td_start = crate::birthday::clamp_scan_start(scanned, birthday);
+    let window_end = tip.min(td_start.saturating_add(max_window));
+    (td_start, window_end)
+}
+
 async fn try_trial_decryption_sync(
     drk: &DrkPtr,
     sync_engine: &SyncEngine,
@@ -2069,9 +2213,9 @@ async fn try_trial_decryption_sync(
     // gRPC stream ("connection lost") on long testnets.
     const MAX_TRIAL_WINDOW: u32 = 500;
     let birthday = sync_engine.birthday_height();
-    let td_start = crate::birthday::clamp_scan_start(scanned, birthday);
+    let (td_start, window_end) =
+        trial_decrypt_window_bounds(scanned, birthday, tip, MAX_TRIAL_WINDOW);
     ensure_merkle_caught_up(drk, client, scanned, td_start, tip).await?;
-    let window_end = tip.min(scanned.saturating_add(MAX_TRIAL_WINDOW));
     sync_engine.set_status_message(&format!(
         "Trial decrypt {}–{} / tip {}",
         td_start, window_end, tip
@@ -2081,7 +2225,8 @@ async fn try_trial_decryption_sync(
         // Advance only through heights the server actually returned. Persisting
         // `window_end` when the stream has a hole skips the block that holds
         // our own change and never trial-decrypts it.
-        let reached = trial_decrypt_range(drk, client, td_start, window_end, tip).await?;
+        let reached =
+            trial_decrypt_range(drk, sync_engine, client, td_start, window_end, tip).await?;
         let wallet = drk.write().await;
         if td_start == 0 {
             set_merkle_from_genesis(&wallet, true)?;
@@ -2287,6 +2432,37 @@ pub(crate) fn nullifier_map_lookup<'a, T>(
     map.get(nullifier)
 }
 
+static PENDING_COIN_TX_ROLLBACK: std::sync::atomic::AtomicBool =
+    std::sync::atomic::AtomicBool::new(false);
+
+struct CoinTxRollbackGuard {
+    active: bool,
+}
+
+impl CoinTxRollbackGuard {
+    fn new(active: bool) -> Self {
+        Self { active }
+    }
+
+    fn disarm(&mut self) {
+        self.active = false;
+    }
+}
+
+impl Drop for CoinTxRollbackGuard {
+    fn drop(&mut self) {
+        if self.active {
+            PENDING_COIN_TX_ROLLBACK.store(true, std::sync::atomic::Ordering::SeqCst);
+        }
+    }
+}
+
+async fn ensure_no_dangling_coin_tx(drk: &drk::Drk) {
+    if PENDING_COIN_TX_ROLLBACK.swap(false, std::sync::atomic::Ordering::SeqCst) {
+        let _ = drk.wallet.exec_sql("ROLLBACK", vec![]).await;
+    }
+}
+
 async fn commit_coin_inserts(
     drk: &drk::Drk,
     sql: &str,
@@ -2295,20 +2471,29 @@ async fn commit_coin_inserts(
     if rows.is_empty() {
         return Ok(());
     }
+    ensure_no_dangling_coin_tx(drk).await;
     let began = drk.wallet.exec_sql("BEGIN IMMEDIATE", vec![]).await.is_ok();
+    let mut guard = CoinTxRollbackGuard::new(began);
     for row in rows.drain(..) {
         if let Err(e) = drk.wallet.exec_sql(sql, row).await {
             if began {
                 let _ = drk.wallet.exec_sql("ROLLBACK", vec![]).await;
+                guard.disarm();
             }
             return Err(format!("batch coin insert: {e}"));
         }
     }
     if began {
-        drk.wallet
+        let res = drk
+            .wallet
             .exec_sql("COMMIT", vec![])
             .await
-            .map_err(|e| format!("commit coins: {e}"))?;
+            .map_err(|e| format!("commit coins: {e}"));
+        if res.is_err() {
+            let _ = drk.wallet.exec_sql("ROLLBACK", vec![]).await;
+        }
+        guard.disarm();
+        res?;
     }
     Ok(())
 }
@@ -2641,9 +2826,10 @@ pub(crate) async fn rewind_wallet_after_reorg(
     // get_last_scanned_block reads the highest key, so drop the stale tail first.
     remove_scanned_blocks_above(&drk.cache.scanned_blocks, scan_height)?;
     persist_scanned_height(drk, scan_height)?;
-    crate::transactions::invalidate_transactions_above(drk, rollback_height).await?;
+    let txs_affected =
+        crate::transactions::invalidate_transactions_above(drk, rollback_height).await?;
     crate::dao_compact::rewind_compact_records(drk, rollback_height).await?;
-    Ok(scan_height)
+    Ok(txs_affected)
 }
 
 pub async fn rebuild_money_tree_to_height(
@@ -3760,5 +3946,89 @@ mod tests {
         assert!(nullifier_map_lookup(&map, &nf).is_some());
         assert!(nullifier_map_lookup(&map, &[8u8; 32]).is_none());
         assert!(nullifier_map_lookup(&map, &nf[..16]).is_none());
+    }
+
+    #[test]
+    fn trial_decrypt_window_bounds_starts_at_birthday_not_zero() {
+        // Fresh wallet (scanned=0) with birthday=50_000 and tip=60_000 must jump
+        // straight to td_start..=td_start+500, NOT waste cycles stepping 0..50_000.
+        let (td_start, window_end) = trial_decrypt_window_bounds(0, 50_000, 60_000, 500);
+        assert_eq!(td_start, 50_000);
+        assert_eq!(window_end, 50_500);
+        assert!(td_start <= window_end);
+
+        // Already past birthday: advances from scanned + 1.
+        let (td_start, window_end) = trial_decrypt_window_bounds(50_500, 50_000, 60_000, 500);
+        assert_eq!(td_start, 50_501);
+        assert_eq!(window_end, 51_001);
+
+        // Birthday above chain tip: clamps window_end to tip.
+        let (td_start, window_end) = trial_decrypt_window_bounds(0, 70_000, 60_000, 500);
+        assert_eq!(td_start, 70_000);
+        assert_eq!(window_end, 60_000);
+    }
+
+    #[test]
+    fn coin_tx_rollback_guard_flags_drop_unless_disarmed() {
+        PENDING_COIN_TX_ROLLBACK.store(false, std::sync::atomic::Ordering::SeqCst);
+        {
+            let mut g = CoinTxRollbackGuard::new(true);
+            g.disarm();
+        }
+        assert!(!PENDING_COIN_TX_ROLLBACK.load(std::sync::atomic::Ordering::SeqCst));
+
+        {
+            let _g = CoinTxRollbackGuard::new(true);
+        }
+        assert!(PENDING_COIN_TX_ROLLBACK.swap(false, std::sync::atomic::Ordering::SeqCst));
+    }
+
+    #[test]
+    fn route_gate_honors_session_direct_override() {
+        crate::transport_manager::clear_session_override();
+        crate::transport_manager::continue_without_nym();
+        assert!(RouteGate::Nym.ready());
+        assert!(!RouteGate::Nym.failed());
+        assert!(RouteGate::Tor.ready());
+        assert!(!RouteGate::Tor.failed());
+        crate::transport_manager::clear_session_override();
+    }
+
+    #[test]
+    fn record_window_accepted_block_records_all_valid_blocks_in_height_order() {
+        let engine = SyncEngine::new("http://127.0.0.1:9067".into());
+        let h10 = vec![0xAAu8; 32];
+        let h11 = vec![0xBBu8; 32];
+        let h12 = vec![0xCCu8; 32];
+        let blocks = vec![
+            crate::lightwallet_client::LightCompactBlock {
+                height: 12,
+                hash: h12.clone(),
+                prev_hash: h11.clone(),
+                timestamp: 120,
+                txs: vec![],
+            },
+            crate::lightwallet_client::LightCompactBlock {
+                height: 10,
+                hash: h10.clone(),
+                prev_hash: vec![0x00u8; 32],
+                timestamp: 100,
+                txs: vec![],
+            },
+            crate::lightwallet_client::LightCompactBlock {
+                height: 11,
+                hash: h11.clone(),
+                prev_hash: h10.clone(),
+                timestamp: 110,
+                txs: vec![],
+            },
+        ];
+        record_window_accepted_block(&engine, &blocks);
+        let history = engine.recent_accepted_blocks();
+        assert_eq!(history.len(), 3);
+        assert_eq!(history[0], (10, [0xAAu8; 32]));
+        assert_eq!(history[1], (11, [0xBBu8; 32]));
+        assert_eq!(history[2], (12, [0xCCu8; 32]));
+        assert_eq!(engine.last_accepted_block(), Some((12, [0xCCu8; 32])));
     }
 }

@@ -1,5 +1,6 @@
 package com.nighthawkapps.lib.android.ui.screen.settings.nighthawk.view
 
+import android.widget.Toast
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
@@ -12,6 +13,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.HorizontalDivider
@@ -127,25 +129,38 @@ internal fun TorNetworkSettingsScreen(onBack: () -> Unit) {
             TorSocksHostField(
                 enabled = true,
                 socksHost = socksHost,
-                onSocksHostChange = {
-                    socksHost = it
-                    prefs.socksHost = it
-                    applyProfileChange()
-                },
+                onSocksHostChange = { socksHost = it },
             )
             Spacer(modifier = Modifier.height(8.dp))
+            val parsedPort = socksPortText.toIntOrNull()?.takeIf { it in 1..65535 }
+            val hasPendingSocksEdits =
+                socksHost.trim() != prefs.socksHost || parsedPort != prefs.socksPort
+
+            fun commitSocksAndApply() {
+                val port = parsedPort ?: return
+                val host = socksHost.trim().ifBlank { prefs.socksHost }
+                socksHost = host
+                prefs.socksHost = host
+                prefs.socksPort = port
+                applyProfileChange()
+                Toast.makeText(context, R.string.ns_tor_network_applied, Toast.LENGTH_SHORT).show()
+            }
             TorSocksPortField(
                 enabled = true,
                 socksPortText = socksPortText,
                 onSocksPortTextChange = { raw ->
                     if (raw.all { it.isDigit() } && raw.length <= 5) {
                         socksPortText = raw
-                        raw.toIntOrNull()?.let {
-                            prefs.socksPort = it
-                            applyProfileChange()
-                        }
                     }
                 },
+                onDone = { commitSocksAndApply() },
+            )
+            Spacer(modifier = Modifier.height(12.dp))
+            PrimaryButton(
+                onClick = { commitSocksAndApply() },
+                enabled = parsedPort != null && hasPendingSocksEdits,
+                text = stringResource(R.string.ns_tor_network_apply),
+                modifier = Modifier.fillMaxWidth(),
             )
         }
         TorNetworkSettingsFooter(onBack = onBack)
@@ -290,6 +305,7 @@ private fun TorSocksPortField(
     enabled: Boolean,
     socksPortText: String,
     onSocksPortTextChange: (String) -> Unit,
+    onDone: () -> Unit = {},
 ) {
     OutlinedTextField(
         value = socksPortText,
@@ -299,6 +315,7 @@ private fun TorSocksPortField(
         modifier = Modifier.fillMaxWidth(),
         singleLine = true,
         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+        keyboardActions = KeyboardActions(onDone = { onDone() }),
     )
 }
 

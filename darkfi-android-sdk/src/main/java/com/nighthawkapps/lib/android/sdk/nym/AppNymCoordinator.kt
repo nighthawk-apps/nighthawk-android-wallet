@@ -113,8 +113,10 @@ object AppNymCoordinator {
      */
     fun disableFromSplash(context: Context) {
         SessionTransport.continueWithoutNym()
-        runCatching { stopNymProxy() }
         _bootstrapState.value = TorBootstrapUiState.Disabled
+        scope.launch(Dispatchers.IO) {
+            runCatching { stopNymProxy() }
+        }
         Twig.info { "AppNym: session-only direct from splash on ${context.applicationContext.packageName}" }
     }
 

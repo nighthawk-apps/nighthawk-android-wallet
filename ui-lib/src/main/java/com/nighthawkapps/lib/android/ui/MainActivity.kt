@@ -62,6 +62,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.navigation.NavHostController
+import com.nighthawkapps.lib.android.global.AppWalletCoordinator
+import com.nighthawkapps.lib.android.sdk.chat.DarkfiChatConnectionBridge
 import com.nighthawkapps.lib.android.sdk.mesh.MeshCoordinator
 import com.nighthawkapps.lib.android.sdk.mesh.restoreOnResume
 import com.nighthawkapps.lib.android.sdk.nym.AppNymCoordinator
@@ -457,6 +459,10 @@ class MainActivity : FragmentActivity() {
                             } else {
                                 AppTorCoordinator.disableTorFromSplash(context)
                             }
+                            lifecycleScope.launch {
+                                AppWalletCoordinator.get(context).reloadSynchronizer()
+                            }
+                            DarkfiChatConnectionBridge.requestReconnect()
                         },
                     ) {
                         Text(
@@ -613,89 +619,89 @@ class MainActivity : FragmentActivity() {
             }
         } else {
             Box(modifier = Modifier.fillMaxSize()) {
-            // Note that the deeply nested child views will probably receive arguments derived from
-            // the configuration.  The CompositionLocalProvider is helpful for passing the configuration
-            // to the "platform" layer, which is where the arguments will be derived from.
-            CompositionLocalProvider(RemoteConfig provides configuration) {
-                when (secretState) {
-                    SecretState.Loading -> {
-                        // Splash / keep-on-screen condition covers Loading until wallet flow resolves
-                    }
-
-                    SecretState.NeedAuthentication -> {
-                        Box(modifier = Modifier.fillMaxSize().safeDrawingPadding()) {
-                            AndroidPin(onBack = { this@MainActivity.finish() })
+                // Note that the deeply nested child views will probably receive arguments derived from
+                // the configuration.  The CompositionLocalProvider is helpful for passing the configuration
+                // to the "platform" layer, which is where the arguments will be derived from.
+                CompositionLocalProvider(RemoteConfig provides configuration) {
+                    when (secretState) {
+                        SecretState.Loading -> {
+                            // Splash / keep-on-screen condition covers Loading until wallet flow resolves
                         }
-                    }
 
-                    SecretState.None -> {
-                        Box(modifier = Modifier.fillMaxSize().safeDrawingPadding()) {
-                            WrapOnBoarding()
-                        }
-                    }
-
-                    is SecretState.NeedsBackup -> {
-                        Box(modifier = Modifier.fillMaxSize().safeDrawingPadding()) {
-                            SeedBackup(
-                                persistableWallet = secretState.persistableWallet,
-                                onBackupComplete = { walletViewModel.persistBackupComplete() }
-                            )
-                        }
-                    }
-
-                    is SecretState.Ready -> {
-                        Twig.info { "EndPoint ${secretState.persistableWallet.endpoint}" }
-                        if (!onboardingDone) {
+                        SecretState.NeedAuthentication -> {
                             Box(modifier = Modifier.fillMaxSize().safeDrawingPadding()) {
-                                OnboardingCarousel(
-                                    onComplete = {
-                                        onboardingPrefs.edit().putBoolean("has_completed_onboarding", true).apply()
-                                        onboardingDone = true
-                                    }
+                                AndroidPin(onBack = { this@MainActivity.finish() })
+                            }
+                        }
+
+                        SecretState.None -> {
+                            Box(modifier = Modifier.fillMaxSize().safeDrawingPadding()) {
+                                WrapOnBoarding()
+                            }
+                        }
+
+                        is SecretState.NeedsBackup -> {
+                            Box(modifier = Modifier.fillMaxSize().safeDrawingPadding()) {
+                                SeedBackup(
+                                    persistableWallet = secretState.persistableWallet,
+                                    onBackupComplete = { walletViewModel.persistBackupComplete() }
                                 )
                             }
-                        } else {
-                            NavigationMainContent()
+                        }
+
+                        is SecretState.Ready -> {
+                            Twig.info { "EndPoint ${secretState.persistableWallet.endpoint}" }
+                            if (!onboardingDone) {
+                                Box(modifier = Modifier.fillMaxSize().safeDrawingPadding()) {
+                                    OnboardingCarousel(
+                                        onComplete = {
+                                            onboardingPrefs.edit().putBoolean("has_completed_onboarding", true).apply()
+                                            onboardingDone = true
+                                        }
+                                    )
+                                }
+                            } else {
+                                NavigationMainContent()
+                            }
                         }
                     }
                 }
-            }
-            val showRouteBanner =
-                splash.isPending &&
-                    (
-                        secretState == SecretState.None ||
-                            (secretState is SecretState.Ready && onboardingDone)
-                    )
-            if (showRouteBanner) {
-                val bannerContext = LocalContext.current
-                Column(
-                    modifier =
-                        Modifier
-                            .align(Alignment.TopCenter)
-                            .padding(top = 12.dp, start = 16.dp, end = 16.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                ) {
-                    Text(
-                        text =
-                            stringResource(
-                                if (splash.isNym) {
-                                    R.string.splash_nym_bootstrapping
-                                } else {
-                                    R.string.splash_tor_bootstrapping
-                                },
-                            ),
-                        color = colorResource(R.color.splash_tagline_text),
-                        textAlign = TextAlign.Center,
-                    )
-                    if (splash.isNym) {
-                        TextButton(
-                            onClick = { AppNymCoordinator.disableFromSplash(bannerContext) },
-                        ) {
-                            Text(stringResource(R.string.splash_nym_continue_without))
+                val showRouteBanner =
+                    splash.isPending &&
+                        (
+                            secretState == SecretState.None ||
+                                (secretState is SecretState.Ready && onboardingDone)
+                        )
+                if (showRouteBanner) {
+                    val bannerContext = LocalContext.current
+                    Column(
+                        modifier =
+                            Modifier
+                                .align(Alignment.TopCenter)
+                                .padding(top = 12.dp, start = 16.dp, end = 16.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                    ) {
+                        Text(
+                            text =
+                                stringResource(
+                                    if (splash.isNym) {
+                                        R.string.splash_nym_bootstrapping
+                                    } else {
+                                        R.string.splash_tor_bootstrapping
+                                    },
+                                ),
+                            color = colorResource(R.color.splash_tagline_text),
+                            textAlign = TextAlign.Center,
+                        )
+                        if (splash.isNym) {
+                            TextButton(
+                                onClick = { AppNymCoordinator.disableFromSplash(bannerContext) },
+                            ) {
+                                Text(stringResource(R.string.splash_nym_continue_without))
+                            }
                         }
                     }
                 }
-            }
             }
         }
     }
@@ -703,12 +709,16 @@ class MainActivity : FragmentActivity() {
     private fun restoreMeshOnResume() {
         lifecycleScope.launch {
             repeatOnLifecycle(Lifecycle.State.STARTED) {
-                MeshCoordinator.bind(this@MainActivity)
-                val prefs = StandardPreferenceSingleton.getInstance(this@MainActivity)
-                val meshOn = StandardPreferenceKeys.IS_NIGHTHAWK_MESH_ENABLED.getValue(prefs)
-                val alwaysOn = StandardPreferenceKeys.IS_NIGHTHAWK_MESH_ALWAYS_ON.getValue(prefs)
-                MeshCoordinator.setAlwaysOn(alwaysOn)
-                MeshCoordinator.setGatewayOptIn(false)
+                val meshOn =
+                    kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                        MeshCoordinator.bind(this@MainActivity)
+                        val prefs = StandardPreferenceSingleton.getInstance(this@MainActivity)
+                        val enabled = StandardPreferenceKeys.IS_NIGHTHAWK_MESH_ENABLED.getValue(prefs)
+                        val alwaysOn = StandardPreferenceKeys.IS_NIGHTHAWK_MESH_ALWAYS_ON.getValue(prefs)
+                        MeshCoordinator.setAlwaysOn(alwaysOn)
+                        MeshCoordinator.setGatewayOptIn(false)
+                        enabled
+                    }
                 if (meshOn) {
                     MeshCoordinator.restoreOnResume(this@MainActivity)
                 }

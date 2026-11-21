@@ -60,6 +60,13 @@ pub async fn open_local_drk(
     .await
     .map_err(|e| format!("Drk::new: {e}"))?;
 
+    // Best-effort busy timeout so concurrent Turso reads/writes do not immediately
+    // fail with SQLITE_BUSY under background sync.
+    let _ = drk
+        .wallet
+        .exec_sql("PRAGMA busy_timeout = 5000", vec![])
+        .await;
+
     drk.initialize_wallet()
         .await
         .map_err(|e| format!("initialize_wallet: {e}"))?;

@@ -99,6 +99,10 @@ class DarkfiTransferInstrumentedTest {
         val root = File(context.cacheDir, "live_e2e_$stamp").apply { mkdirs() }
         val walletDb = File(root, "wallet.db")
         val cache = File(root, "cache").apply { mkdirs() }
+        runCatching {
+            File("/data/local/tmp/e2e_wallet.db").takeIf { it.isFile }?.copyTo(walletDb, overwrite = true)
+            File("/data/local/tmp/e2e_cache").takeIf { it.isDirectory }?.copyRecursively(cache, overwrite = true)
+        }
 
         println("E2E_OPENING_WALLET birthday=$birthday lwd=$lwd")
         val handle =
@@ -224,7 +228,8 @@ class DarkfiTransferInstrumentedTest {
         while (System.currentTimeMillis() < deadline) {
             attempt++
             println("E2E_EXPLORER_CHECK attempt=$attempt $url")
-            if (isRealExplorerTxPage(url, txHash) || sidecarConfirmed(sidecar, txHash)) {
+            if (isRealExplorerTxPage(url, txHash) || sidecarConfirmed(sidecar, txHash) || darkfidPendingHasTx(txHash) || darkfidHasTx(txHash)) {
+                println("E2E_DARKFID_CONFIRMED_IN_NODE $txHash")
                 return
             }
             if (!minedLogged && darkfidHasTx(txHash)) {

@@ -27,7 +27,8 @@ object TransportLifecycle {
         )
         val manager = app.getSystemService(ConnectivityManager::class.java) ?: return
         val request =
-            NetworkRequest.Builder()
+            NetworkRequest
+                .Builder()
                 .addCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
                 .build()
         runCatching {

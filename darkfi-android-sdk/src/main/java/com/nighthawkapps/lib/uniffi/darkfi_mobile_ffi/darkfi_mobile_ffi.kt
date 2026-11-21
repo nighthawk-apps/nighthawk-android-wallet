@@ -727,6 +727,10 @@ internal object IntegrityCheckingUniffiLib {
     ): Int
     external fun uniffi_darkfi_mobile_ffi_checksum_func_chacha_encrypt_dm(
     ): Int
+    external fun uniffi_darkfi_mobile_ffi_checksum_func_clear_dm_contacts(
+    ): Int
+    external fun uniffi_darkfi_mobile_ffi_checksum_func_configure_darkirc(
+    ): Int
     external fun uniffi_darkfi_mobile_ffi_checksum_func_darkirc_connection_phase(
     ): Int
     external fun uniffi_darkfi_mobile_ffi_checksum_func_darkirc_outbound_slots(
@@ -747,6 +751,8 @@ internal object IntegrityCheckingUniffiLib {
     ): Int
     external fun uniffi_darkfi_mobile_ffi_checksum_func_nym_status(
     ): Int
+    external fun uniffi_darkfi_mobile_ffi_checksum_func_register_dm_contact(
+    ): Int
     external fun uniffi_darkfi_mobile_ffi_checksum_func_send_chat_message(
     ): Int
     external fun uniffi_darkfi_mobile_ffi_checksum_func_set_network_storage_dir(
@@ -762,6 +768,24 @@ internal object IntegrityCheckingUniffiLib {
     external fun uniffi_darkfi_mobile_ffi_checksum_func_stop_darkirc(
     ): Int
     external fun uniffi_darkfi_mobile_ffi_checksum_func_stop_nym_proxy(
+    ): Int
+    external fun uniffi_darkfi_mobile_ffi_checksum_func_transport_clear_session_override(
+    ): Int
+    external fun uniffi_darkfi_mobile_ffi_checksum_func_transport_continue_without_nym(
+    ): Int
+    external fun uniffi_darkfi_mobile_ffi_checksum_func_transport_on_background(
+    ): Int
+    external fun uniffi_darkfi_mobile_ffi_checksum_func_transport_on_foreground(
+    ): Int
+    external fun uniffi_darkfi_mobile_ffi_checksum_func_transport_on_network_changed(
+    ): Int
+    external fun uniffi_darkfi_mobile_ffi_checksum_func_transport_set_mesh_enabled(
+    ): Int
+    external fun uniffi_darkfi_mobile_ffi_checksum_func_transport_snapshot_json(
+    ): Int
+    external fun uniffi_darkfi_mobile_ffi_checksum_func_transport_socks_auth_json(
+    ): Int
+    external fun uniffi_darkfi_mobile_ffi_checksum_func_unregister_dm_contact(
     ): Int
     external fun uniffi_darkfi_mobile_ffi_checksum_func_validate_darkfi_mnemonic(
     ): Int
@@ -943,6 +967,10 @@ internal object UniffiLib {
     ): RustBuffer.ByValue
     external fun uniffi_darkfi_mobile_ffi_fn_func_chacha_encrypt_dm(`mySecret`: RustBuffer.ByValue,`theirPublic`: RustBuffer.ByValue,`plaintext`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
     ): RustBuffer.ByValue
+    external fun uniffi_darkfi_mobile_ffi_fn_func_clear_dm_contacts(uniffi_out_err: UniffiRustCallStatus, 
+    ): Unit
+    external fun uniffi_darkfi_mobile_ffi_fn_func_configure_darkirc(`dagsCount`: Int,`fastMode`: Byte,uniffi_out_err: UniffiRustCallStatus, 
+    ): Unit
     external fun uniffi_darkfi_mobile_ffi_fn_func_darkirc_connection_phase(uniffi_out_err: UniffiRustCallStatus, 
     ): RustBuffer.ByValue
     external fun uniffi_darkfi_mobile_ffi_fn_func_darkirc_outbound_slots(uniffi_out_err: UniffiRustCallStatus, 
@@ -963,6 +991,8 @@ internal object UniffiLib {
     ): Byte
     external fun uniffi_darkfi_mobile_ffi_fn_func_nym_status(uniffi_out_err: UniffiRustCallStatus, 
     ): RustBuffer.ByValue
+    external fun uniffi_darkfi_mobile_ffi_fn_func_register_dm_contact(`nick`: RustBuffer.ByValue,`mySecret`: RustBuffer.ByValue,`theirPublic`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    ): Unit
     external fun uniffi_darkfi_mobile_ffi_fn_func_send_chat_message(`channel`: RustBuffer.ByValue,`nick`: RustBuffer.ByValue,`message`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
     ): Unit
     external fun uniffi_darkfi_mobile_ffi_fn_func_set_network_storage_dir(`path`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
@@ -978,6 +1008,24 @@ internal object UniffiLib {
     external fun uniffi_darkfi_mobile_ffi_fn_func_stop_darkirc(uniffi_out_err: UniffiRustCallStatus, 
     ): Unit
     external fun uniffi_darkfi_mobile_ffi_fn_func_stop_nym_proxy(uniffi_out_err: UniffiRustCallStatus, 
+    ): Unit
+    external fun uniffi_darkfi_mobile_ffi_fn_func_transport_clear_session_override(uniffi_out_err: UniffiRustCallStatus, 
+    ): Unit
+    external fun uniffi_darkfi_mobile_ffi_fn_func_transport_continue_without_nym(uniffi_out_err: UniffiRustCallStatus, 
+    ): Unit
+    external fun uniffi_darkfi_mobile_ffi_fn_func_transport_on_background(uniffi_out_err: UniffiRustCallStatus, 
+    ): Unit
+    external fun uniffi_darkfi_mobile_ffi_fn_func_transport_on_foreground(uniffi_out_err: UniffiRustCallStatus, 
+    ): Unit
+    external fun uniffi_darkfi_mobile_ffi_fn_func_transport_on_network_changed(uniffi_out_err: UniffiRustCallStatus, 
+    ): Unit
+    external fun uniffi_darkfi_mobile_ffi_fn_func_transport_set_mesh_enabled(`on`: Byte,uniffi_out_err: UniffiRustCallStatus, 
+    ): Unit
+    external fun uniffi_darkfi_mobile_ffi_fn_func_transport_snapshot_json(uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
+    external fun uniffi_darkfi_mobile_ffi_fn_func_transport_socks_auth_json(uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
+    external fun uniffi_darkfi_mobile_ffi_fn_func_unregister_dm_contact(`nick`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
     ): Unit
     external fun uniffi_darkfi_mobile_ffi_fn_func_validate_darkfi_mnemonic(`phrase`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
     ): Byte
@@ -1112,6 +1160,12 @@ private fun uniffiCheckApiChecksums(lib: IntegrityCheckingUniffiLib) {
     if ((lib.uniffi_darkfi_mobile_ffi_checksum_func_chacha_encrypt_dm() and 0xFFFF) != 37407) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
+    if ((lib.uniffi_darkfi_mobile_ffi_checksum_func_clear_dm_contacts() and 0xFFFF) != 10905) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if ((lib.uniffi_darkfi_mobile_ffi_checksum_func_configure_darkirc() and 0xFFFF) != 65189) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
     if ((lib.uniffi_darkfi_mobile_ffi_checksum_func_darkirc_connection_phase() and 0xFFFF) != 60093) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
@@ -1142,6 +1196,9 @@ private fun uniffiCheckApiChecksums(lib: IntegrityCheckingUniffiLib) {
     if ((lib.uniffi_darkfi_mobile_ffi_checksum_func_nym_status() and 0xFFFF) != 41601) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
+    if ((lib.uniffi_darkfi_mobile_ffi_checksum_func_register_dm_contact() and 0xFFFF) != 22166) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
     if ((lib.uniffi_darkfi_mobile_ffi_checksum_func_send_chat_message() and 0xFFFF) != 4769) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
@@ -1164,6 +1221,33 @@ private fun uniffiCheckApiChecksums(lib: IntegrityCheckingUniffiLib) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if ((lib.uniffi_darkfi_mobile_ffi_checksum_func_stop_nym_proxy() and 0xFFFF) != 27552) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if ((lib.uniffi_darkfi_mobile_ffi_checksum_func_transport_clear_session_override() and 0xFFFF) != 56554) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if ((lib.uniffi_darkfi_mobile_ffi_checksum_func_transport_continue_without_nym() and 0xFFFF) != 30635) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if ((lib.uniffi_darkfi_mobile_ffi_checksum_func_transport_on_background() and 0xFFFF) != 9692) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if ((lib.uniffi_darkfi_mobile_ffi_checksum_func_transport_on_foreground() and 0xFFFF) != 3706) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if ((lib.uniffi_darkfi_mobile_ffi_checksum_func_transport_on_network_changed() and 0xFFFF) != 51058) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if ((lib.uniffi_darkfi_mobile_ffi_checksum_func_transport_set_mesh_enabled() and 0xFFFF) != 16076) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if ((lib.uniffi_darkfi_mobile_ffi_checksum_func_transport_snapshot_json() and 0xFFFF) != 27674) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if ((lib.uniffi_darkfi_mobile_ffi_checksum_func_transport_socks_auth_json() and 0xFFFF) != 56626) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if ((lib.uniffi_darkfi_mobile_ffi_checksum_func_unregister_dm_contact() and 0xFFFF) != 44884) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if ((lib.uniffi_darkfi_mobile_ffi_checksum_func_validate_darkfi_mnemonic() and 0xFFFF) != 33875) {
@@ -3975,9 +4059,7 @@ public object FfiConverterSequenceTypeDrkTransactionRecord: FfiConverterRustBuff
             FfiConverterTypeDrkTransactionRecord.write(it, buf)
         }
     }
-}
-
-fun `bridgePing`(): kotlin.String {
+} fun `bridgePing`(): kotlin.String {
             return FfiConverterString.lift(
     uniffiRustCall() { _status ->
     UniffiLib.uniffi_darkfi_mobile_ffi_fn_func_bridge_ping(
@@ -4024,6 +4106,26 @@ fun `bridgePing`(): kotlin.String {
 }
     )
     }
+    
+ fun `clearDmContacts`()
+        = 
+    uniffiRustCall() { _status ->
+    UniffiLib.uniffi_darkfi_mobile_ffi_fn_func_clear_dm_contacts(
+    
+        _status)
+}
+    
+    
+ fun `configureDarkirc`(`dagsCount`: kotlin.UInt, `fastMode`: kotlin.Boolean)
+        = 
+    uniffiRustCall() { _status ->
+    UniffiLib.uniffi_darkfi_mobile_ffi_fn_func_configure_darkirc(
+    
+        
+        FfiConverterUInt.lower(`dagsCount`),
+        FfiConverterBoolean.lower(`fastMode`),_status)
+}
+    
     
  fun `darkircConnectionPhase`(): kotlin.String {
             return FfiConverterString.lift(
@@ -4127,6 +4229,19 @@ fun `bridgePing`(): kotlin.String {
     }
     
 
+    @Throws(DarkfiWalletNativeException::class) fun `registerDmContact`(`nick`: kotlin.String, `mySecret`: List<kotlin.UByte>, `theirPublic`: List<kotlin.UByte>)
+        = 
+    uniffiRustCallWithError(DarkfiWalletNativeException) { _status ->
+    UniffiLib.uniffi_darkfi_mobile_ffi_fn_func_register_dm_contact(
+    
+        
+        FfiConverterString.lower(`nick`),
+        FfiConverterSequenceUByte.lower(`mySecret`),
+        FfiConverterSequenceUByte.lower(`theirPublic`),_status)
+}
+    
+    
+
     @Throws(DarkfiWalletNativeException::class) fun `sendChatMessage`(`channel`: kotlin.String, `nick`: kotlin.String, `message`: kotlin.String)
         = 
     uniffiRustCallWithError(DarkfiWalletNativeException) { _status ->
@@ -4212,6 +4327,91 @@ fun `bridgePing`(): kotlin.String {
     UniffiLib.uniffi_darkfi_mobile_ffi_fn_func_stop_nym_proxy(
     
         _status)
+}
+    
+    
+ fun `transportClearSessionOverride`()
+        = 
+    uniffiRustCall() { _status ->
+    UniffiLib.uniffi_darkfi_mobile_ffi_fn_func_transport_clear_session_override(
+    
+        _status)
+}
+    
+    
+ fun `transportContinueWithoutNym`()
+        = 
+    uniffiRustCall() { _status ->
+    UniffiLib.uniffi_darkfi_mobile_ffi_fn_func_transport_continue_without_nym(
+    
+        _status)
+}
+    
+    
+ fun `transportOnBackground`()
+        = 
+    uniffiRustCall() { _status ->
+    UniffiLib.uniffi_darkfi_mobile_ffi_fn_func_transport_on_background(
+    
+        _status)
+}
+    
+    
+ fun `transportOnForeground`()
+        = 
+    uniffiRustCall() { _status ->
+    UniffiLib.uniffi_darkfi_mobile_ffi_fn_func_transport_on_foreground(
+    
+        _status)
+}
+    
+    
+ fun `transportOnNetworkChanged`()
+        = 
+    uniffiRustCall() { _status ->
+    UniffiLib.uniffi_darkfi_mobile_ffi_fn_func_transport_on_network_changed(
+    
+        _status)
+}
+    
+    
+ fun `transportSetMeshEnabled`(`on`: kotlin.Boolean)
+        = 
+    uniffiRustCall() { _status ->
+    UniffiLib.uniffi_darkfi_mobile_ffi_fn_func_transport_set_mesh_enabled(
+    
+        
+        FfiConverterBoolean.lower(`on`),_status)
+}
+    
+    
+ fun `transportSnapshotJson`(): kotlin.String {
+            return FfiConverterString.lift(
+    uniffiRustCall() { _status ->
+    UniffiLib.uniffi_darkfi_mobile_ffi_fn_func_transport_snapshot_json(
+    
+        _status)
+}
+    )
+    }
+    
+ fun `transportSocksAuthJson`(): kotlin.String {
+            return FfiConverterString.lift(
+    uniffiRustCall() { _status ->
+    UniffiLib.uniffi_darkfi_mobile_ffi_fn_func_transport_socks_auth_json(
+    
+        _status)
+}
+    )
+    }
+    
+ fun `unregisterDmContact`(`nick`: kotlin.String)
+        = 
+    uniffiRustCall() { _status ->
+    UniffiLib.uniffi_darkfi_mobile_ffi_fn_func_unregister_dm_contact(
+    
+        
+        FfiConverterString.lower(`nick`),_status)
 }
     
     

@@ -20,6 +20,7 @@ import com.nighthawkapps.lib.android.spackle.Twig
  */
 internal object ChatMessageNotifier {
     private const val CHANNEL_ID = "darkirc_messages"
+
     /** Distinct from DarkfidDaemonService (10043). */
     private const val NOTIFICATION_ID = 10044
 

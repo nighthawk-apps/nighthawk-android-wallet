@@ -38,6 +38,12 @@ namespace darkfi_mobile_ffi {
     [Throws=DarkfiWalletNativeError]
     void send_chat_message(string channel, string nick, string message);
 
+    [Throws=DarkfiWalletNativeError]
+    void register_dm_contact(string nick, sequence<u8> my_secret, sequence<u8> their_public);
+    void unregister_dm_contact(string nick);
+    void clear_dm_contacts();
+    void configure_darkirc(u32 dags_count, boolean fast_mode);
+
     // `use_tor` routes all P2P traffic over darkfi's in-process arti Tor
     // the embedded arti transport needs no external SOCKS5 proxy.
     // Arti state/cache root. Wallet open sets it too; call before a pre-open proxy start.
@@ -58,6 +64,7 @@ namespace darkfi_mobile_ffi {
     // does not rewrite the stored preference. C ABI `nh_transport_*` mirrors
     // these for builds that have not regenerated Kotlin/Swift bindings.
     string transport_snapshot_json();
+    string transport_socks_auth_json();
     void transport_on_network_changed();
     void transport_on_background();
     void transport_on_foreground();

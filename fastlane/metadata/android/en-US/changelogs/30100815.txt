@@ -1,0 +1,1 @@
+DarkIRC DM keys stay in memory and the old plaintext bundle is removed. Chat sends after the daemon connects. Custom-token sends check that token plus the DRK fee. Sync rewind follows the fork. Nym checks DNS replies. The local proxy uses SOCKS auth. Mesh can wake DarkIRC. Lockstep: iOS 3.01.15, desktop 3.1.13, Moonshine 3.1.12, lightwalletd 0.3.9.

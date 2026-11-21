@@ -3,6 +3,9 @@ package com.nighthawkapps.lib.android.sdk.daemon
 import android.content.Context
 import com.nighthawkapps.lib.android.sdk.chat.DarkfiChatConnectionBridge
 import com.nighthawkapps.lib.android.sdk.chat.DarkfiChatPreferences
+import com.nighthawkapps.lib.android.sdk.net.PrivacyNetwork
+import com.nighthawkapps.lib.android.sdk.net.SessionTransport
+import com.nighthawkapps.lib.android.sdk.nym.AppNymCoordinator
 import com.nighthawkapps.lib.android.sdk.tor.AppTorCoordinator
 import com.nighthawkapps.lib.android.sdk.wallet.DarkfiSynchronizer
 import com.nighthawkapps.lib.android.sdk.wallet.DarkfiWalletCoordinator
@@ -26,6 +29,7 @@ import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import java.util.concurrent.atomic.AtomicBoolean
 
 /**
  * Owns app-start bootstrap and periodic reconnect for embedded darkirc + wallet scan/subscribe.
@@ -45,25 +49,66 @@ class DarkfiDaemonLifecycleCoordinator private constructor(
     val status: StateFlow<DarkfiDaemonStatus> = _status.asStateFlow()
 
     private var reconnectJob: Job? = null
+    private var observeJob: Job? = null
     private var bootstrapComplete = false
+    private val startedOnce = AtomicBoolean(false)
 
-    fun start() {
+    @Volatile
+    private var inForeground = false
+
+    fun onForeground() {
+        inForeground = true
+        if (startedOnce.compareAndSet(false, true)) {
+            start()
+            return
+        }
         scope.launch {
-            bootstrapComplete = false
-            _status.value = DarkfiDaemonStatus.Starting
-            AppTorCoordinator.ensureSocksReady(appContext)
-            DarkfidDaemonBootstrap.maybeStart(appContext)
             if (daemonPrefs.runEmbeddedDarkfid) {
-                DarkfidDaemonBootstrap.prepareLoopbackRpc(appContext)
-                awaitEmbeddedDarkfidIfNeeded()
+                DarkfidDaemonBootstrap.warmOnForeground(appContext)
             }
             if (chatPrefs.runEmbeddedDarkirc) {
                 com.nighthawkapps.lib.android.sdk.chat.darkirc.DarkircDaemonService
                     .start(appContext)
             }
+            startReconnectLoop()
+        }
+    }
+
+    fun onBackground() {
+        inForeground = false
+        reconnectJob?.cancel()
+        reconnectJob = null
+    }
+
+    fun start() {
+        startedOnce.set(true)
+        inForeground = true
+        scope.launch {
+            bootstrapComplete = false
+            _status.value = DarkfiDaemonStatus.Starting
+            ensureActiveRouteReady()
+            DarkfidDaemonBootstrap.maybeStart(appContext)
+            if (daemonPrefs.runEmbeddedDarkfid) {
+                DarkfidDaemonBootstrap.prepareLoopbackRpc(appContext)
+                awaitEmbeddedDarkfidIfNeeded()
+            }
+            if (chatPrefs.runEmbeddedDarkirc && inForeground) {
+                com.nighthawkapps.lib.android.sdk.chat.darkirc.DarkircDaemonService
+                    .start(appContext)
+            }
             bootstrapComplete = true
             observeSubsystems()
-            startReconnectLoop()
+            if (inForeground) {
+                startReconnectLoop()
+            }
+        }
+    }
+
+    private suspend fun ensureActiveRouteReady() {
+        when (SessionTransport.effective(chatPrefs)) {
+            PrivacyNetwork.Nym -> AppNymCoordinator.ensureReady(appContext)
+            PrivacyNetwork.Tor -> AppTorCoordinator.ensureSocksReady(appContext)
+            PrivacyNetwork.Direct -> Unit
         }
     }
 
@@ -80,7 +125,7 @@ class DarkfiDaemonLifecycleCoordinator private constructor(
         scope.launch {
             _status.value = DarkfiDaemonStatus.Connecting
             Twig.info { "DarkFi daemon: manual restart requested" }
-            AppTorCoordinator.ensureSocksReady(appContext)
+            ensureActiveRouteReady()
             if (daemonPrefs.runEmbeddedDarkfid) {
                 DarkfidDaemonBootstrap.restartEmbedded(appContext)
             } else {
@@ -101,16 +146,20 @@ class DarkfiDaemonLifecycleCoordinator private constructor(
 
     @OptIn(ExperimentalCoroutinesApi::class)
     private fun observeSubsystems() {
-        scope.launch {
-            walletCoordinatorProvider()
-                .synchronizer
-                .flatMapLatest { sync ->
-                    statusFlowFor(sync)
-                }.distinctUntilChanged()
-                .collectLatest { mapped ->
-                    _status.value = mapped
-                }
+        if (observeJob?.isActive == true) {
+            return
         }
+        observeJob =
+            scope.launch {
+                walletCoordinatorProvider()
+                    .synchronizer
+                    .flatMapLatest { sync ->
+                        statusFlowFor(sync)
+                    }.distinctUntilChanged()
+                    .collectLatest { mapped ->
+                        _status.value = mapped
+                    }
+            }
     }
 
     private fun statusFlowFor(sync: DarkfiSynchronizer?): Flow<DarkfiDaemonStatus> {
@@ -150,14 +199,14 @@ class DarkfiDaemonLifecycleCoordinator private constructor(
      * so a healthy read loop is not torn down every 20s.
      */
     private fun startReconnectLoop() {
+        if (!inForeground) return
         reconnectJob?.cancel()
         reconnectJob =
             scope.launch {
-                while (isActive) {
+                while (isActive && inForeground) {
                     delay(RECONNECT_INTERVAL_MS)
-                    if (chatPrefs.routeOutboundThroughTor) {
-                        AppTorCoordinator.ensureSocksReady(appContext)
-                    }
+                    if (!inForeground) break
+                    ensureActiveRouteReady()
                     if (daemonPrefs.runEmbeddedDarkfid) {
                         DarkfidDaemonBootstrap.warmOnForeground(appContext)
                     }
@@ -169,7 +218,7 @@ class DarkfiDaemonLifecycleCoordinator private constructor(
                     }
                     // Keep-alive FGS: start() is a no-op when already active, and
                     // swallows background-start denials until the next foreground resume.
-                    if (chatPrefs.runEmbeddedDarkirc) {
+                    if (chatPrefs.runEmbeddedDarkirc && inForeground) {
                         com.nighthawkapps.lib.android.sdk.chat.darkirc.DarkircDaemonService
                             .start(appContext)
                     }
@@ -197,6 +246,7 @@ class DarkfiDaemonLifecycleCoordinator private constructor(
 
         fun install(
             context: Context,
+            autoStart: Boolean = true,
             walletCoordinatorProvider: () -> DarkfiWalletCoordinator,
         ): DarkfiDaemonLifecycleCoordinator =
             instance ?: synchronized(this) {
@@ -205,7 +255,9 @@ class DarkfiDaemonLifecycleCoordinator private constructor(
                     walletCoordinatorProvider,
                 ).also {
                     instance = it
-                    it.start()
+                    if (autoStart) {
+                        it.start()
+                    }
                 }
             }
 

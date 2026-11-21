@@ -22,8 +22,12 @@ class OutgoingChatReconnectWorker(
     params: WorkerParameters,
 ) : CoroutineWorker(context, params) {
     override suspend fun doWork(): Result {
-        DarkfiChatConnectionBridge.requestReconnect()
-        return Result.success()
+        val pending = DarkfiChatOutgoingQueueStore.create(applicationContext).loadAll()
+        if (pending.none { it.delivery != "failed" }) {
+            return Result.success()
+        }
+        val drained = DarkfiChatController.getOrCreate(applicationContext).connectAndDrainHeadless()
+        return if (drained) Result.success() else Result.retry()
     }
 
     companion object {

@@ -13,7 +13,13 @@ import androidx.core.app.NotificationCompat
 import androidx.core.app.ServiceCompat
 import androidx.core.content.ContextCompat
 import com.nighthawkapps.lib.android.sdk.R
+import com.nighthawkapps.lib.android.sdk.chat.DarkfiChatPreferences
 import com.nighthawkapps.lib.android.spackle.Twig
+import com.nighthawkapps.lib.uniffi.darkfi_mobile_ffi.configureDarkirc
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
 
 /**
  * Keeps the in-process UniFFI **darkirc** daemon eligible to run while the app
@@ -25,10 +31,13 @@ import com.nighthawkapps.lib.android.spackle.Twig
 class DarkircDaemonService : Service() {
     @Volatile
     private var foregroundPromoted = false
+    private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     override fun onCreate() {
         super.onCreate()
-        promoteToForegroundOrStop()
+        if (promoteToForegroundOrStop()) {
+            syncNativeConfigAndContactsAsync()
+        }
     }
 
     override fun onBind(intent: Intent?): IBinder? = null
@@ -41,7 +50,22 @@ class DarkircDaemonService : Service() {
         if (!foregroundPromoted && !promoteToForegroundOrStop()) {
             return START_NOT_STICKY
         }
+        syncNativeConfigAndContactsAsync()
         return START_STICKY
+    }
+
+    private fun syncNativeConfigAndContactsAsync() {
+        val app = applicationContext
+        serviceScope.launch {
+            DarkircCryptoManager.syncContactsToNative(app)
+            val prefs = DarkfiChatPreferences(app)
+            runCatching {
+                configureDarkirc(
+                    dagsCount = prefs.darkircDagsCount.toUInt(),
+                    fastMode = prefs.darkircFastMode,
+                )
+            }
+        }
     }
 
     /**

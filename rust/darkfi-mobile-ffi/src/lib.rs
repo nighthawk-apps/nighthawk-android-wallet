@@ -77,12 +77,30 @@ pub enum DarkircTransport {
 
 #[cfg(feature = "darkirc")]
 pub use darkirc_daemon::{
-    darkirc_connection_phase, darkirc_outbound_slots, darkirc_status, send_chat_message,
-    start_darkirc, stop_darkirc,
+    clear_dm_contacts, configure_darkirc, darkirc_connection_phase, darkirc_outbound_slots,
+    darkirc_status, register_dm_contact, send_chat_message, start_darkirc, stop_darkirc,
+    unregister_dm_contact,
 };
 
 // Stubs when darkirc feature is disabled (e.g. iOS builds with --no-default-features).
 // The UDL unconditionally declares these functions, so we provide no-op stubs.
+#[cfg(not(feature = "darkirc"))]
+pub fn register_dm_contact(
+    _nick: String,
+    _my_secret: Vec<u8>,
+    _their_public: Vec<u8>,
+) -> Result<(), DarkfiWalletNativeError> {
+    Ok(())
+}
+
+#[cfg(not(feature = "darkirc"))]
+pub fn unregister_dm_contact(_nick: String) {}
+
+#[cfg(not(feature = "darkirc"))]
+pub fn clear_dm_contacts() {}
+
+#[cfg(not(feature = "darkirc"))]
+pub fn configure_darkirc(_dags_count: u32, _fast_mode: bool) {}
 #[cfg(not(feature = "darkirc"))]
 pub fn darkirc_status() -> String {
     "disabled".to_string()
@@ -648,6 +666,10 @@ pub fn nym_status() -> String {
 
 pub fn transport_snapshot_json() -> String {
     crate::transport_manager::snapshot_json()
+}
+
+pub fn transport_socks_auth_json() -> String {
+    crate::transport_manager::socks_auth_json()
 }
 
 pub fn transport_on_network_changed() {
@@ -1404,7 +1426,7 @@ impl DarkfiWalletHandle {
             let drk_guard = drk.write().await;
             sync::rewind_wallet_after_reorg(&drk_guard, Some(&client), rewind_to_height).await
         })
-        .unwrap_or(0);
+        .map_err(DarkfiWalletNativeError::SyncFailed)?;
 
         // Step 5: Build the event
         let event = ReorgEvent {

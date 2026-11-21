@@ -32,8 +32,7 @@ object NighthawkContactStore {
         val walletAddress: String? = null,
     )
 
-    fun load(context: Context): List<NighthawkContact> =
-        decode(context).contacts.map { it.toContact() }
+    fun load(context: Context): List<NighthawkContact> = decode(context).contacts.map { it.toContact() }
 
     fun findByNick(
         context: Context,

@@ -86,7 +86,7 @@ pub fn start_arti_proxy(socks_port: u16) -> Result<bool, crate::DarkfiWalletNati
         let _ = h.join();
     }
 
-    // Only one proxy at a time.
+    // Only one proxy at a time; transition STOPPED/FAILED -> BOOTSTRAPPING atomically.
     if ARTI_STATE
         .compare_exchange(
             ARTI_STOPPED,
@@ -95,15 +95,16 @@ pub fn start_arti_proxy(socks_port: u16) -> Result<bool, crate::DarkfiWalletNati
             Ordering::SeqCst,
         )
         .is_err()
+        && ARTI_STATE
+            .compare_exchange(
+                ARTI_FAILED,
+                ARTI_BOOTSTRAPPING,
+                Ordering::SeqCst,
+                Ordering::SeqCst,
+            )
+            .is_err()
     {
-        // Already bootstrapping/connected (or previously failed and not reset).
-        let cur = ARTI_STATE.load(Ordering::SeqCst);
-        if cur == ARTI_FAILED {
-            // Allow a retry after a prior failure.
-            ARTI_STATE.store(ARTI_BOOTSTRAPPING, Ordering::SeqCst);
-        } else {
-            return Ok(false);
-        }
+        return Ok(false);
     }
 
     ARTI_STOP_REQUESTED.store(false, Ordering::SeqCst);

@@ -13,13 +13,13 @@
 //! `Connected` unless a tunnel came up. Transport failures discard the tunnel
 //! and the next connection bootstraps a fresh one.
 
-use std::collections::HashMap;
+use std::collections::{HashMap, VecDeque};
 use std::net::{IpAddr, SocketAddr};
 use std::sync::atomic::{AtomicBool, AtomicU8, Ordering};
 use std::sync::Mutex as StdMutex;
 use std::time::{Duration, Instant};
 
-use hickory_proto::op::{Message, Query};
+use hickory_proto::op::{Message, Query, ResponseCode};
 use hickory_proto::rr::{Name, RData, RecordType};
 use nym_smolmix::{TcpStream as MixTcpStream, Tunnel};
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
@@ -40,6 +40,8 @@ const HEALTH_PROBE_HOST: &str = "nymtech.net";
 const HEALTH_PROBE_INTERVAL: Duration = Duration::from_secs(30);
 /// How long a resolved address may be reused without a new lookup.
 const DNS_TTL: Duration = Duration::from_secs(300);
+/// Maximum cached DNS host entries before oldest eviction.
+const MAX_DNS_CACHE_ENTRIES: usize = 256;
 /// Give up on a TCP connect through the mixnet after this long.
 const TCP_CONNECT_TIMEOUT: Duration = Duration::from_secs(30);
 /// Give up on tunnel bootstrap after this long. The bootstrap holds the
@@ -70,7 +72,33 @@ static TUNNEL: Mutex<TunnelSlot> = Mutex::const_new(TunnelSlot {
     next_gen: 0,
 });
 
-static DNS_CACHE: StdMutex<Option<HashMap<String, (IpAddr, Instant)>>> = StdMutex::new(None);
+struct DnsCache {
+    map: HashMap<String, (IpAddr, Instant)>,
+    order: VecDeque<String>,
+}
+
+impl DnsCache {
+    fn new() -> Self {
+        Self {
+            map: HashMap::new(),
+            order: VecDeque::new(),
+        }
+    }
+}
+
+static DNS_CACHE: StdMutex<Option<DnsCache>> = StdMutex::new(None);
+static NYM_THREAD: StdMutex<Option<std::thread::JoinHandle<()>>> = StdMutex::new(None);
+
+fn take_finished_nym_thread() -> Option<std::thread::JoinHandle<()>> {
+    let mut slot = match NYM_THREAD.lock() {
+        Ok(g) => g,
+        Err(e) => e.into_inner(),
+    };
+    match slot.as_ref().map(|h| h.is_finished()) {
+        Some(true) => slot.take(),
+        _ => None,
+    }
+}
 
 /// Start the in-process Nym SOCKS proxy on the given port.
 ///
@@ -92,6 +120,10 @@ pub fn start_nym_proxy(socks_port: u16) -> Result<bool, crate::DarkfiWalletNativ
         std::thread::sleep(Duration::from_millis(50));
     }
 
+    if let Some(h) = take_finished_nym_thread() {
+        let _ = h.join();
+    }
+
     if NYM_STATE
         .compare_exchange(
             NYM_STOPPED,
@@ -100,17 +132,21 @@ pub fn start_nym_proxy(socks_port: u16) -> Result<bool, crate::DarkfiWalletNativ
             Ordering::SeqCst,
         )
         .is_err()
+        && NYM_STATE
+            .compare_exchange(
+                NYM_FAILED,
+                NYM_BOOTSTRAPPING,
+                Ordering::SeqCst,
+                Ordering::SeqCst,
+            )
+            .is_err()
     {
-        if NYM_STATE.load(Ordering::SeqCst) == NYM_FAILED {
-            NYM_STATE.store(NYM_BOOTSTRAPPING, Ordering::SeqCst);
-        } else {
-            return Ok(false);
-        }
+        return Ok(false);
     }
 
     NYM_STOP_REQUESTED.store(false, Ordering::SeqCst);
 
-    std::thread::Builder::new()
+    let handle = std::thread::Builder::new()
         .name("nym-proxy".into())
         .spawn(move || {
             let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
@@ -145,6 +181,10 @@ pub fn start_nym_proxy(socks_port: u16) -> Result<bool, crate::DarkfiWalletNativ
                 "failed to spawn nym thread: {e}"
             ))
         })?;
+
+    if let Ok(mut slot) = NYM_THREAD.lock() {
+        *slot = Some(handle);
+    }
 
     Ok(true)
 }
@@ -240,7 +280,14 @@ async fn run_socks_proxy(socks_port: u16) -> Result<(), String> {
             tracing::info!("nym bootstrap cancelled by stop request");
             return Ok(());
         }
-        match get_tunnel().await {
+        let tunnel_res = tokio::select! {
+            res = get_tunnel() => res,
+            _ = wait_for_stop() => {
+                tracing::info!("nym bootstrap cancelled by stop request");
+                return Ok(());
+            }
+        };
+        match tunnel_res {
             Ok(_) => {
                 bootstrap_err.clear();
                 break;
@@ -265,6 +312,14 @@ async fn run_socks_proxy(socks_port: u16) -> Result<(), String> {
     tracing::info!("nym SOCKS proxy ready on 127.0.0.1:{socks_port}");
 
     while !NYM_STOP_REQUESTED.load(Ordering::SeqCst) {
+        if NYM_STATE.load(Ordering::SeqCst) == NYM_FAILED {
+            let mut slot = TUNNEL.lock().await;
+            if let Some((_, tunnel)) = slot.tunnel.take() {
+                tunnel.shutdown().await;
+            }
+            clear_dns_cache();
+            return Err("Nym tunnel rebuild failed".into());
+        }
         let accepted = tokio::select! {
             r = listener.accept() => r,
             _ = tokio::time::sleep(Duration::from_secs(1)) => continue,
@@ -404,16 +459,30 @@ async fn get_tunnel() -> Result<(u64, Tunnel), String> {
     }
     tracing::info!("bootstrapping Nym mixnet tunnel");
     let start = Instant::now();
-    NYM_REBUILDING.store(slot.next_gen > 0, Ordering::SeqCst);
+    let rebuilding = slot.next_gen > 0;
+    NYM_REBUILDING.store(rebuilding, Ordering::SeqCst);
     let built = tokio::time::timeout(BOOTSTRAP_TIMEOUT, Tunnel::builder().build()).await;
     NYM_REBUILDING.store(false, Ordering::SeqCst);
-    let tunnel = built
-        .map_err(|_| "Nym mixnet tunnel bootstrap timed out".to_string())?
-        .map_err(|e| format!("failed to bootstrap Nym mixnet tunnel: {e}"))?;
+    let tunnel = match built {
+        Ok(Ok(tunnel)) => tunnel,
+        Ok(Err(e)) => {
+            if rebuilding {
+                NYM_STATE.store(NYM_FAILED, Ordering::SeqCst);
+            }
+            return Err(format!("failed to bootstrap Nym mixnet tunnel: {e}"));
+        }
+        Err(_) => {
+            if rebuilding {
+                NYM_STATE.store(NYM_FAILED, Ordering::SeqCst);
+            }
+            return Err("Nym mixnet tunnel bootstrap timed out".to_string());
+        }
+    };
     tracing::info!("Nym mixnet tunnel ready in {:?}", start.elapsed());
     let gen = slot.next_gen;
     slot.next_gen += 1;
     slot.tunnel = Some((gen, tunnel.clone()));
+    NYM_STATE.store(NYM_CONNECTED, Ordering::SeqCst);
     mark_healthy(gen);
     Ok((gen, tunnel))
 }
@@ -441,7 +510,7 @@ async fn nym_connect(host: &str, port: u16) -> Result<MixTcpStream, String> {
 
     let ip = match resolve_over_nym(&tunnel, host).await {
         Ok(Some(ip)) => ip,
-        Ok(None) => return Err(format!("no A record for {host} from mixnet DNS")),
+        Ok(None) => return Err(format!("no A/AAAA record for {host} from mixnet DNS")),
         Err(e) => {
             // One dead or slow name is normal (old hostlist entries). Drop the
             // shared tunnel only when a health probe says it is not carrying
@@ -531,8 +600,8 @@ async fn tunnel_is_healthy(gen: u64, tunnel: &Tunnel) -> bool {
         let probe = tokio::time::timeout(
             DNS_TIMEOUT,
             race_udp_tcp_dns(
-                dns_query(tunnel, HEALTH_PROBE_HOST, *resolver),
-                dns_query_tcp(tunnel, HEALTH_PROBE_HOST, *resolver),
+                dns_query(tunnel, HEALTH_PROBE_HOST, *resolver, RecordType::A),
+                dns_query_tcp(tunnel, HEALTH_PROBE_HOST, *resolver, RecordType::A),
             ),
         );
         if matches!(probe.await, Ok(Ok(_))) {
@@ -544,16 +613,52 @@ async fn tunnel_is_healthy(gen: u64, tunnel: &Tunnel) -> bool {
 }
 
 /// Resolve `host` through the mixnet unless it is an IP literal or freshly
-/// cached. `Ok(None)` means the DNS server answered without an A record
-/// (tunnel healthy, name unresolvable); `Err` is a transport failure.
+/// cached. Queries `A` first, then falls back cleanly to `AAAA` for IPv6-only
+/// hosts. `Ok(None)` means no `A`/`AAAA` record exists (`Err` is a transport/DNS error).
 async fn resolve_over_nym(tunnel: &Tunnel, host: &str) -> Result<Option<IpAddr>, String> {
-    if let Ok(ip) = host.parse::<IpAddr>() {
+    let trimmed = host.trim().trim_matches(['[', ']']);
+    if let Ok(ip) = trimmed.parse::<IpAddr>() {
         return Ok(Some(ip));
     }
     if let Some(ip) = dns_cache_get(host) {
         return Ok(Some(ip));
     }
 
+    match query_resolvers_for_type(tunnel, host, RecordType::A).await {
+        Ok(Some(ip)) => {
+            dns_cache_put(host, ip);
+            return Ok(Some(ip));
+        }
+        Ok(None) => {}
+        Err(a_err) => {
+            // Fall back to AAAA before failing hard in case A returned an error or host is IPv6-only.
+            if let Ok(Some(ip)) = query_resolvers_for_type(tunnel, host, RecordType::AAAA).await {
+                dns_cache_put(host, ip);
+                return Ok(Some(ip));
+            }
+            return Err(a_err);
+        }
+    }
+
+    match query_resolvers_for_type(tunnel, host, RecordType::AAAA).await {
+        Ok(Some(ip)) => {
+            dns_cache_put(host, ip);
+            Ok(Some(ip))
+        }
+        Ok(None) => Ok(None),
+        Err(e) => {
+            // Do not fail hard if A already succeeded with NXDomain/NODATA and AAAA had a resolver hiccup.
+            tracing::debug!("mixnet AAAA fallback for {host} failed: {e}");
+            Ok(None)
+        }
+    }
+}
+
+async fn query_resolvers_for_type(
+    tunnel: &Tunnel,
+    host: &str,
+    record_type: RecordType,
+) -> Result<Option<IpAddr>, String> {
     let mut last_err = String::new();
     // Race UDP and TCP per resolver. One 8s budget covers both transports so a
     // blackholed UDP path cannot burn 3×8s before TCP is tried.
@@ -561,22 +666,20 @@ async fn resolve_over_nym(tunnel: &Tunnel, host: &str) -> Result<Option<IpAddr>,
         let query = tokio::time::timeout(
             DNS_TIMEOUT,
             race_udp_tcp_dns(
-                dns_query(tunnel, host, *resolver),
-                dns_query_tcp(tunnel, host, *resolver),
+                dns_query(tunnel, host, *resolver, record_type),
+                dns_query_tcp(tunnel, host, *resolver, record_type),
             ),
         )
         .await
         .map_err(|_| format!("mixnet DNS lookup for {host} timed out"))
         .and_then(|r| r);
         match query {
-            Ok(answer) => {
-                if let Some(ip) = answer {
-                    dns_cache_put(host, ip);
-                }
-                return Ok(answer);
-            }
+            Ok(answer) => return Ok(answer),
             Err(e) => {
-                tracing::warn!("mixnet DNS lookup for {host} failed (attempt {attempt}): {e}");
+                tracing::warn!(
+                    "mixnet DNS {:?} lookup for {host} failed (attempt {attempt}): {e}",
+                    record_type
+                );
                 last_err = e;
             }
         }
@@ -584,35 +687,49 @@ async fn resolve_over_nym(tunnel: &Tunnel, host: &str) -> Result<Option<IpAddr>,
     Err(last_err)
 }
 
-/// One DNS A query to `resolver` over a fresh tunnel UDP socket.
+/// One DNS query to `resolver` over a fresh tunnel UDP socket.
 async fn dns_query(
     tunnel: &Tunnel,
     host: &str,
     resolver: [u8; 4],
+    record_type: RecordType,
 ) -> Result<Option<IpAddr>, String> {
     let udp = tunnel.udp_socket().await.map_err(|e| e.to_string())?;
-    let bytes = dns_query_bytes(host)?;
-    udp.send_to(&bytes, SocketAddr::from((resolver, 53)))
+    let (txid, bytes) = dns_query_bytes_for(host, record_type)?;
+    let resolver_addr = SocketAddr::from((resolver, 53));
+    udp.send_to(&bytes, resolver_addr)
         .await
         .map_err(|e| e.to_string())?;
     let mut buf = [0u8; 1500];
-    let (len, _src) = udp.recv_from(&mut buf).await.map_err(|e| e.to_string())?;
-    let response = Message::from_vec(&buf[..len]).map_err(|e| e.to_string())?;
-    Ok(first_a_record(&response))
+    for _ in 0..4 {
+        let (len, src) = udp.recv_from(&mut buf).await.map_err(|e| e.to_string())?;
+        if src != resolver_addr {
+            tracing::warn!(
+                "ignoring unexpected DNS UDP responder {src} (expected {resolver_addr})"
+            );
+            continue;
+        }
+        let response = Message::from_vec(&buf[..len]).map_err(|e| e.to_string())?;
+        return parse_dns_response(&response, txid, true);
+    }
+    Err(format!(
+        "DNS UDP responses did not match expected resolver {resolver_addr}"
+    ))
 }
 
 /// DNS over TCP (RFC 1035 length prefix) through the mixnet. Used when UDP
-/// to the resolver does not return, which is common on Nym IP exits.
+/// to the resolver does not return or is truncated.
 async fn dns_query_tcp(
     tunnel: &Tunnel,
     host: &str,
     resolver: [u8; 4],
+    record_type: RecordType,
 ) -> Result<Option<IpAddr>, String> {
     let mut tcp = tunnel
         .tcp_connect(SocketAddr::from((resolver, 53)))
         .await
         .map_err(|e| e.to_string())?;
-    let bytes = dns_query_bytes(host)?;
+    let (txid, bytes) = dns_query_bytes_for(host, record_type)?;
     if bytes.len() > u16::MAX as usize {
         return Err("DNS query too large".into());
     }
@@ -631,35 +748,92 @@ async fn dns_query_tcp(
     let mut buf = vec![0u8; n];
     tcp.read_exact(&mut buf).await.map_err(|e| e.to_string())?;
     let response = Message::from_vec(&buf).map_err(|e| e.to_string())?;
-    Ok(first_a_record(&response))
+    parse_dns_response(&response, txid, false)
 }
 
-fn dns_query_bytes(host: &str) -> Result<Vec<u8>, String> {
+fn dns_query_bytes_for(host: &str, record_type: RecordType) -> Result<(u16, Vec<u8>), String> {
     let mut query = Message::query();
+    let txid: u16 = rand::random();
+    query.metadata.id = txid;
     query.metadata.recursion_desired = true;
     let name = Name::from_ascii(host).map_err(|e| e.to_string())?;
-    query.add_query(Query::query(name, RecordType::A));
-    query.to_vec().map_err(|e| e.to_string())
+    query.add_query(Query::query(name, record_type));
+    let bytes = query.to_vec().map_err(|e| e.to_string())?;
+    Ok((txid, bytes))
 }
 
+#[cfg(test)]
+fn dns_query_bytes(host: &str) -> Result<Vec<u8>, String> {
+    dns_query_bytes_for(host, RecordType::A).map(|(_, bytes)| bytes)
+}
+
+fn parse_dns_response(
+    response: &Message,
+    expected_txid: u16,
+    reject_truncated: bool,
+) -> Result<Option<IpAddr>, String> {
+    if response.metadata.id != expected_txid {
+        return Err(format!(
+            "DNS TXID mismatch: expected {expected_txid}, got {}",
+            response.metadata.id
+        ));
+    }
+    if reject_truncated && response.metadata.truncation {
+        return Err("DNS UDP response truncated".into());
+    }
+    match response.metadata.response_code {
+        ResponseCode::NoError => Ok(first_ip_record(response)),
+        ResponseCode::NXDomain => Ok(None),
+        other => Err(format!("DNS response error: {other:?}")),
+    }
+}
+
+fn first_ip_record(msg: &Message) -> Option<IpAddr> {
+    msg.answers
+        .iter()
+        .find_map(|record| match &record.data {
+            RData::A(a) => Some(IpAddr::V4(a.0)),
+            _ => None,
+        })
+        .or_else(|| {
+            msg.answers.iter().find_map(|record| match &record.data {
+                RData::AAAA(aaaa) => Some(IpAddr::V6(aaaa.0)),
+                _ => None,
+            })
+        })
+}
+
+#[cfg(test)]
 fn first_a_record(msg: &Message) -> Option<IpAddr> {
-    msg.answers.iter().find_map(|record| match &record.data {
-        RData::A(a) => Some(IpAddr::V4(a.0)),
-        _ => None,
-    })
+    first_ip_record(msg)
 }
 
 fn dns_cache_get(host: &str) -> Option<IpAddr> {
+    let key = host.trim().to_ascii_lowercase();
     let cache = DNS_CACHE.lock().ok()?;
-    let (ip, at) = cache.as_ref()?.get(host)?;
+    let (ip, at) = cache.as_ref()?.map.get(&key)?;
     (at.elapsed() < DNS_TTL).then_some(*ip)
 }
 
 fn dns_cache_put(host: &str, ip: IpAddr) {
-    if let Ok(mut cache) = DNS_CACHE.lock() {
-        cache
-            .get_or_insert_with(HashMap::new)
-            .insert(host.to_string(), (ip, Instant::now()));
+    let key = host.trim().to_ascii_lowercase();
+    if let Ok(mut guard) = DNS_CACHE.lock() {
+        let cache = guard.get_or_insert_with(DnsCache::new);
+        let now = Instant::now();
+        // Prune expired entries first.
+        cache.map.retain(|_, (_, at)| at.elapsed() < DNS_TTL);
+        cache.order.retain(|k| cache.map.contains_key(k));
+        while cache.map.len() >= MAX_DNS_CACHE_ENTRIES && !cache.map.contains_key(&key) {
+            if let Some(oldest) = cache.order.pop_front() {
+                cache.map.remove(&oldest);
+            } else {
+                break;
+            }
+        }
+        if !cache.map.contains_key(&key) {
+            cache.order.push_back(key.clone());
+        }
+        cache.map.insert(key, (ip, now));
     }
 }
 
@@ -770,7 +944,60 @@ mod tests {
         let ip = IpAddr::V4(Ipv4Addr::new(1, 2, 3, 4));
         dns_cache_put("cache-test.example", ip);
         assert_eq!(dns_cache_get("cache-test.example"), Some(ip));
+        assert_eq!(dns_cache_get("CACHE-TEST.EXAMPLE"), Some(ip));
         assert_eq!(dns_cache_get("cache-miss.example"), None);
+    }
+
+    #[test]
+    fn dns_cache_is_bounded() {
+        clear_dns_cache();
+        for i in 0..(MAX_DNS_CACHE_ENTRIES + 32) {
+            let ip = IpAddr::V4(Ipv4Addr::new(10, 0, (i / 256) as u8, (i % 256) as u8));
+            dns_cache_put(&format!("host-{i}.example"), ip);
+        }
+        let len = DNS_CACHE
+            .lock()
+            .unwrap()
+            .as_ref()
+            .map_or(0, |c| c.map.len());
+        assert_eq!(len, MAX_DNS_CACHE_ENTRIES);
+        assert!(dns_cache_get("host-0.example").is_none());
+        assert!(dns_cache_get(&format!("host-{}.example", MAX_DNS_CACHE_ENTRIES + 31)).is_some());
+        clear_dns_cache();
+    }
+
+    #[test]
+    fn parse_dns_response_validates_txid_rcode_tc_and_aaaa() {
+        use std::net::Ipv6Addr;
+        let name = Name::from_str("example.com.").unwrap();
+        let mut msg = Message::new(42, MessageType::Response, OpCode::Query);
+        msg.add_query(Query::query(name.clone(), RecordType::AAAA));
+        msg.add_answer(Record::from_rdata(
+            name,
+            300,
+            RData::AAAA(rdata::AAAA(Ipv6Addr::LOCALHOST)),
+        ));
+
+        // TXID mismatch rejected
+        assert!(parse_dns_response(&msg, 99, true).is_err());
+
+        // Matching TXID extracts AAAA cleanly
+        assert_eq!(
+            parse_dns_response(&msg, 42, true).unwrap(),
+            Some(IpAddr::V6(Ipv6Addr::LOCALHOST))
+        );
+
+        // UDP truncation fails so TCP race can win
+        msg.metadata.truncation = true;
+        assert!(parse_dns_response(&msg, 42, true).is_err());
+        assert!(parse_dns_response(&msg, 42, false).is_ok());
+        msg.metadata.truncation = false;
+
+        // SERVFAIL returns Err (failover to next resolver), NXDomain returns Ok(None)
+        msg.metadata.response_code = ResponseCode::ServFail;
+        assert!(parse_dns_response(&msg, 42, true).is_err());
+        msg.metadata.response_code = ResponseCode::NXDomain;
+        assert_eq!(parse_dns_response(&msg, 42, true).unwrap(), None);
     }
 
     #[test]

@@ -67,16 +67,16 @@ object AppTorCoordinator {
     fun isKeepingSplash(): Boolean = false
 
     /**
-     * Splash escape hatch: persist Tor off, stop Arti, continue over clearnet.
-     * In-flight [ensureSocksReady] will observe the pref and abort.
+     * Splash escape hatch for this process only. Stored network stays Tor so the next
+     * launch still uses Tor. In-flight [ensureSocksReady] observes [SessionTransport] and aborts.
      */
     fun disableTorFromSplash(context: Context) {
-        val app = context.applicationContext
-        val prefs = DarkfiChatPreferences(app)
-        prefs.routeOutboundThroughTor = false
-        runCatching { stopArtiProxy() }
+        SessionTransport.continueWithoutNym()
         _bootstrapState.value = TorBootstrapUiState.Disabled
-        Twig.info { "AppTor: disabled from splash — using clearnet" }
+        scope.launch(Dispatchers.IO) {
+            runCatching { stopArtiProxy() }
+        }
+        Twig.info { "AppTor: session-only direct from splash on ${context.applicationContext.packageName}" }
     }
 
     /** Stop the in-process Arti proxy when Tor is no longer the app network. */
@@ -88,7 +88,7 @@ object AppTorCoordinator {
     /** Non-blocking: start embedded Tor when prefs demand it (Application / daemon coordinator). */
     fun warmStartIfEnabled(context: Context) {
         val prefs = DarkfiChatPreferences(context.applicationContext)
-        if (!prefs.routeOutboundThroughTor) {
+        if (SessionTransport.effective(prefs) != PrivacyNetwork.Tor) {
             _bootstrapState.value = TorBootstrapUiState.Disabled
             return
         }
@@ -114,7 +114,7 @@ object AppTorCoordinator {
         val prefs = DarkfiChatPreferences(app)
         val port =
             when {
-                !prefs.routeOutboundThroughTor -> {
+                SessionTransport.effective(prefs) != PrivacyNetwork.Tor -> {
                     _bootstrapState.value = TorBootstrapUiState.Disabled
                     null
                 }
@@ -130,7 +130,7 @@ object AppTorCoordinator {
                         // Arti boots asynchronously via UniFFI thread; wait briefly before nudging SOCKS
                         delay(500)
                     }
-                    if (!prefs.routeOutboundThroughTor) {
+                    if (SessionTransport.effective(prefs) != PrivacyNetwork.Tor) {
                         null
                     } else {
                         // TCP bind can succeed before Tor circuits are ready (listener opens first).
@@ -141,8 +141,8 @@ object AppTorCoordinator {
                                 listOf(prefs.socksPort),
                                 deadlineMs = EXTERNAL_SOCKS_DEADLINE_MS,
                             )
-                        if (bound == null || !prefs.routeOutboundThroughTor) {
-                            if (bound == null && prefs.routeOutboundThroughTor) {
+                        if (bound == null || SessionTransport.effective(prefs) != PrivacyNetwork.Tor) {
+                            if (bound == null && SessionTransport.effective(prefs) == PrivacyNetwork.Tor) {
                                 Twig.warn { "AppTor: Arti SOCKS bind timed out" }
                             }
                             null
@@ -150,7 +150,7 @@ object AppTorCoordinator {
                             val bootstrapDeadline = System.currentTimeMillis() + ARTI_BOOTSTRAP_DEADLINE_MS
                             var readyPort: Int? = null
                             while (System.currentTimeMillis() < bootstrapDeadline) {
-                                if (!prefs.routeOutboundThroughTor) {
+                                if (SessionTransport.effective(prefs) != PrivacyNetwork.Tor) {
                                     break
                                 }
                                 if (runCatching { isArtiRunning() }.getOrDefault(false)) {
@@ -160,7 +160,7 @@ object AppTorCoordinator {
                                 }
                                 delay(500)
                             }
-                            if (readyPort == null && prefs.routeOutboundThroughTor) {
+                            if (readyPort == null && SessionTransport.effective(prefs) == PrivacyNetwork.Tor) {
                                 Twig.warn { "AppTor: Arti SOCKS bound on $bound but bootstrap timed out" }
                             }
                             readyPort
@@ -191,8 +191,8 @@ object AppTorCoordinator {
                     )
                 }
             }
-        // Re-read prefs: splash may have disabled Tor while we were waiting.
-        val stillWantsTor = DarkfiChatPreferences(app).routeOutboundThroughTor
+        // Re-read prefs/session: splash may have disabled Tor while we were waiting.
+        val stillWantsTor = SessionTransport.effective(DarkfiChatPreferences(app)) == PrivacyNetwork.Tor
         when {
             !stillWantsTor -> {
                 _bootstrapState.value = TorBootstrapUiState.Disabled
