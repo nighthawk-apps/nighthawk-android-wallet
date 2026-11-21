@@ -65,7 +65,11 @@ class NighthawkBleLink(
     internal var gattServer: BluetoothGattServer? = null
     internal var scanning = false
     internal var advertising = false
-    /** Advertise mode last started. Scan duty must not tear this down. */
+
+    /** True from startAdvertising until the stack accepts or rejects the set. */
+    internal var advertiseStartPending = false
+
+    /** Advertise mode last requested. Scan duty must not tear this down. */
     private var advertisedForeground: Boolean? = null
     internal var started = false
     internal var foreground = true
@@ -166,6 +170,7 @@ class NighthawkBleLink(
         } catch (_: Exception) {
         }
         advertising = false
+        advertiseStartPending = false
         advertisedForeground = null
         advertiser = null
         clientGatts.values.forEach { gatt ->
@@ -229,13 +234,21 @@ class NighthawkBleLink(
                 .Builder()
                 .addServiceData(ParcelUuid(MeshGattConstants.SERVICE_UUID), sessionHint)
                 .build()
+        advertiseStartPending = true
+        advertisedForeground = foreground
         try {
             adv.startAdvertising(settings, data, scan, advertiseCallback)
         } catch (e: SecurityException) {
+            advertiseStartPending = false
+            advertising = false
             Twig.warn(e) { "mesh: advertise failed" }
         } catch (e: IllegalStateException) {
+            advertiseStartPending = false
+            advertising = false
             Twig.warn(e) { "mesh: advertise failed" }
         } catch (e: IllegalArgumentException) {
+            advertiseStartPending = false
+            advertising = false
             Twig.warn(e) { "mesh: advertise failed" }
         }
     }
@@ -244,10 +257,12 @@ class NighthawkBleLink(
         object : AdvertiseCallback() {
             override fun onStartSuccess(settingsInEffect: AdvertiseSettings?) {
                 advertising = true
+                advertiseStartPending = false
             }
 
             override fun onStartFailure(errorCode: Int) {
                 advertising = false
+                advertiseStartPending = false
                 Twig.warn { "mesh: advertise error $errorCode" }
             }
         }
@@ -274,11 +289,11 @@ class NighthawkBleLink(
                 alwaysOn = alwaysOn,
             )
         adapter?.let { ad ->
-            // The scan window restarts every few seconds. Stopping the
-            // advertiser on that timer makes the other phone miss the radio.
-            if (!advertising || advertisedForeground != foreground) {
+            // onStartSuccess is async. Stopping the set before that callback
+            // makes the stack unregister and start again in a tight loop.
+            val sameMode = advertisedForeground == foreground
+            if (!(advertiseStartPending && sameMode) && (!advertising || !sameMode)) {
                 restartAdvertisingLocked(ad)
-                advertisedForeground = foreground
             }
         }
         stopScanLocked()
@@ -517,11 +532,13 @@ class NighthawkBleLink(
 
 @SuppressLint("MissingPermission")
 private fun NighthawkBleLink.restartAdvertisingLocked(ad: BluetoothAdapter) {
+    if (advertiseStartPending && advertisedForeground == foreground) return
     try {
         advertiser?.stopAdvertising(advertiseCallback)
     } catch (_: Exception) {
     }
     advertising = false
+    advertiseStartPending = false
     startAdvertisingLocked(ad)
 }
 
@@ -661,7 +678,6 @@ private object BleRadioBoot {
         }
         link.adapter = ad
         link.openGattServerLocked(mgr)
-        link.startAdvertisingLocked(ad)
         link.scanner = ad.bluetoothLeScanner
         link.applyDutyLocked()
     }
