@@ -12,6 +12,7 @@ import android.bluetooth.BluetoothGattServerCallback
 import android.bluetooth.BluetoothGattService
 import android.bluetooth.BluetoothManager
 import android.bluetooth.BluetoothProfile
+import android.bluetooth.BluetoothStatusCodes
 import android.bluetooth.le.AdvertiseCallback
 import android.bluetooth.le.AdvertiseData
 import android.bluetooth.le.AdvertiseSettings
@@ -54,6 +55,7 @@ class NighthawkBleLink(
     internal val sessionHint = ByteArray(MeshWireCodec.SENDER_LEN)
     internal val meshToAtt = ConcurrentHashMap<String, String>()
     internal val attToMesh = ConcurrentHashMap<String, ByteArray>()
+    internal val discoveryStarted = ConcurrentHashMap.newKeySet<String>()
 
     var onEngineFlush: (() -> Unit)? = null
 
@@ -181,6 +183,7 @@ class NighthawkBleLink(
             }
         }
         clientGatts.clear()
+        discoveryStarted.clear()
         try {
             gattServer?.close()
         } catch (_: Exception) {
@@ -344,12 +347,15 @@ class NighthawkBleLink(
                 val id = gatt.device.address
                 radio?.post {
                     if (newState == BluetoothProfile.STATE_CONNECTED) {
-                        try {
-                            gatt.requestMtu(MeshGattConstants.REQUEST_MTU)
-                            gatt.discoverServices()
-                        } catch (_: Exception) {
-                        }
+                        val requested =
+                            try {
+                                gatt.requestMtu(MeshGattConstants.REQUEST_MTU)
+                            } catch (_: Exception) {
+                                false
+                            }
+                        if (!requested) discoverOnceLocked(gatt)
                     } else if (newState == BluetoothProfile.STATE_DISCONNECTED) {
+                        discoveryStarted.remove(id)
                         dropPeerLocked(id)
                     }
                 }
@@ -363,6 +369,7 @@ class NighthawkBleLink(
                 if (status == BluetoothGatt.GATT_SUCCESS) {
                     this@NighthawkBleLink.mtu = mtu
                 }
+                radio?.post { discoverOnceLocked(gatt) }
             }
 
             @SuppressLint("MissingPermission")
@@ -378,15 +385,29 @@ class NighthawkBleLink(
                         ?: return
                 try {
                     gatt.setCharacteristicNotification(ch, true)
-                    ch.getDescriptor(MeshGattConstants.CCCD_UUID)?.let { d ->
-                        d.value = BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE
-                        gatt.writeDescriptor(d)
-                    }
-                    attToMesh[gatt.device.address]?.let { mesh ->
-                        MeshNative.neighborUp(mesh)
-                        onEngineFlush?.invoke()
+                    val cccd = ch.getDescriptor(MeshGattConstants.CCCD_UUID)
+                    if (cccd == null) {
+                        attToMesh[gatt.device.address]?.let { handshakeLocked(it) }
+                    } else if (!writeCccdLocked(gatt, cccd)) {
+                        Twig.warn { "mesh: cccd write rejected" }
+                        attToMesh[gatt.device.address]?.let { handshakeLocked(it) }
                     }
                 } catch (_: Exception) {
+                }
+            }
+
+            override fun onDescriptorWrite(
+                gatt: BluetoothGatt,
+                descriptor: BluetoothGattDescriptor,
+                status: Int,
+            ) {
+                if (descriptor.uuid != MeshGattConstants.CCCD_UUID) return
+                radio?.post {
+                    if (status != BluetoothGatt.GATT_SUCCESS) {
+                        Twig.warn { "mesh: cccd status $status" }
+                        return@post
+                    }
+                    attToMesh[gatt.device.address]?.let { handshakeLocked(it) }
                 }
             }
 
@@ -556,11 +577,14 @@ private fun NighthawkBleLink.startScanLocked() {
             .Builder()
             .setScanMode(
                 if (foreground) {
-                    ScanSettings.SCAN_MODE_BALANCED
+                    // Low latency asks the controller for the scan response,
+                    // which is where the mesh id is advertised.
+                    ScanSettings.SCAN_MODE_LOW_LATENCY
                 } else {
                     ScanSettings.SCAN_MODE_LOW_POWER
                 },
-            ).build()
+            ).setReportDelay(0)
+            .build()
     try {
         sc.startScan(listOf(filter), settings, scanCallback)
         scanning = true
@@ -588,12 +612,71 @@ private fun NighthawkBleLink.considerConnectLocked(
     device: BluetoothDevice,
     advertisedMeshId: ByteArray?,
 ) {
-    val id = BleConnect.connectableId(this, device) ?: return
-    BleConnect.open(this, device, id, advertisedMeshId)
+    if (device.address == adapter?.address) return
+    val meshId = MeshScanGate.meshIdFromAdvertisement(advertisedMeshId) ?: return
+    val id = BleConnect.connectableId(this, device)
+    if (id == null) {
+        val existing = device.address ?: return
+        if (MeshScanGate.shouldAttach(alreadyLinked = true, meshId = meshId)) {
+            attachAdvertisedMeshLocked(existing, meshId)
+        }
+        return
+    }
+    BleConnect.open(this, device, id, meshId)
+}
+
+@SuppressLint("MissingPermission")
+private fun NighthawkBleLink.discoverOnceLocked(gatt: BluetoothGatt) {
+    val id = gatt.device.address ?: return
+    if (!discoveryStarted.add(id)) return
+    try {
+        gatt.discoverServices()
+    } catch (_: Exception) {
+        discoveryStarted.remove(id)
+    }
+}
+
+@SuppressLint("MissingPermission")
+private fun NighthawkBleLink.writeCccdLocked(
+    gatt: BluetoothGatt,
+    descriptor: BluetoothGattDescriptor,
+): Boolean {
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+        val code =
+            gatt.writeDescriptor(
+                descriptor,
+                BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE,
+            )
+        return code == BluetoothStatusCodes.SUCCESS
+    }
+    descriptor.value = BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE
+    return gatt.writeDescriptor(descriptor)
+}
+
+private fun NighthawkBleLink.handshakeLocked(meshId: ByteArray) {
+    MeshNative.neighborUp(meshId)
+    onEngineFlush?.invoke()
+    Twig.info { "mesh: neighbor handshake" }
+}
+
+@SuppressLint("MissingPermission")
+private fun NighthawkBleLink.attachAdvertisedMeshLocked(
+    att: String,
+    meshId: ByteArray,
+) {
+    val known = attToMesh[att]
+    rememberMeshLocked(att, meshId)
+    if (known != null && known.contentEquals(meshId)) return
+    val gatt = clientGatts[att] ?: return
+    val ready =
+        gatt.getService(MeshGattConstants.SERVICE_UUID)
+            ?.getCharacteristic(MeshGattConstants.CHARACTERISTIC_UUID) != null
+    if (ready) handshakeLocked(meshId)
 }
 
 @SuppressLint("MissingPermission")
 private fun NighthawkBleLink.dropPeerLocked(id: String) {
+    discoveryStarted.remove(id)
     attToMesh.remove(id)?.let { mesh ->
         meshToAtt.remove(meshHex(mesh))
         MeshNative.neighborDown(mesh)
@@ -798,12 +881,35 @@ private object BleChunks {
         chunks: List<ByteArray>,
     ): Boolean {
         val target = clientChar(link, att, chUuid) ?: return false
-        writeEach(chunks) { chunk ->
-            target.ch.writeType = BluetoothGattCharacteristic.WRITE_TYPE_NO_RESPONSE
-            target.ch.value = chunk
-            target.gatt.writeCharacteristic(target.ch)
+        for (chunk in chunks) {
+            val code = writeChunk(target, chunk)
+            if (code != BluetoothStatusCodes.SUCCESS) {
+                Twig.warn { "mesh: client write status $code" }
+                return false
+            }
         }
+        Twig.info { "mesh: client write ${chunks.size}" }
         return true
+    }
+
+    private fun writeChunk(
+        target: ClientCh,
+        chunk: ByteArray,
+    ): Int {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            return target.gatt.writeCharacteristic(
+                target.ch,
+                chunk,
+                BluetoothGattCharacteristic.WRITE_TYPE_NO_RESPONSE,
+            )
+        }
+        target.ch.writeType = BluetoothGattCharacteristic.WRITE_TYPE_NO_RESPONSE
+        target.ch.value = chunk
+        return if (target.gatt.writeCharacteristic(target.ch)) {
+            BluetoothStatusCodes.SUCCESS
+        } else {
+            BluetoothStatusCodes.ERROR_UNKNOWN
+        }
     }
 
     @SuppressLint("MissingPermission")
