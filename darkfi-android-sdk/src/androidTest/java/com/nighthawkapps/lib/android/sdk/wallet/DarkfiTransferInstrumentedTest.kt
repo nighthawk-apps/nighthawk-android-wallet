@@ -118,6 +118,7 @@ class DarkfiTransferInstrumentedTest {
                     birthdayHeight = birthday,
                     lightwalletTlsPinSha256 = LightwalletTlsPin.parseHexPin(tlsPinHex),
                     useTor = false,
+                    useNym = false,
                     torSocksPort = 0u,
                     darkfidRpcUrl = darkfid,
                     strictOmrOnly = false,
