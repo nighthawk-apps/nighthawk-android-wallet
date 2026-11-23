@@ -37,7 +37,21 @@ srclib SHA edit.
 
 Tagging alone does **not** run this repo’s GitHub `Deploy` workflow (that is branch/`workflow_dispatch` + Play secrets). F-Droid’s scanner is separate.
 
-## 3.01.16 (this release)
+## 3.01.18 (this release)
+
+| Field | Value |
+|-------|--------|
+| `WALLET_VERSION_NAME` | `3.01.18` |
+| `WALLET_VERSION_CODE` | `30100818` |
+| Suggested git tag | `v3.01.18` |
+| Fastlane changelog | `fastlane/metadata/android/en-US/changelogs/30100818.txt` |
+| DarkFi pin | `6e61deb26f4c0064d15fd3da1a300456ea26ef37` (contains `9d7ceaf77`) |
+| nym-smolmix | `5f0dba82` |
+| F-Droid NDK | `30.0.16248370` (`ANDROID_NDK_VERSION`) |
+
+Same release number as iOS `3.01.18` (`30100818`), desktop `3.1.18`, and Moonshine `3.1.18`. Desktop and Moonshine use `3.1.18` because Cargo rejects a leading zero. Experimental UnifOMR stays off by default.
+
+## 3.01.16
 
 | Field | Value |
 |-------|--------|

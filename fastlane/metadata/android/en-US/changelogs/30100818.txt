@@ -1,0 +1,1 @@
+3.01.18: Experimental UnifOMR stays off unless you enable it. A server without FHE now reports that clearly instead of a generic sync error. Detection-key upload no longer keeps a second copy of the key. Same release as iOS 3.01.18, desktop 3.1.18, and Moonshine 3.1.18.

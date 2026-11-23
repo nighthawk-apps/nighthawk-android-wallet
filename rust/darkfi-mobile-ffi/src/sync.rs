@@ -7,22 +7,18 @@
 //!
 //! ## Sync modes
 //!
-//! 1. **OMR (Oblivious Message Retrieval)** — default when server supports it.
-//!    The server performs FHE-based filtering so only matching-height compact
-//!    blocks are fetched (sparse). Commitments + nullifiers cover the full
-//!    scan window for Merkle completeness. Faster sync, lower bandwidth.
+//! 1. **Trial decryption via lightwalletd** — production default. Client
+//!    downloads padded compact-output ranges and decrypts locally. The server
+//!    sees which ranges were requested, not which notes matched.
 //!
-//! 2. **Trial Decryption via Lightwalletd** — automatic fallback after OMR
-//!    failure threshold. Client downloads all compact blocks from the
-//!    lightwalletd server (full range) and attempts ChaCha20Poly1305
-//!    decryption of each encrypted note with its secret keys.
-//!    The server sees which block ranges are requested but not which notes
-//!    decrypt successfully. UI should surface this privacy downgrade.
+//! 2. **Experimental UnifOMR** — opt-in (`strict_omr_only` /
+//!    Advanced → Experimental UnifOMR). Server FHE filtering returns a sparse
+//!    match set; commitments + nullifiers still cover the full scan window for
+//!    Merkle completeness. Requires an `fhe-omr` lightwalletd; otherwise sync
+//!    halts rather than falling back to trial decrypt.
 //!
 //! 3. **Direct darkfid** — DISABLED in production. Only available behind
 //!    `#[cfg(feature = "direct-darkfid")]` for development/debugging.
-//!    Connecting directly to darkfid reveals which blocks and transactions
-//!    a wallet cares about.
 //!
 //! ## Privacy invariants
 //!
@@ -30,7 +26,7 @@
 //! - NEVER log server endpoints, detection keys, or block ranges at INFO+.
 //! - Add jitter to all polling intervals to prevent timing fingerprinting.
 //! - Pad block range requests to fixed bucket sizes where possible.
-//! - OMR is always attempted first; trial decryption only after OMR failure.
+//! - Do not cache UnifOMR detection-key ciphertexts across requests (linkability).
 
 use std::sync::{Arc, LazyLock, RwLock};
 
@@ -935,7 +931,7 @@ async fn fetch_detection_digest(
         }
     }
     let key = cached_or_build_detection_key(crypto, &[0u8; 32], network)?;
-    match client.register_detection_key(key.clone()).await {
+    match client.register_detection_key(key).await {
         Ok((handle, expires)) => {
             store_detection_handle(handle.clone(), expires);
             match client
@@ -943,13 +939,19 @@ async fn fetch_detection_digest(
                 .await
             {
                 Ok(resp) => return Ok(resp),
-                Err(e) if pool_digest_needs_reregister(&e) => clear_detection_key_pool(),
+                Err(e) if pool_digest_needs_reregister(&e) => {
+                    // Handle just registered but pool missed — clear and
+                    // let the next cycle rebuild (fresh BFV randomness).
+                    clear_detection_key_pool();
+                    return Err(format!(
+                        "detection-key pool miss after register: {e}"
+                    ));
+                }
                 Err(e) => return Err(e),
             }
         }
         Err(e) => return Err(e),
     }
-    Err("RegisterDetectionKey did not return a detection handle".into())
 }
 
 /// PIR first when the match set is sparse. Compact output bodies cover the

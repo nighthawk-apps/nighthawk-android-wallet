@@ -788,16 +788,14 @@ impl SyncEngine {
             }
         } else if available && state.sync_type == LightSyncType::Idle {
             state.sync_type = LightSyncType::Omr;
-        } else if !available && state.sync_type == LightSyncType::Omr {
-            if self.strict_omr_only() {
-                state.status = LightSyncStatus::Error;
-                state.sync_type = LightSyncType::Idle;
-                state.last_error = Some(
-                    "Server reports OMR unsupported; strict_omr_only refuses trial decrypt".into(),
-                );
-            } else {
-                state.sync_type = LightSyncType::TrialDecryption;
-            }
+        } else if !available {
+            // Startup state is Idle; without this branch the UI only shows
+            // generic "Sync error" while strict mode refuses trial decrypt.
+            state.status = LightSyncStatus::Error;
+            state.sync_type = LightSyncType::Idle;
+            state.last_error = Some(
+                "Server reports OMR unsupported; strict_omr_only refuses trial decrypt".into(),
+            );
         }
         state.refresh_messages();
     }

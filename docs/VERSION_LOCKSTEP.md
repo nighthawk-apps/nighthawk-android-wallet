@@ -1,16 +1,16 @@
 # Nighthawk DarkFi Ecosystem Version Lockstep
 
-Local working-tree alignment across Nighthawk DarkFi clients and services (2026-11-20).
+Local working-tree alignment across Nighthawk DarkFi clients and services (2026-11-23).
 
 ## Component Versions & Pins
 
 | Component | Repository | App / Crate Version | DarkFi Pin | Arti | UniFFI | Network Default | Lightwalletd Default (Testnet) |
 |-----------|-----------|---------------------|------------|------|--------|-----------------|--------------------------------|
-| **Android** | `nighthawk-android-wallet` | `3.01.16` (`30100816`) | `6e61deb26` | `0.48.0` | `0.32.2` | **Nym** (`nym-smolmix` `5f0dba82`) | `https://epidermis-sandbox-marshland.ngrok-free.dev:443` |
-| **iOS** | `nighthawk-ios-wallet` | `3.01.16` (`30100817`) | `6e61deb26` | `0.48.0` | `0.32.2` | **Nym** (`nym-smolmix` `5f0dba82`) | `https://epidermis-sandbox-marshland.ngrok-free.dev` |
-| **Desktop** | `nighthawk-desktop` | `3.1.14` | `6e61deb26` (via shared FFI) | `0.48.0` | `0.32.2` | **Tor** (`use_tor = true`) | `https://epidermis-sandbox-marshland.ngrok-free.dev` |
-| **Moonshine CLI** | `moonshine` | `3.1.13` | `6e61deb26` | `0.48.0` | n/a | **Tor** (`use_tor = true`) | `https://epidermis-sandbox-marshland.ngrok-free.dev` |
-| **darkfi-lightwalletd** | `darkfi-lightwalletd` | `0.3.10` (gRPC proto `2.1.0`) | `6e61deb26` | n/a | n/a | RPC to `darkfid` | Serves Mac Studio ngrok endpoint (`:9067` local) |
+| **Android** | `nighthawk-android-wallet` | `3.01.18` (`30100818`) | `6e61deb26` | `0.48.0` | `0.32.2` | **Nym** (`nym-smolmix` `5f0dba82`) | `https://epidermis-sandbox-marshland.ngrok-free.dev:443` |
+| **iOS** | `nighthawk-ios-wallet` | `3.01.18` (`30100818`) | `6e61deb26` | `0.48.0` | `0.32.2` | **Nym** (`nym-smolmix` `5f0dba82`) | `https://epidermis-sandbox-marshland.ngrok-free.dev` |
+| **Desktop** | `nighthawk-desktop` | `3.1.18` | `6e61deb26` (via shared FFI) | `0.48.0` | `0.32.2` | **Tor** (`use_tor = true`) | `https://epidermis-sandbox-marshland.ngrok-free.dev` |
+| **Moonshine CLI** | `moonshine` | `3.1.18` | `6e61deb26` | `0.48.0` | n/a | **Tor** (`use_tor = true`) | `https://epidermis-sandbox-marshland.ngrok-free.dev` |
+| **darkfi-lightwalletd** | `darkfi-lightwalletd` | `0.3.11` (gRPC proto `2.1.0`) | `6e61deb26` | n/a | n/a | RPC to `darkfid` | Serves Mac Studio ngrok endpoint (`:9067` local) |
 | **darkfi-mobile-ffi** | `rust/darkfi-mobile-ffi` (canonical on Android; iOS/desktop symlink or path-dep) | `0.2.3` | `9d7ceaf77` | `0.48.0` | `0.32.2` | Nym / Tor / Direct (`DarkircTransport`) | Mempool confirmation via `GetTransaction` before `Broadcasted` |
 
 ## Rotated Testnet TLS Pin (Mac Studio)
