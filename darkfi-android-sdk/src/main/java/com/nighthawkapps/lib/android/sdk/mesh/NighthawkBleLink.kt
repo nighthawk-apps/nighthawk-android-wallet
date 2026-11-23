@@ -68,6 +68,11 @@ class NighthawkBleLink(
 
     @Volatile internal var scanning = false
 
+    /** Transient scan failures. Reset after a startScan the stack accepts. */
+    internal var scanRetries = 0
+
+    private var scanRestart: Runnable? = null
+
     @Volatile internal var advertising = false
 
     /** True from startAdvertising until the stack accepts or rejects the set. */
@@ -287,10 +292,33 @@ class NighthawkBleLink(
 
     private fun cancelDutyTimersLocked() {
         val handler = radio ?: return
+        scanRestart?.let { handler.removeCallbacks(it) }
+        scanRestart = null
         for (r in dutyRunnables) {
             handler.removeCallbacks(r)
         }
         dutyRunnables.clear()
+    }
+
+    internal fun handleScanFailedLocked(errorCode: Int) {
+        releaseScanRegistration()
+        Twig.warn { "mesh: scan failed $errorCode" }
+        scanRestart?.let { radio?.removeCallbacks(it) }
+        scanRestart = null
+        if (!started || !MeshScanRecovery.shouldRetry(errorCode)) {
+            scanRetries = 0
+            return
+        }
+        scanRetries += 1
+        val delay = MeshScanRecovery.delayMs(errorCode, scanRetries)
+        val restart =
+            Runnable {
+                scanRestart = null
+                if (started && !scanning) startScanLocked()
+            }
+        scanRestart = restart
+        dutyRunnables += restart
+        radio?.postDelayed(restart, delay)
     }
 
     internal fun applyDutyLocked() {
@@ -344,13 +372,7 @@ class NighthawkBleLink(
             }
 
             override fun onScanFailed(errorCode: Int) {
-                radio?.post {
-                    scanning = false
-                    Twig.warn { "mesh: scan failed $errorCode" }
-                } ?: run {
-                    scanning = false
-                    Twig.warn { "mesh: scan failed $errorCode" }
-                }
+                radio?.post { handleScanFailedLocked(errorCode) } ?: handleScanFailedLocked(errorCode)
             }
         }
 
@@ -606,6 +628,7 @@ private fun NighthawkBleLink.startScanLocked() {
     try {
         sc.startScan(listOf(filter), settings, scanCallback)
         scanning = true
+        scanRetries = 0
     } catch (e: SecurityException) {
         Twig.warn(e) { "mesh: scan start failed" }
     } catch (e: IllegalStateException) {
@@ -617,7 +640,11 @@ private fun NighthawkBleLink.startScanLocked() {
 
 @SuppressLint("MissingPermission")
 private fun NighthawkBleLink.stopScanLocked() {
-    if (!scanning) return
+    releaseScanRegistration()
+}
+
+/** Stop the stack registration even when [scanning] was already cleared. */
+private fun NighthawkBleLink.releaseScanRegistration() {
     try {
         scanner?.stopScan(scanCallback)
     } catch (_: Exception) {

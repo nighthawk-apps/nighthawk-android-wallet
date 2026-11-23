@@ -293,10 +293,10 @@ impl DrkBootstrapConfig {
 /// iOS FFI) via UniFFI, so both platforms map from the *same* enum instead of
 /// duplicating ad-hoc, stringly-typed values.
 ///
-/// - `UnifOmr`: UnifOMR (ePrint 2025) — the default deployed retrieval path;
-///   the client derives UnifOMR detection keys (BFV, degree=2048) and the
-///   server runs homomorphic detection.
-/// - `TrialDecrypt`: client-side trial decryption of compact blocks (fallback).
+/// - `TrialDecrypt`: padded trial decryption. This is the default sync path.
+/// - `UnifOmr`: experimental UnifOMR. Used only when `strict_omr_only` is set.
+///   The client derives detection keys and the server runs homomorphic detection.
+///   Leave it off: it is slower and still buggy.
 /// - `Unknown`: idle or not-yet-determined.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SyncMethod {

@@ -61,7 +61,7 @@ fun ReviewSend(
         ReviewRow(label = stringResource(R.string.send_amount_label), value = amountLabel)
         ReviewRow(label = stringResource(R.string.send_recipient_label), value = recipient)
         ReviewRow(
-            label = stringResource(R.string.ns_network_fee),
+            label = stringResource(R.string.send_scheduled_fee_label),
             value = feeLabel ?: stringResource(R.string.send_fee_unknown),
         )
         ReviewRow(

@@ -34,6 +34,10 @@ import com.nighthawkapps.lib.android.spackle.Twig
 class NighthawkMeshService : Service() {
     @Volatile
     private var foregroundPromoted = false
+
+    private var foregroundRetries = 0
+
+    private var foregroundRetry: Runnable? = null
     private var radio: NighthawkBleLink? = null
     private val inbox = MeshFrameInbox()
     private var connectivity: ConnectivityManager? = null
@@ -159,6 +163,8 @@ class NighthawkMeshService : Service() {
     }
 
     override fun onDestroy() {
+        foregroundRetry?.let { dagHandler.removeCallbacks(it) }
+        foregroundRetry = null
         dagHandler.removeCallbacks(dagTick)
         try {
             ProcessLifecycleOwner.get().lifecycle.removeObserver(lifecycleObserver)
@@ -204,14 +210,15 @@ class NighthawkMeshService : Service() {
                 startForeground(NOTIFICATION_ID, MeshServiceNotify.buildNotification(this))
             }
             foregroundPromoted = true
+            foregroundRetries = 0
             isActive = true
             true
         } catch (e: SecurityException) {
-            MeshServiceStart.foregroundBlocked(this, e)
+            MeshServiceStart.foregroundBlocked(this, e, retry = false)
         } catch (e: IllegalStateException) {
-            MeshServiceStart.foregroundBlocked(this, e)
+            MeshServiceStart.foregroundBlocked(this, e, retry = true)
         } catch (e: IllegalArgumentException) {
-            MeshServiceStart.foregroundBlocked(this, e)
+            MeshServiceStart.foregroundBlocked(this, e, retry = false)
         }
     }
 
@@ -265,8 +272,26 @@ class NighthawkMeshService : Service() {
         fun foregroundBlocked(
             service: NighthawkMeshService,
             error: Exception,
+            retry: Boolean,
         ): Boolean {
             Twig.error(error) { "mesh: foreground service start blocked" }
+            service.foregroundRetry?.let { service.dagHandler.removeCallbacks(it) }
+            service.foregroundRetry = null
+            if (retry && MeshForegroundRetry.shouldRetry(service.foregroundRetries)) {
+                service.foregroundRetries += 1
+                val delay = MeshForegroundRetry.delayMs(service.foregroundRetries)
+                val again =
+                    Runnable {
+                        service.foregroundRetry = null
+                        if (!service.foregroundPromoted && service.promoteToForegroundOrStop()) {
+                            service.ensureRadio()
+                            service.applyPower()
+                        }
+                    }
+                service.foregroundRetry = again
+                service.dagHandler.postDelayed(again, delay)
+                return false
+            }
             isActive = false
             service.stopSelf()
             return false

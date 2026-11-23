@@ -14,6 +14,8 @@ import org.junit.Assert.assertTrue
 import org.junit.Assume.assumeTrue
 import org.junit.Test
 import org.junit.runner.RunWith
+import java.util.Collections
+import java.util.concurrent.atomic.AtomicInteger
 
 /**
  * Policy + lab gate for two-phone radio. Emulator BLE is not dual-role;
@@ -22,6 +24,12 @@ import org.junit.runner.RunWith
  */
 @RunWith(AndroidJUnit4::class)
 class MeshTwoPhoneInstrumentedTest {
+    private val noisePayload = byteArrayOf(0x6E, 0x68, 0x01, SEND_MARK)
+
+    private companion object {
+        const val SEND_MARK: Byte = 0x51
+    }
+
     @Test
     fun gattUuidsAreNotBitchat() {
         assertFalse(
@@ -82,6 +90,95 @@ class MeshTwoPhoneInstrumentedTest {
         )
         // Dual-role on one adapter is not an honest two-phone test.
         assertTrue(adapter!!.isEnabled)
+    }
+
+    /**
+     * Run this on both phones at once. Each side speaks the production
+     * [NighthawkBleLink], writes one Noise frame to the peer it connected,
+     * and passes only when that peer's frame lands in [MeshFrameInbox].
+     */
+    @Test
+    fun liveGattNoiseFrameArrivesFromTheOtherPhone() {
+        val ctx = InstrumentationRegistry.getInstrumentation().targetContext
+        val adapter = ctx.getSystemService(BluetoothManager::class.java)?.adapter
+        assumeTrue(
+            "physical device with Bluetooth required",
+            adapter != null && adapter.isEnabled && !isEmulator(),
+        )
+        val role =
+            InstrumentationRegistry.getArguments().getString("mesh.role") ?: "listen"
+        val sending = role == "send"
+        val received = Collections.synchronizedList(ArrayList<ByteArray>())
+        val inbox = MeshFrameInbox()
+        val link =
+            NighthawkBleLink(ctx) { frame ->
+                if (inbox.shouldIngest(frame)) received.add(frame)
+            }
+        link.setPower(foreground = true, charging = false, gatewayArmed = false, alwaysOn = true)
+        val sends = AtomicInteger(0)
+        link.start()
+        try {
+            // Stay up for the whole window. Leaving as soon as one side
+            // receives tears the radio down before the other side's write lands.
+            val deadline = System.currentTimeMillis() + 45_000L
+            while (System.currentTimeMillis() < deadline) {
+                if (sending) maybeSendNoise(link, sends)
+                Thread.sleep(500L)
+            }
+        } finally {
+            link.stop()
+        }
+        if (sending) {
+            assertTrue(
+                "sender never wrote a Noise frame (peers=${link.peerCount})",
+                sends.get() > 0,
+            )
+            return
+        }
+        assertTrue(
+            "GATT peer did not deliver a Noise frame (peers=${link.peerCount})",
+            received.isNotEmpty(),
+        )
+        val pkt = MeshWireCodec.decode(received[0])
+        assertEquals(MeshWireCodec.NH_NOISE_ENC, pkt?.type)
+        assertEquals(SEND_MARK.toInt(), pkt?.payload?.lastOrNull()?.toInt())
+        assertTrue(inbox.shouldIngest(received[0]))
+    }
+
+    private fun maybeSendNoise(
+        link: NighthawkBleLink,
+        sends: AtomicInteger,
+    ) {
+        if (sends.get() >= 40 || link.peerCount <= 0) return
+        val sender = link.sessionHint.copyOf()
+        if (sender.all { it == 0.toByte() }) return
+        var wrote = false
+        for (recipientHex in link.meshToAtt.keys) {
+            val recipient = hexToBytes(recipientHex)
+            if (recipient.size != MeshWireCodec.SENDER_LEN) continue
+            val frame =
+                MeshWireCodec.encode(
+                    MeshWirePacket(
+                        type = MeshWireCodec.NH_NOISE_ENC,
+                        ttl = 7,
+                        flags = 0,
+                        timestampMs = 0L,
+                        sender = sender,
+                        recipient = recipient,
+                        payload = noisePayload,
+                    ),
+                ) ?: continue
+            link.send(frame)
+            wrote = true
+        }
+        if (wrote) sends.incrementAndGet()
+    }
+
+    private fun hexToBytes(hex: String): ByteArray {
+        if (hex.length % 2 != 0) return ByteArray(0)
+        return ByteArray(hex.length / 2) { i ->
+            hex.substring(i * 2, i * 2 + 2).toInt(16).toByte()
+        }
     }
 
     private fun isEmulator(): Boolean {

@@ -621,6 +621,12 @@ pub async fn broadcast_transfer(
     Ok(tx_hash)
 }
 
+/// Validates transfer inputs and returns the fixed schedule fee constant
+/// (`SCHEDULE_TRANSFER_FEE_ATOMIC`, 5_000_000 atomic = 0.05 DRK).
+///
+/// Lightwalletd clients do not have a `darkfid` RPC for `tx.calculate_fee`
+/// gas simulation and do not run Halo2 proving during fee preview, so callers
+/// must label this as the fixed scheduled fee rather than a measured gas fee.
 pub async fn estimate_transfer_fee(
     _drk: &Drk,
     recipient_address: &str,
