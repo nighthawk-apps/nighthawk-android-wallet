@@ -45,7 +45,7 @@ Tagging alone does **not** run this repo’s GitHub `Deploy` workflow (that is b
 | `WALLET_VERSION_CODE` | `30100818` |
 | Suggested git tag | `v3.01.18` |
 | Fastlane changelog | `fastlane/metadata/android/en-US/changelogs/30100818.txt` |
-| DarkFi pin | `6e61deb26f4c0064d15fd3da1a300456ea26ef37` (contains `9d7ceaf77`) |
+| DarkFi pin | `1919419364a406b85a68411fa8ad80919b286113` (contains `6e61deb26` and `9d7ceaf77`) |
 | nym-smolmix | `5f0dba82` |
 | F-Droid NDK | `30.0.16248370` (`ANDROID_NDK_VERSION`) |
 

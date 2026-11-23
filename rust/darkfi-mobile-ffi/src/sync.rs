@@ -943,9 +943,7 @@ async fn fetch_detection_digest(
                     // Handle just registered but pool missed — clear and
                     // let the next cycle rebuild (fresh BFV randomness).
                     clear_detection_key_pool();
-                    return Err(format!(
-                        "detection-key pool miss after register: {e}"
-                    ));
+                    return Err(format!("detection-key pool miss after register: {e}"));
                 }
                 Err(e) => return Err(e),
             }
@@ -2591,6 +2589,33 @@ async fn ensure_merkle_caught_up(
         "Backfilling Money Merkle tree 0..={end} before scan_start {scan_start}"
     );
     rebuild_money_tree_from_ptr(drk, client, end).await
+}
+
+/// Append note commitments for `(tree_height, through]` onto an installed snapshot.
+///
+/// `through` is inclusive and is normally `birthday - 1`. The snapshot already
+/// holds `tree_height`, so that height is not appended again. The scan cursor
+/// advances to `through` when it is still behind.
+pub(crate) async fn append_commitments_through(
+    drk: &drk::Drk,
+    client: &crate::lightwallet_client::LightwalletClient,
+    tree_height: u32,
+    through: u32,
+) -> Result<(), String> {
+    let Some((start, end)) =
+        commitment_suffix_after_snapshot(tree_height, through.saturating_add(1))
+    else {
+        return Ok(());
+    };
+    let updates =
+        crate::sync_pipeline::fetch_padded_note_commitments(client, start, end, end.max(start))
+            .await?;
+    append_commitment_suffix(drk, &updates, start, end).await?;
+    let (now, _) = drk.get_last_scanned_block().map_err(|e| e.to_string())?;
+    if now < end {
+        persist_scanned_height(drk, end)?;
+    }
+    Ok(())
 }
 
 /// Append `[start, end]` onto the tree already installed by a snapshot.

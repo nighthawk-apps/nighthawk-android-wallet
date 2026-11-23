@@ -446,9 +446,21 @@ async fn backfill_money_tree_to_birthday(
     if let Ok(cp_height) =
         crate::checkpoint::download_and_apply_checkpoint(drk, &client, birthday).await
     {
+        let gap_end = birthday.saturating_sub(1);
+        if cp_height < gap_end {
+            if let Err(e) =
+                crate::sync::append_commitments_through(drk, &client, cp_height, gap_end).await
+            {
+                tracing::warn!(
+                    target: "wallet-bootstrap",
+                    "Checkpoint at {cp_height} left ({cp_height}, {gap_end}] unappended ({e}); \
+                     sync will append that suffix before note discovery"
+                );
+            }
+        }
         tracing::info!(
             target: "wallet-bootstrap",
-            "Instant restore applied checkpoint at height {cp_height} (skipped commitment backfill)"
+            "Instant restore applied checkpoint at height {cp_height}"
         );
         return Ok(());
     }

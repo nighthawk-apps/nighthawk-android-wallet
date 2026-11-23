@@ -1,5 +1,5 @@
-6e61deb26f4c0064d15fd3da1a300456ea26ef37
-# nighthawk24/darkfi (built on 9d7ceaf77 with official transfer memo builder).
+1919419364a406b85a68411fa8ad80919b286113
+# nighthawk24/darkfi branch nighthawk-testnet (built on 9d7ceaf77 + 6e61deb26, skipping recorded spent nullifiers).
 # git.dark.fi returns HTTP 504 and does not contain this SHA. Do not clone it.
 # Includes iOS rusage skip (proc_pid_rusage unavailable on iOS), set_chain_context_fallback,
 # batched Sapling KA, upstream 0f985c7cf tx-local fees, and upstream net hosts/refinery

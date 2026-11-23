@@ -89,6 +89,25 @@ pub fn checkpoint_preferred_height(birthday: u32) -> u32 {
     }
 }
 
+/// Scan cursor to store after a snapshot is installed.
+///
+/// The tree already contains `snapshot_height`. When that height is the
+/// birthday, a cursor of `snapshot_height` makes `clamp_scan_start` begin at
+/// `birthday + 1`, so the birthday block is never decrypted. The cursor is
+/// `birthday - 1` in that case. An older snapshot keeps its own height; the
+/// caller still has to append `(snapshot, birthday)`.
+pub fn checkpoint_scan_cursor(snapshot_height: u32, birthday: u32) -> u32 {
+    if birthday == 0 {
+        return snapshot_height;
+    }
+    let before_birthday = birthday.saturating_sub(1);
+    if snapshot_height >= before_birthday {
+        before_birthday
+    } else {
+        snapshot_height
+    }
+}
+
 /// Accept a snapshot when the request was "latest" (`requested == 0`), or
 /// when the returned height is at or below the birthday that was requested.
 ///
@@ -106,11 +125,11 @@ pub fn checkpoint_height_acceptable(requested: u32, returned: u32) -> bool {
 /// 2. Accepts the returned height when [`checkpoint_height_acceptable`].
 /// 3. Verifies `blake3(height || tree_data || nullifier_index) == snapshot_hash`.
 /// 4. Installs `tree_data` and records that height as the tree position.
-///    The scan cursor is that tree position only. Note discovery still
-///    starts at `max(snapshot + 1, birthday)` via `clamp_scan_start`.
-/// 5. Sets `merkle_from_genesis`. A snapshot below the birthday does not
-///    replay `0..=birthday`; `ensure_merkle_caught_up` appends only the
-///    open suffix `(snapshot, birthday)`.
+///    The scan cursor is [`checkpoint_scan_cursor`]: `birthday - 1` when the
+///    snapshot already includes the birthday, otherwise the snapshot height.
+/// 5. Sets `merkle_from_genesis`. A snapshot below `birthday - 1` does not
+///    itself append `(snapshot, birthday)`; the birthday backfill does that
+///    before the wallet can spend.
 ///
 /// `NOT_FOUND` and other RPC errors propagate so the caller keeps the full
 /// `GetNoteCommitments` replay.
@@ -191,11 +210,13 @@ pub async fn download_and_apply_checkpoint(
         .insert_merkle_trees(&[(drk::money::KVDB_MERKLE_TREES_MONEY, &tree)])
         .map_err(|e| format!("Failed to persist checkpoint tree: {e}"))?;
 
-    // Step 4: The scan cursor is the tree position only. Note discovery
-    // uses clamp_scan_start(cursor, birthday), which is the first height
-    // after this tree (or the birthday, when that is later).
-    let cursor = checkpoint.height;
-    crate::sync::persist_scanned_height(drk, cursor)?;
+    // Step 4: Keep the birthday block inside the next trial-decrypt window
+    // when the snapshot already includes it. An older snapshot keeps its
+    // height so the open suffix can still be appended above it.
+    let cursor = checkpoint_scan_cursor(checkpoint.height, birthday);
+    if cursor > 0 {
+        crate::sync::persist_scanned_height(drk, cursor)?;
+    }
     crate::sync::set_merkle_from_genesis(drk, true)?;
     crate::sync::set_merkle_tree_height(drk, checkpoint.height)?;
 
@@ -311,6 +332,15 @@ mod tests {
         assert_eq!(checkpoint_preferred_height(0), 0);
         assert_eq!(checkpoint_preferred_height(1), 1);
         assert_eq!(checkpoint_preferred_height(5000), 5000);
+    }
+
+    #[test]
+    fn checkpoint_scan_cursor_does_not_skip_the_birthday_block() {
+        assert_eq!(checkpoint_scan_cursor(5000, 5000), 4999);
+        assert_eq!(checkpoint_scan_cursor(4999, 5000), 4999);
+        assert_eq!(checkpoint_scan_cursor(4000, 5000), 4000);
+        assert_eq!(checkpoint_scan_cursor(1, 1), 0);
+        assert_eq!(checkpoint_scan_cursor(8000, 0), 8000);
     }
 
     #[test]
