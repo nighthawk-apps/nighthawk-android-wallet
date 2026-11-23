@@ -6,7 +6,7 @@
 
 use std::collections::{HashSet, VecDeque};
 use std::path::PathBuf;
-use std::sync::atomic::{AtomicBool, AtomicU32, AtomicU8, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU32, AtomicU64, AtomicU8, Ordering};
 use std::sync::{Arc, Mutex};
 
 use darkfi_serial::{deserialize_async, deserialize_async_partial, serialize_async};
@@ -101,6 +101,101 @@ const STATUS_FAILED: u8 = 4;
 
 /// Global daemon state (atomically updated).
 static DAEMON_STATUS: AtomicU8 = AtomicU8::new(STATUS_NOT_RUNNING);
+
+/// Bumped on every accepted start. A thread may publish status or clear the
+/// shared session only while this still equals the generation it started with.
+/// A hung `p2p.stop` otherwise stores `not_running` over the daemon that
+/// replaced it.
+static DAEMON_GENERATION: AtomicU64 = AtomicU64::new(0);
+
+/// Monotonic milliseconds when the current stop was requested. Zero means no
+/// stop is in progress. A start may replace a stop that has been pending for
+/// [`STUCK_STOP_MS`] so chat cannot stay on `stopping` forever.
+static STOP_REQUESTED_MS: AtomicU64 = AtomicU64::new(0);
+
+/// How long a stop may sit in `stopping` before the next start replaces it.
+/// Matches the Kotlin wait, which gives up after 5s and then calls start.
+const STUCK_STOP_MS: u64 = 4_000;
+
+fn monotonic_ms() -> u64 {
+    static START: std::sync::OnceLock<std::time::Instant> = std::sync::OnceLock::new();
+    let start = START.get_or_init(std::time::Instant::now);
+    start.elapsed().as_millis() as u64
+}
+
+fn daemon_generation_owns(owner: u64, current: u64) -> bool {
+    owner == current
+}
+
+fn this_daemon_should_exit(generation: u64) -> bool {
+    if !daemon_generation_owns(generation, DAEMON_GENERATION.load(Ordering::SeqCst)) {
+        return true;
+    }
+    DAEMON_STATUS.load(Ordering::SeqCst) == STATUS_STOPPING
+}
+
+/// A live daemon is refused. A stop that has not finished is refused until it
+/// has been pending for [`STUCK_STOP_MS`]. `None` means the stop age is
+/// unknown, which is treated as already stuck.
+pub(crate) fn may_replace_daemon(status: u8, stop_pending_ms: Option<u64>) -> bool {
+    match status {
+        STATUS_RUNNING | STATUS_STARTING => false,
+        STATUS_STOPPING => stop_pending_ms.unwrap_or(u64::MAX) >= STUCK_STOP_MS,
+        _ => true,
+    }
+}
+
+fn stop_pending_ms() -> Option<u64> {
+    let requested = STOP_REQUESTED_MS.load(Ordering::SeqCst);
+    if requested == 0 {
+        None
+    } else {
+        Some(monotonic_ms().saturating_sub(requested))
+    }
+}
+
+fn publish_daemon_exit(generation: u64, failed: bool) {
+    if !daemon_generation_owns(generation, DAEMON_GENERATION.load(Ordering::SeqCst)) {
+        return;
+    }
+    if failed {
+        DAEMON_STATUS.store(STATUS_FAILED, Ordering::Relaxed);
+        set_phase(PHASE_FAILED);
+    } else {
+        DAEMON_STATUS.store(STATUS_NOT_RUNNING, Ordering::Relaxed);
+        set_phase(PHASE_STOPPED);
+    }
+}
+
+fn signal_stop_channel() {
+    crate::block_on(async {
+        if let Some((ref tx, _)) = *STOP_CHANNEL.read().await {
+            let _ = tx.try_send(());
+            tx.close();
+        }
+    });
+}
+
+async fn clear_session_if_owner(generation: u64) {
+    if !daemon_generation_owns(generation, DAEMON_GENERATION.load(Ordering::SeqCst)) {
+        return;
+    }
+    *EVENT_GRAPH.write().await = None;
+    *P2P.write().await = None;
+}
+
+async fn abandon_after<T>(label: &'static str, fut: impl std::future::Future<Output = T>) {
+    smol::future::race(
+        async move {
+            let _ = fut.await;
+        },
+        async move {
+            smol::Timer::after(std::time::Duration::from_secs(3)).await;
+            tracing::warn!("darkirc {label} did not finish within 3s");
+        },
+    )
+    .await;
+}
 
 /// Fine-grained connection phase for UI (independent of coarse DAEMON_STATUS).
 const PHASE_STOPPED: u8 = 0;
@@ -317,8 +412,12 @@ pub(crate) fn register_dm_contact_checked(
     my_secret: &[u8],
     their_public: &[u8],
 ) -> Result<(), String> {
-    if nick.trim().is_empty() {
+    let clean_nick = nick.trim();
+    if clean_nick.is_empty() {
         return Err("DM contact nick cannot be empty".into());
+    }
+    if clean_nick.starts_with('#') {
+        return Err("DM contact nick cannot start with '#'".into());
     }
     let secret_arr: [u8; 32] = my_secret
         .try_into()
@@ -336,7 +435,7 @@ pub(crate) fn register_dm_contact_checked(
     DM_CONTACTS
         .write()
         .map_err(|e| e.to_string())?
-        .insert(nick.to_string(), boxes);
+        .insert(clean_nick.to_string(), boxes);
     Ok(())
 }
 
@@ -743,11 +842,25 @@ fn start_darkirc_inner(
 ) -> Result<(), DarkfiWalletNativeError> {
     let mut current = DAEMON_STATUS.load(Ordering::SeqCst);
     loop {
-        if current == STATUS_RUNNING || current == STATUS_STARTING || current == STATUS_STOPPING {
+        let pending = stop_pending_ms();
+        if !may_replace_daemon(current, pending) {
+            if current == STATUS_STOPPING {
+                // The first stop signal can be lost if it is sent before the
+                // daemon installs its channel. Send it again, then let the
+                // caller retry once the stop has been pending long enough.
+                signal_stop_channel();
+            }
             return Err(DarkfiWalletNativeError::NativeDrkUnavailable(format!(
                 "darkirc cannot start, current status: {}",
                 darkirc_status()
             )));
+        }
+        if current == STATUS_STOPPING {
+            signal_stop_channel();
+            tracing::warn!(
+                "darkirc stop still pending after {}ms; replacing the daemon",
+                pending.unwrap_or(STUCK_STOP_MS)
+            );
         }
         match DAEMON_STATUS.compare_exchange_weak(
             current,
@@ -759,6 +872,8 @@ fn start_darkirc_inner(
             Err(x) => current = x,
         }
     }
+    let generation = DAEMON_GENERATION.fetch_add(1, Ordering::SeqCst) + 1;
+    STOP_REQUESTED_MS.store(0, Ordering::SeqCst);
     init_logging();
 
     let db_path = PathBuf::from(&datastore_path);
@@ -788,7 +903,9 @@ fn start_darkirc_inner(
                 // Wrap the entire daemon body in catch_unwind so DAEMON_STATUS
                 // is always reset, even on panics. Without this, a panic leaves
                 // the status stuck at STARTING/RUNNING and all subsequent
-                // start_darkirc calls are permanently rejected.
+                // start_darkirc calls are permanently rejected. A thread that
+                // no longer owns `generation` must not write that status: the
+                // start that replaced a hung stop already published its own.
                 let outcome = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
                     let ex = Arc::new(Executor::new());
                     let ex_clone = ex.clone();
@@ -814,6 +931,7 @@ fn start_darkirc_inner(
                                     ex.clone(),
                                     cb,
                                     daemon_stop_rx,
+                                    generation,
                                 )
                                 .await;
                                 // Signal workers to stop
@@ -824,25 +942,22 @@ fn start_darkirc_inner(
                         .1;
 
                     match result {
-                        Ok(()) => {
-                            DAEMON_STATUS.store(STATUS_NOT_RUNNING, Ordering::Relaxed);
-                            set_phase(PHASE_STOPPED);
-                        }
+                        Ok(()) => publish_daemon_exit(generation, false),
                         Err(e) => {
                             tracing::error!("darkirc daemon failed: {e}");
-                            DAEMON_STATUS.store(STATUS_FAILED, Ordering::Relaxed);
-                            set_phase(PHASE_FAILED);
+                            publish_daemon_exit(generation, true);
                         }
                     }
                 }));
 
                 if outcome.is_err() {
                     tracing::error!("darkirc daemon thread panicked — forcing status to FAILED");
-                    DAEMON_STATUS.store(STATUS_FAILED, Ordering::Relaxed);
-                    set_phase(PHASE_FAILED);
+                    publish_daemon_exit(generation, true);
                 }
 
-                // Always clean up global state, panic or not.
+                if !daemon_generation_owns(generation, DAEMON_GENERATION.load(Ordering::SeqCst)) {
+                    return;
+                }
                 DAG_SYNCED.store(0, Ordering::Relaxed);
                 if DAEMON_STATUS.load(Ordering::Relaxed) != STATUS_FAILED {
                     set_phase(PHASE_STOPPED);
@@ -868,7 +983,14 @@ fn start_darkirc_inner(
 pub fn stop_darkirc() -> Result<(), DarkfiWalletNativeError> {
     let mut current = DAEMON_STATUS.load(Ordering::SeqCst);
     loop {
-        if current == STATUS_NOT_RUNNING || current == STATUS_STOPPING {
+        if current == STATUS_NOT_RUNNING {
+            return Ok(());
+        }
+        if current == STATUS_STOPPING {
+            // Already stopping is not a reason to drop the signal. The thread
+            // may not have installed the channel yet, or the first send lost
+            // the race. A second stop has to reach it.
+            signal_stop_channel();
             return Ok(());
         }
         match DAEMON_STATUS.compare_exchange_weak(
@@ -882,13 +1004,9 @@ pub fn stop_darkirc() -> Result<(), DarkfiWalletNativeError> {
         }
     }
 
+    STOP_REQUESTED_MS.store(monotonic_ms().max(1), Ordering::SeqCst);
     set_phase(PHASE_STOPPING);
-    crate::block_on(async {
-        if let Some((ref tx, _)) = *STOP_CHANNEL.read().await {
-            let _ = tx.try_send(());
-            tx.close();
-        }
-    });
+    signal_stop_channel();
     crate::mesh::notify_mesh_wake();
     Ok(())
 }
@@ -1155,6 +1273,7 @@ async fn run_darkirc_daemon(
     ex: Arc<Executor<'static>>,
     callback: Option<Arc<dyn DarkircEventCallback>>,
     stop_rx: smol::channel::Receiver<()>,
+    generation: u64,
 ) -> Result<(), String> {
     use darkfi::{
         event_graph::{proto::ProtocolEventGraph, EventGraph, EventGraphConfig},
@@ -1171,12 +1290,12 @@ async fn run_darkirc_daemon(
     std::fs::create_dir_all(&datastore_path).map_err(|e| format!("create datastore: {e}"))?;
     let mut kvdb_result = Database::open_default(&datastore_path);
     if kvdb_result.is_err() {
-        for _ in 0..5 {
-            if DAEMON_STATUS.load(Ordering::SeqCst) == STATUS_STOPPING {
+        for _ in 0..15 {
+            if this_daemon_should_exit(generation) {
                 return Ok(());
             }
-            sleep_or_stop(&stop_rx, std::time::Duration::from_millis(200)).await;
-            if DAEMON_STATUS.load(Ordering::SeqCst) == STATUS_STOPPING {
+            sleep_or_stop(&stop_rx, std::time::Duration::from_millis(500)).await;
+            if this_daemon_should_exit(generation) {
                 return Ok(());
             }
             kvdb_result = Database::open_default(&datastore_path);
@@ -1272,16 +1391,47 @@ async fn run_darkirc_daemon(
         max_dags: Some(DARKIRC_MAX_DAGS),
     };
 
-    let event_graph = EventGraph::new(
-        p2p.clone(),
-        kvdb.clone(),
-        replay_path.clone(),
-        false, // replay_mode
-        eg_config,
-        ex.clone(),
+    let event_graph = match smol::future::race(
+        async {
+            wait_for_stop(&stop_rx).await;
+            None
+        },
+        async {
+            Some(
+                EventGraph::new(
+                    p2p.clone(),
+                    kvdb.clone(),
+                    replay_path.clone(),
+                    false, // replay_mode
+                    eg_config,
+                    ex.clone(),
+                )
+                .await,
+            )
+        },
     )
     .await
-    .map_err(|e| format!("EventGraph init: {e}"))?;
+    {
+        None => {
+            abandon_after("p2p.stop", p2p.stop()).await;
+            clear_session_if_owner(generation).await;
+            let _ = kvdb.flush_default_mode_async().await;
+            return Ok(());
+        }
+        Some(Ok(graph)) => graph,
+        Some(Err(e)) => {
+            abandon_after("p2p.stop", p2p.stop()).await;
+            clear_session_if_owner(generation).await;
+            let _ = kvdb.flush_default_mode_async().await;
+            return Err(format!("EventGraph init: {e}"));
+        }
+    };
+    if this_daemon_should_exit(generation) {
+        abandon_after("p2p.stop", p2p.stop()).await;
+        clear_session_if_owner(generation).await;
+        let _ = kvdb.flush_default_mode_async().await;
+        return Ok(());
+    }
 
     let prune_task = event_graph.prune_task.get();
 
@@ -1303,9 +1453,12 @@ async fn run_darkirc_daemon(
         })
         .await;
 
-    // Save globals
-    *EVENT_GRAPH.write().await = Some(event_graph.clone());
-    *P2P.write().await = Some(p2p.clone());
+    // Save globals only while this generation still owns the daemon. A start
+    // that replaced a hung stop must keep the session it just installed.
+    if daemon_generation_owns(generation, DAEMON_GENERATION.load(Ordering::SeqCst)) {
+        *EVENT_GRAPH.write().await = Some(event_graph.clone());
+        *P2P.write().await = Some(p2p.clone());
+    }
 
     let p2p_started = smol::future::race(
         async {
@@ -1317,22 +1470,20 @@ async fn run_darkirc_daemon(
     .await;
     match p2p_started {
         None => {
-            p2p.stop().await;
+            abandon_after("p2p.stop", p2p.stop()).await;
             if let Some(prune) = prune_task {
-                prune.stop().await;
+                abandon_after("prune.stop", prune.stop()).await;
             }
-            *EVENT_GRAPH.write().await = None;
-            *P2P.write().await = None;
+            clear_session_if_owner(generation).await;
             let _ = kvdb.flush_default_mode_async().await;
             return Ok(());
         }
         Some(Err(e)) => {
-            p2p.stop().await;
+            abandon_after("p2p.stop", p2p.stop()).await;
             if let Some(prune) = prune_task {
-                prune.stop().await;
+                abandon_after("prune.stop", prune.stop()).await;
             }
-            *EVENT_GRAPH.write().await = None;
-            *P2P.write().await = None;
+            clear_session_if_owner(generation).await;
             let _ = kvdb.flush_default_mode_async().await;
             return Err(format!("P2P start: {e}"));
         }
@@ -1387,9 +1538,10 @@ async fn run_darkirc_daemon(
 
     let mesh_eg = event_graph.clone();
     let mesh_stop_rx = stop_rx.clone();
+    let mesh_generation = generation;
     let mesh_task = ex.spawn(async move {
         loop {
-            if DAEMON_STATUS.load(Ordering::SeqCst) == STATUS_STOPPING {
+            if this_daemon_should_exit(mesh_generation) {
                 break;
             }
             if !crate::transport_manager::mesh_enabled() {
@@ -1429,7 +1581,7 @@ async fn run_darkirc_daemon(
     // Failed sync steps always retry (do not park in the monitor loop).
     let mut logged_waiting = false;
     loop {
-        if DAEMON_STATUS.load(Ordering::SeqCst) == STATUS_STOPPING {
+        if this_daemon_should_exit(generation) {
             break;
         }
 
@@ -1518,6 +1670,9 @@ async fn run_darkirc_daemon(
         };
         tracing::info!("darkirc daemon fetched {} historical events", history.len());
         replay_history(history, &callback, &relayed_ids).await;
+        if this_daemon_should_exit(generation) {
+            break;
+        }
         DAG_SYNCED.store(1, Ordering::Relaxed);
         set_phase(PHASE_CONNECTED);
         publish_outbound_slots();
@@ -1528,7 +1683,7 @@ async fn run_darkirc_daemon(
         let net_sub = p2p.hosts().subscribe_disconnect().await;
         let mut last_dag_refresh = std::time::Instant::now();
         loop {
-            if DAEMON_STATUS.load(Ordering::SeqCst) == STATUS_STOPPING {
+            if this_daemon_should_exit(generation) {
                 break;
             }
             if !p2p.is_connected() {
@@ -1556,7 +1711,7 @@ async fn run_darkirc_daemon(
             )
             .await;
 
-            if stop_or_disc == "stop" || DAEMON_STATUS.load(Ordering::SeqCst) == STATUS_STOPPING {
+            if stop_or_disc == "stop" || this_daemon_should_exit(generation) {
                 break;
             }
 
@@ -1602,7 +1757,7 @@ async fn run_darkirc_daemon(
             }
         }
 
-        if DAEMON_STATUS.load(Ordering::SeqCst) == STATUS_STOPPING {
+        if this_daemon_should_exit(generation) {
             break;
         }
 
@@ -1611,16 +1766,14 @@ async fn run_darkirc_daemon(
         }
     }
 
-    p2p.stop().await;
+    abandon_after("p2p.stop", p2p.stop()).await;
     if let Some(prune) = prune_task {
-        prune.stop().await;
+        abandon_after("prune.stop", prune.stop()).await;
     }
-    mesh_task.cancel().await;
-    relay_task.cancel().await;
+    abandon_after("mesh.cancel", mesh_task.cancel()).await;
+    abandon_after("relay.cancel", relay_task.cancel()).await;
 
-    // Clear globals
-    *EVENT_GRAPH.write().await = None;
-    *P2P.write().await = None;
+    clear_session_if_owner(generation).await;
 
     let _ = kvdb.flush_default_mode_async().await;
     Ok(())
@@ -1630,6 +1783,27 @@ async fn run_darkirc_daemon(
 mod tests {
     use super::*;
     use darkfi_serial::serialize_async;
+
+    #[test]
+    fn a_fresh_stop_is_kept_and_a_stuck_stop_can_be_replaced() {
+        assert!(!may_replace_daemon(STATUS_RUNNING, None));
+        assert!(!may_replace_daemon(STATUS_STARTING, Some(60_000)));
+        assert!(!may_replace_daemon(STATUS_STOPPING, Some(0)));
+        assert!(!may_replace_daemon(
+            STATUS_STOPPING,
+            Some(STUCK_STOP_MS - 1)
+        ));
+        assert!(may_replace_daemon(STATUS_STOPPING, Some(STUCK_STOP_MS)));
+        assert!(may_replace_daemon(STATUS_STOPPING, None));
+        assert!(may_replace_daemon(STATUS_FAILED, None));
+        assert!(may_replace_daemon(STATUS_NOT_RUNNING, None));
+    }
+
+    #[test]
+    fn a_late_thread_does_not_own_a_newer_generation() {
+        assert!(daemon_generation_owns(4, 4));
+        assert!(!daemon_generation_owns(4, 5));
+    }
 
     /// A public-channel PRIVMSG produced by upstream `darkirc` is serialized as
     /// `version | msg_type | channel | nick | msg`. This buffer is hand-encoded
@@ -1882,6 +2056,8 @@ mod tests {
     fn dm_register_rejects_empty_nick_and_short_key() {
         let empty = register_dm_contact(String::new(), vec![0; 32], vec![0; 32]);
         assert!(empty.is_err());
+        let hash_prefix = register_dm_contact("#bob".into(), vec![1; 32], vec![2; 32]);
+        assert!(hash_prefix.is_err());
         let short = register_dm_contact("bob".into(), vec![1; 16], vec![0; 32]);
         assert!(short.is_err());
     }

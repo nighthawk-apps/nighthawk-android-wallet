@@ -1,5 +1,5 @@
-9d7ceaf77da7ccfd29ead3ba168fab284decd8c8
-# nighthawk24/darkfi branch nighthawk-testnet (same pin as iOS / Moonshine).
+6e61deb26f4c0064d15fd3da1a300456ea26ef37
+# nighthawk24/darkfi (built on 9d7ceaf77 with official transfer memo builder).
 # git.dark.fi returns HTTP 504 and does not contain this SHA. Do not clone it.
 # Includes iOS rusage skip (proc_pid_rusage unavailable on iOS), set_chain_context_fallback,
 # batched Sapling KA, upstream 0f985c7cf tx-local fees, and upstream net hosts/refinery

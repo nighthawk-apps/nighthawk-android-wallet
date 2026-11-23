@@ -5,8 +5,8 @@
 #[cfg(all(feature = "nym-android", target_os = "android"))]
 mod android_tls;
 mod birthday;
-mod block_times;
 pub mod block_cache;
+mod block_times;
 pub mod bootstrap;
 mod dao;
 mod dao_compact;
@@ -23,8 +23,8 @@ pub mod sync;
 pub use sync::{apply_full_block, redact_sync_error};
 mod tokens;
 mod tor;
-pub mod transport_manager;
 pub mod transactions;
+pub mod transport_manager;
 mod tx_inspect;
 
 pub mod batch_pir;

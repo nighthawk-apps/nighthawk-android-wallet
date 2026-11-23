@@ -65,14 +65,16 @@ class NighthawkBleLink(
     internal var scanner: BluetoothLeScanner? = null
     internal var advertiser: BluetoothLeAdvertiser? = null
     internal var gattServer: BluetoothGattServer? = null
-    internal var scanning = false
-    internal var advertising = false
+
+    @Volatile internal var scanning = false
+
+    @Volatile internal var advertising = false
 
     /** True from startAdvertising until the stack accepts or rejects the set. */
-    internal var advertiseStartPending = false
+    @Volatile internal var advertiseStartPending = false
 
     /** Advertise mode last requested. Scan duty must not tear this down. */
-    internal var advertisedForeground: Boolean? = null
+    @Volatile internal var advertisedForeground: Boolean? = null
     internal var started = false
     internal var foreground = true
     internal var charging = false
@@ -259,14 +261,25 @@ class NighthawkBleLink(
     internal val advertiseCallback =
         object : AdvertiseCallback() {
             override fun onStartSuccess(settingsInEffect: AdvertiseSettings?) {
-                advertising = true
-                advertiseStartPending = false
+                radio?.post {
+                    advertising = true
+                    advertiseStartPending = false
+                } ?: run {
+                    advertising = true
+                    advertiseStartPending = false
+                }
             }
 
             override fun onStartFailure(errorCode: Int) {
-                advertising = false
-                advertiseStartPending = false
-                Twig.warn { "mesh: advertise error $errorCode" }
+                radio?.post {
+                    advertising = false
+                    advertiseStartPending = false
+                    Twig.warn { "mesh: advertise error $errorCode" }
+                } ?: run {
+                    advertising = false
+                    advertiseStartPending = false
+                    Twig.warn { "mesh: advertise error $errorCode" }
+                }
             }
         }
 
@@ -294,8 +307,8 @@ class NighthawkBleLink(
         adapter?.let { ad ->
             // onStartSuccess is async. Stopping the set before that callback
             // makes the stack unregister and start again in a tight loop.
-            val sameMode = advertisedForeground == foreground
-            if (!(advertiseStartPending && sameMode) && (!advertising || !sameMode)) {
+            val keepAdvertising = (advertiseStartPending || advertising) && advertisedForeground == foreground
+            if (!keepAdvertising) {
                 restartAdvertisingLocked(ad)
             }
         }
@@ -331,8 +344,13 @@ class NighthawkBleLink(
             }
 
             override fun onScanFailed(errorCode: Int) {
-                scanning = false
-                Twig.warn { "mesh: scan failed $errorCode" }
+                radio?.post {
+                    scanning = false
+                    Twig.warn { "mesh: scan failed $errorCode" }
+                } ?: run {
+                    scanning = false
+                    Twig.warn { "mesh: scan failed $errorCode" }
+                }
             }
         }
 
@@ -353,7 +371,7 @@ class NighthawkBleLink(
                             } catch (_: Exception) {
                                 false
                             }
-                        if (!requested) discoverOnceLocked(gatt)
+                        if (!requested) BleConnect.discoverOnce(this@NighthawkBleLink, gatt)
                     } else if (newState == BluetoothProfile.STATE_DISCONNECTED) {
                         discoveryStarted.remove(id)
                         dropPeerLocked(id)
@@ -369,7 +387,7 @@ class NighthawkBleLink(
                 if (status == BluetoothGatt.GATT_SUCCESS) {
                     this@NighthawkBleLink.mtu = mtu
                 }
-                radio?.post { discoverOnceLocked(gatt) }
+                radio?.post { BleConnect.discoverOnce(this@NighthawkBleLink, gatt) }
             }
 
             @SuppressLint("MissingPermission")
@@ -387,10 +405,10 @@ class NighthawkBleLink(
                     gatt.setCharacteristicNotification(ch, true)
                     val cccd = ch.getDescriptor(MeshGattConstants.CCCD_UUID)
                     if (cccd == null) {
-                        attToMesh[gatt.device.address]?.let { handshakeLocked(it) }
-                    } else if (!writeCccdLocked(gatt, cccd)) {
+                        attToMesh[gatt.device.address]?.let { BleConnect.handshake(this@NighthawkBleLink, it) }
+                    } else if (!BleConnect.writeCccd(gatt, cccd)) {
                         Twig.warn { "mesh: cccd write rejected" }
-                        attToMesh[gatt.device.address]?.let { handshakeLocked(it) }
+                        attToMesh[gatt.device.address]?.let { BleConnect.handshake(this@NighthawkBleLink, it) }
                     }
                 } catch (_: Exception) {
                 }
@@ -407,7 +425,7 @@ class NighthawkBleLink(
                         Twig.warn { "mesh: cccd status $status" }
                         return@post
                     }
-                    attToMesh[gatt.device.address]?.let { handshakeLocked(it) }
+                    attToMesh[gatt.device.address]?.let { BleConnect.handshake(this@NighthawkBleLink, it) }
                 }
             }
 
@@ -612,70 +630,21 @@ private fun NighthawkBleLink.considerConnectLocked(
     device: BluetoothDevice,
     advertisedMeshId: ByteArray?,
 ) {
-    if (device.address == adapter?.address) return
-    val meshId = MeshScanGate.meshIdFromAdvertisement(advertisedMeshId) ?: return
+    val meshId = MeshScanGate.meshIdFromAdvertisement(advertisedMeshId)
+    if (device.address == adapter?.address || meshId == null) return
     val id = BleConnect.connectableId(this, device)
-    if (id == null) {
-        val existing = device.address ?: return
-        if (MeshScanGate.shouldAttach(alreadyLinked = true, meshId = meshId)) {
-            attachAdvertisedMeshLocked(existing, meshId)
+    if (id != null) {
+        BleConnect.open(this, device, id, meshId)
+    } else {
+        val existing = device.address
+        if (existing != null && MeshScanGate.shouldAttach(alreadyLinked = true, meshId = meshId)) {
+            BleConnect.attachAdvertisedMesh(this, existing, meshId)
         }
-        return
-    }
-    BleConnect.open(this, device, id, meshId)
-}
-
-@SuppressLint("MissingPermission")
-private fun NighthawkBleLink.discoverOnceLocked(gatt: BluetoothGatt) {
-    val id = gatt.device.address ?: return
-    if (!discoveryStarted.add(id)) return
-    try {
-        gatt.discoverServices()
-    } catch (_: Exception) {
-        discoveryStarted.remove(id)
     }
 }
 
 @SuppressLint("MissingPermission")
-private fun NighthawkBleLink.writeCccdLocked(
-    gatt: BluetoothGatt,
-    descriptor: BluetoothGattDescriptor,
-): Boolean {
-    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-        val code =
-            gatt.writeDescriptor(
-                descriptor,
-                BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE,
-            )
-        return code == BluetoothStatusCodes.SUCCESS
-    }
-    descriptor.value = BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE
-    return gatt.writeDescriptor(descriptor)
-}
-
-private fun NighthawkBleLink.handshakeLocked(meshId: ByteArray) {
-    MeshNative.neighborUp(meshId)
-    onEngineFlush?.invoke()
-    Twig.info { "mesh: neighbor handshake" }
-}
-
-@SuppressLint("MissingPermission")
-private fun NighthawkBleLink.attachAdvertisedMeshLocked(
-    att: String,
-    meshId: ByteArray,
-) {
-    val known = attToMesh[att]
-    rememberMeshLocked(att, meshId)
-    if (known != null && known.contentEquals(meshId)) return
-    val gatt = clientGatts[att] ?: return
-    val ready =
-        gatt.getService(MeshGattConstants.SERVICE_UUID)
-            ?.getCharacteristic(MeshGattConstants.CHARACTERISTIC_UUID) != null
-    if (ready) handshakeLocked(meshId)
-}
-
-@SuppressLint("MissingPermission")
-private fun NighthawkBleLink.dropPeerLocked(id: String) {
+internal fun NighthawkBleLink.dropPeerLocked(id: String) {
     discoveryStarted.remove(id)
     attToMesh.remove(id)?.let { mesh ->
         meshToAtt.remove(meshHex(mesh))
@@ -704,7 +673,7 @@ private fun NighthawkBleLink.ingestAttLocked(
     }
 }
 
-private fun NighthawkBleLink.rememberMeshLocked(
+internal fun NighthawkBleLink.rememberMeshLocked(
     attKey: String,
     meshId: ByteArray,
 ) {
@@ -849,7 +818,7 @@ private object BleConnect {
     private fun alreadyLinked(
         link: NighthawkBleLink,
         id: String,
-    ): Boolean = id == link.adapter?.address || link.clientGatts.containsKey(id) || link.peers.contains(id)
+    ): Boolean = id == link.adapter?.address || link.clientGatts.containsKey(id)
 
     private fun fail(
         link: NighthawkBleLink,
@@ -858,6 +827,63 @@ private object BleConnect {
     ) {
         Twig.warn(error) { "mesh: connect failed" }
         link.peers.forget(id)
+    }
+
+    @SuppressLint("MissingPermission")
+    fun discoverOnce(
+        link: NighthawkBleLink,
+        gatt: BluetoothGatt,
+    ) {
+        val id = gatt.device.address ?: return
+        if (!link.discoveryStarted.add(id)) return
+        try {
+            gatt.discoverServices()
+        } catch (_: Exception) {
+            link.discoveryStarted.remove(id)
+        }
+    }
+
+    @SuppressLint("MissingPermission")
+    fun writeCccd(
+        gatt: BluetoothGatt,
+        descriptor: BluetoothGattDescriptor,
+    ): Boolean =
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            val code =
+                gatt.writeDescriptor(
+                    descriptor,
+                    BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE,
+                )
+            code == BluetoothStatusCodes.SUCCESS
+        } else {
+            descriptor.value = BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE
+            gatt.writeDescriptor(descriptor)
+        }
+
+    fun handshake(
+        link: NighthawkBleLink,
+        meshId: ByteArray,
+    ) {
+        MeshNative.neighborUp(meshId)
+        link.onEngineFlush?.invoke()
+        Twig.info { "mesh: neighbor handshake" }
+    }
+
+    @SuppressLint("MissingPermission")
+    fun attachAdvertisedMesh(
+        link: NighthawkBleLink,
+        att: String,
+        meshId: ByteArray,
+    ) {
+        val known = link.attToMesh[att]
+        link.rememberMeshLocked(att, meshId)
+        if (known != null && known.contentEquals(meshId)) return
+        val gatt = link.clientGatts[att] ?: return
+        val ready =
+            gatt
+                .getService(MeshGattConstants.SERVICE_UUID)
+                ?.getCharacteristic(MeshGattConstants.CHARACTERISTIC_UUID) != null
+        if (ready) handshake(link, meshId)
     }
 }
 
@@ -881,15 +907,21 @@ private object BleChunks {
         chunks: List<ByteArray>,
     ): Boolean {
         val target = clientChar(link, att, chUuid) ?: return false
+        var failedCode: Int? = null
         for (chunk in chunks) {
             val code = writeChunk(target, chunk)
             if (code != BluetoothStatusCodes.SUCCESS) {
-                Twig.warn { "mesh: client write status $code" }
-                return false
+                failedCode = code
+                break
             }
         }
-        Twig.info { "mesh: client write ${chunks.size}" }
-        return true
+        return if (failedCode != null) {
+            Twig.warn { "mesh: client write status $failedCode" }
+            false
+        } else {
+            Twig.info { "mesh: client write ${chunks.size}" }
+            true
+        }
     }
 
     private fun writeChunk(

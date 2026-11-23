@@ -7,8 +7,10 @@ package com.nighthawkapps.lib.android.sdk.mesh
  * phone ever calls neighbor-up.
  */
 internal object MeshScanGate {
-    fun meshIdFromAdvertisement(data: ByteArray?): ByteArray? =
-        data?.takeIf { it.size == MeshWireCodec.SENDER_LEN }?.copyOf()
+    fun meshIdFromAdvertisement(data: ByteArray?): ByteArray? {
+        val valid = data?.takeIf { it.size == MeshWireCodec.SENDER_LEN }
+        return valid?.copyOf()
+    }
 
     fun shouldOpen(
         alreadyLinked: Boolean,

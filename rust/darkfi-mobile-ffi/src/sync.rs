@@ -2599,9 +2599,24 @@ async fn append_commitment_suffix(
     start: u32,
     end: u32,
 ) -> Result<(), String> {
-    use std::collections::BTreeMap;
+    use std::collections::{BTreeMap, HashMap};
 
-    use drk::money::KVDB_MERKLE_TREES_MONEY;
+    use darkfi_sdk::pasta::group::ff::PrimeField;
+    use darkfi_serial::serialize;
+    use drk::money::{
+        KVDB_MERKLE_TREES_MONEY, MONEY_COINS_COL_COIN, MONEY_COINS_COL_CREATION_HEIGHT,
+        MONEY_COINS_COL_LEAF_POSITION, MONEY_COINS_TABLE,
+    };
+
+    let mut own: HashMap<Vec<u8>, Vec<u8>> = HashMap::new();
+    if let Ok(coins) = drk.get_coins(true).await {
+        for (oc, _, _, _, _) in &coins {
+            own.insert(
+                oc.coin.inner().to_repr().to_vec(),
+                oc.coin.to_bytes().to_vec(),
+            );
+        }
+    }
 
     let mut by_h: BTreeMap<u32, Vec<Vec<u8>>> = BTreeMap::new();
     for (height, coins) in updates {
@@ -2625,6 +2640,28 @@ async fn append_commitment_suffix(
                 continue;
             };
             tree.append(node);
+            if let Some(sql_key) = own.get(coin_bytes.as_slice()) {
+                if let Some(pos) = tree.mark() {
+                    let query = format!(
+                        "UPDATE {} SET {} = ?1, {} = ?2 WHERE {} = ?3;",
+                        *MONEY_COINS_TABLE,
+                        MONEY_COINS_COL_LEAF_POSITION,
+                        MONEY_COINS_COL_CREATION_HEIGHT,
+                        MONEY_COINS_COL_COIN,
+                    );
+                    let _ = drk
+                        .wallet
+                        .exec_sql(
+                            &query,
+                            vec![
+                                drk::walletdb::Value::from(serialize(&pos)),
+                                drk::walletdb::Value::from(i64::from(height)),
+                                drk::walletdb::Value::from(sql_key.clone()),
+                            ],
+                        )
+                        .await;
+                }
+            }
         }
     }
     drk.cache

@@ -1,0 +1,1 @@
+3.01.16: DM nicks cannot collide with #channels, Merkle leaf positions are marked across checkpoint suffixes, mesh advertise is serialized, and the live send test fails closed when it never sees the Studio chain tip. Aligns with iOS 3.01.16, desktop 3.1.14, Moonshine 3.1.13, lightwalletd 0.3.10.

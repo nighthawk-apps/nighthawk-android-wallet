@@ -576,7 +576,10 @@ class DarkfiChatController(
                 else -> delay(200)
             }
         }
-        Twig.warn { "awaitDaemonNotRunning timed out (status=${darkircStatus()})" }
+        Twig.warn {
+            "awaitDaemonNotRunning timed out (status=${darkircStatus()}). " +
+                "A start after a stop has been pending replaces a stuck daemon."
+        }
     }
 
     fun stop() {

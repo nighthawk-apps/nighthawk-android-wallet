@@ -40,7 +40,7 @@ object DarkircCryptoManager {
             } else {
                 DarkircCryptoStore.removeContact(app, config.nick)
             }
-            throw IllegalStateException("DM contact was not registered")
+            error("DM contact was not registered")
         }
         applyAndRestartEmbeddedDaemon(app)
     }
@@ -70,11 +70,10 @@ object DarkircCryptoManager {
     }
 
     private fun registerSingleContactInNative(config: DarkircContactCryptoConfig): Boolean {
-        if (config.nick.isBlank()) return false
-        val mySecret = DarkircBs58.decode32OrNull(config.myDmChachaSecretBase58) ?: return false
+        val mySecret = if (config.nick.isBlank()) null else DarkircBs58.decode32OrNull(config.myDmChachaSecretBase58)
         val theirPublic = DarkircBs58.decode32OrNull(config.dmChachaPublicBase58)
-        if (theirPublic == null) {
-            mySecret.fill(0)
+        if (mySecret == null || theirPublic == null) {
+            mySecret?.fill(0)
             return false
         }
         return try {

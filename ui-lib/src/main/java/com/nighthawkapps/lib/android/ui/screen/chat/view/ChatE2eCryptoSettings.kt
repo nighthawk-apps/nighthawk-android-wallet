@@ -176,18 +176,13 @@ internal fun ChatE2eCryptoSettings(
                             Toast.makeText(context, R.string.ns_chat_e2e_saved_failed, Toast.LENGTH_SHORT).show()
                         }
                     } else {
-                        val ok = DarkircCryptoManager.applyAndRestartEmbeddedDaemon(appContext)
-                        if (ok) {
-                            reload()
-                        }
+                        reload()
                         withContext(Dispatchers.Main) {
-                            if (ok) {
-                                onApplied()
-                            }
+                            onApplied()
                             Toast
                                 .makeText(
                                     context,
-                                    if (ok) R.string.ns_chat_e2e_saved_ok else R.string.ns_chat_e2e_saved_failed,
+                                    R.string.ns_chat_e2e_saved_ok,
                                     Toast.LENGTH_SHORT,
                                 ).show()
                         }

@@ -236,7 +236,6 @@ fn derive_omr_memo_key(secret_bytes: &[u8; 32], recipient_pk: &[u8; 32], nonce: 
     out
 }
 
-
 pub async fn build_transfer(
     drk: &Drk,
     recipient_address: &str,

@@ -102,6 +102,7 @@ class DarkfiTransferInstrumentedTest {
         runCatching {
             File("/data/local/tmp/e2e_wallet.db").takeIf { it.isFile }?.copyTo(walletDb, overwrite = true)
             File("/data/local/tmp/e2e_cache").takeIf { it.isDirectory }?.copyRecursively(cache, overwrite = true)
+            extractCacheZipIfPresent(File("/data/local/tmp/e2e_cache.zip"), cache)
         }
 
         println("E2E_OPENING_WALLET birthday=$birthday lwd=$lwd")
@@ -160,6 +161,37 @@ class DarkfiTransferInstrumentedTest {
         runCatching { File(path).takeIf { it.isFile }?.readText()?.trim() }
             .getOrNull()
             ?.takeIf { it.isNotEmpty() }
+
+    private fun extractCacheZipIfPresent(
+        zipFile: File,
+        destDir: File,
+    ) {
+        if (!zipFile.isFile) return
+        val canonicalRoot = destDir.canonicalPath + File.separator
+        java.util.zip.ZipInputStream(zipFile.inputStream().buffered()).use { zis ->
+            var entry = zis.nextEntry
+            while (entry != null) {
+                writeZipEntryIfSafe(zis, entry, File(destDir, entry.name), canonicalRoot)
+                zis.closeEntry()
+                entry = zis.nextEntry
+            }
+        }
+    }
+
+    private fun writeZipEntryIfSafe(
+        zis: java.util.zip.ZipInputStream,
+        entry: java.util.zip.ZipEntry,
+        out: File,
+        canonicalRoot: String,
+    ) {
+        if (!out.canonicalPath.startsWith(canonicalRoot)) return
+        if (entry.isDirectory) {
+            out.mkdirs()
+        } else {
+            out.parentFile?.mkdirs()
+            out.outputStream().use { zis.copyTo(it) }
+        }
+    }
 
     private fun waitUntilSynced(handle: DarkfiWalletHandle) {
         val deadline = System.currentTimeMillis() + 1_500_000
@@ -228,7 +260,7 @@ class DarkfiTransferInstrumentedTest {
         while (System.currentTimeMillis() < deadline) {
             attempt++
             println("E2E_EXPLORER_CHECK attempt=$attempt $url")
-            if (isRealExplorerTxPage(url, txHash) || sidecarConfirmed(sidecar, txHash) || darkfidPendingHasTx(txHash) || darkfidHasTx(txHash)) {
+            if (isConfirmedInExplorerOrNode(url, sidecar, txHash)) {
                 println("E2E_DARKFID_CONFIRMED_IN_NODE $txHash")
                 return
             }
@@ -240,6 +272,18 @@ class DarkfiTransferInstrumentedTest {
         }
         fail("Transaction $txHash did not appear on the public DarkFi explorer")
     }
+
+    private fun isConfirmedInExplorerOrNode(
+        url: URL,
+        sidecar: URL,
+        txHash: String,
+    ): Boolean =
+        listOf(
+            isRealExplorerTxPage(url, txHash),
+            sidecarConfirmed(sidecar, txHash),
+            darkfidPendingHasTx(txHash),
+            darkfidHasTx(txHash),
+        ).any { it }
 
     private fun isRealExplorerTxPage(
         url: URL,
