@@ -24,9 +24,6 @@ object DarkfidChainDefaults {
             "tcp+tls://lilith1.dark.fi:8340",
         )
 
-    /** @deprecated use [TESTNET_CLEARNET_P2P_SEEDS] */
-    val CLEARNET_P2P_SEEDS: List<String> = TESTNET_CLEARNET_P2P_SEEDS
-
     /** Testnet Tor profile seeds (`darkfid_config.toml` → testnet `net.profiles."tor"`). */
     val TESTNET_TOR_ONION_P2P_SEEDS: List<String> =
         listOf(
@@ -46,9 +43,6 @@ object DarkfidChainDefaults {
             "tor+tls://lilith0.dark.fi:8340",
             "tor+tls://lilith1.dark.fi:8340",
         )
-
-    /** @deprecated use [torOnionP2pSeeds] */
-    val TOR_ONION_P2P_SEEDS: List<String> = TESTNET_TOR_ONION_P2P_SEEDS
 
     fun jsonRpcPort(network: DarkfiNetwork): Int =
         when (network) {

@@ -301,7 +301,7 @@ class NighthawkBleLink(
     }
 
     internal fun handleScanFailedLocked(errorCode: Int) {
-        releaseScanRegistration()
+        stopScanLocked()
         Twig.warn { "mesh: scan failed $errorCode" }
         scanRestart?.let { radio?.removeCallbacks(it) }
         scanRestart = null
@@ -638,13 +638,9 @@ private fun NighthawkBleLink.startScanLocked() {
     }
 }
 
+/** Stop the stack registration even when [scanning] was already cleared. */
 @SuppressLint("MissingPermission")
 private fun NighthawkBleLink.stopScanLocked() {
-    releaseScanRegistration()
-}
-
-/** Stop the stack registration even when [scanning] was already cleared. */
-private fun NighthawkBleLink.releaseScanRegistration() {
     try {
         scanner?.stopScan(scanCallback)
     } catch (_: Exception) {

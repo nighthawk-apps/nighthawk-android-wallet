@@ -361,20 +361,6 @@ pub fn derive_detection_key(
     }
 }
 
-/// Convenience wrapper that derives a detection key with epoch=0.
-///
-/// This is equivalent to calling `derive_detection_key(..., 0, &[0u8; 32])` and is
-/// provided for backward compatibility with call sites that don't have
-/// access to the current block height.
-pub fn derive_detection_key_static(
-    network: OmrNetwork,
-    scheme: OmrScheme,
-    wallet_secret: &[u8],
-    recipient_pubkey: &[u8],
-) -> Result<OmrDetectionKey, String> {
-    derive_detection_key(network, scheme, wallet_secret, 0, recipient_pubkey)
-}
-
 /// Derive one UnifOMR detection key (BFV ciphertext) per wallet pubkey slot.
 ///
 /// Paper UnifOMR uses a wallet-scoped detection key; each call still produces a
@@ -734,27 +720,6 @@ mod tests {
             &[0u8; 32],
         );
         assert!(result.is_err(), "Should reject seeds < 32 bytes");
-    }
-
-    #[test]
-    fn test_derive_detection_key_static_compat() {
-        let seed = [0xAB; 32];
-        let k_static =
-            derive_detection_key_static(OmrNetwork::Testnet, OmrScheme::UnifOmr, &seed, &[0u8; 32])
-                .unwrap();
-        let k_explicit = derive_detection_key(
-            OmrNetwork::Testnet,
-            OmrScheme::UnifOmr,
-            &seed,
-            0,
-            &[0u8; 32],
-        )
-        .unwrap();
-        // UnifOMR uses fresh encryption, so key_material differs, but the
-        // derivation path (seed → omr_secret) must be the same.
-        assert_eq!(k_static.network, k_explicit.network);
-        assert_eq!(k_static.scheme, k_explicit.scheme);
-        assert_eq!(k_static.epoch, k_explicit.epoch);
     }
 
     // =====================================================================

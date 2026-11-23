@@ -134,11 +134,3 @@ object ChatChrome {
         return key.isNotEmpty() && !key.startsWith("#")
     }
 }
-
-/** @deprecated Use [ChatChrome.peerNickArgb]; kept for existing call sites. */
-@Deprecated("Use ChatChrome", ReplaceWith("ChatChrome.peerNickArgb(nick)"))
-object NickPalette {
-    val ARGB: IntArray = ChatChrome.PEER_NICKS
-
-    fun argbFor(nick: String): Int = ChatChrome.peerNickArgb(nick)
-}

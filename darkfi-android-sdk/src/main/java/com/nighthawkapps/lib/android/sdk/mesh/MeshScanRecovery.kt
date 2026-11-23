@@ -18,6 +18,8 @@ internal object MeshScanRecovery {
 
     const val BASE_MS: Long = 3_000L
     const val MAX_MS: Long = 30_000L
+    private const val HARDWARE_RESOURCE_MULTIPLIER: Int = 3
+    private const val THROTTLED_BASE_MS: Long = 10_000L
 
     fun shouldRetry(errorCode: Int): Boolean = errorCode != FEATURE_UNSUPPORTED
 
@@ -27,8 +29,8 @@ internal object MeshScanRecovery {
     ): Long {
         val base =
             when (errorCode) {
-                OUT_OF_HARDWARE_RESOURCES -> BASE_MS * 3
-                SCANNING_TOO_FREQUENTLY -> 10_000L
+                OUT_OF_HARDWARE_RESOURCES -> BASE_MS * HARDWARE_RESOURCE_MULTIPLIER
+                SCANNING_TOO_FREQUENTLY -> THROTTLED_BASE_MS
                 else -> BASE_MS
             }
         return (base * attempt.coerceAtLeast(1)).coerceAtMost(MAX_MS)

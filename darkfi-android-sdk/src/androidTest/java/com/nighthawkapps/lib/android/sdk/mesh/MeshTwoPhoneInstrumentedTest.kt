@@ -154,24 +154,30 @@ class MeshTwoPhoneInstrumentedTest {
         if (sender.all { it == 0.toByte() }) return
         var wrote = false
         for (recipientHex in link.meshToAtt.keys) {
-            val recipient = hexToBytes(recipientHex)
-            if (recipient.size != MeshWireCodec.SENDER_LEN) continue
-            val frame =
-                MeshWireCodec.encode(
-                    MeshWirePacket(
-                        type = MeshWireCodec.NH_NOISE_ENC,
-                        ttl = 7,
-                        flags = 0,
-                        timestampMs = 0L,
-                        sender = sender,
-                        recipient = recipient,
-                        payload = noisePayload,
-                    ),
-                ) ?: continue
+            val frame = encodeNoiseFrame(sender, recipientHex) ?: continue
             link.send(frame)
             wrote = true
         }
         if (wrote) sends.incrementAndGet()
+    }
+
+    private fun encodeNoiseFrame(
+        sender: ByteArray,
+        recipientHex: String,
+    ): ByteArray? {
+        val recipient = hexToBytes(recipientHex)
+        if (recipient.size != MeshWireCodec.SENDER_LEN) return null
+        return MeshWireCodec.encode(
+            MeshWirePacket(
+                type = MeshWireCodec.NH_NOISE_ENC,
+                ttl = 7,
+                flags = 0,
+                timestampMs = 0L,
+                sender = sender,
+                recipient = recipient,
+                payload = noisePayload,
+            ),
+        )
     }
 
     private fun hexToBytes(hex: String): ByteArray {
