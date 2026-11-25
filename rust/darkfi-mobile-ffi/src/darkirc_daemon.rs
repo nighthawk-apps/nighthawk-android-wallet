@@ -114,8 +114,10 @@ static DAEMON_GENERATION: AtomicU64 = AtomicU64::new(0);
 static STOP_REQUESTED_MS: AtomicU64 = AtomicU64::new(0);
 
 /// How long a stop may sit in `stopping` before the next start replaces it.
-/// Matches the Kotlin wait, which gives up after 5s and then calls start.
-const STUCK_STOP_MS: u64 = 4_000;
+/// Upstream darkfi `48e024246` fixed the `outbound_session` retry spin on
+/// `P2p::stop()`, so stops normally finish in <100ms; this remains a defensive
+/// guard against stalled OS sockets / I/O and sits below the 5s Kotlin wait.
+const STUCK_STOP_MS: u64 = 3_000;
 
 fn monotonic_ms() -> u64 {
     static START: std::sync::OnceLock<std::time::Instant> = std::sync::OnceLock::new();
@@ -184,14 +186,18 @@ async fn clear_session_if_owner(generation: u64) {
     *P2P.write().await = None;
 }
 
+/// Defensive timeout guard around async teardown calls (`p2p.stop`, `prune.stop`,
+/// task cancels). Upstream darkfi `48e024246` fixed the `outbound_session` spin
+/// loop during `P2p::stop()`, so teardown normally completes promptly; 2s bounds
+/// worst-case OS socket stalls during mobile network switches.
 async fn abandon_after<T>(label: &'static str, fut: impl std::future::Future<Output = T>) {
     smol::future::race(
         async move {
             let _ = fut.await;
         },
         async move {
-            smol::Timer::after(std::time::Duration::from_secs(3)).await;
-            tracing::warn!("darkirc {label} did not finish within 3s");
+            smol::Timer::after(std::time::Duration::from_secs(2)).await;
+            tracing::warn!("darkirc {label} did not finish within 2s");
         },
     )
     .await;
@@ -605,6 +611,12 @@ fn present_privmsg(privmsg: Privmsg) -> Option<PresentedPrivmsg> {
 }
 
 /// Encrypt channel, nick, and message for DMs exactly as upstream `try_encrypt`.
+///
+/// Protocol note (upstream `irc2::crypto::saltbox` wire format): `channel`, `nick`,
+/// and `msg` are encrypted as three independent XChaCha20-Poly1305 ciphertexts with
+/// no cross-field AAD binding (preserving exact compatibility with upstream `darkirc`
+/// nodes and desktop/mobile peers). Do not alter this wire format without an upstream
+/// protocol bump.
 fn try_encrypt_privmsg(privmsg: &mut Privmsg) -> Result<(), String> {
     if privmsg.channel.starts_with('#') {
         return Ok(());
@@ -1164,16 +1176,22 @@ const DARKIRC_ONION_SEEDS: [&str; 2] = [
 ];
 
 /// Builds the darkirc seed URLs that dial the onion seeds through a local
-/// SOCKS5 proxy on `127.0.0.1:tor_socks_port` (in-process Arti).
+/// SOCKS5 proxy on `127.0.0.1:tor_socks_port` (in-process Arti), embedding the
+/// process-local RFC 1929 credentials when authenticating to the local proxy.
 ///
-/// The resulting `socks5://127.0.0.1:<port>/<onion>:9601` form is exactly what
-/// darkfi's `net::transport::socks5` dialer expects (proxy in the authority,
-/// destination in the path).
+/// The resulting `socks5://user:pass@127.0.0.1:<port>/<onion>:9601` form is
+/// accepted by darkfi's `net::transport::socks5` dialer (proxy + optional auth
+/// in the authority, destination in the path).
 fn tor_socks5_seeds(tor_socks_port: u16) -> Vec<url::Url> {
+    let auth = crate::transport_manager::current_socks_auth();
     DARKIRC_ONION_SEEDS
         .iter()
         .map(|dest| {
-            url::Url::parse(&format!("socks5://127.0.0.1:{tor_socks_port}/{dest}")).unwrap()
+            url::Url::parse(&format!(
+                "socks5://{}:{}@127.0.0.1:{tor_socks_port}/{dest}",
+                auth.username, auth.password
+            ))
+            .unwrap()
         })
         .collect()
 }
@@ -1193,7 +1211,14 @@ struct TransportPlan {
 }
 
 fn transport_plan(transport: crate::DarkircTransport, socks_port: u16) -> TransportPlan {
-    let proxy = || url::Url::parse(&format!("socks5://127.0.0.1:{socks_port}")).unwrap();
+    let auth = crate::transport_manager::current_socks_auth();
+    let proxy = || {
+        url::Url::parse(&format!(
+            "socks5://{}:{}@127.0.0.1:{socks_port}",
+            auth.username, auth.password
+        ))
+        .unwrap()
+    };
     match transport {
         crate::DarkircTransport::Direct => TransportPlan {
             profile_name: "tcp+tls",
@@ -1224,7 +1249,11 @@ fn transport_plan(transport: crate::DarkircTransport, socks_port: u16) -> Transp
             seeds: DARKIRC_CLEARNET_SEEDS
                 .iter()
                 .map(|seed| {
-                    url::Url::parse(&format!("socks5+tls://127.0.0.1:{socks_port}/{seed}")).unwrap()
+                    url::Url::parse(&format!(
+                        "socks5+tls://{}:{}@127.0.0.1:{socks_port}/{seed}",
+                        auth.username, auth.password
+                    ))
+                    .unwrap()
                 })
                 .collect(),
             mixed_profiles: vec!["tcp+tls".to_string()],
@@ -1884,13 +1913,16 @@ mod tests {
 
     #[test]
     fn tor_socks5_seeds_use_proxy_authority_and_onion_path() {
+        let auth = crate::transport_manager::current_socks_auth();
         let seeds = tor_socks5_seeds(9050);
         assert_eq!(seeds.len(), DARKIRC_ONION_SEEDS.len());
 
         for (seed, onion) in seeds.iter().zip(DARKIRC_ONION_SEEDS.iter()) {
             // Scheme + proxy authority must point at the local Tor SOCKS proxy
-            // so darkfi's socks5 dialer connects through Tor, not clearnet.
+            // with RFC 1929 credentials so darkfi's socks5 dialer authenticates.
             assert_eq!(seed.scheme(), "socks5");
+            assert_eq!(seed.username(), auth.username);
+            assert_eq!(seed.password(), Some(auth.password.as_str()));
             assert_eq!(seed.host_str(), Some("127.0.0.1"));
             assert_eq!(seed.port(), Some(9050));
             // The onion destination must live in the path (proxy semantics).

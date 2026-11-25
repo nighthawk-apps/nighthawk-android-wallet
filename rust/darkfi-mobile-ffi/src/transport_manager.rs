@@ -134,11 +134,11 @@ pub fn mesh_enabled() -> bool {
 
 /// RFC 1929 credentials for the local SOCKS5 proxies.
 ///
-/// NOTE: `third_party/darkfi/src/net/transport/socks5.rs` (`Socks5Client`)
-/// hardcodes `[0x05, 0x01, 0x00]` (NO_AUTH only; `auth_user`/`auth_pass` are
-/// commented out in upstream `9d7ceaf77`), so `socks_method` keeps `0x00`
-/// fallback to avoid breaking DarkIRC over Nym/Tor while preferring `0x02`
-/// whenever offered (e.g. `LightwalletClient` and platform HTTP clients).
+/// All first-party clients (`LightwalletClient`, `darkirc_daemon` via patched
+/// `third_party/darkfi` `Socks5Client`, Android `RetrofitHelper`, iOS
+/// `FiatPriceClient`) authenticate with RFC 1929 (`0x02`). `socks_method` keeps
+/// `0x00` fallback only for external subprocesses that lack SOCKS5 auth support
+/// (such as Desktop `xmrig` stratum mining over the local proxy).
 pub fn current_socks_auth() -> SocksAuth {
     lock().socks_auth.clone()
 }
@@ -153,8 +153,8 @@ pub fn socks_auth_json() -> String {
     )
 }
 
-/// Pick a SOCKS5 method. Prefer username/password (`0x02`) when offered,
-/// falling back to `0x00` for DarkFi P2P `Socks5Client` which lacks RFC 1929.
+/// Pick a SOCKS5 method. Prefer username/password (`0x02`) whenever offered;
+/// allow `0x00` fallback for subprocesses without RFC 1929 support (e.g. `xmrig`).
 pub fn socks_method(offered: &[u8]) -> u8 {
     if offered.contains(&0x02) {
         0x02
@@ -388,8 +388,10 @@ pub fn on_network_changed() {
     crate::nym::on_network_changed();
     crate::tor::on_network_changed();
     crate::lightwallet_client::invalidate_lightwallet_client_pool();
-    let mut guard = lock();
-    guard.socks_auth = fresh_socks_auth();
+    // Do NOT rotate `socks_auth` here: a running DarkIRC daemon caches the
+    // proxy URL credentials in `p2p_settings` for the lifetime of the daemon.
+    // Credentials still rotate whenever the transport switches (`apply` /
+    // `continue_without_nym`), which restarts DarkIRC.
 }
 
 pub fn on_background() {

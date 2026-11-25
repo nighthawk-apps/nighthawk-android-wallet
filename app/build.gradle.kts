@@ -185,6 +185,10 @@ dependencies {
         implementation("org.bouncycastle:bcutil-jdk15to18:1.78.1")
     }
 
+    testImplementation(libs.kotlin.test)
+    testImplementation(kotlin("test-junit"))
+    testImplementation("junit:junit:4.13.2")
+
     androidTestImplementation(projects.testLib)
 
     androidTestUtil(libs.androidx.test.services) {

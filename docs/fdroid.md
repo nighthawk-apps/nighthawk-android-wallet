@@ -9,7 +9,7 @@
 | Version props | `ZCASH_VERSION_*` | **`WALLET_VERSION_*`** |
 | F-Droid metadata | existing `fdroiddata` recipe | **`metadata/com.nighthawkwallet.android.testnet.yml`** |
 | Native ABIs | 32+64 bit | **64-bit only (`arm64-v8a`, `x86_64`), NDK `30.0.16248370`** (Play 64-bit / 16 KB alignment & F-Droid APK size) |
-| Default LWD | (Zcash) | Mac Studio ngrok TLS (`https://epidermis-sandbox-marshland.ngrok-free.dev:443`) with pinned leaf cert (`c02faee2...`). Loopback `127.0.0.1:9067` / custom server presets remain selectable in Settings. |
+| Default LWD | (Zcash) | Mac Studio ngrok TLS (`https://epidermis-sandbox-marshland.ngrok-free.dev:443`) with pinned leaf cert (`d8163009...`). Loopback `127.0.0.1:9067` / custom server presets remain selectable in Settings. |
 
 This is a **testnet** listing for alpha / Studio ngrok lightwalletd — not mainnet. Zero Firebase/Crashlytics or proprietary analytics SDKs are included in any build.
 A future mainnet F-Droid app would use `com.nighthawkwallet.android` / `darkfimainnet`.
@@ -37,7 +37,21 @@ srclib SHA edit.
 
 Tagging alone does **not** run this repo’s GitHub `Deploy` workflow (that is branch/`workflow_dispatch` + Play secrets). F-Droid’s scanner is separate.
 
-## 3.01.20 (this release)
+## 3.01.21 (this release)
+
+| Field | Value |
+|-------|--------|
+| `WALLET_VERSION_NAME` | `3.01.21` |
+| `WALLET_VERSION_CODE` | `30100821` |
+| Suggested git tag | `v3.01.21` |
+| Fastlane changelog | `fastlane/metadata/android/en-US/changelogs/30100821.txt` |
+| DarkFi pin | `b87318e80968ea071fbd3a56eb1ea17110252753` (upstream P2P/TLS/SOCKS5 fixes + `6e61deb26` and `9d7ceaf77`) |
+| nym-smolmix | `5f0dba82` |
+| F-Droid NDK | `30.0.16248370` (`ANDROID_NDK_VERSION`) |
+
+Same release number as iOS `3.01.21` (`30100821`), desktop `3.1.21`, Moonshine `3.1.21`, and lightwalletd `0.3.14`. Desktop and Moonshine use `3.1.21` because Cargo rejects a leading zero. Experimental UnifOMR stays off by default.
+
+## 3.01.20
 
 | Field | Value |
 |-------|--------|

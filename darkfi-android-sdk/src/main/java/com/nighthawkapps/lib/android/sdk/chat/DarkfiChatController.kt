@@ -111,6 +111,7 @@ class DarkfiChatController(
 
     private var connectJob: Job? = null
     private var readJob: Job? = null
+    private var restartJob: Job? = null
 
     /** Transport the running daemon was started with, so the connected state reports it honestly. */
     @Volatile
@@ -559,10 +560,14 @@ class DarkfiChatController(
             return
         }
         Twig.info { "DarkIRC: app network changed ($activeTransport -> $wanted), restarting daemon" }
-        scope.launch(Dispatchers.IO) {
-            stopAndAwait()
-            connectOrRetry()
+        if (restartJob?.isActive == true) {
+            return
         }
+        restartJob =
+            scope.launch(Dispatchers.IO) {
+                stopAndAwait()
+                connectOrRetry()
+            }
     }
 
     private suspend fun awaitDaemonNotRunning(timeoutMs: Long = 5_000) {

@@ -1,8 +1,12 @@
-1919419364a406b85a68411fa8ad80919b286113
-# nighthawk24/darkfi branch nighthawk-testnet (built on 9d7ceaf77 + 6e61deb26, skipping recorded spent nullifiers).
+b87318e80968ea071fbd3a56eb1ea17110252753
+# nighthawk24/darkfi local branch nighthawk-testnet-3.01.21 (must be pushed to
+# nighthawk24/darkfi branch nighthawk-testnet before GitHub CI runs).
+# Built on 191941936 + 6 upstream darkfi stability cherry-picks (df946804b,
+# 48e024246, 0d824e9c2, eaa2ff0c7, 1edb9459e, e575350cd) + RFC 1929 SOCKS5 auth
+# in src/net/transport/socks5.rs.
 # git.dark.fi returns HTTP 504 and does not contain this SHA. Do not clone it.
 # Includes iOS rusage skip (proc_pid_rusage unavailable on iOS), set_chain_context_fallback,
 # batched Sapling KA, upstream 0f985c7cf tx-local fees, and upstream net hosts/refinery
-# fixes (225d6857d). Tor stays on Arti 0.48. Cargo deps: kvdb-overlay from
+# fixes (225d6857d + 48e024246). Tor stays on Arti 0.48. Cargo deps: kvdb-overlay from
 # gitlab.com/nighthawk24/kvdb-overlay, RandomX from codeberg.org/darkrenaissance/RandomX,
 # rust-url from github.com/darkrenaissance/rust-url.

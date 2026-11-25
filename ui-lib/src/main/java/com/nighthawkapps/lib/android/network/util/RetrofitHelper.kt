@@ -20,13 +20,22 @@ object RetrofitHelper {
     private const val COINGECKO_HOST = "api.coingecko.com"
 
     /**
-     * Leaf SPKI pins. When CoinGecko rotates CDN certs, add the new pin here
-     * **before** removing the old one (overlap window), then ship a release.
-     * Verify with: `openssl s_client -connect api.coingecko.com:443 | openssl x509 -pubkey -noout | openssl pkey -pubin -outform der | openssl dgst -sha256 -binary | openssl enc -base64`
+     * SPKI pins for `api.coingecko.com`: current leaf pin plus Google Trust
+     * Services intermediate (`WE1`, valid to 2029-02-20) and root (`GTS Root R4`,
+     * valid to 2028-01-28) backup pins so 90-day leaf rotations do not break fiat
+     * price fetching while still rejecting arbitrary CAs.
+     *
+     * Verify full chain with:
+     * `openssl s_client -showcerts -servername api.coingecko.com -connect api.coingecko.com:443`
      */
-    private val COINGECKO_PINS =
-        arrayOf(
-            "sha256/BhM1gGE+L4fCC9ER5xj4P1/deHgoXOjL9TsSj7Q5B9o=",
+    val coingeckoPins: List<String> =
+        listOf(
+            // Leaf: CN=api.coingecko.com (valid 2026-10-29 to 2027-01-27)
+            "sha256/Sft1rLmODMaEPrqCVSoxXcU6zm6EsQO1COz7Bk7r4r4=",
+            // Backup Intermediate: CN=WE1, O=Google Trust Services (valid to 2029-02-20)
+            "sha256/kIdp6NNEd8wsugYyyIYFsi1ylMCED3hZbSR8ZFsa/A4=",
+            // Backup Root: CN=GTS Root R4, O=Google Trust Services LLC (valid to 2028-01-28)
+            "sha256/mEflZT5enoR1FuXLgYYGqnVEoZvmf9c2bVBpiOjYQ0c=",
         )
 
     /**
@@ -56,7 +65,7 @@ object RetrofitHelper {
         val certificatePinner =
             CertificatePinner
                 .Builder()
-                .apply { COINGECKO_PINS.forEach { add(COINGECKO_HOST, it) } }
+                .apply { coingeckoPins.forEach { add(COINGECKO_HOST, it) } }
                 .build()
 
         val builder =

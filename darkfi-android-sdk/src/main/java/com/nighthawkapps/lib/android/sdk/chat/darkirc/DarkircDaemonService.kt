@@ -97,17 +97,11 @@ class DarkircDaemonService : Service() {
         val notification = buildNotification()
         return try {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-                val type =
-                    if (Build.VERSION.SDK_INT >= 34) {
-                        ServiceInfo.FOREGROUND_SERVICE_TYPE_REMOTE_MESSAGING
-                    } else {
-                        ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC
-                    }
                 ServiceCompat.startForeground(
                     this,
                     NOTIFICATION_ID,
                     notification,
-                    type,
+                    ServiceInfo.FOREGROUND_SERVICE_TYPE_REMOTE_MESSAGING,
                 )
             } else {
                 @Suppress("DEPRECATION")
@@ -125,7 +119,6 @@ class DarkircDaemonService : Service() {
     }
 
     private fun createChannelIfNeeded() {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
         val manager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
         val channel =
             NotificationChannel(

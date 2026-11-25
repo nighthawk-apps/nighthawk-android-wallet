@@ -2,6 +2,7 @@ package com.nighthawkapps.lib.android.global
 
 import android.net.Uri
 import android.util.Base64
+import androidx.core.net.toUri
 import com.nighthawkapps.lib.android.sdk.wallet.DarkfiPaymentMemo
 import com.nighthawkapps.lib.android.spackle.Twig
 import com.nighthawkapps.lib.android.ui.common.AMOUNT_QUERY
@@ -45,7 +46,7 @@ object DeepLinkUtil {
                 if (queryString.isNullOrBlank()) {
                     null
                 } else {
-                    Uri.parse("https://local/?$queryString")
+                    "https://local/?$queryString".toUri()
                 }
 
             val amountParam = queryUri?.getQueryParameter(AMOUNT_QUERY)

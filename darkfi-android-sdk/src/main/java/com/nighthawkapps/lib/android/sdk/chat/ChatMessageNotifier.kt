@@ -110,7 +110,6 @@ internal object ChatMessageNotifier {
     }
 
     private fun createChannel(app: Context) {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
         val manager = app.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         manager.createNotificationChannel(
             NotificationChannel(

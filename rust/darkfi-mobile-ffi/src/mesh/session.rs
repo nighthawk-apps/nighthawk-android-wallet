@@ -1,22 +1,37 @@
-//! Directed sessions: crypto_box XX *shape* (X25519 + XChaCha20-Poly1305).
+//! Directed sessions: forward-secret Noise-XX-style handshake (X25519 + BLAKE3 +
+//! XChaCha20-Poly1305) with directional transport keys and a 64-packet replay window.
 //!
-//! Static public keys travel only inside handshake ciphertexts. Ready
-//! sessions are bound to `their_static`; the 8-byte on-air id is a label.
-//! `NoiseEnc` carries a monotonic seq in the envelope and as AEAD AAD.
+//! Static public keys travel only inside handshake ciphertexts authenticated by
+//! the running BLAKE3 transcript hash. Ready sessions derive directional
+//! `send_key` / `recv_key` from `ee || es || se || ss || transcript_hash` and
+//! immediately discard ephemeral secret keys for forward secrecy.
+//!
+//! `NoiseEnc` binds protocol version, direction, and outer `seq` as AEAD AAD.
 
-use crypto_box::aead::Aead;
+use chacha20poly1305::aead::{Aead, KeyInit, Payload};
+use chacha20poly1305::{XChaCha20Poly1305, XNonce};
 use crypto_box::{ChaChaBox, PublicKey, SecretKey};
 use rand::RngCore;
+use zeroize::Zeroizing;
 
 use super::identity::MeshIdentity;
 use super::lwd_ctrl::{pad_frame, unpad_frame};
 use super::types::SENDER_LEN;
 
-const HS1: u8 = 1;
-const HS2: u8 = 2;
-const HS3: u8 = 3;
+/// Mesh handshake protocol version (bumped from legacy v1 so old peers fail cleanly).
+pub(crate) const HS_VERSION: u8 = 2;
+const HS1: u8 = 0x11;
+const HS2: u8 = 0x12;
+const HS3: u8 = 0x13;
+
+/// Direction tags bound into transport AEAD AAD.
+const DIR_I2R: u8 = 0x01;
+const DIR_R2I: u8 = 0x02;
 
 const MAX_SESSIONS: usize = 8;
+const REPLAY_WINDOW_SIZE: u64 = 64;
+
+const DH_DOMAIN: &[u8; 32] = b"nighthawk-mesh-x25519-dh-v2\0\0\0\0\0";
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum SessionError {
@@ -27,6 +42,53 @@ pub enum SessionError {
     BadState,
     Pad,
     Replay,
+    UnsupportedVersion,
+}
+
+/// 64-packet sliding replay window (WireGuard / Noise style).
+///
+/// Tolerates mild BLE frame reordering within 64 sequence numbers while
+/// strictly rejecting duplicates and packets older than the window.
+#[derive(Debug, Default, Clone)]
+struct ReplayWindow {
+    highest: u64,
+    bitmap: u64,
+}
+
+impl ReplayWindow {
+    fn check(&self, seq: u64) -> bool {
+        if seq == 0 {
+            return false;
+        }
+        if seq > self.highest {
+            return true;
+        }
+        let diff = self.highest - seq;
+        if diff >= REPLAY_WINDOW_SIZE {
+            return false;
+        }
+        (self.bitmap & (1u64 << diff)) == 0
+    }
+
+    fn accept(&mut self, seq: u64) {
+        if seq == 0 {
+            return;
+        }
+        if seq > self.highest {
+            let shift = seq - self.highest;
+            if shift >= REPLAY_WINDOW_SIZE {
+                self.bitmap = 1;
+            } else {
+                self.bitmap = (self.bitmap << shift) | 1;
+            }
+            self.highest = seq;
+        } else {
+            let diff = self.highest - seq;
+            if diff < REPLAY_WINDOW_SIZE {
+                self.bitmap |= 1u64 << diff;
+            }
+        }
+    }
 }
 
 #[derive(Default)]
@@ -48,12 +110,19 @@ enum SessState {
     WaitHs3 {
         their_eph: [u8; 32],
         our_eph: SecretKey,
+        ee: Zeroizing<[u8; 32]>,
+        h_hs2: [u8; 32],
         started_ms: u64,
     },
     Ready {
+        #[allow(dead_code)]
         their_static: [u8; 32],
+        send_key: Zeroizing<[u8; 32]>,
+        recv_key: Zeroizing<[u8; 32]>,
+        send_dir: u8,
+        recv_dir: u8,
         send_seq: u64,
-        recv_seq: u64,
+        recv_window: ReplayWindow,
         ready_since_ms: u64,
     },
 }
@@ -146,7 +215,8 @@ impl SessionTable {
     ) -> Result<Vec<u8>, SessionError> {
         self.evict_if_needed();
         let eph = SecretKey::generate(&mut rand::rngs::OsRng);
-        let mut payload = Vec::with_capacity(33);
+        let mut payload = Vec::with_capacity(2 + 32);
+        payload.push(HS_VERSION);
         payload.push(HS1);
         payload.extend_from_slice(&eph.public_key().to_bytes());
         self.map.insert(
@@ -193,83 +263,84 @@ impl SessionTable {
         from: [u8; SENDER_LEN],
         payload: &[u8],
     ) -> Result<HsOutcome, SessionError> {
-        if payload.is_empty() {
+        if payload.len() < 2 {
             return Err(SessionError::Truncated);
         }
-        match payload[0] {
-            HS1 => self.on_hs1(id, from, &payload[1..]),
-            HS2 => self.on_hs2(id, from, &payload[1..]),
-            HS3 => self.on_hs3(id, from, &payload[1..]),
-            _ => Err(SessionError::BadState),
+        if payload[0] != HS_VERSION {
+            return Err(SessionError::UnsupportedVersion);
+        }
+        match payload[1] {
+            HS1 => self.on_hs1(id, from, &payload[2..]),
+            HS2 => self.on_hs2(id, from, &payload[2..]),
+            HS3 => self.on_hs3(id, from, &payload[2..]),
+            _ => Err(SessionError::UnsupportedVersion),
         }
     }
 
     pub fn seal(
         &mut self,
-        id: &MeshIdentity,
+        _id: &MeshIdentity,
         peer: &[u8; SENDER_LEN],
         inner: &[u8],
     ) -> Result<Vec<u8>, SessionError> {
-        let (their, seq) = match self.map.get_mut(peer) {
+        let (send_key, send_dir, seq) = match self.map.get_mut(peer) {
             Some(Session {
                 state:
                     SessState::Ready {
-                        their_static,
+                        send_key,
+                        send_dir,
                         send_seq,
                         ..
                     },
             }) => {
-                *send_seq = send_seq.saturating_add(1);
-                let seq = *send_seq;
-                (*their_static, seq)
+                let Some(next_seq) = send_seq.checked_add(1) else {
+                    return Err(SessionError::BadState);
+                };
+                *send_seq = next_seq;
+                (send_key.clone(), *send_dir, next_seq)
             }
             _ => return Err(SessionError::BadState),
         };
         self.touch(*peer);
         let padded = pad_frame(inner).map_err(|_| SessionError::Pad)?;
-        let mut tagged = Vec::with_capacity(8 + padded.len());
-        tagged.extend_from_slice(&seq.to_be_bytes());
-        tagged.extend_from_slice(&padded);
-        box_seal(&their, &id.secret_bytes(), &tagged, seq)
+        box_seal(&send_key, send_dir, &padded, seq)
     }
 
     pub fn open(
         &mut self,
-        id: &MeshIdentity,
+        _id: &MeshIdentity,
         peer: &[u8; SENDER_LEN],
         payload: &[u8],
     ) -> Result<Vec<u8>, SessionError> {
-        if payload.len() < 24 + 8 {
+        if payload.len() < 24 + 8 + 16 {
             return Err(SessionError::Truncated);
         }
         let seq = u64::from_be_bytes(payload[24..32].try_into().unwrap());
-        let (their, recv_seq) = match self.map.get(peer) {
+        let (recv_key, recv_dir) = match self.map.get(peer) {
             Some(Session {
                 state:
                     SessState::Ready {
-                        their_static,
-                        recv_seq,
+                        recv_key,
+                        recv_dir,
+                        recv_window,
                         ..
                     },
-            }) => (*their_static, *recv_seq),
+            }) => {
+                if !recv_window.check(seq) {
+                    return Err(SessionError::Replay);
+                }
+                (recv_key.clone(), *recv_dir)
+            }
             _ => return Err(SessionError::BadState),
         };
-        let tagged = box_open(&their, &id.secret_bytes(), payload)?;
-        if tagged.len() < 8 {
-            return Err(SessionError::Truncated);
-        }
-        let inner_seq = u64::from_be_bytes(tagged[..8].try_into().unwrap());
-        if inner_seq != seq || seq <= recv_seq {
-            return Err(SessionError::Replay);
-        }
+        let padded = box_open(&recv_key, recv_dir, payload)?;
         if let Some(Session {
-            state: SessState::Ready { recv_seq, .. },
-            ..
+            state: SessState::Ready { recv_window, .. },
         }) = self.map.get_mut(peer)
         {
-            *recv_seq = seq;
+            recv_window.accept(seq);
         }
-        unpad_frame(&tagged[8..]).map_err(|_| SessionError::Pad)
+        unpad_frame(&padded).map_err(|_| SessionError::Pad)
     }
 
     fn on_hs1(
@@ -295,19 +366,30 @@ impl SessionTable {
         }
         let mut their_eph = [0u8; 32];
         their_eph.copy_from_slice(rest);
+
         self.evict_if_needed();
         let our_eph = SecretKey::generate(&mut rand::rngs::OsRng);
-        let sealed = box_seal_hs(&their_eph, &our_eph.to_bytes(), &id.static_public())?;
-        let mut payload = Vec::with_capacity(1 + 32 + sealed.len());
+        let our_eph_pub = our_eph.public_key().to_bytes();
+
+        let ee = dh_shared(&our_eph.to_bytes(), &their_eph)?;
+        let h_hs2 = transcript_hs2(&from, &id.peer_id(), &their_eph, &our_eph_pub);
+        let k_hs2 = derive_hs2_key(&ee, &h_hs2);
+        let sealed = aead_seal_with_aad(&k_hs2, &id.static_public(), &h_hs2)?;
+
+        let mut payload = Vec::with_capacity(2 + 32 + sealed.len());
+        payload.push(HS_VERSION);
         payload.push(HS2);
-        payload.extend_from_slice(&our_eph.public_key().to_bytes());
+        payload.extend_from_slice(&our_eph_pub);
         payload.extend_from_slice(&sealed);
+
         self.map.insert(
             from,
             Session {
                 state: SessState::WaitHs3 {
                     their_eph,
                     our_eph,
+                    ee,
+                    h_hs2,
                     started_ms: super::types::unix_ms(),
                 },
             },
@@ -322,40 +404,65 @@ impl SessionTable {
         from: [u8; SENDER_LEN],
         rest: &[u8],
     ) -> Result<HsOutcome, SessionError> {
-        if rest.len() < 32 {
+        if rest.len() < 32 + 24 + 16 {
             return Err(SessionError::Truncated);
         }
-        let eph = match self.map.remove(&from) {
+        let (our_eph_bytes, our_eph_pub) = match self.map.get(&from) {
             Some(Session {
-                state: SessState::InitSent { eph, queued, .. },
-            }) => (eph, queued),
-            other => {
-                if let Some(s) = other {
-                    self.map.insert(from, s);
-                }
-                return Err(SessionError::BadState);
-            }
+                state: SessState::InitSent { eph, .. },
+            }) => (Zeroizing::new(eph.to_bytes()), eph.public_key().to_bytes()),
+            _ => return Err(SessionError::BadState),
         };
-        let (eph, queued) = eph;
         let mut their_eph = [0u8; 32];
         their_eph.copy_from_slice(&rest[..32]);
-        let their_static_bytes = box_open_hs(&their_eph, &eph.to_bytes(), &rest[32..])?;
+
+        let ee = dh_shared(&our_eph_bytes, &their_eph)?;
+        let h_hs2 = transcript_hs2(&id.peer_id(), &from, &our_eph_pub, &their_eph);
+        let k_hs2 = derive_hs2_key(&ee, &h_hs2);
+
+        let their_static_bytes = aead_open_with_aad(&k_hs2, &rest[32..], &h_hs2)?;
         if their_static_bytes.len() != 32 {
             return Err(SessionError::Decrypt);
         }
         let mut their_static = [0u8; 32];
         their_static.copy_from_slice(&their_static_bytes);
-        let hs3_body = box_seal_hs(&their_eph, &eph.to_bytes(), &id.static_public())?;
-        let mut payload = Vec::with_capacity(1 + hs3_body.len());
+
+        let es = dh_shared(&our_eph_bytes, &their_static)?;
+        let our_static_sk = Zeroizing::new(id.secret_bytes());
+        let our_static_pub = id.static_public();
+        let se = dh_shared(&our_static_sk, &their_eph)?;
+        let ss = dh_shared(&our_static_sk, &their_static)?;
+
+        let h_hs3 = transcript_hs3(&h_hs2, &their_static);
+        let k_hs3 = derive_hs3_key(&ee, &es, &h_hs3);
+        let hs3_body = aead_seal_with_aad(&k_hs3, &our_static_pub, &h_hs3)?;
+
+        let h_final = transcript_final(&h_hs3, &our_static_pub);
+        let (k_i2r, k_r2i) = derive_transport_keys(&ee, &es, &se, &ss, &h_final);
+
+        let queued = match self.map.remove(&from) {
+            Some(Session {
+                state: SessState::InitSent { queued, .. },
+            }) => queued,
+            _ => Vec::new(),
+        };
+
+        let mut payload = Vec::with_capacity(2 + hs3_body.len());
+        payload.push(HS_VERSION);
         payload.push(HS3);
         payload.extend_from_slice(&hs3_body);
+
         self.map.insert(
             from,
             Session {
                 state: SessState::Ready {
                     their_static,
+                    send_key: k_i2r,
+                    recv_key: k_r2i,
+                    send_dir: DIR_I2R,
+                    recv_dir: DIR_R2I,
                     send_seq: 0,
-                    recv_seq: 0,
+                    recv_window: ReplayWindow::default(),
                     ready_since_ms: super::types::unix_ms(),
                 },
             },
@@ -373,34 +480,61 @@ impl SessionTable {
         from: [u8; SENDER_LEN],
         rest: &[u8],
     ) -> Result<HsOutcome, SessionError> {
-        let (their_eph, our_eph) = match self.map.remove(&from) {
+        if rest.len() < 24 + 16 {
+            return Err(SessionError::Truncated);
+        }
+        let (their_eph, our_eph_bytes, ee, h_hs2) = match self.map.get(&from) {
             Some(Session {
                 state:
                     SessState::WaitHs3 {
-                        their_eph, our_eph, ..
+                        their_eph,
+                        our_eph,
+                        ee,
+                        h_hs2,
+                        ..
                     },
-            }) => (their_eph, our_eph),
-            other => {
-                if let Some(s) = other {
-                    self.map.insert(from, s);
-                }
-                return Err(SessionError::BadState);
-            }
+            }) => (
+                *their_eph,
+                Zeroizing::new(our_eph.to_bytes()),
+                ee.clone(),
+                *h_hs2,
+            ),
+            _ => return Err(SessionError::BadState),
         };
-        let _ = id;
-        let their_static_bytes = box_open_hs(&their_eph, &our_eph.to_bytes(), rest)?;
+
+        let our_static_sk = Zeroizing::new(id.secret_bytes());
+        let our_static_pub = id.static_public();
+        // Responder's DH(s_r, e_i) equals Initiator's es = DH(e_i, s_r).
+        let es = dh_shared(&our_static_sk, &their_eph)?;
+        let h_hs3 = transcript_hs3(&h_hs2, &our_static_pub);
+        let k_hs3 = derive_hs3_key(&ee, &es, &h_hs3);
+
+        let their_static_bytes = aead_open_with_aad(&k_hs3, rest, &h_hs3)?;
         if their_static_bytes.len() != 32 {
             return Err(SessionError::Decrypt);
         }
         let mut their_static = [0u8; 32];
         their_static.copy_from_slice(&their_static_bytes);
+
+        // Responder's DH(e_r, s_i) equals Initiator's se = DH(s_i, e_r).
+        let se = dh_shared(&our_eph_bytes, &their_static)?;
+        let ss = dh_shared(&our_static_sk, &their_static)?;
+
+        let h_final = transcript_final(&h_hs3, &their_static);
+        let (k_i2r, k_r2i) = derive_transport_keys(&ee, &es, &se, &ss, &h_final);
+
+        self.map.remove(&from);
         self.map.insert(
             from,
             Session {
                 state: SessState::Ready {
                     their_static,
+                    send_key: k_r2i,
+                    recv_key: k_i2r,
+                    send_dir: DIR_R2I,
+                    recv_dir: DIR_I2R,
                     send_seq: 0,
-                    recv_seq: 0,
+                    recv_window: ReplayWindow::default(),
                     ready_since_ms: super::types::unix_ms(),
                 },
             },
@@ -436,6 +570,7 @@ impl SessionTable {
     }
 }
 
+#[derive(Debug, PartialEq, Eq)]
 pub enum HsOutcome {
     Reply(Vec<u8>),
     Established {
@@ -444,19 +579,144 @@ pub enum HsOutcome {
     },
 }
 
-fn box_seal(
-    their_pk: &[u8; 32],
-    our_sk: &[u8; 32],
-    pt: &[u8],
-    seq: u64,
-) -> Result<Vec<u8>, SessionError> {
+/// Symmetric X25519-based shared-secret extractor using `ChaChaBox` (`HChaCha20(sk * pk, 0)`),
+/// rejecting all small-order public keys (whose clamped scalar product equals the zero point).
+fn dh_shared(our_sk: &[u8; 32], their_pk: &[u8; 32]) -> Result<Zeroizing<[u8; 32]>, SessionError> {
     let sk = SecretKey::from_slice(our_sk).map_err(|_| SessionError::Key)?;
     let pk = PublicKey::from_slice(their_pk).map_err(|_| SessionError::Key)?;
-    let b = ChaChaBox::new(&pk, &sk);
+    let zero_pk = PublicKey::from_bytes([0u8; 32]);
+
+    let zero_out = prf_from_box(&ChaChaBox::new(&zero_pk, &sk))?;
+    let shared_out = prf_from_box(&ChaChaBox::new(&pk, &sk))?;
+
+    // Constant-time check that `their_pk` is not a small-order X25519 point.
+    let mut diff = 0u8;
+    for (a, b) in shared_out.iter().zip(zero_out.iter()) {
+        diff |= a ^ b;
+    }
+    if diff == 0 {
+        return Err(SessionError::Key);
+    }
+    Ok(shared_out)
+}
+
+fn prf_from_box(b: &ChaChaBox) -> Result<Zeroizing<[u8; 32]>, SessionError> {
+    let zero_nonce = [0u8; 24];
+    let ct = b
+        .encrypt(&zero_nonce.into(), DH_DOMAIN.as_slice())
+        .map_err(|_| SessionError::Key)?;
+    Ok(Zeroizing::new(*blake3::hash(&ct).as_bytes()))
+}
+
+fn transcript_hs2(
+    init_id: &[u8; SENDER_LEN],
+    resp_id: &[u8; SENDER_LEN],
+    init_eph: &[u8; 32],
+    resp_eph: &[u8; 32],
+) -> [u8; 32] {
+    let mut h = blake3::Hasher::new();
+    h.update(b"nighthawk-mesh-v2-hs2-transcript");
+    h.update(&[HS_VERSION]);
+    h.update(init_id);
+    h.update(resp_id);
+    h.update(init_eph);
+    h.update(resp_eph);
+    *h.finalize().as_bytes()
+}
+
+fn transcript_hs3(h_hs2: &[u8; 32], resp_static: &[u8; 32]) -> [u8; 32] {
+    let mut h = blake3::Hasher::new();
+    h.update(b"nighthawk-mesh-v2-hs3-transcript");
+    h.update(h_hs2);
+    h.update(resp_static);
+    *h.finalize().as_bytes()
+}
+
+fn transcript_final(h_hs3: &[u8; 32], init_static: &[u8; 32]) -> [u8; 32] {
+    let mut h = blake3::Hasher::new();
+    h.update(b"nighthawk-mesh-v2-final-transcript");
+    h.update(h_hs3);
+    h.update(init_static);
+    *h.finalize().as_bytes()
+}
+
+fn derive_hs2_key(ee: &[u8; 32], h_hs2: &[u8; 32]) -> Zeroizing<[u8; 32]> {
+    let mut ikm = Zeroizing::new([0u8; 64]);
+    ikm[..32].copy_from_slice(ee);
+    ikm[32..].copy_from_slice(h_hs2);
+    Zeroizing::new(blake3::derive_key("nighthawk-mesh-v2-hs2-key", &*ikm))
+}
+
+fn derive_hs3_key(ee: &[u8; 32], es: &[u8; 32], h_hs3: &[u8; 32]) -> Zeroizing<[u8; 32]> {
+    let mut ikm = Zeroizing::new([0u8; 96]);
+    ikm[..32].copy_from_slice(ee);
+    ikm[32..64].copy_from_slice(es);
+    ikm[64..].copy_from_slice(h_hs3);
+    Zeroizing::new(blake3::derive_key("nighthawk-mesh-v2-hs3-key", &*ikm))
+}
+
+fn derive_transport_keys(
+    ee: &[u8; 32],
+    es: &[u8; 32],
+    se: &[u8; 32],
+    ss: &[u8; 32],
+    h_final: &[u8; 32],
+) -> (Zeroizing<[u8; 32]>, Zeroizing<[u8; 32]>) {
+    let mut ikm = Zeroizing::new([0u8; 160]);
+    ikm[0..32].copy_from_slice(ee);
+    ikm[32..64].copy_from_slice(es);
+    ikm[64..96].copy_from_slice(se);
+    ikm[96..128].copy_from_slice(ss);
+    ikm[128..160].copy_from_slice(h_final);
+    let k_i2r = Zeroizing::new(blake3::derive_key("nighthawk-mesh-v2-tx-i2r", &*ikm));
+    let k_r2i = Zeroizing::new(blake3::derive_key("nighthawk-mesh-v2-tx-r2i", &*ikm));
+    (k_i2r, k_r2i)
+}
+
+fn transport_aad(dir: u8, seq: u64) -> [u8; 10] {
+    let mut aad = [0u8; 10];
+    aad[0] = HS_VERSION;
+    aad[1] = dir;
+    aad[2..10].copy_from_slice(&seq.to_be_bytes());
+    aad
+}
+
+fn aead_seal_with_aad(key: &[u8; 32], pt: &[u8], aad: &[u8]) -> Result<Vec<u8>, SessionError> {
+    let cipher = XChaCha20Poly1305::new(key.into());
     let mut nonce = [0u8; 24];
     rand::rngs::OsRng.fill_bytes(&mut nonce);
-    let ct = b
-        .encrypt(&nonce.into(), pt)
+    let ct = cipher
+        .encrypt(XNonce::from_slice(&nonce), Payload { msg: pt, aad })
+        .map_err(|_| SessionError::Encrypt)?;
+    let mut out = Vec::with_capacity(24 + ct.len());
+    out.extend_from_slice(&nonce);
+    out.extend_from_slice(&ct);
+    Ok(out)
+}
+
+fn aead_open_with_aad(key: &[u8; 32], payload: &[u8], aad: &[u8]) -> Result<Vec<u8>, SessionError> {
+    if payload.len() < 24 + 16 {
+        return Err(SessionError::Truncated);
+    }
+    let cipher = XChaCha20Poly1305::new(key.into());
+    cipher
+        .decrypt(
+            XNonce::from_slice(&payload[..24]),
+            Payload {
+                msg: &payload[24..],
+                aad,
+            },
+        )
+        .map_err(|_| SessionError::Decrypt)
+}
+
+fn box_seal(key: &[u8; 32], dir: u8, pt: &[u8], seq: u64) -> Result<Vec<u8>, SessionError> {
+    let cipher = XChaCha20Poly1305::new(key.into());
+    let mut nonce = [0u8; 24];
+    rand::rngs::OsRng.fill_bytes(&mut nonce);
+    let aad = transport_aad(dir, seq);
+    let ct = cipher
+        .encrypt(XNonce::from_slice(&nonce), Payload { msg: pt, aad: &aad })
         .map_err(|_| SessionError::Encrypt)?;
     let mut out = Vec::with_capacity(24 + 8 + ct.len());
     out.extend_from_slice(&nonce);
@@ -465,49 +725,217 @@ fn box_seal(
     Ok(out)
 }
 
-fn box_open(
-    their_pk: &[u8; 32],
-    our_sk: &[u8; 32],
-    payload: &[u8],
-) -> Result<Vec<u8>, SessionError> {
-    if payload.len() < 32 {
+fn box_open(key: &[u8; 32], dir: u8, payload: &[u8]) -> Result<Vec<u8>, SessionError> {
+    if payload.len() < 24 + 8 + 16 {
         return Err(SessionError::Truncated);
     }
-    let sk = SecretKey::from_slice(our_sk).map_err(|_| SessionError::Key)?;
-    let pk = PublicKey::from_slice(their_pk).map_err(|_| SessionError::Key)?;
-    let b = ChaChaBox::new(&pk, &sk);
-    let nonce: [u8; 24] = payload[..24].try_into().unwrap();
-    b.decrypt(&nonce.into(), &payload[32..])
+    let seq = u64::from_be_bytes(payload[24..32].try_into().unwrap());
+    let aad = transport_aad(dir, seq);
+    let cipher = XChaCha20Poly1305::new(key.into());
+    cipher
+        .decrypt(
+            XNonce::from_slice(&payload[..24]),
+            Payload {
+                msg: &payload[32..],
+                aad: &aad,
+            },
+        )
         .map_err(|_| SessionError::Decrypt)
 }
 
-fn box_seal_hs(their_pk: &[u8; 32], our_sk: &[u8; 32], pt: &[u8]) -> Result<Vec<u8>, SessionError> {
-    let sk = SecretKey::from_slice(our_sk).map_err(|_| SessionError::Key)?;
-    let pk = PublicKey::from_slice(their_pk).map_err(|_| SessionError::Key)?;
-    let b = ChaChaBox::new(&pk, &sk);
-    let mut nonce = [0u8; 24];
-    rand::rngs::OsRng.fill_bytes(&mut nonce);
-    let ct = b
-        .encrypt(&nonce.into(), pt)
-        .map_err(|_| SessionError::Encrypt)?;
-    let mut out = Vec::with_capacity(24 + ct.len());
-    out.extend_from_slice(&nonce);
-    out.extend_from_slice(&ct);
-    Ok(out)
-}
+#[cfg(test)]
+mod tests {
+    use super::*;
 
-fn box_open_hs(
-    their_pk: &[u8; 32],
-    our_sk: &[u8; 32],
-    payload: &[u8],
-) -> Result<Vec<u8>, SessionError> {
-    if payload.len() < 24 {
-        return Err(SessionError::Truncated);
+    fn complete_handshake(a: &MeshIdentity, b: &MeshIdentity) -> (SessionTable, SessionTable) {
+        let mut sa = SessionTable::default();
+        let mut sb = SessionTable::default();
+        let hs1 = sa.begin_initiator(b.peer_id(), Vec::new()).unwrap();
+        let hs2 = match sb.ingest_hs(b, a.peer_id(), &hs1).unwrap() {
+            HsOutcome::Reply(p) => p,
+            HsOutcome::Established { .. } => panic!("expected HS2 reply"),
+        };
+        let hs3 = match sa.ingest_hs(a, b.peer_id(), &hs2).unwrap() {
+            HsOutcome::Established { reply, .. } => reply.expect("expected HS3"),
+            HsOutcome::Reply(_) => panic!("expected established"),
+        };
+        assert!(matches!(
+            sb.ingest_hs(b, a.peer_id(), &hs3).unwrap(),
+            HsOutcome::Established { reply: None, .. }
+        ));
+        (sa, sb)
     }
-    let sk = SecretKey::from_slice(our_sk).map_err(|_| SessionError::Key)?;
-    let pk = PublicKey::from_slice(their_pk).map_err(|_| SessionError::Key)?;
-    let b = ChaChaBox::new(&pk, &sk);
-    let nonce: [u8; 24] = payload[..24].try_into().unwrap();
-    b.decrypt(&nonce.into(), &payload[24..])
-        .map_err(|_| SessionError::Decrypt)
+
+    fn session_keys(table: &SessionTable, peer: &[u8; SENDER_LEN]) -> ([u8; 32], [u8; 32]) {
+        match table.map.get(peer) {
+            Some(Session {
+                state:
+                    SessState::Ready {
+                        send_key, recv_key, ..
+                    },
+            }) => (**send_key, **recv_key),
+            _ => panic!("session not ready"),
+        }
+    }
+
+    #[test]
+    fn forward_secrecy_rotates_directional_keys_across_handshakes() {
+        let a = MeshIdentity::generate();
+        let b = MeshIdentity::generate();
+
+        let (sa1, sb1) = complete_handshake(&a, &b);
+        let (sa2, sb2) = complete_handshake(&a, &b);
+
+        let (a_send1, a_recv1) = session_keys(&sa1, &b.peer_id());
+        let (b_send1, b_recv1) = session_keys(&sb1, &a.peer_id());
+        let (a_send2, a_recv2) = session_keys(&sa2, &b.peer_id());
+
+        // Directional match between peers, distinct per direction.
+        assert_eq!(a_send1, b_recv1);
+        assert_eq!(a_recv1, b_send1);
+        assert_ne!(a_send1, a_recv1);
+
+        // Fresh ephemeral keys produce completely distinct session keys for same static identities.
+        assert_ne!(a_send1, a_send2);
+        assert_ne!(a_recv1, a_recv2);
+
+        // Ciphertext sealed under session 1 cannot be opened under session 2.
+        let mut sa1 = sa1;
+        let mut sb2 = sb2;
+        let ct1 = sa1.seal(&a, &b.peer_id(), b"session-one").unwrap();
+        assert_eq!(sb2.open(&b, &a.peer_id(), &ct1), Err(SessionError::Decrypt));
+    }
+
+    #[test]
+    fn outer_seq_and_direction_are_bound_as_aead_aad() {
+        let a = MeshIdentity::generate();
+        let b = MeshIdentity::generate();
+        let (mut sa, mut sb) = complete_handshake(&a, &b);
+
+        let ct = sa.seal(&a, &b.peer_id(), b"aad-bound").unwrap();
+
+        // Tampering with outer seq byte in header must fail AEAD auth (not just replay check).
+        let mut tampered = ct.clone();
+        tampered[31] ^= 0x02; // change seq 1 -> 3
+        assert_eq!(
+            sb.open(&b, &a.peer_id(), &tampered),
+            Err(SessionError::Decrypt)
+        );
+
+        // Reflecting sender's own ciphertext back must fail (wrong directional key + dir AAD).
+        assert_eq!(sa.open(&a, &b.peer_id(), &ct), Err(SessionError::Decrypt));
+
+        // Original unmodified frame still decrypts cleanly (failed tampered attempt did not advance window).
+        assert_eq!(sb.open(&b, &a.peer_id(), &ct).unwrap(), b"aad-bound");
+    }
+
+    #[test]
+    fn sliding_replay_window_allows_reordering_and_rejects_duplicates_and_stale() {
+        let a = MeshIdentity::generate();
+        let b = MeshIdentity::generate();
+        let (mut sa, mut sb) = complete_handshake(&a, &b);
+
+        // Produce 70 frames (seq 1..=70).
+        let frames: Vec<Vec<u8>> = (1..=70u32)
+            .map(|i| {
+                sa.seal(&a, &b.peer_id(), format!("msg-{i}").as_bytes())
+                    .unwrap()
+            })
+            .collect();
+
+        // Deliver out of order: 5, 3, 1, 4, 2 (all within 64-packet window).
+        for idx in [4usize, 2, 0, 3, 1] {
+            let expected = format!("msg-{}", idx + 1);
+            assert_eq!(
+                sb.open(&b, &a.peer_id(), &frames[idx]).unwrap(),
+                expected.as_bytes()
+            );
+        }
+
+        // Replaying any already-accepted packet (highest or interior) is strictly rejected.
+        assert_eq!(
+            sb.open(&b, &a.peer_id(), &frames[4]),
+            Err(SessionError::Replay)
+        );
+        assert_eq!(
+            sb.open(&b, &a.peer_id(), &frames[2]),
+            Err(SessionError::Replay)
+        );
+
+        // Jump window high watermark to seq 70 (frames[69]).
+        assert_eq!(sb.open(&b, &a.peer_id(), &frames[69]).unwrap(), b"msg-70");
+
+        // seq 7 (diff = 63) is still inside the 64-packet window -> accepted.
+        assert_eq!(sb.open(&b, &a.peer_id(), &frames[6]).unwrap(), b"msg-7");
+        // Duplicate of seq 7 -> rejected.
+        assert_eq!(
+            sb.open(&b, &a.peer_id(), &frames[6]),
+            Err(SessionError::Replay)
+        );
+
+        // seq 6 (diff = 64) fell outside the 64-packet window -> rejected.
+        assert_eq!(
+            sb.open(&b, &a.peer_id(), &frames[5]),
+            Err(SessionError::Replay)
+        );
+    }
+
+    #[test]
+    fn legacy_and_unknown_handshake_versions_fail_cleanly() {
+        let a = MeshIdentity::generate();
+        let b = MeshIdentity::generate();
+        let mut sb = SessionTable::default();
+
+        // Legacy v1 HS1: [1, 32-byte pubkey]
+        let mut legacy_hs1 = vec![1u8];
+        legacy_hs1.extend_from_slice(&[0x42u8; 32]);
+        assert_eq!(
+            sb.ingest_hs(&b, a.peer_id(), &legacy_hs1),
+            Err(SessionError::UnsupportedVersion)
+        );
+
+        // Future version 99
+        let mut future_hs1 = vec![99u8, HS1];
+        future_hs1.extend_from_slice(&[0x42u8; 32]);
+        assert_eq!(
+            sb.ingest_hs(&b, a.peer_id(), &future_hs1),
+            Err(SessionError::UnsupportedVersion)
+        );
+
+        // Valid version byte with unknown message tag (e.g. legacy v1 HS2 starting with 2)
+        let mut bad_tag = vec![HS_VERSION, 0x99];
+        bad_tag.extend_from_slice(&[0x42u8; 32]);
+        assert_eq!(
+            sb.ingest_hs(&b, a.peer_id(), &bad_tag),
+            Err(SessionError::UnsupportedVersion)
+        );
+    }
+
+    #[test]
+    fn handshake_binds_peer_ids_and_rejects_low_order_ephemeral() {
+        let a = MeshIdentity::generate();
+        let b = MeshIdentity::generate();
+        let mut sa = SessionTable::default();
+        let mut sb = SessionTable::default();
+
+        // Zero / low-order ephemeral public key in HS1 is rejected.
+        let mut low_order_hs1 = vec![HS_VERSION, HS1];
+        low_order_hs1.extend_from_slice(&[0u8; 32]);
+        assert_eq!(
+            sb.ingest_hs(&b, a.peer_id(), &low_order_hs1),
+            Err(SessionError::Key)
+        );
+
+        // Transcript binds peer_ids: relaying HS2 with mismatched sender peer_id fails decrypt.
+        let hs1 = sa.begin_initiator(b.peer_id(), Vec::new()).unwrap();
+        let wrong_peer = [0xEEu8; SENDER_LEN];
+        let hs2_wrong_id = match sb.ingest_hs(&b, wrong_peer, &hs1).unwrap() {
+            HsOutcome::Reply(p) => p,
+            _ => panic!("expected HS2"),
+        };
+        assert_eq!(
+            sa.ingest_hs(&a, b.peer_id(), &hs2_wrong_id),
+            Err(SessionError::Decrypt)
+        );
+    }
 }

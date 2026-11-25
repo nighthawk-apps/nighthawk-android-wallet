@@ -24,9 +24,10 @@ internal fun MainActivity.NavigationMainContent() {
     val chatController = remember(appContext) { DarkfiChatController.getOrCreate(appContext) }
 
     DisposableEffect(chatController) {
-        DarkfiChatConnectionBridge.attach { chatController.restartIfNetworkChanged() }
+        val reconnectHandler: () -> Unit = { chatController.restartIfNetworkChanged() }
+        DarkfiChatConnectionBridge.attach(reconnectHandler)
         onDispose {
-            DarkfiChatConnectionBridge.detach()
+            DarkfiChatConnectionBridge.detach(reconnectHandler)
         }
     }
 

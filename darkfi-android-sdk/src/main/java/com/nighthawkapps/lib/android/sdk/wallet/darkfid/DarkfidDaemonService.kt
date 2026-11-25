@@ -59,7 +59,6 @@ class DarkfidDaemonService : Service() {
     }
 
     private fun createChannelIfNeeded() {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
         val manager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
         val channel =
             NotificationChannel(

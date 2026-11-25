@@ -174,7 +174,8 @@ dependencies {
 
     implementation(projects.spackleAndroidLib)
     implementation(libs.androidx.workmanager)
-    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.11.0")
+    val serializationJsonVersion = project.property("KOTLINX_SERIALIZABLE_JSON_VERSION")
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:$serializationJsonVersion")
 
     testImplementation("org.json:json:20260522")
     testImplementation(libs.kotlin.test)
@@ -182,7 +183,8 @@ dependencies {
     testImplementation(libs.kotlinx.coroutines.test)
     testImplementation("junit:junit:4.13.2")
     testImplementation("org.robolectric:robolectric:4.16.1")
-    testImplementation("org.mockito:mockito-core:5.23.0")
+    val mockitoVersion = project.property("MOCKITO_VERSION")
+    testImplementation("org.mockito:mockito-core:$mockitoVersion")
     testImplementation(libs.androidx.test.core)
 
     androidTestImplementation(libs.bundles.androidx.test)
