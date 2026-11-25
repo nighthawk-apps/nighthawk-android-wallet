@@ -29,7 +29,7 @@ pub const MAX_PIR_STRIPES: usize = 8;
 /// Round a needed limb count up to the next power of two (min 8).
 /// Hides the exact matched payload size from the number of PIR round trips.
 pub fn padded_limb_count(needed: usize) -> usize {
-    let n = needed.max(8).min(MAX_PIR_LIMBS);
+    let n = needed.clamp(8, MAX_PIR_LIMBS);
     n.next_power_of_two().min(MAX_PIR_LIMBS)
 }
 
@@ -350,8 +350,8 @@ mod tests {
         let client = BatchPirClient::from_seed([9u8; 32]).unwrap();
         let server = BatchPirServer::with_unifomr_params().unwrap();
         let mut db = vec![0u64; 100];
-        for i in 0..100 {
-            db[i] = 1000 + i as u64;
+        for (i, slot) in db.iter_mut().enumerate() {
+            *slot = 1000 + i as u64;
         }
         let qs = client.generate_sealpir_queries(&[42], 100).unwrap();
         assert_eq!(qs.len(), 1);
@@ -368,8 +368,8 @@ mod tests {
         let degree = client.params.degree();
         let window = degree + 50;
         let mut db = vec![0u64; window];
-        for i in 0..window {
-            db[i] = 7_000 + i as u64;
+        for (i, slot) in db.iter_mut().enumerate() {
+            *slot = 7_000 + i as u64;
         }
         let target = degree + 17;
         let qs = client.generate_sealpir_queries(&[target], window).unwrap();

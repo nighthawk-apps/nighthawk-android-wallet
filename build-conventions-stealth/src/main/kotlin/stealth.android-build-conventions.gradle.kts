@@ -14,6 +14,7 @@ private val stealthAndroidLocaleFilters =
         "ar",
         "bg",
         "bn",
+        "cs",
         "da",
         "de",
         "el",

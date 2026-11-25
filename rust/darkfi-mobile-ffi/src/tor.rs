@@ -79,6 +79,19 @@ pub fn start_arti_proxy(socks_port: u16) -> Result<bool, crate::DarkfiWalletNati
     // `ring` and `aws-lc-rs` may be pulled in transitively (Arti + tonic).
     let _ = rustls::crypto::ring::default_provider().install_default();
 
+    // A pending stop is still winding down the previous proxy; let it exit
+    // so this start is not mistaken for a duplicate.
+    let deadline = std::time::Instant::now() + std::time::Duration::from_secs(3);
+    while ARTI_STOP_REQUESTED.load(Ordering::SeqCst)
+        && !matches!(
+            ARTI_STATE.load(Ordering::SeqCst),
+            ARTI_STOPPED | ARTI_FAILED
+        )
+        && std::time::Instant::now() < deadline
+    {
+        std::thread::sleep(std::time::Duration::from_millis(50));
+    }
+
     // Reap a previous proxy thread that already exited (Failed / Stopped) so a
     // Retry cannot overlap with teardown — that race SIGSEGV'd Arti on x86_64
     // emulator builds during F-Droid review of 3.00.018.

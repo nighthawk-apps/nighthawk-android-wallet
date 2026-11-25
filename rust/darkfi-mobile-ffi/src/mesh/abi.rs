@@ -15,7 +15,7 @@ fn copy_bytes(dst: *mut c_uchar, cap: c_int, src: &[u8]) -> c_int {
     if dst.is_null() {
         return -2;
     }
-    if cap < src.len() as c_int {
+    if cap < 0 || (cap as usize) < src.len() {
         return -3;
     }
     unsafe {
@@ -25,10 +25,7 @@ fn copy_bytes(dst: *mut c_uchar, cap: c_int, src: &[u8]) -> c_int {
 }
 
 fn abi_catch(ctx: &'static str, f: impl FnOnce() -> c_int) -> c_int {
-    match crate::panic_fence::catch_string(ctx, || Ok(f())) {
-        Ok(code) => code,
-        Err(_) => -1,
-    }
+    crate::panic_fence::catch_string(ctx, || Ok(f())).unwrap_or(-1)
 }
 
 #[no_mangle]
@@ -90,6 +87,12 @@ pub extern "C" fn nh_mesh_ingest_link_bytes(ptr: *const c_uchar, len: c_int) -> 
 #[no_mangle]
 pub extern "C" fn nh_mesh_pop_outbound(ptr: *mut c_uchar, cap: c_int) -> c_int {
     abi_catch("nh_mesh_pop_outbound", || {
+        if ptr.is_null() {
+            return -2;
+        }
+        if cap < 0 {
+            return -3;
+        }
         let Some(len) = super::mesh_peek_one_outbound_len() else {
             return 0;
         };
@@ -347,6 +350,12 @@ pub extern "C" fn nh_mesh_pop_inbound_event(
     cap: c_int,
 ) -> c_int {
     abi_catch("nh_mesh_pop_inbound_event", || {
+        if ptr.is_null() {
+            return -2;
+        }
+        if cap < 0 {
+            return -3;
+        }
         let Some(len) = super::mesh_peek_inbound_event_len() else {
             return 0;
         };
@@ -365,4 +374,28 @@ pub extern "C" fn nh_mesh_pop_inbound_event(
             None => 0,
         }
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn negative_cap_rejects_without_popping_frames() {
+        let _ = start_mesh();
+        let mut buf = [0u8; 64];
+        let mut id_out = [0u8; 16];
+        // Negative capacity must fail with -3 before popping anything.
+        assert_eq!(nh_mesh_pop_outbound(buf.as_mut_ptr(), -1), -3);
+        assert_eq!(
+            nh_mesh_pop_inbound_event(id_out.as_mut_ptr(), buf.as_mut_ptr(), -1),
+            -3
+        );
+        // Null pointer must fail with -2 before popping anything.
+        assert_eq!(nh_mesh_pop_outbound(std::ptr::null_mut(), 64), -2);
+        assert_eq!(
+            nh_mesh_pop_inbound_event(id_out.as_mut_ptr(), std::ptr::null_mut(), 64),
+            -2
+        );
+    }
 }

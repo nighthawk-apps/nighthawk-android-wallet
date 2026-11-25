@@ -207,6 +207,7 @@ impl LightwalletError {
 }
 
 /// Generated protobuf types + gRPC client stubs from `lightwallet.proto`.
+#[allow(clippy::all)]
 pub mod lightwallet_proto {
     include!("proto_gen/darkfi.lightwallet.rs");
 }
@@ -432,18 +433,22 @@ impl rustls::client::danger::ServerCertVerifier for PinnedVerifier {
                 rustls::CertificateError::Expired,
             ));
         }
-        let host = match server_name {
-            rustls::pki_types::ServerName::DnsName(d) => d.as_ref(),
+        match server_name {
+            rustls::pki_types::ServerName::DnsName(d) => {
+                if !cert_hostname_matches(&cert, d.as_ref()) {
+                    return Err(rustls::Error::InvalidCertificate(
+                        rustls::CertificateError::NotValidForName,
+                    ));
+                }
+            }
+            rustls::pki_types::ServerName::IpAddress(_) => {
+                // Leaf certificate SHA-256 pin and validity window already verified above.
+            }
             _ => {
                 return Err(rustls::Error::InvalidCertificate(
                     rustls::CertificateError::NotValidForName,
                 ));
             }
-        };
-        if !cert_hostname_matches(&cert, host) {
-            return Err(rustls::Error::InvalidCertificate(
-                rustls::CertificateError::NotValidForName,
-            ));
         }
 
         Ok(rustls::client::danger::ServerCertVerified::assertion())
@@ -503,16 +508,8 @@ pub fn set_default_socks5_proxy(proxy: Option<(String, u16)>) {
 }
 
 fn default_socks5_proxy_for(grpc_url: &str) -> Option<(String, u16)> {
-    let rest = grpc_url
-        .trim_start_matches("https://")
-        .trim_start_matches("http://");
-    let host = if let Some(v6) = rest.strip_prefix('[') {
-        // IPv6 literal, e.g. `[::1]:9067`
-        format!("[{}]", v6.split(']').next()?)
-    } else {
-        rest.split(['/', ':']).next().unwrap_or("").to_string()
-    };
-    if is_loopback_host(&host) {
+    let host = extract_host_from_url(grpc_url);
+    if is_loopback_host(host) {
         return None;
     }
     DEFAULT_SOCKS5_PROXY.read().unwrap().clone()
@@ -950,12 +947,7 @@ impl LightwalletClient {
                 "Unsupported lightwallet endpoint scheme: {endpoint}"
             ));
         }
-        let host = endpoint
-            .trim_start_matches("https://")
-            .trim_start_matches("http://")
-            .split(['/', ':'])
-            .next()
-            .unwrap_or("");
+        let host = extract_host_from_url(endpoint);
         let loopback = is_loopback_host(host);
         if is_http && !loopback {
             if via_socks && require_https_over_socks {
@@ -1014,10 +1006,12 @@ impl LightwalletClient {
                 "mesh bulk TCP is disabled; lightwalletd stays on Tor or the configured proxy",
             ));
         }
+        let clean_host = host.trim_matches(['[', ']']);
         if let Some((proxy_host, proxy_port)) = socks5_proxy {
             let proxy = (proxy_host.as_str(), *proxy_port);
-            let dest = (host, port);
-            let local = proxy_host == "127.0.0.1" || proxy_host == "localhost";
+            let dest = (clean_host, port);
+            let local =
+                proxy_host == "127.0.0.1" || proxy_host == "localhost" || proxy_host == "::1";
             let socks_result = if local {
                 let auth = crate::transport_manager::current_socks_auth();
                 tokio::time::timeout(
@@ -1049,12 +1043,12 @@ impl LightwalletClient {
                 })?;
             Ok(socks.into_inner())
         } else {
-            let addr = format!("{host}:{port}");
-            tokio::time::timeout(connect_timeout, tokio::net::TcpStream::connect(addr))
-                .await
-                .map_err(|_| {
-                    std::io::Error::new(std::io::ErrorKind::TimedOut, "TCP connect timeout")
-                })?
+            tokio::time::timeout(
+                connect_timeout,
+                tokio::net::TcpStream::connect((clean_host, port)),
+            )
+            .await
+            .map_err(|_| std::io::Error::new(std::io::ErrorKind::TimedOut, "TCP connect timeout"))?
         }
     }
 
@@ -1163,7 +1157,8 @@ impl LightwalletClient {
                     rustls_config.alpn_protocols = vec![b"h2".to_vec()];
                     let tls_connector =
                         tokio_rustls::TlsConnector::from(std::sync::Arc::new(rustls_config));
-                    let server_name = host.to_string().try_into().map_err(|e| {
+                    let sni_host = host.trim_matches(['[', ']']).to_string();
+                    let server_name = sni_host.try_into().map_err(|e| {
                         std::io::Error::new(
                             std::io::ErrorKind::InvalidInput,
                             format!("Invalid domain name: {e}"),
@@ -2950,14 +2945,11 @@ fn chain_tip_notice(tip: lightwallet_proto::ChainTip) -> ChainTipNotice {
     }
 }
 
+type HeightBodyEntry = (Vec<u8>, Vec<u8>, BTreeMap<Vec<u8>, Vec<LightCompactOutput>>);
+
 /// Group compact output bodies into blocks the trial-decrypt path already understands.
 pub fn compact_bodies_to_blocks(bodies: Vec<CompactOutputBodyDto>) -> Vec<LightCompactBlock> {
-    use std::collections::BTreeMap;
-
-    let mut by_height: BTreeMap<
-        u32,
-        (Vec<u8>, Vec<u8>, BTreeMap<Vec<u8>, Vec<LightCompactOutput>>),
-    > = BTreeMap::new();
+    let mut by_height: BTreeMap<u32, HeightBodyEntry> = BTreeMap::new();
     for body in bodies {
         let entry = by_height
             .entry(body.height)
@@ -3124,37 +3116,84 @@ pub struct ParsedLightwalletEndpoint {
     pub socks5_proxy: Option<(String, u16)>,
 }
 
-/// Parse `socks5://proxy_host:proxy_port/dest_host:dest_port` (Android TorDarkfidEndpoint).
+/// Extract host (unbracketed for IPv6 literals like `[::1]:9067`) from a URL.
+pub(crate) fn extract_host_from_url(url: &str) -> &str {
+    let rest = url
+        .trim()
+        .trim_start_matches("https://")
+        .trim_start_matches("http://")
+        .trim_start_matches("tcp+tls://")
+        .trim_start_matches("tcp://");
+    if let Some(v6) = rest.strip_prefix('[') {
+        v6.split(']').next().unwrap_or("")
+    } else {
+        rest.split(['/', ':']).next().unwrap_or("")
+    }
+}
+
+fn split_host_port(authority: &str) -> Option<(&str, u16)> {
+    let authority = authority.trim();
+    if let Some(rest) = authority.strip_prefix('[') {
+        let (host, after) = rest.split_once(']')?;
+        let port_s = after.strip_prefix(':')?;
+        let port: u16 = port_s.parse().ok()?;
+        if host.is_empty() {
+            return None;
+        }
+        Some((host, port))
+    } else {
+        let (host, port_s) = authority.rsplit_once(':')?;
+        let port: u16 = port_s.parse().ok()?;
+        if host.is_empty() || host.contains(':') {
+            return None;
+        }
+        Some((host, port))
+    }
+}
+
+/// Parse `socks5://proxy_host:proxy_port/dest_host:dest_port`,
+/// `socks5+tls://proxy_host:proxy_port/dest_host:dest_port`, or
+/// `socks5://proxy_host:proxy_port/https://dest_host:dest_port` (preserving TLS on non-443 ports).
 ///
 /// Returns `None` if the URL is not a socks5 DarkFi transport URI.
 pub fn parse_socks5_lightwallet_url(url: &str) -> Option<ParsedLightwalletEndpoint> {
     let url = url.trim();
-    if !url.starts_with("socks5://") {
+    let (explicit_tls, rest) = if let Some(r) = url.strip_prefix("socks5+tls://") {
+        (true, r)
+    } else {
+        let r = url.strip_prefix("socks5://")?;
+        (false, r)
+    };
+    let (authority, dest_raw) = rest.split_once('/')?;
+    if dest_raw.is_empty() {
         return None;
     }
-    let rest = &url["socks5://".len()..];
-    let (authority, dest) = rest.split_once('/')?;
-    if dest.is_empty() {
-        return None;
-    }
-    let (proxy_host, proxy_port_s) = authority.rsplit_once(':')?;
-    let proxy_port: u16 = proxy_port_s.parse().ok()?;
-    if proxy_host.is_empty() {
-        return None;
-    }
-    // Destination may be host:port (IPv6 not supported in this Android URI form).
-    let dest = dest.trim_start_matches('/');
-    let (dest_host, dest_port_s) = dest.rsplit_once(':')?;
-    let dest_port: u16 = dest_port_s.parse().ok()?;
-    if dest_host.is_empty() {
-        return None;
-    }
-    // Port 443 (and explicit TLS terminators) must stay HTTPS so certificate
-    // pinning / require_https_over_socks still apply when Kotlin wraps the
-    // endpoint as socks5:// for Tor. Cleartext gRPC ports keep http://.
-    let scheme = if dest_port == 443 { "https" } else { "http" };
+    let (proxy_host, proxy_port) = split_host_port(authority)?;
+    let dest = dest_raw.trim_start_matches('/');
+    let (dest_tls, dest_addr) = if let Some(r) = dest.strip_prefix("https://") {
+        (true, r)
+    } else if let Some(r) = dest.strip_prefix("tcp+tls://") {
+        (true, r)
+    } else if let Some(r) = dest.strip_prefix("http://") {
+        (false, r)
+    } else if let Some(r) = dest.strip_prefix("tcp://") {
+        (false, r)
+    } else {
+        (false, dest)
+    };
+    let dest_addr = dest_addr.split('/').next().unwrap_or(dest_addr);
+    let (dest_host, dest_port) = split_host_port(dest_addr)?;
+    // Preserve HTTPS whenever TLS was requested (`socks5+tls://`, `https://`,
+    // `tcp+tls://`) or port 443 is used, even on non-443 TLS ports (e.g. :9067).
+    let use_tls = explicit_tls || dest_tls || dest_port == 443;
+    let scheme = if use_tls { "https" } else { "http" };
+    let formatted_host = if dest_host.contains(':') && !dest_host.starts_with('[') {
+        format!("[{dest_host}]")
+    } else {
+        dest_host.to_string()
+    };
     Some(ParsedLightwalletEndpoint {
-        grpc_url: format!("{scheme}://{dest_host}:{dest_port}"),
+        grpc_url: format!("{scheme}://{formatted_host}:{dest_port}"),
         socks5_proxy: Some((proxy_host.to_string(), proxy_port)),
     })
 }
@@ -3290,6 +3329,47 @@ mod tests {
             normalize_lightwallet_url("socks5://127.0.0.1:9050/node.dark.fi:9067"),
             "http://node.dark.fi:9067"
         );
+    }
+
+    #[test]
+    fn parse_socks5_preserves_non_443_tls_and_ipv6() {
+        let p = parse_socks5_lightwallet_url("socks5+tls://127.0.0.1:9050/lw.example:9067")
+            .expect("socks5+tls");
+        assert_eq!(p.grpc_url, "https://lw.example:9067");
+        assert_eq!(p.socks5_proxy, Some(("127.0.0.1".into(), 9050)));
+
+        let p2 = parse_socks5_lightwallet_url("socks5://127.0.0.1:9050/https://lw.example:9067")
+            .expect("socks5 with inner https");
+        assert_eq!(p2.grpc_url, "https://lw.example:9067");
+        assert_eq!(p2.socks5_proxy, Some(("127.0.0.1".into(), 9050)));
+
+        let p3 = parse_socks5_lightwallet_url("socks5://127.0.0.1:9050/tcp+tls://lw.example:9067")
+            .expect("socks5 with inner tcp+tls");
+        assert_eq!(p3.grpc_url, "https://lw.example:9067");
+
+        let v6 = parse_socks5_lightwallet_url("socks5://[::1]:9050/[::1]:9067").expect("ipv6");
+        assert_eq!(v6.grpc_url, "http://[::1]:9067");
+        assert_eq!(v6.socks5_proxy, Some(("::1".into(), 9050)));
+    }
+
+    #[test]
+    fn ipv6_loopback_passes_transport_policy() {
+        assert_eq!(extract_host_from_url("http://[::1]:9067"), "::1");
+        assert_eq!(extract_host_from_url("https://[::1]:9067"), "::1");
+        assert!(LightwalletClient::enforce_transport_policy(
+            "http://[::1]:9067",
+            false,
+            false,
+            true,
+        )
+        .is_ok());
+        assert!(LightwalletClient::enforce_transport_policy(
+            "https://[::1]:9067",
+            false,
+            false,
+            true,
+        )
+        .is_ok());
     }
 
     #[test]

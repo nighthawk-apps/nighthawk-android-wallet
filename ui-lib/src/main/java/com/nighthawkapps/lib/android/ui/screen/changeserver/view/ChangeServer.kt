@@ -21,6 +21,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
@@ -104,6 +105,16 @@ fun ChangeServer(
             },
         )
     }
+    var customServerUseTls by remember(isCustomOptionSelected) {
+        mutableStateOf(
+            if (isCustomOptionSelected) {
+                val preset = localPresetSelected.value
+                if (preset == null || preset.isIncompleteCustom) true else preset.endpoint.isTls
+            } else {
+                true
+            },
+        )
+    }
 
     var showRestartDialog by remember { mutableStateOf(false) }
 
@@ -177,43 +188,59 @@ fun ChangeServer(
         }
 
         AnimatedVisibility(visible = isCustomOptionSelected) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-            ) {
-                OutlinedTextField(
-                    value = customServerHostName,
-                    onValueChange = { customServerHostName = it },
-                    placeholder = {
-                        BodyMedium(
-                            text = stringResource(id = R.string.ns_host),
-                            color = WalletTheme.colors.secondaryTitleText,
-                        )
-                    },
-                    keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Done),
-                    maxLines = 1,
-                    modifier = Modifier.weight(0.6f),
-                )
+            Column(modifier = Modifier.fillMaxWidth()) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                ) {
+                    OutlinedTextField(
+                        value = customServerHostName,
+                        onValueChange = { customServerHostName = it },
+                        placeholder = {
+                            BodyMedium(
+                                text = stringResource(id = R.string.ns_host),
+                                color = WalletTheme.colors.secondaryTitleText,
+                            )
+                        },
+                        keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Done),
+                        maxLines = 1,
+                        modifier = Modifier.weight(0.6f),
+                    )
 
-                Spacer(modifier = Modifier.width(10.dp))
+                    Spacer(modifier = Modifier.width(10.dp))
 
-                OutlinedTextField(
-                    value = customServerPortNo,
-                    onValueChange = { customServerPortNo = it },
-                    placeholder = {
-                        BodyMedium(
-                            text = stringResource(id = R.string.ns_port),
-                            color = WalletTheme.colors.secondaryTitleText,
-                        )
-                    },
-                    keyboardOptions =
-                        KeyboardOptions.Default.copy(
-                            keyboardType = KeyboardType.Number,
-                            imeAction = ImeAction.Done,
-                        ),
-                    maxLines = 1,
-                    modifier = Modifier.weight(0.4f),
-                )
+                    OutlinedTextField(
+                        value = customServerPortNo,
+                        onValueChange = { customServerPortNo = it },
+                        placeholder = {
+                            BodyMedium(
+                                text = stringResource(id = R.string.ns_port),
+                                color = WalletTheme.colors.secondaryTitleText,
+                            )
+                        },
+                        keyboardOptions =
+                            KeyboardOptions.Default.copy(
+                                keyboardType = KeyboardType.Number,
+                                imeAction = ImeAction.Done,
+                            ),
+                        maxLines = 1,
+                        modifier = Modifier.weight(0.4f),
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    BodyMedium(text = stringResource(id = R.string.ns_use_tls))
+                    Switch(
+                        checked = customServerUseTls,
+                        onCheckedChange = { customServerUseTls = it },
+                    )
+                }
             }
         }
 
@@ -233,7 +260,7 @@ fun ChangeServer(
                                     DarkfiEndpoint(
                                         host = customServerHostName.trim(),
                                         port = customServerPortNo.toInt(),
-                                        isTls = false,
+                                        isTls = customServerUseTls,
                                     ),
                             )
                         }

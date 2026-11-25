@@ -25,7 +25,7 @@ pub fn split(original: &MeshPacket, chunk: usize) -> Result<Vec<MeshPacket>, Fra
     if encoded_payload.len() > original.typ.payload_limit() || encoded_payload.len() > MAX_PAYLOAD {
         return Err(FragError::TooLarge);
     }
-    let size = chunk.max(1).min(FRAGMENT_CHUNK);
+    let size = chunk.clamp(1, FRAGMENT_CHUNK);
     if encoded_payload.len() <= size {
         return Ok(vec![original.clone()]);
     }

@@ -37,7 +37,7 @@ object DeepLinkUtil {
 
             val queryString =
                 when {
-                    !uri.query.isNullOrBlank() -> uri.query
+                    !uri.encodedQuery.isNullOrBlank() -> uri.encodedQuery
                     queryStart >= 0 -> withoutScheme.substring(queryStart + 1)
                     else -> null
                 }
@@ -91,11 +91,13 @@ object DeepLinkUtil {
         val addr = address.trim()
         if (addr.isEmpty() || addr.length > MAX_ADDRESS_LENGTH) return null
         if (addr.any { it.isISOControl() || it.isWhitespace() }) return null
-        val amount =
+        val amountTrimmed =
             amountDisplay
                 ?.trim()
                 ?.takeIf { it.isNotEmpty() }
-                ?.let { parseAtomicDrk(it) ?: return null }
+        if (amountTrimmed != null && parseAtomicDrk(amountTrimmed) == null) {
+            return null
+        }
         val memoNormalized =
             memo
                 ?.trim()
@@ -104,18 +106,23 @@ object DeepLinkUtil {
                     DarkfiPaymentMemo.utf8Size(it) <= DarkfiPaymentMemo.MAX_BYTES &&
                         it.none(Char::isISOControl)
                 }
-        val builder = StringBuilder(SCHEME).append(':').append(addr)
-        val query = mutableListOf<String>()
-        if (amount != null) {
-            query += "$AMOUNT_QUERY=$amountDisplay"
+        val queryBuilder = Uri.Builder()
+        var hasQuery = false
+        if (amountTrimmed != null) {
+            queryBuilder.appendQueryParameter(AMOUNT_QUERY, amountTrimmed)
+            hasQuery = true
         }
         if (memoNormalized != null) {
             val encoded =
                 Base64.encodeToString(memoNormalized.toByteArray(Charsets.UTF_8), Base64.NO_WRAP)
-            query += "$MEMO_QUERY=$encoded"
+            queryBuilder.appendQueryParameter(MEMO_QUERY, encoded)
+            hasQuery = true
         }
-        if (query.isNotEmpty()) {
-            builder.append('?').append(query.joinToString("&"))
+        val builder = StringBuilder(SCHEME).append(':').append(addr)
+        if (hasQuery) {
+            queryBuilder.build().encodedQuery?.takeIf { it.isNotEmpty() }?.let { encodedQuery ->
+                builder.append('?').append(encodedQuery)
+            }
         }
         return builder.toString()
     }

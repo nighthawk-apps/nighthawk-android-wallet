@@ -1,15 +1,10 @@
-@file:Suppress("DEPRECATION")
-
 package com.nighthawkapps.lib.android.global
 
-import android.annotation.SuppressLint
+import android.app.Activity
+import android.content.ClipData
 import android.content.Context
 import android.content.Intent
-import android.content.pm.PackageManager
-import android.content.pm.PackageManager.ResolveInfoFlags
-import android.content.pm.ResolveInfo
 import android.net.Uri
-import android.os.Build
 import android.widget.Toast
 import androidx.core.content.FileProvider
 import com.nighthawkapps.lib.android.spackle.Twig
@@ -25,6 +20,7 @@ import com.tom_roush.pdfbox.pdmodel.font.PDType1Font
 import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.bouncycastle.jce.provider.BouncyCastleProvider
@@ -35,9 +31,12 @@ import java.text.SimpleDateFormat
 import java.util.Date
 
 object PdfUtil {
+    private const val PDF_FILE_NAME = "NighthawkSeedWords.pdf"
+    private const val PDF_CLEANUP_DELAY_MS = 120_000L
+
     private val coroutineExceptionHandler =
-        CoroutineExceptionHandler { coroutineContext, throwable ->
-            print("Exception $throwable in coroutine scope $coroutineContext")
+        CoroutineExceptionHandler { _, throwable ->
+            Twig.error(throwable) { "PdfUtil coroutine failure" }
         }
 
     fun exportPasswordProtectedPdf(
@@ -46,11 +45,13 @@ object PdfUtil {
         seedWords: List<String>,
         birthDay: Long?
     ) {
+        val appContext = context.applicationContext
         CoroutineScope(Dispatchers.IO).launch(coroutineExceptionHandler) {
-            PDFBoxResourceLoader.init(context.applicationContext)
+            PDFBoxResourceLoader.init(appContext)
             val stringBuilder = StringBuilder()
             val listOfSeeds = mutableListOf<String>()
             val noOfWordsPerLineToPrint = 6
+            val pdfFile = File(appContext.cacheDir, PDF_FILE_NAME)
             try {
                 seedWords.forEachIndexed { index, word ->
                     stringBuilder
@@ -63,10 +64,12 @@ object PdfUtil {
                         stringBuilder.clear()
                     }
                 }
-                listOfSeeds.add(stringBuilder.toString())
-                val filePath = "${context.cacheDir.absolutePath}/NighthawkSeedWords.pdf"
-                if (File(filePath).exists()) {
-                    File(filePath).delete()
+                if (stringBuilder.isNotEmpty()) {
+                    listOfSeeds.add(stringBuilder.toString())
+                    stringBuilder.clear()
+                }
+                if (pdfFile.exists()) {
+                    pdfFile.delete()
                 }
 
                 val keyLength = 128 // 128 bit is the highest currently supported
@@ -77,22 +80,19 @@ object PdfUtil {
 
                 // Sets the owner password and user password
                 val standardProtectionPolicy = StandardProtectionPolicy(password, password, accessPermission)
-
-                // Setups up the encryption parameters
-
-                // Setups up the encryption parameters
                 standardProtectionPolicy.encryptionKeyLength = keyLength
                 standardProtectionPolicy.permissions = accessPermission
                 standardProtectionPolicy.isPreferAES = true
-                val provider = BouncyCastleProvider()
-                Security.addProvider(provider)
+                if (Security.getProvider(BouncyCastleProvider.PROVIDER_NAME) == null) {
+                    Security.addProvider(BouncyCastleProvider())
+                }
 
                 val font: PDFont = PDType1Font.HELVETICA
                 val document = PDDocument()
                 val page = PDPage()
-
                 document.addPage(page)
 
+                var created = false
                 try {
                     val contentStream = PDPageContentStream(document, page)
                     val headingFontSize = 16f
@@ -102,7 +102,7 @@ object PdfUtil {
                     val seedWordXOffset = 50f
 
                     contentStream.beginText()
-                    contentStream.setNonStrokingColor(0f, 0f, 0f) // Write Text in black color
+                    contentStream.setNonStrokingColor(0f, 0f, 0f)
                     contentStream.setFont(font, headingFontSize)
                     contentStream.newLineAtOffset(50f, 700f)
 
@@ -125,8 +125,8 @@ object PdfUtil {
                     // PDF generated time
                     val dateFormatter =
                         SimpleDateFormat(
-                            context.getString(R.string.transaction_history_format_date_time_brief),
-                            context.resources.configuration.locales[0]
+                            appContext.getString(R.string.transaction_history_format_date_time_brief),
+                            appContext.resources.configuration.locales[0]
                         )
                     contentStream.newLineAtOffset(0f, -leading)
                     contentStream.showText("Backup PDF generated at: ${dateFormatter.format(Date())}")
@@ -135,75 +135,80 @@ object PdfUtil {
                     contentStream.close()
 
                     // Save the final pdf document to a file
-                    document.protect(standardProtectionPolicy) // Apply the protections to the PDF
-                    document.save(filePath)
-                    document.close()
+                    document.protect(standardProtectionPolicy)
+                    document.save(pdfFile)
+                    created = true
                 } catch (e: IOException) {
-                    Toast.makeText(context, "PDF creation failed", Toast.LENGTH_SHORT).show()
-                    print("PdfBox Exception thrown while creating PDF for encryption $e")
+                    pdfFile.delete()
+                    Twig.warn(e) { "PdfBox exception thrown while creating PDF" }
+                    withContext(Dispatchers.Main) {
+                        Toast.makeText(appContext, "PDF creation failed", Toast.LENGTH_SHORT).show()
+                    }
+                } finally {
+                    runCatching { document.close() }
                 }
 
                 // Share the file
-                if (File(filePath).exists()) {
+                if (created && pdfFile.exists()) {
                     val fileURI =
                         FileProvider.getUriForFile(
-                            context,
-                            context.packageName + ".fileprovider",
-                            File(filePath)
+                            appContext,
+                            appContext.packageName + ".fileprovider",
+                            pdfFile
                         )
-                    withContext(Dispatchers.Main) {
-                        shareFile(context, fileURI)
+                    val shared =
+                        withContext(Dispatchers.Main) {
+                            shareFile(context, fileURI)
+                        }
+                    if (!shared) {
+                        pdfFile.delete()
+                    } else {
+                        scheduleCleanup(pdfFile)
                     }
                 }
             } catch (e: Exception) {
+                pdfFile.delete()
+                Twig.warn(e) { "PDF creation failed" }
                 withContext(Dispatchers.Main) {
-                    Toast.makeText(context, "PDF creation failed", Toast.LENGTH_SHORT).show()
-                    Twig.warn(e) { "PDF creation failed" }
+                    Toast.makeText(appContext, "PDF creation failed", Toast.LENGTH_SHORT).show()
                 }
             }
         }
     }
 
-    @SuppressLint("QueryPermissionsNeeded")
+    private fun scheduleCleanup(pdfFile: File) {
+        CoroutineScope(Dispatchers.IO).launch(coroutineExceptionHandler) {
+            delay(PDF_CLEANUP_DELAY_MS)
+            if (pdfFile.exists()) {
+                pdfFile.delete()
+            }
+        }
+    }
+
     private fun shareFile(
         context: Context,
         fileURI: Uri
-    ) {
+    ): Boolean =
         try {
-            Intent(Intent.ACTION_SEND)
-                .apply {
+            val sendIntent =
+                Intent(Intent.ACTION_SEND).apply {
                     type = "application/pdf"
-                    flags = Intent.FLAG_GRANT_READ_URI_PERMISSION
-                    flags = Intent.FLAG_GRANT_WRITE_URI_PERMISSION
-                    flags = Intent.FLAG_ACTIVITY_CLEAR_TOP
-                    flags = Intent.FLAG_ACTIVITY_NEW_TASK
                     putExtra(Intent.EXTRA_STREAM, fileURI)
-                }.run {
-                    val intentChooser = Intent.createChooser(this, "Share File")
-
-                    val resInfoList: List<ResolveInfo> =
-                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                            context.packageManager.queryIntentActivities(
-                                intentChooser,
-                                ResolveInfoFlags.of(PackageManager.MATCH_DEFAULT_ONLY.toLong())
-                            )
-                        } else {
-                            context.packageManager.queryIntentActivities(intentChooser, PackageManager.MATCH_DEFAULT_ONLY)
-                        }
-
-                    for (resolveInfo in resInfoList) {
-                        val packageName = resolveInfo.activityInfo.packageName
-                        context.grantUriPermission(
-                            packageName,
-                            fileURI,
-                            Intent.FLAG_GRANT_WRITE_URI_PERMISSION or Intent.FLAG_GRANT_READ_URI_PERMISSION
-                        )
-                    }
-                    context.startActivity(intentChooser)
+                    clipData = ClipData.newRawUri(PDF_FILE_NAME, fileURI)
+                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
                 }
+            val intentChooser =
+                Intent.createChooser(sendIntent, "Share File").apply {
+                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                    if (context !is Activity) {
+                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    }
+                }
+            context.startActivity(intentChooser)
+            true
         } catch (e: Exception) {
-            Toast.makeText(context, "PDF sharing failed", Toast.LENGTH_SHORT).show()
-            print(e)
+            Twig.warn(e) { "PDF sharing failed" }
+            Toast.makeText(context.applicationContext, "PDF sharing failed", Toast.LENGTH_SHORT).show()
+            false
         }
-    }
 }

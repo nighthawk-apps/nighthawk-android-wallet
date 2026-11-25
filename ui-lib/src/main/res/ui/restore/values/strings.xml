@@ -725,6 +725,7 @@
     <string name="theme_variant_cyberpunk_detail">enter nighthawk with style</string>
     <string name="ns_host">Host</string>
     <string name="ns_port">Port</string>
+    <string name="ns_use_tls">Use TLS (https://)</string>
     <string name="tex_address_support_error">Invalid Address, Tex Address is not supported</string>
     <string name="ns_share_app_row_title">Share Nighthawk</string>
     <string name="ns_share_app_row_desc">Send this app to a nearby Android phone over Bluetooth</string>

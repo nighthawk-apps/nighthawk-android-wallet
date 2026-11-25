@@ -330,7 +330,11 @@ async fn run_socks_proxy(socks_port: u16) -> Result<(), String> {
                     if let Err(e) = handle_socks_conn(stream).await {
                         // Info, not debug: a failed dial is why DarkIRC stays on
                         // "waiting for peers" after the tunnel itself is up.
-                        tracing::info!("nym SOCKS connection closed: {e}");
+                        // Redact any host/IP details before logging.
+                        tracing::info!(
+                            "nym SOCKS connection closed: {}",
+                            crate::sync::redact_sync_error(&e)
+                        );
                     }
                 });
             }
@@ -413,18 +417,18 @@ async fn handle_socks_conn(mut inbound: TcpStream) -> Result<(), String> {
     let port = u16::from_be_bytes(port_bytes);
 
     // Onion services are only reachable over Tor; never fall back to clearnet.
-    if host.to_ascii_lowercase().ends_with(".onion") {
+    // Strip trailing DNS root dot(s) so `foo.onion.` is blocked identically to `foo.onion`.
+    let normalized_host = host.trim().trim_end_matches('.').to_ascii_lowercase();
+    if normalized_host.ends_with(".onion") || normalized_host == "onion" {
         let _ = inbound.write_all(&socks_reply(0x04)).await;
-        return Err(format!(
-            "{host} is a Tor onion address; Nym cannot reach it"
-        ));
+        return Err("Tor onion address rejected; Nym cannot reach .onion hosts".into());
     }
 
     let mut outbound = match nym_connect(&host, port).await {
         Ok(s) => s,
         Err(e) => {
             let _ = inbound.write_all(&socks_reply(0x04)).await;
-            return Err(format!("Nym connect to {host}:{port} failed: {e}"));
+            return Err(format!("Nym connect failed: {e}"));
         }
     };
     inbound
@@ -510,7 +514,7 @@ async fn nym_connect(host: &str, port: u16) -> Result<MixTcpStream, String> {
 
     let ip = match resolve_over_nym(&tunnel, host).await {
         Ok(Some(ip)) => ip,
-        Ok(None) => return Err(format!("no A/AAAA record for {host} from mixnet DNS")),
+        Ok(None) => return Err("no A/AAAA record from mixnet DNS".into()),
         Err(e) => {
             // One dead or slow name is normal (old hostlist entries). Drop the
             // shared tunnel only when a health probe says it is not carrying
@@ -534,8 +538,8 @@ async fn nym_connect(host: &str, port: u16) -> Result<MixTcpStream, String> {
             mark_healthy(gen);
             return Ok(stream);
         }
-        Ok(Err(e)) => format!("mixnet TCP connect to {host}:{port} failed: {e}"),
-        Err(_) => format!("mixnet TCP connect to {host}:{port} timed out"),
+        Ok(Err(e)) => format!("mixnet TCP connect failed: {e}"),
+        Err(_) => "mixnet TCP connect timed out".to_string(),
     };
     if !tunnel_is_healthy(gen, &tunnel).await {
         invalidate_tunnel(gen).await;
@@ -671,14 +675,15 @@ async fn query_resolvers_for_type(
             ),
         )
         .await
-        .map_err(|_| format!("mixnet DNS lookup for {host} timed out"))
+        .map_err(|_| "mixnet DNS lookup timed out".to_string())
         .and_then(|r| r);
         match query {
             Ok(answer) => return Ok(answer),
             Err(e) => {
                 tracing::warn!(
-                    "mixnet DNS {:?} lookup for {host} failed (attempt {attempt}): {e}",
-                    record_type
+                    "mixnet DNS {:?} lookup failed (attempt {attempt}): {}",
+                    record_type,
+                    crate::sync::redact_sync_error(&e)
                 );
                 last_err = e;
             }
@@ -1076,5 +1081,30 @@ mod tests {
         c.read_exact(&mut reply).await.unwrap();
         assert_eq!(reply[1], 0x04);
         assert!(server.await.unwrap().unwrap_err().contains("onion"));
+    }
+
+    #[tokio::test]
+    async fn socks_rejects_trailing_dot_onion_without_dialling() {
+        let listener = TcpListener::bind(("127.0.0.1", 0)).await.unwrap();
+        let addr = listener.local_addr().unwrap();
+        let server = tokio::spawn(async move {
+            let (s, _) = listener.accept().await.unwrap();
+            handle_socks_conn(s).await
+        });
+        let mut c = TcpStream::connect(addr).await.unwrap();
+        c.write_all(&[0x05, 0x01, 0x00]).await.unwrap();
+        let mut greet = [0u8; 2];
+        c.read_exact(&mut greet).await.unwrap();
+        let host = b"abcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefab.onion.";
+        let mut req = vec![0x05, 0x01, 0x00, 0x03, host.len() as u8];
+        req.extend_from_slice(host);
+        req.extend_from_slice(&9067u16.to_be_bytes());
+        c.write_all(&req).await.unwrap();
+        let mut reply = [0u8; 10];
+        c.read_exact(&mut reply).await.unwrap();
+        assert_eq!(reply[1], 0x04);
+        let err = server.await.unwrap().unwrap_err();
+        assert!(err.contains("onion"));
+        assert!(!err.contains("abcdefabcdef"));
     }
 }

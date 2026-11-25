@@ -1,3 +1,4 @@
+#![allow(clippy::large_const_arrays)]
 //! UniFFI entry for the Android wallet (`libdarkfi_mobile_ffi`).
 //!
 //! Links upstream **`bin/drk`** when `third_party/darkfi` is vendored (see `scripts/vendor-darkfi.sh`).
@@ -268,7 +269,10 @@ impl std::fmt::Debug for DrkBootstrapConfig {
             .field("tor_socks_port", &self.tor_socks_port)
             .field("use_nym", &self.use_nym)
             .field("nym_socks_port", &self.nym_socks_port)
-            .field("darkfid_rpc_url", &self.darkfid_rpc_url)
+            .field(
+                "darkfid_rpc_url",
+                &self.darkfid_rpc_url.as_ref().map(|_| "[redacted-url]"),
+            )
             .field("strict_omr_only", &self.strict_omr_only)
             .finish()
     }
@@ -747,7 +751,7 @@ fn validate_bootstrap(config: &DrkBootstrapConfig) -> ResultWallet<()> {
     }
 
     if let Some(pin) = &config.lightwallet_tls_pin_sha256 {
-        if pin.is_empty() || pin.len() % 32 != 0 || pin.len() > 128 {
+        if pin.is_empty() || !pin.len().is_multiple_of(32) || pin.len() > 128 {
             return Err(DarkfiWalletNativeError::InvalidBootstrapConfig);
         }
     }
@@ -757,15 +761,11 @@ fn validate_bootstrap(config: &DrkBootstrapConfig) -> ResultWallet<()> {
             crate::lightwallet_client::parse_lightwallet_endpoint(&config.lightwallet_server_url);
         let grpc = &parsed.grpc_url;
         if grpc.starts_with("https://") {
-            let host = grpc
-                .trim_start_matches("https://")
-                .split(['/', ':'])
-                .next()
-                .unwrap_or("");
+            let host = crate::lightwallet_client::extract_host_from_url(grpc);
             let has_pin = config
                 .lightwallet_tls_pin_sha256
                 .as_ref()
-                .map(|p| !p.is_empty() && p.len() % 32 == 0)
+                .map(|p| !p.is_empty() && p.len().is_multiple_of(32))
                 .unwrap_or(false);
             if !crate::lightwallet_client::is_loopback_host(host) && !has_pin {
                 return Err(DarkfiWalletNativeError::InvalidBootstrapConfig);
@@ -780,14 +780,9 @@ fn validate_bootstrap(config: &DrkBootstrapConfig) -> ResultWallet<()> {
 pub(crate) fn parse_tls_pins(bytes: Option<&[u8]>) -> Result<Vec<[u8; 32]>, String> {
     match bytes {
         None | Some([]) => Ok(Vec::new()),
-        Some(b) if !b.is_empty() && b.len() % 32 == 0 && b.len() <= 128 => Ok(b
-            .chunks_exact(32)
-            .map(|c| {
-                let mut pin = [0u8; 32];
-                pin.copy_from_slice(c);
-                pin
-            })
-            .collect()),
+        Some(b) if !b.is_empty() && b.len().is_multiple_of(32) && b.len() <= 128 => {
+            Ok(b.as_chunks::<32>().0.to_vec())
+        }
         Some(b) => Err(format!(
             "lightwallet_tls_pin_sha256 must be 32–128 bytes in 32-byte pins, got {}",
             b.len()
@@ -837,26 +832,28 @@ impl std::fmt::Debug for DarkfiWalletHandle {
 
 /// True when the lightwalletd URL host is loopback. Those dials stay direct.
 fn lightwallet_url_is_loopback(url: &str) -> bool {
-    let rest = url
-        .trim()
-        .trim_start_matches("https://")
-        .trim_start_matches("http://")
-        .trim_start_matches("tcp+tls://")
-        .trim_start_matches("tcp://");
-    let host = if let Some(v6) = rest.strip_prefix('[') {
-        v6.split(']').next().unwrap_or("")
-    } else {
-        rest.split(['/', ':']).next().unwrap_or("")
-    };
+    let parsed = crate::lightwallet_client::parse_lightwallet_endpoint(url);
+    let host = crate::lightwallet_client::extract_host_from_url(&parsed.grpc_url);
     crate::lightwallet_client::is_loopback_host(host)
+}
+
+/// Ensures bootstrap secrets are scrubbed on every exit path (Ok, Err, or panic).
+struct ZeroizeConfigGuard(DrkBootstrapConfig);
+
+impl Drop for ZeroizeConfigGuard {
+    fn drop(&mut self) {
+        self.0.zeroize_secrets();
+    }
 }
 
 impl DarkfiWalletHandle {
     pub fn new(config: DrkBootstrapConfig) -> ResultWallet<Self> {
+        let guard = ZeroizeConfigGuard(config);
+        let config = &guard.0;
         install_panic_hook_once();
         crate::transactions::clear_sent_session_cache();
         crate::sync::clear_detection_key_cache();
-        validate_bootstrap(&config)?;
+        validate_bootstrap(config)?;
 
         // Arti refuses to start until this directory exists. Set it before the proxy.
         crate::tor::set_arti_storage_dir(std::path::PathBuf::from(&config.cache_path));
@@ -916,7 +913,7 @@ impl DarkfiWalletHandle {
         // out and leave a fresh wallet scanning from genesis, so the sync thread
         // runs it after its route wait instead.
         let (drk, deferred_seed) = block_on(async {
-            let (drk, plan) = bootstrap::open_local_drk(&config, &ex).await?;
+            let (drk, plan) = bootstrap::open_local_drk(config, &ex).await?;
             if route.ready() {
                 bootstrap::seed_from_lightwalletd(&drk, &plan).await;
                 Ok::<_, String>((drk.into_ptr(), None))
@@ -951,13 +948,13 @@ impl DarkfiWalletHandle {
                 smol::block_on(client.relay_mesh_ctrl(method, body))
             }
         })));
-        let mut config = config;
-        config.zeroize_secrets();
+        let cache_path = config.cache_path.clone();
+        drop(guard);
         Ok(Self {
             drk,
             sync_thread: std::sync::Mutex::new(Some(sync_thread)),
             sync_engine,
-            cache_path: config.cache_path.clone(),
+            cache_path,
             cache_key,
         })
     }
@@ -1477,12 +1474,15 @@ impl DarkfiWalletHandle {
         tracing::info!("DarkfiWalletHandle::close() called — stopping background sync");
         self.sync_engine.request_stop();
         crate::mesh::set_lwd_splice(None);
+        crate::sync::clear_payment_meta_key();
+        crate::transactions::clear_sent_session_cache();
         Ok(())
     }
 }
 
 impl Drop for DarkfiWalletHandle {
     fn drop(&mut self) {
+        use zeroize::Zeroize;
         self.sync_engine.request_stop();
         crate::mesh::set_lwd_splice(None);
         let handle = self
@@ -1493,6 +1493,8 @@ impl Drop for DarkfiWalletHandle {
         if let Some(handle) = handle {
             let _ = handle.join();
         }
+        crate::sync::clear_payment_meta_key();
+        self.cache_key.zeroize();
     }
 }
 
@@ -1508,9 +1510,9 @@ pub fn generate_darkfi_mnemonic() -> Vec<String> {
 /// Generates a new 12-word BIP-39 mnemonic for Chat Identity.
 pub fn generate_bip39_chat_mnemonic() -> Vec<String> {
     use bip39::Mnemonic;
-    let mut entropy = [0u8; 16];
-    rand::RngCore::fill_bytes(&mut rand::thread_rng(), &mut entropy);
-    let mnemonic = Mnemonic::from_entropy(&entropy).expect("entropy is 16 bytes");
+    let mut entropy = zeroize::Zeroizing::new([0u8; 16]);
+    rand::RngCore::fill_bytes(&mut rand::rngs::OsRng, &mut *entropy);
+    let mnemonic = Mnemonic::from_entropy(&*entropy).expect("entropy is 16 bytes");
     mnemonic.words().map(|s| s.to_string()).collect()
 }
 
@@ -1538,18 +1540,28 @@ pub fn decode_chat_entropy(phrase: Vec<String>) -> Option<Vec<u8>> {
 }
 
 /// ChaChaBox DM keypair (base58-encoded secret + public keys).
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct DmKeypair {
     pub secret_b58: String,
     pub public_b58: String,
 }
 
+impl std::fmt::Debug for DmKeypair {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("DmKeypair")
+            .field("secret_b58", &"[REDACTED]")
+            .field("public_b58", &self.public_b58)
+            .finish()
+    }
+}
+
 /// Generates a new ChaChaBox DM keypair for E2E encrypted chat.
 pub fn generate_dm_keypair() -> DmKeypair {
-    let secret_key = crypto_box::SecretKey::generate(&mut rand::thread_rng());
+    let secret_key = crypto_box::SecretKey::generate(&mut rand::rngs::OsRng);
     let public_key = secret_key.public_key();
+    let secret_bytes = zeroize::Zeroizing::new(secret_key.to_bytes());
     DmKeypair {
-        secret_b58: bs58::encode(secret_key.to_bytes()).into_string(),
+        secret_b58: bs58::encode(&*secret_bytes).into_string(),
         public_b58: bs58::encode(public_key.to_bytes()).into_string(),
     }
 }
@@ -1559,6 +1571,7 @@ pub fn chacha_encrypt_dm(
     their_public: Vec<u8>,
     plaintext: String,
 ) -> ResultWallet<String> {
+    let my_secret = zeroize::Zeroizing::new(my_secret);
     let my_sk = crypto_box::SecretKey::from_slice(&my_secret)
         .map_err(|_| DarkfiWalletNativeError::NativeDrkUnavailable("Invalid secret".into()))?;
     let their_pk = crypto_box::PublicKey::from_slice(&their_public)
@@ -1566,7 +1579,7 @@ pub fn chacha_encrypt_dm(
 
     let box_algo = crypto_box::ChaChaBox::new(&their_pk, &my_sk);
     let mut nonce_bytes = [0u8; 24];
-    rand::RngCore::fill_bytes(&mut rand::thread_rng(), &mut nonce_bytes);
+    rand::RngCore::fill_bytes(&mut rand::rngs::OsRng, &mut nonce_bytes);
 
     let ciphertext = box_algo
         .encrypt(&nonce_bytes.into(), plaintext.as_bytes())
@@ -1582,6 +1595,7 @@ pub fn chacha_decrypt_dm(
     their_public: Vec<u8>,
     ciphertext_b58: String,
 ) -> ResultWallet<String> {
+    let my_secret = zeroize::Zeroizing::new(my_secret);
     let my_sk = crypto_box::SecretKey::from_slice(&my_secret)
         .map_err(|_| DarkfiWalletNativeError::NativeDrkUnavailable("Invalid secret".into()))?;
     let their_pk = crypto_box::PublicKey::from_slice(&their_public)
@@ -1660,6 +1674,21 @@ mod tests {
         assert!(!kp.secret_b58.is_empty());
         assert!(!kp.public_b58.is_empty());
         assert_ne!(kp.secret_b58, kp.public_b58);
+        let dbg = format!("{kp:?}");
+        assert!(dbg.contains("[REDACTED]"));
+        assert!(!dbg.contains(&kp.secret_b58));
+    }
+
+    #[test]
+    fn bootstrap_config_debug_redacts_darkfid_rpc_url_and_accepts_ipv6_loopback() {
+        let mut cfg = sample_config();
+        cfg.darkfid_rpc_url = Some("http://user:pass@10.0.0.5:18345".into());
+        let dbg = format!("{cfg:?}");
+        assert!(!dbg.contains("10.0.0.5"));
+        assert!(!dbg.contains("user:pass"));
+        cfg.lightwallet_server_url = "https://[::1]:9067".into();
+        cfg.lightwallet_tls_pin_sha256 = None;
+        assert!(validate_bootstrap(&cfg).is_ok());
     }
 
     #[test]

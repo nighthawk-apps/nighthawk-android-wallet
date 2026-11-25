@@ -151,8 +151,9 @@ internal fun ChatNewDmSheet(
                 Text(stringResource(R.string.ns_chat_dm_generate_keys))
             }
             if (myPublic.isNotBlank()) {
+                val myPublicLabel = stringResource(R.string.ns_chat_dm_my_public)
                 Text(
-                    text = stringResource(R.string.ns_chat_dm_my_public),
+                    text = myPublicLabel,
                     style = MaterialTheme.typography.labelMedium,
                 )
                 Text(text = myPublic, style = MaterialTheme.typography.bodySmall)
@@ -162,7 +163,7 @@ internal fun ChatNewDmSheet(
                             clipboard.setSensitivePlainText(
                                 context = context,
                                 text = myPublic,
-                                label = context.getString(R.string.ns_chat_dm_my_public),
+                                label = myPublicLabel,
                             )
                         }
                     },

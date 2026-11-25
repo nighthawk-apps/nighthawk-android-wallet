@@ -17,6 +17,7 @@ pub fn set_lwd_splice(f: Option<LwdSpliceFn>) {
     }
 }
 
+#[allow(dead_code)]
 pub fn call_lwd_splice(method: &str, body: &[u8]) -> Result<Vec<u8>, String> {
     let f = slot()
         .lock()

@@ -214,12 +214,13 @@ fn set_phase(phase: u8) {
     CONNECTION_PHASE.store(phase, Ordering::Relaxed);
 }
 
+type StopChannelPair = (smol::channel::Sender<()>, smol::channel::Receiver<()>);
+
 /// Per-lifecycle stop channel. Each `start_darkirc` installs a fresh
 /// `(Sender, Receiver)` pair so a leftover stop token cannot wake the
 /// next daemon. The rest of DarkIRC is still a process-wide singleton.
-static STOP_CHANNEL: std::sync::LazyLock<
-    smol::lock::RwLock<Option<(smol::channel::Sender<()>, smol::channel::Receiver<()>)>>,
-> = std::sync::LazyLock::new(|| smol::lock::RwLock::new(None));
+static STOP_CHANNEL: std::sync::LazyLock<smol::lock::RwLock<Option<StopChannelPair>>> =
+    std::sync::LazyLock::new(|| smol::lock::RwLock::new(None));
 
 /// UI callback registered at `start_darkirc`. Kept globally so
 /// `send_chat_message` can self-echo even if `event_pub` delivery races
@@ -249,10 +250,15 @@ const OUTBOUND_SLOTS_FILE: &str = "outbound_slots.json";
 static DATASTORE_PATH: std::sync::LazyLock<std::sync::RwLock<Option<PathBuf>>> =
     std::sync::LazyLock::new(|| std::sync::RwLock::new(None));
 
+/// Set once the legacy on-disk `darkirc_crypto_bundle.json` has been checked/migrated
+/// for the current datastore path so foreign DAG messages never hit the filesystem.
+static DM_LEGACY_BUNDLE_LOADED: AtomicBool = AtomicBool::new(false);
+
 fn set_datastore_path(path: PathBuf) {
     if let Ok(mut g) = DATASTORE_PATH.write() {
         *g = Some(path);
     }
+    DM_LEGACY_BUNDLE_LOADED.store(false, Ordering::Release);
 }
 
 fn current_datastore_path() -> Option<PathBuf> {
@@ -472,6 +478,7 @@ pub fn clear_dm_contacts() {
 }
 
 fn load_dm_contacts_from_datastore(dir: &std::path::Path) {
+    DM_LEGACY_BUNDLE_LOADED.store(true, Ordering::Release);
     let path = dir.join("darkirc_crypto_bundle.json");
     let Ok(mut raw) = std::fs::read_to_string(&path) else {
         return;
@@ -525,7 +532,10 @@ fn json_string_field<'a>(obj: &'a str, key: &str) -> Option<&'a str> {
     Some(&rest[..end])
 }
 
-fn reload_dm_contacts() {
+fn ensure_legacy_dm_contacts_loaded() {
+    if DM_LEGACY_BUNDLE_LOADED.load(Ordering::Acquire) {
+        return;
+    }
     if let Some(dir) = current_datastore_path() {
         load_dm_contacts_from_datastore(&dir);
     }
@@ -539,20 +549,25 @@ struct PresentedPrivmsg {
 }
 
 /// Attempt to decrypt a DM against in-memory `DM_CONTACTS`.
-/// Returns `None` if no registered contact decrypts the payload.
+/// Returns `None` if no registered contact decrypts the payload or if the
+/// decrypted channel sentinel does not match `[0x00; MAX_NICK_LEN]`.
 fn try_decrypt_privmsg(privmsg: &Privmsg) -> Option<PresentedPrivmsg> {
-    reload_dm_contacts();
+    ensure_legacy_dm_contacts_loaded();
     let contacts = DM_CONTACTS.read().ok()?;
     let channel_ct = bs58::decode(&privmsg.channel).into_vec().ok()?;
     let nick_ct = bs58::decode(&privmsg.nick).into_vec().ok()?;
     let msg_ct = bs58::decode(&privmsg.msg).into_vec().ok()?;
     let self_nick = LAST_SELF_NICK.lock().map(|g| g.clone()).unwrap_or_default();
     for (name, contact) in contacts.iter() {
-        if irc2::crypto::saltbox::try_decrypt(&contact.saltbox, &channel_ct).is_none() {
+        let Some(channel_dec) = irc2::crypto::saltbox::try_decrypt(&contact.saltbox, &channel_ct)
+        else {
+            continue;
+        };
+        if channel_dec.as_slice() != [0x00; MAX_NICK_LEN] {
             continue;
         }
-        let outgoing =
-            irc2::crypto::saltbox::try_decrypt(&contact.self_saltbox, &nick_ct).is_some();
+        let outgoing = irc2::crypto::saltbox::try_decrypt(&contact.self_saltbox, &nick_ct)
+            .is_some_and(|n| n.as_slice() == [0x00; MAX_NICK_LEN]);
         let Some(msg_dec) = irc2::crypto::saltbox::try_decrypt(&contact.saltbox, &msg_ct) else {
             continue;
         };
@@ -594,13 +609,12 @@ fn try_encrypt_privmsg(privmsg: &mut Privmsg) -> Result<(), String> {
     if privmsg.channel.starts_with('#') {
         return Ok(());
     }
-    reload_dm_contacts();
+    ensure_legacy_dm_contacts_loaded();
     let contacts = DM_CONTACTS.read().map_err(|e| e.to_string())?;
     let Some(contact) = contacts.get(&privmsg.channel) else {
-        return Err(format!(
-            "DM contact '{}' is not registered; refusing plaintext channel/nick on the wire",
-            privmsg.channel
-        ));
+        return Err(
+            "DM contact is not registered; refusing plaintext channel/nick on the wire".into(),
+        );
     };
     privmsg.channel = irc2::crypto::saltbox::encrypt(&contact.saltbox, &[0x00; MAX_NICK_LEN]);
     privmsg.nick = irc2::crypto::saltbox::encrypt(&contact.self_saltbox, &[0x00; MAX_NICK_LEN]);
@@ -1097,11 +1111,7 @@ fn send_chat_message_inner(
             // Treat as failure so the UI does not clear the compose box thinking
             // the send succeeded while nothing was relayed.
             if inserted.is_empty() {
-                tracing::error!(
-                    "insert_signal_with_blob returned no ids for channel={} nick={} (event skipped)",
-                    channel,
-                    nick
-                );
+                tracing::error!("insert_signal_with_blob returned no ids (event skipped)");
                 return Err(DarkfiWalletNativeError::NativeDrkUnavailable(
                     "insert_signal_with_blob skipped event (empty result)".to_string(),
                 ));
@@ -1136,12 +1146,7 @@ fn send_chat_message_inner(
                 );
             }
 
-            tracing::info!(
-                "send_chat_message ok channel={} nick={} event={}",
-                channel,
-                nick,
-                event_id
-            );
+            tracing::info!("send_chat_message ok event={}", event_id);
             Ok(())
         } else {
             Err(DarkfiWalletNativeError::NativeDrkUnavailable(
@@ -1680,8 +1685,12 @@ async fn run_darkirc_daemon(
 
         // Monitor until stop or loss of all peers, then outer loop resyncs.
         // Periodic sync_selected covers missed live relays / DAG rotation.
+        // Track both monotonic Instant and wall-clock SystemTime: on Android,
+        // Instant pauses during deep sleep (Doze), so wall-clock skew > 1h
+        // also triggers a DAG rotation refresh on wake.
         let net_sub = p2p.hosts().subscribe_disconnect().await;
         let mut last_dag_refresh = std::time::Instant::now();
+        let mut last_dag_refresh_wall = std::time::SystemTime::now();
         loop {
             if this_daemon_should_exit(generation) {
                 break;
@@ -1726,9 +1735,16 @@ async fn run_darkirc_daemon(
                 publish_outbound_slots();
             }
 
-            if stop_or_disc == "timer"
-                && last_dag_refresh.elapsed() >= std::time::Duration::from_secs(DAG_REFRESH_SECS)
-            {
+            let mono_elapsed = last_dag_refresh.elapsed();
+            let wall_elapsed = std::time::SystemTime::now()
+                .duration_since(last_dag_refresh_wall)
+                .ok();
+            let refresh_due = needs_dag_refresh(
+                mono_elapsed,
+                wall_elapsed,
+                std::time::Duration::from_secs(DAG_REFRESH_SECS),
+            );
+            if stop_or_disc == "timer" && refresh_due {
                 let refresh_res = smol::future::race(
                     async {
                         wait_for_stop(&stop_rx).await;
@@ -1748,6 +1764,7 @@ async fn run_darkirc_daemon(
                     None => break,
                     Some(Ok(())) => {
                         last_dag_refresh = std::time::Instant::now();
+                        last_dag_refresh_wall = std::time::SystemTime::now();
                         tracing::info!("darkirc daemon periodic sync_selected ok");
                     }
                     Some(Err(e)) => {
@@ -1777,6 +1794,17 @@ async fn run_darkirc_daemon(
 
     let _ = kvdb.flush_default_mode_async().await;
     Ok(())
+}
+
+fn needs_dag_refresh(
+    mono_elapsed: std::time::Duration,
+    wall_elapsed: Option<std::time::Duration>,
+    threshold: std::time::Duration,
+) -> bool {
+    if mono_elapsed >= threshold {
+        return true;
+    }
+    wall_elapsed.is_some_and(|w| w >= threshold || w.saturating_sub(mono_elapsed) >= threshold)
 }
 
 #[cfg(test)]
@@ -2094,5 +2122,56 @@ mod tests {
             DARKIRC_DAGS_COUNT.load(Ordering::Relaxed),
             DARKIRC_MAX_DAGS as u32
         );
+    }
+
+    #[test]
+    fn dm_decrypt_rejects_non_zero_channel_sentinel() {
+        let _guard = DM_TEST_MUTEX.lock().unwrap();
+        clear_dm_contacts();
+        let alice = crate::generate_dm_keypair();
+        let bob = crate::generate_dm_keypair();
+        let alice_sk = bs58::decode(&alice.secret_b58).into_vec().unwrap();
+        let alice_pk = bs58::decode(&alice.public_b58).into_vec().unwrap();
+        let bob_sk = bs58::decode(&bob.secret_b58).into_vec().unwrap();
+        let bob_pk = bs58::decode(&bob.public_b58).into_vec().unwrap();
+
+        let a_sk = crypto_box::SecretKey::from_slice(&alice_sk).unwrap();
+        let b_pk = crypto_box::PublicKey::from_slice(&bob_pk).unwrap();
+        let saltbox = crypto_box::ChaChaBox::new(&b_pk, &a_sk);
+        let self_box = crypto_box::ChaChaBox::new(&a_sk.public_key(), &a_sk);
+        let bad_channel = Privmsg {
+            version: PRIVMSG_VERSION,
+            msg_type: PRIVMSG_MSG_TYPE,
+            channel: irc2::crypto::saltbox::encrypt(&saltbox, b"not-zero-sentinel"),
+            nick: irc2::crypto::saltbox::encrypt(&self_box, &[0x00; MAX_NICK_LEN]),
+            msg: irc2::crypto::saltbox::encrypt(&saltbox, b"hello"),
+        };
+
+        register_dm_contact("alice".into(), bob_sk, alice_pk).unwrap();
+        assert!(present_privmsg(bad_channel).is_none());
+        clear_dm_contacts();
+    }
+
+    #[test]
+    fn needs_dag_refresh_detects_wall_clock_suspend_skew() {
+        let threshold = std::time::Duration::from_secs(3600);
+        // Short monotonic and short wall -> no refresh
+        assert!(!needs_dag_refresh(
+            std::time::Duration::from_secs(30),
+            Some(std::time::Duration::from_secs(30)),
+            threshold,
+        ));
+        // Suspended > 1h: monotonic barely moved, wall jumped > 1h -> refresh
+        assert!(needs_dag_refresh(
+            std::time::Duration::from_secs(30),
+            Some(std::time::Duration::from_secs(3700)),
+            threshold,
+        ));
+        // Normal uptime >= 1h with backwards wall clock -> still refreshes on monotonic
+        assert!(needs_dag_refresh(
+            std::time::Duration::from_secs(3600),
+            None,
+            threshold,
+        ));
     }
 }

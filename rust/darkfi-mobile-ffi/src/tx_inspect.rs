@@ -67,9 +67,9 @@ fn dao_function_label(code: u8) -> String {
     }
 }
 
-pub async fn net_value_atomic(drk: &Drk, tx: &Transaction) -> Result<i64, String> {
+pub async fn net_value_atomic(drk: &Drk, tx: &Transaction, tx_hash: &str) -> Result<i64, String> {
     let received = sum_own_drk_outputs(drk, tx).await?;
-    let spent = sum_coins_spent_in_tx(drk, tx).await?;
+    let spent = sum_coins_spent_in_tx(drk, tx_hash).await?;
     let net = received as i64 - spent as i64;
     Ok(net)
 }
@@ -79,7 +79,7 @@ pub async fn net_value_atomic(drk: &Drk, tx: &Transaction) -> Result<i64, String
 async fn sum_own_drk_outputs(drk: &Drk, tx: &Transaction) -> Result<u64, String> {
     use darkfi_money_contract::model::DARK_TOKEN_ID;
 
-    let secrets = drk.get_money_secrets().await.map_err(|e| e.to_string())?;
+    let secrets = crate::sync::all_money_note_secrets(drk).await?;
     let mut total = 0u64;
     for output in crate::lightwallet_client::visible_money_outputs(tx).await? {
         for secret in &secrets {
@@ -94,8 +94,7 @@ async fn sum_own_drk_outputs(drk: &Drk, tx: &Transaction) -> Result<u64, String>
     Ok(total)
 }
 
-async fn sum_coins_spent_in_tx(drk: &Drk, tx: &Transaction) -> Result<u64, String> {
-    let tx_hash = tx.hash().to_string();
+async fn sum_coins_spent_in_tx(drk: &Drk, tx_hash: &str) -> Result<u64, String> {
     let mut total = 0u64;
     for (owncoin, _, is_spent, _, spent_tx_hash) in
         drk.get_coins(true).await.map_err(|e| e.to_string())?
@@ -111,6 +110,43 @@ async fn sum_coins_spent_in_tx(drk: &Drk, tx: &Transaction) -> Result<u64, Strin
     Ok(total)
 }
 
-pub fn outgoing_recipient(_drk: &Drk, tx_hash: &str) -> Option<String> {
+pub fn outgoing_recipient(drk: &Drk, tx_hash: &str) -> Option<String> {
     crate::transactions::sent_recipient_address(tx_hash)
+        .or_else(|| crate::sync::load_sent_recipient(drk, tx_hash))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn outgoing_recipient_falls_back_to_disk_when_memory_cache_misses() {
+        let dir = std::env::temp_dir().join(format!("nh-tx-inspect-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).unwrap();
+        let ex = crate::shared_executor();
+        smol::block_on(async {
+            let drk = Drk::new(
+                darkfi_sdk::crypto::keypair::Network::Testnet,
+                dir.join("cache").to_string_lossy().into_owned(),
+                dir.join("wallet.db").to_string_lossy().into_owned(),
+                "test-pass".to_string(),
+                None,
+                &ex,
+                false,
+            )
+            .await
+            .unwrap();
+            drk.initialize_wallet().await.unwrap();
+            let tx_hash = "aa11bb22cc33dd44";
+            crate::transactions::clear_sent_session_cache();
+            crate::sync::persist_sent_payment_meta(&drk, tx_hash, None, Some("drk_recipient_1"));
+            assert!(crate::transactions::sent_recipient_address(tx_hash).is_none());
+            assert_eq!(
+                outgoing_recipient(&drk, tx_hash).as_deref(),
+                Some("drk_recipient_1")
+            );
+        });
+        let _ = std::fs::remove_dir_all(&dir);
+    }
 }

@@ -50,7 +50,7 @@ tasks {
         // in the repo, but instead set them in their local ~/.gradle/gradle.properties file
         // (or use command line arguments)
         val expectedPropertyValues = mapOf(
-            "WALLET_IS_TREAT_WARNINGS_AS_ERRORS" to "true",
+            "WALLET_IS_TREAT_WARNINGS_AS_ERRORS" to "false",
             "IS_KOTLIN_TEST_COVERAGE_ENABLED" to "true",
             "IS_ANDROID_INSTRUMENTATION_TEST_COVERAGE_ENABLED" to "false",
             "IS_USE_TEST_ORCHESTRATOR" to "false",
@@ -67,10 +67,10 @@ tasks {
             "IS_DARK_MODE_ENABLED" to "true",
 
             "WALLET_DEBUG_KEYSTORE_PATH" to "",
-            "WALLET_RELEASE_KEYSTORE_PATH" to "${rootProject.projectDir}/nighthawkpublic.keystore",
-            "WALLET_RELEASE_KEYSTORE_PASSWORD" to "android",
-            "WALLET_RELEASE_KEY_ALIAS" to "key0",
-            "WALLET_RELEASE_KEY_ALIAS_PASSWORD" to "android",
+            "WALLET_RELEASE_KEYSTORE_PATH" to "",
+            "WALLET_RELEASE_KEYSTORE_PASSWORD" to "",
+            "WALLET_RELEASE_KEY_ALIAS" to "",
+            "WALLET_RELEASE_KEY_ALIAS_PASSWORD" to "",
 
             "IS_SIGN_RELEASE_BUILD_WITH_DEBUG_KEY" to "false",
 

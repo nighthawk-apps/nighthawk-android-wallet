@@ -67,4 +67,26 @@ class DeepLinkUtilTest {
         assertEquals("drk_u1abc", data!!.address)
         assertNull(data.memo)
     }
+
+    @Test
+    fun roundTripsBase64MemoWithPlusSlashEqualsAndTrimmedAmount() {
+        // Base64("ab>cd?e") == "YWI+Y2Q/ZQ==" — exercises '+', '/', and '=' in query params.
+        val memo = "ab>cd?e"
+        val expectedB64 = Base64.encodeToString(memo.toByteArray(Charsets.UTF_8), Base64.NO_WRAP)
+        assertEquals("YWI+Y2Q/ZQ==", expectedB64)
+
+        val uri = DeepLinkUtil.buildPaymentRequestUri("drk_u1abc", "  0.001  ", memo)
+        assertNotNull(uri)
+        assertEquals(true, uri!!.contains("amount=0.001"))
+        assertEquals(false, uri.contains("amount=%20"))
+        assertEquals(true, uri.contains("%2B"))
+        assertEquals(true, uri.contains("%2F"))
+        assertEquals(true, uri.contains("%3D"))
+
+        val data = DeepLinkUtil.getSendDeepLinkData(Uri.parse(uri))
+        assertNotNull(data)
+        assertEquals("drk_u1abc", data!!.address)
+        assertEquals(100_000L, data.amount)
+        assertEquals(memo, data.memo)
+    }
 }

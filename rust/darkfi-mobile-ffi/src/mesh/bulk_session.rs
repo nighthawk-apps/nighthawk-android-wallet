@@ -1,3 +1,4 @@
+#![allow(dead_code)]
 //! High-bandwidth bulk session (UnifOMR). Never rides BLE.
 //!
 //! Quotas: one window, ~200 MiB, 15 minutes. Offer/join travel inside

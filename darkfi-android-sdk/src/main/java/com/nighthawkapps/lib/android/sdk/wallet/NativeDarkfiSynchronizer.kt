@@ -4,6 +4,7 @@ import android.content.Context
 import com.nighthawkapps.lib.android.sdk.dao.toSdk
 import com.nighthawkapps.lib.android.sdk.mesh.MeshOfflineRelay
 import com.nighthawkapps.lib.android.sdk.uniffi.DarkfiMobileFfiApi
+import com.nighthawkapps.lib.android.spackle.Twig
 import com.nighthawkapps.lib.uniffi.darkfi_mobile_ffi.DarkfiWalletHandle
 import com.nighthawkapps.lib.uniffi.darkfi_mobile_ffi.DarkfiWalletNativeException
 import com.nighthawkapps.lib.uniffi.darkfi_mobile_ffi.DrkSyncSnapshot
@@ -322,7 +323,7 @@ class NativeDarkfiSynchronizer internal constructor(
                     if (isDestroyedHandle(e)) {
                         return@withContext
                     }
-                    android.util.Log.e("NativeDarkfiSynchronizer", "refreshNow failed", e)
+                    Twig.error(e) { "NativeDarkfiSynchronizer: refreshNow failed" }
                     _walletErrors.value =
                         DarkfiWalletError.Processor(e)
                     _status.value = DarkfiSyncStatus.DISCONNECTED

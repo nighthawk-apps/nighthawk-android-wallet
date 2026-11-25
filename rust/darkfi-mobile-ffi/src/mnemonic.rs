@@ -9,7 +9,7 @@ use num_bigint::BigUint;
 use num_bigint::RandBigInt;
 use num_traits::identities::{One, Zero};
 use pbkdf2::pbkdf2;
-use rand::thread_rng;
+use rand::rngs::OsRng;
 use sha2::Sha512;
 use thiserror::Error;
 use unicode_normalization::{char::is_combining_mark, UnicodeNormalization};
@@ -241,7 +241,7 @@ impl DarkfiMnemonic {
         let threshold = BigUint::from(2u32).pow(threshold_exp);
         let max_entropy = BigUint::from(2u32).pow(adj_num_bits);
 
-        let mut rng_instance = thread_rng();
+        let mut rng_instance = OsRng;
         let mut entropy = BigUint::one();
         while entropy < threshold {
             entropy = rng_instance.gen_biguint_below(&max_entropy);

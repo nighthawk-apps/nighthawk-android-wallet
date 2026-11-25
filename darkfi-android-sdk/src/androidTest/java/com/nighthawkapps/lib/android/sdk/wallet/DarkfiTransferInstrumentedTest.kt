@@ -47,7 +47,7 @@ class DarkfiTransferInstrumentedTest {
         val birthday = args.getString("e2e_birthday")?.toLongOrNull() ?: 53200L
         val tlsPinHex =
             args.getString("e2e_tls_pin")
-                ?: "c02faee24a8cf271aa91c28b942949ba10ec4413c6d427a598b15a5467978824"
+                ?: "d8163009e3bb0bac39adbbfeb227827a91a590b96ec33f72576278c492be628e"
 
         // AndroidJUnit4 runs on the main thread; UnifOMR + sleeps would ANR/kill
         // the instrumentation process after ~60s. ZK proof gen also overflows

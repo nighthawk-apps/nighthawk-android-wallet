@@ -438,13 +438,14 @@ impl MeshEngine {
             self.queue_maybe_fragment(pkt);
             return Ok(());
         }
-        match self.sessions.queue_until_ready(dest, inner.clone())? {
-            Some(_) => {
-                let hs = self.sessions.begin_initiator(dest, inner)?;
-                let pkt = MeshPacket::directed(PacketType::NoiseHs, self.peer_id(), dest, hs);
-                self.queue_maybe_fragment(pkt);
-            }
-            None => {}
+        if self
+            .sessions
+            .queue_until_ready(dest, inner.clone())?
+            .is_some()
+        {
+            let hs = self.sessions.begin_initiator(dest, inner)?;
+            let pkt = MeshPacket::directed(PacketType::NoiseHs, self.peer_id(), dest, hs);
+            self.queue_maybe_fragment(pkt);
         }
         Ok(())
     }

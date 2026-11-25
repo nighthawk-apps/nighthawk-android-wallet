@@ -21,9 +21,10 @@ pub struct LwdInner {
     pub body: Vec<u8>,
 }
 
+#[allow(dead_code)]
 pub fn new_corr_id() -> [u8; 16] {
     let mut id = [0u8; 16];
-    rand::thread_rng().fill_bytes(&mut id);
+    rand::rngs::OsRng.fill_bytes(&mut id);
     id
 }
 

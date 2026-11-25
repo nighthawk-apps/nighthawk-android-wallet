@@ -1,6 +1,7 @@
 package com.nighthawkapps.lib.android.ui.security
 
 import android.content.Context
+import android.os.SystemClock
 import android.util.Base64
 import androidx.datastore.core.DataStore
 import androidx.datastore.core.DataStoreFactory
@@ -30,14 +31,18 @@ object WalletPinSecureStore {
     private val KEY_HASH = stringPreferencesKey("pin_hash_b64")
     private val KEY_SALT = stringPreferencesKey("pin_salt_b64")
     private val KEY_FAIL_COUNT = intPreferencesKey("pin_fail_count")
-    private val KEY_LOCKOUT_UNTIL_MS = longPreferencesKey("pin_lockout_until_ms")
+    private val KEY_LOCKOUT_UNTIL_ELAPSED_MS = longPreferencesKey("pin_lockout_until_elapsed_ms")
+    private val KEY_LOCKOUT_DURATION_MS = longPreferencesKey("pin_lockout_duration_ms")
+    private val KEY_LOCKOUT_STEP = intPreferencesKey("pin_lockout_step")
 
     private const val PBKDF2_ALGORITHM = "PBKDF2WithHmacSHA256"
     private const val PBKDF2_ITERATIONS = 100_000
     private const val SALT_BYTES = 16
     private const val HASH_BYTES = 32
     private const val MAX_FAILURES = 5
-    private const val LOCKOUT_MS = 30_000L
+    private const val BASE_LOCKOUT_MS = 30_000L
+    private const val MAX_LOCKOUT_MS = 30L * 60L * 1000L
+    private const val MAX_LOCKOUT_STEP = 6
 
     @Volatile private var dataStoreInstance: DataStore<Preferences>? = null
 
@@ -89,7 +94,9 @@ object WalletPinSecureStore {
                 prefs[KEY_SALT] = Base64.encodeToString(salt, Base64.NO_WRAP)
                 prefs[KEY_HASH] = Base64.encodeToString(hash, Base64.NO_WRAP)
                 prefs[KEY_FAIL_COUNT] = 0
-                prefs[KEY_LOCKOUT_UNTIL_MS] = 0L
+                prefs[KEY_LOCKOUT_STEP] = 0
+                prefs[KEY_LOCKOUT_UNTIL_ELAPSED_MS] = 0L
+                prefs[KEY_LOCKOUT_DURATION_MS] = 0L
             }
         }
     }
@@ -102,10 +109,20 @@ object WalletPinSecureStore {
             val ds = getDataStore(context)
             val prefs = ds.data.first()
 
-            val now = System.currentTimeMillis()
-            val lockoutUntil = prefs[KEY_LOCKOUT_UNTIL_MS] ?: 0L
-            if (now < lockoutUntil) {
-                return@runBlocking PinVerifyResult.LockedOut(((lockoutUntil - now) + 999) / 1000)
+            val now = SystemClock.elapsedRealtime()
+            val lockoutUntil = prefs[KEY_LOCKOUT_UNTIL_ELAPSED_MS] ?: 0L
+            val lockoutDuration = prefs[KEY_LOCKOUT_DURATION_MS] ?: 0L
+            if (lockoutUntil > 0L && now < lockoutUntil) {
+                val rawRemaining = lockoutUntil - now
+                val remaining =
+                    if (lockoutDuration > 0L && rawRemaining > lockoutDuration) {
+                        // Device rebooted and reset elapsedRealtime(); re-anchor the lockout window.
+                        ds.edit { it[KEY_LOCKOUT_UNTIL_ELAPSED_MS] = now + lockoutDuration }
+                        lockoutDuration
+                    } else {
+                        rawRemaining
+                    }
+                return@runBlocking PinVerifyResult.LockedOut((remaining + 999) / 1000)
             }
 
             val saltB64 = prefs[KEY_SALT] ?: return@runBlocking PinVerifyResult.WrongPin
@@ -118,17 +135,24 @@ object WalletPinSecureStore {
             if (MessageDigest.isEqual(expected, actual)) {
                 ds.edit {
                     it[KEY_FAIL_COUNT] = 0
-                    it[KEY_LOCKOUT_UNTIL_MS] = 0L
+                    it[KEY_LOCKOUT_STEP] = 0
+                    it[KEY_LOCKOUT_UNTIL_ELAPSED_MS] = 0L
+                    it[KEY_LOCKOUT_DURATION_MS] = 0L
                 }
                 return@runBlocking PinVerifyResult.Success
             }
 
             val failures = (prefs[KEY_FAIL_COUNT] ?: 0) + 1
             if (failures >= MAX_FAILURES) {
+                val step = (prefs[KEY_LOCKOUT_STEP] ?: 0).coerceIn(0, MAX_LOCKOUT_STEP)
+                val durationMs = (BASE_LOCKOUT_MS shl step).coerceAtMost(MAX_LOCKOUT_MS)
                 ds.edit {
                     it[KEY_FAIL_COUNT] = 0
-                    it[KEY_LOCKOUT_UNTIL_MS] = now + LOCKOUT_MS
+                    it[KEY_LOCKOUT_STEP] = (step + 1).coerceAtMost(MAX_LOCKOUT_STEP)
+                    it[KEY_LOCKOUT_UNTIL_ELAPSED_MS] = now + durationMs
+                    it[KEY_LOCKOUT_DURATION_MS] = durationMs
                 }
+                return@runBlocking PinVerifyResult.LockedOut((durationMs + 999) / 1000)
             } else {
                 ds.edit { it[KEY_FAIL_COUNT] = failures }
             }
@@ -138,10 +162,14 @@ object WalletPinSecureStore {
     fun lockoutRemainingSeconds(context: Context): Long =
         runBlocking(Dispatchers.IO) {
             val prefs = getDataStore(context).data.first()
-            val lockoutUntil = prefs[KEY_LOCKOUT_UNTIL_MS] ?: 0L
-            val now = System.currentTimeMillis()
-            if (now >= lockoutUntil) return@runBlocking 0L
-            ((lockoutUntil - now) + 999) / 1000
+            val lockoutUntil = prefs[KEY_LOCKOUT_UNTIL_ELAPSED_MS] ?: 0L
+            val lockoutDuration = prefs[KEY_LOCKOUT_DURATION_MS] ?: 0L
+            val now = SystemClock.elapsedRealtime()
+            if (lockoutUntil <= 0L || now >= lockoutUntil) return@runBlocking 0L
+            val rawRemaining = lockoutUntil - now
+            val remaining =
+                if (lockoutDuration > 0L) rawRemaining.coerceAtMost(lockoutDuration) else rawRemaining
+            (remaining + 999) / 1000
         }
 
     fun clear(context: Context) {
@@ -152,7 +180,13 @@ object WalletPinSecureStore {
         pin: String,
         salt: ByteArray,
     ): ByteArray {
-        val spec = PBEKeySpec(pin.toCharArray(), salt, PBKDF2_ITERATIONS, HASH_BYTES * 8)
-        return SecretKeyFactory.getInstance(PBKDF2_ALGORITHM).generateSecret(spec).encoded
+        val chars = pin.toCharArray()
+        val spec = PBEKeySpec(chars, salt, PBKDF2_ITERATIONS, HASH_BYTES * 8)
+        return try {
+            SecretKeyFactory.getInstance(PBKDF2_ALGORITHM).generateSecret(spec).encoded
+        } finally {
+            spec.clearPassword()
+            chars.fill('\u0000')
+        }
     }
 }

@@ -51,14 +51,28 @@ private object SensitiveClipboardRegistry {
     }
 
     private fun clearIfStillPresent(context: Context) {
+        val expected = lastSensitiveText ?: return
         val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
         val current =
             clipboard.primaryClip
+                ?.takeIf { it.itemCount > 0 }
                 ?.getItemAt(0)
                 ?.text
                 ?.toString()
-        if (current != null && current == lastSensitiveText) {
-            clipboard.clearPrimaryClip()
+        // On Android 10+ (API 29+), apps without input focus cannot read primaryClip (it returns null),
+        // so background clearing on onStop must clear when primaryClip is unreadable while we still
+        // hold a tracked sensitive clipboard entry.
+        val shouldClear =
+            current == expected ||
+                (current == null && Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q)
+        if (shouldClear) {
+            runCatching {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                    clipboard.clearPrimaryClip()
+                } else {
+                    clipboard.setPrimaryClip(ClipData.newPlainText("", ""))
+                }
+            }
         }
         lastSensitiveText = null
     }

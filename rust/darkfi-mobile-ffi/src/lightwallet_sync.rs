@@ -1436,14 +1436,16 @@ mod tests {
 
     #[test]
     fn test_backend_catchup_threshold_reasonable() {
-        assert!(
-            BACKEND_CATCHUP_THRESHOLD >= 50,
-            "Threshold too low — normal sync advances 50+ blocks per cycle"
-        );
-        assert!(
-            BACKEND_CATCHUP_THRESHOLD <= 1000,
-            "Threshold too high — would miss real catch-up behavior"
-        );
+        const {
+            assert!(
+                BACKEND_CATCHUP_THRESHOLD >= 50,
+                "Threshold too low — normal sync advances 50+ blocks per cycle"
+            );
+            assert!(
+                BACKEND_CATCHUP_THRESHOLD <= 1000,
+                "Threshold too high — would miss real catch-up behavior"
+            );
+        }
     }
 
     #[test]

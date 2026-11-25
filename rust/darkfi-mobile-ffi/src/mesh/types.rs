@@ -9,6 +9,7 @@ pub const SENDER_LEN: usize = 8;
 pub const HEADER_LEN: usize = 2 + 1 + 1 + 1 + 1 + 8 + 8 + 4;
 
 pub const DEFAULT_TTL: u8 = 7;
+#[allow(dead_code)]
 pub const DENSE_TTL_CAP: u8 = 5;
 pub const LOCAL_TTL: u8 = 0;
 

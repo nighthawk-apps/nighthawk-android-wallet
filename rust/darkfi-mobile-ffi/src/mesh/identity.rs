@@ -13,7 +13,7 @@ pub struct MeshIdentity {
 impl MeshIdentity {
     pub fn generate() -> Self {
         let mut secret = [0u8; 32];
-        rand::thread_rng().fill_bytes(&mut secret);
+        rand::rngs::OsRng.fill_bytes(&mut secret);
         Self { secret, epoch: 0 }
     }
 
@@ -24,7 +24,7 @@ impl MeshIdentity {
     pub fn rotate(&mut self) {
         use zeroize::Zeroize;
         self.secret.zeroize();
-        rand::thread_rng().fill_bytes(&mut self.secret);
+        rand::rngs::OsRng.fill_bytes(&mut self.secret);
         self.epoch = self.epoch.saturating_add(1);
     }
 

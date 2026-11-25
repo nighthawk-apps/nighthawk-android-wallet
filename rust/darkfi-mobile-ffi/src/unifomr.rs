@@ -1054,15 +1054,17 @@ pub fn pack_slot_heights(slot_heights: &[u32]) -> Vec<u8> {
 /// Parse the packed little-endian `u32` slot → height map from
 /// `OmrDigestResponse.slot_heights`.
 pub fn unpack_slot_heights(bytes: &[u8]) -> Result<Vec<u32>, String> {
-    if bytes.len() % 4 != 0 {
+    if !bytes.len().is_multiple_of(4) {
         return Err(format!(
             "slot_heights length {} not a multiple of 4",
             bytes.len()
         ));
     }
     Ok(bytes
-        .chunks_exact(4)
-        .map(|c| u32::from_le_bytes(c.try_into().unwrap()))
+        .as_chunks::<4>()
+        .0
+        .iter()
+        .map(|c| u32::from_le_bytes(*c))
         .collect())
 }
 
@@ -1420,7 +1422,7 @@ mod tests {
         // Height 1 fills all but the last 15 slots; height 2 straddles the cap
         // so it is dropped whole, leaving only height 1.
         let mut slot_heights = vec![1u32; MAX_OMR_MESSAGES - 5];
-        slot_heights.extend(std::iter::repeat(2u32).take(15));
+        slot_heights.extend(std::iter::repeat_n(2u32, 15));
         assert_eq!(slot_heights.len(), n);
         let truncated = cap_messages_to_whole_heights(&mut messages, &mut slot_heights);
         assert!(truncated, "over-cap window must truncate");

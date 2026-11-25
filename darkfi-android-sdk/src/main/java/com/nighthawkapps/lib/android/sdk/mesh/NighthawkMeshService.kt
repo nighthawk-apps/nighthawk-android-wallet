@@ -38,7 +38,7 @@ class NighthawkMeshService : Service() {
     private var foregroundRetries = 0
 
     private var foregroundRetry: Runnable? = null
-    private var radio: NighthawkBleLink? = null
+    private var radio: MeshRadioHandle? = null
     private val inbox = MeshFrameInbox()
     private var connectivity: ConnectivityManager? = null
     private var appForeground = true
@@ -260,6 +260,7 @@ class NighthawkMeshService : Service() {
         }
 
         fun attachRadio(service: NighthawkMeshService) {
+            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) return
             MeshNative.start()
             MeshNative.setGatewayEligible(false)
             val link = NighthawkBleLink(service, service.engineSink)

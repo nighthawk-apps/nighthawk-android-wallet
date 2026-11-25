@@ -3,7 +3,7 @@
 package com.nighthawkapps.lib.android.sdk.wallet
 
 /** Default DarkFi transfer fee in atomic units (`SCHEDULE_TRANSFER_FEE_ATOMIC`). */
-const val DEFAULT_TRANSFER_FEE_ATOMIC: Long = 5_000_000L
+const val DEFAULT_TRANSFER_FEE_ATOMIC: Long = 5_420_000L
 
 /** Result of comparing wallet balance to amount + estimated fee before broadcast. */
 sealed interface SendBalanceCheck {

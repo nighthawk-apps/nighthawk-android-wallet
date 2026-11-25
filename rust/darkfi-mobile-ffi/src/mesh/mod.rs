@@ -346,9 +346,5 @@ fn hex_bytes(bytes: &[u8]) -> String {
     bytes.iter().map(|b| format!("{b:02x}")).collect()
 }
 
-fn json_escape(_s: &str) -> String {
-    String::new()
-}
-
 #[cfg(test)]
 mod tests;

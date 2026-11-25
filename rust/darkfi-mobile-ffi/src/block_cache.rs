@@ -36,7 +36,7 @@ fn wrap_blob(key: Option<&[u8; 32]>, plaintext: &[u8]) -> Result<Vec<u8>, String
     };
     let cipher = XChaCha20Poly1305::new(key.into());
     let mut nonce = [0u8; NONCE_LEN];
-    rand::thread_rng().fill_bytes(&mut nonce);
+    rand::rngs::OsRng.fill_bytes(&mut nonce);
     let ct = cipher
         .encrypt(XNonce::from_slice(&nonce), plaintext)
         .map_err(|e| e.to_string())?;
@@ -71,6 +71,15 @@ pub struct MobileBlockCache {
     key: Option<[u8; 32]>,
 }
 
+impl Drop for MobileBlockCache {
+    fn drop(&mut self) {
+        use zeroize::Zeroize;
+        if let Some(ref mut key) = self.key {
+            key.zeroize();
+        }
+    }
+}
+
 impl MobileBlockCache {
     /// Open or create the block cache at the given path (plaintext / legacy).
     pub fn open(path: &str) -> Result<Self, String> {
@@ -85,6 +94,7 @@ impl MobileBlockCache {
         let conn = Connection::open(path).map_err(|e| e.to_string())?;
         conn.execute_batch(
             "
+            PRAGMA busy_timeout = 5000;
             PRAGMA journal_mode = WAL;
             PRAGMA synchronous = NORMAL;
 
@@ -142,12 +152,15 @@ impl MobileBlockCache {
 
     /// Check if a range is fully cached.
     pub fn is_range_cached(&self, start: u32, end: u32) -> Result<bool, String> {
-        let expected = end - start + 1;
+        if end < start {
+            return Ok(false);
+        }
+        let expected = u64::from(end - start) + 1;
         let conn = self.conn.lock().map_err(|e| e.to_string())?;
         let mut stmt = conn
             .prepare("SELECT COUNT(*) FROM compact_blocks WHERE height >= ?1 AND height <= ?2")
             .map_err(|e| e.to_string())?;
-        let actual: u32 = stmt
+        let actual: u64 = stmt
             .query_row(params![start, end], |row| row.get(0))
             .map_err(|e| e.to_string())?;
         Ok(actual == expected)
@@ -310,6 +323,19 @@ mod tests {
         };
         assert!(raw.starts_with(b"NHC1"));
         assert_ne!(raw, b"compact-plain");
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn is_range_cached_guards_inverted_range_without_underflow() {
+        let dir = std::env::temp_dir().join(format!("nh-cache-range-{}", std::process::id()));
+        let _ = std::fs::create_dir_all(&dir);
+        let path = dir.join("compact_blocks.db");
+        let cache = MobileBlockCache::open(path.to_str().unwrap()).unwrap();
+        assert!(!cache.is_range_cached(10, 5).unwrap());
+        cache.insert_block(10, b"b10").unwrap();
+        assert!(cache.is_range_cached(10, 10).unwrap());
+        assert!(!cache.is_range_cached(10, 11).unwrap());
         let _ = std::fs::remove_dir_all(&dir);
     }
 }

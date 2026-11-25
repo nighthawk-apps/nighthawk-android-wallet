@@ -96,8 +96,8 @@ fn lock() -> std::sync::MutexGuard<'static, State> {
 fn fresh_socks_auth() -> SocksAuth {
     let mut user = [0u8; 8];
     let mut pass = [0u8; 16];
-    rand::thread_rng().fill_bytes(&mut user);
-    rand::thread_rng().fill_bytes(&mut pass);
+    rand::rngs::OsRng.fill_bytes(&mut user);
+    rand::rngs::OsRng.fill_bytes(&mut pass);
     SocksAuth {
         username: hex_encode(&user),
         password: hex_encode(&pass),
@@ -175,9 +175,22 @@ pub fn socks_method_strict(offered: &[u8]) -> u8 {
     }
 }
 
+fn ct_eq_bytes(a: &[u8], b: &[u8]) -> bool {
+    if a.len() != b.len() {
+        return false;
+    }
+    let mut diff = 0u8;
+    for (&x, &y) in a.iter().zip(b.iter()) {
+        diff |= x ^ y;
+    }
+    diff == 0
+}
+
 pub fn socks_password_ok(username: &str, password: &str) -> bool {
     let auth = current_socks_auth();
-    auth.username == username && auth.password == password
+    let user_ok = ct_eq_bytes(auth.username.as_bytes(), username.as_bytes());
+    let pass_ok = ct_eq_bytes(auth.password.as_bytes(), password.as_bytes());
+    user_ok & pass_ok
 }
 
 pub fn snapshot_json() -> String {
@@ -254,6 +267,9 @@ pub fn note_wallet_route(route: crate::sync::RouteGate, nym_port: u16, tor_port:
 
 pub fn note_proxy_started(kind: TransportKind, port: u16) {
     let mut guard = lock();
+    if matches!(kind, TransportKind::Nym | TransportKind::Tor) {
+        guard.session_direct = false;
+    }
     match kind {
         TransportKind::Nym => {
             guard.kind = TransportKind::Nym;

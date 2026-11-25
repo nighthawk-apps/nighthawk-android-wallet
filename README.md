@@ -8,7 +8,7 @@
 
 Privacy-preserving wallet (work-in-progress) by [Nighthawk Apps](https://nighthawkapps.com). This tree ships as a **new Android application id** on the DarkFi network (DRK). The app integrates a native DarkFi wallet API via **UniFFI** (`rust/darkfi-mobile-ffi` → generated Kotlin + `DarkfiMobileFfiApi`) for chain sync, broadcast, and chat.
 
-**3.01.19** (`WALLET_VERSION_CODE=30100819`). The F-Droid native build turns off thin LTO so two rebuilds match. It also strips machine paths. Chat is the tab selected when you open the app. Default sync trial-decrypts notes in parallel. DarkFi pin `9d7ceaf77`, Arti 0.48, UniFFI 0.32.2 (`darkfi-mobile-ffi` 0.2.3), nym-smolmix `5f0dba82`. Aligns with iOS 3.01.19, desktop 3.1.19, Moonshine 3.1.19, and lightwalletd 0.3.12 (see [docs/VERSION_LOCKSTEP.md](docs/VERSION_LOCKSTEP.md)).
+**3.01.20** (`WALLET_VERSION_CODE=30100820`). The F-Droid native build turns off thin LTO so two rebuilds match. It also strips machine paths. Chat is the tab selected when you open the app. Default sync trial-decrypts notes in parallel. DarkFi pin `191941936`, Arti 0.48, UniFFI 0.32.2 (`darkfi-mobile-ffi` 0.2.4), nym-smolmix `5f0dba82`. Aligns with iOS 3.01.20, desktop 3.1.20, Moonshine 3.1.20, and lightwalletd 0.3.13 (see [docs/VERSION_LOCKSTEP.md](docs/VERSION_LOCKSTEP.md)).
 
 ## Contents
 
@@ -31,7 +31,7 @@ Privacy-preserving wallet (work-in-progress) by [Nighthawk Apps](https://nightha
 
 Store listings are **not finalized** for `com.nighthawkwallet.android`. Placeholder targets until publishing completes:
 
-- **F-Droid:** DarkFi **testnet** package `com.nighthawkwallet.android.testnet` / flavor `darkfitestnet` (see [docs/fdroid.md](docs/fdroid.md); listing pending fdroiddata merge). **3.01.19** (`WALLET_VERSION_CODE=30100819`). Local unsigned APK: `FDROID_BUILD=1 bundle exec fastlane fdroid`.
+- **F-Droid:** DarkFi **testnet** package `com.nighthawkwallet.android.testnet` / flavor `darkfitestnet` (see [docs/fdroid.md](docs/fdroid.md); listing pending fdroiddata merge). **3.01.20** (`WALLET_VERSION_CODE=30100820`). Local unsigned APK: `FDROID_BUILD=1 bundle exec fastlane fdroid`.
 - **Google Play:** `https://PLACEHOLDER_PLAY_STORE_LISTING_URL`
 
 Replace these URLs when production listings exist—do not invent live links prematurely.
@@ -76,7 +76,7 @@ export PATH="$PATH:$ANDROID_HOME/platform-tools"
 ./gradlew checkProperties :darkfi-android-sdk:testDebugUnitTest :ui-lib:testDebugUnitTest
 ```
 
-**Lightwalletd:** Testnet defaults to the Mac Studio ngrok TLS server (`https://epidermis-sandbox-marshland.ngrok-free.dev:443`) with pinned leaf certificate (`c02faee24a8cf271aa91c28b942949ba10ec4413c6d427a598b15a5467978824`). Mainnet defaults to local `127.0.0.1:9067`; you can also run sibling [`darkfi-lightwalletd`](../darkfi-lightwalletd) locally or pick presets in Settings — see [Privacy & security](#privacy--security) and [`../darkfi-lightwalletd/docs/TLS_PINNING.md`](../darkfi-lightwalletd/docs/TLS_PINNING.md).
+**Lightwalletd:** Testnet defaults to the Mac Studio ngrok TLS server (`https://epidermis-sandbox-marshland.ngrok-free.dev:443`) with pinned leaf certificate (`d8163009e3bb0bac39adbbfeb227827a91a590b96ec33f72576278c492be628e`). Mainnet defaults to local `127.0.0.1:9067`; you can also run sibling [`darkfi-lightwalletd`](../darkfi-lightwalletd) locally or pick presets in Settings — see [Privacy & security](#privacy--security) and [`../darkfi-lightwalletd/docs/TLS_PINNING.md`](../darkfi-lightwalletd/docs/TLS_PINNING.md).
 
 **Chat:** open the **Chat** tab (the app opens on **Chat**) — DarkIRC runs **in-process** via UniFFI (`start_darkirc`), not a desktop IRC server. First launch: splash (**Nym** mixnet default) → Create/Restore → seed backup with 3-word confirmation → educational carousel → Home (Chat). Switch between **Nym**, **Tor** (Arti), and **Direct** in Settings → Network privacy. Watch `adb logcat -s darkfi-mobile-ffi darkfi-net`.
 
@@ -122,7 +122,7 @@ symlink or copy it to a sibling directory named `darkfi-mobile-ffi`.
 | **Vendored DarkFi** | git submodule at `docs/upstream/darkfi-revision.txt`; `./scripts/vendor-darkfi.sh` |
 
 ```bash
-rustup target add aarch64-linux-android armv7-linux-androideabi i686-linux-android x86_64-linux-android
+rustup target add aarch64-linux-android x86_64-linux-android
 ```
 
 ---
@@ -279,7 +279,7 @@ The SDK rewrites a remote lightwallet URL to `socks5://proxy/dest`. Loopback sta
 | 3 | **Polling jitter** | ✅ | ±30% sync intervals |
 | 4 | **TLS pin (S8)** | ✅ | Leaf-cert SHA-256 |
 | 5 | **Cleartext loopback only** | ✅ | Non-loopback `http://` refused |
-| 6 | **OMR-first + backoff (S15)** | ✅ | Exponential backoff; trial at max failures |
+| 6 | **Trial-decrypt default + optional UnifOMR (S15)** | ✅ | Trial-decrypt default; opt-in UnifOMR with backoff |
 | 7 | **Tor SOCKS5 dial** | ✅ | `socks5://` for lightwallet gRPC |
 | 8 | **Reorg recovery (R1)** | ✅ | `rewind_to_height()`; UI count is history rows with `block_height > rewind` |
 | 9 | **Tip regression (R4)** | ✅ | `new_tip < prev_tip` triggers reorg |
@@ -343,8 +343,8 @@ See [docs/instant-sync-strategy.md](docs/instant-sync-strategy.md) for the origi
 
 | Mode | When | Privacy | Bandwidth |
 |------|------|---------|-----------|
-| **UnifOMR (0x05)** | Server advertises `unifomr` | Best (MVP limits) | Low–medium |
-| **Trial (LWD)** | After OMR failure / empty match | Degraded | Higher |
+| **Trial (LWD)** | Default sync mode | Moderate | Higher |
+| **UnifOMR (0x05)** | Opt-in experimental (server advertises `unifomr`) | Best (MVP limits) | Low–medium |
 | **Direct darkfid** | Dev feature only | Poor | Highest |
 
 Code: `rust/darkfi-mobile-ffi/src/{sync,lightwallet_client,lightwallet_sync,omr,unifomr,transactions,block_cache}.rs`  
@@ -383,7 +383,7 @@ Notes:
 4. Compose + Jacoco coverage remains limited upstream.
 5. DarkIRC over Nym dials the public clearnet seeds through the mixnet. Those port-9600 handshakes can stall; switch to Tor, or use **Continue without Nym**, if chat stays on "waiting for peers".
 6. Android targets **64-bit ABIs only (`arm64-v8a` and `x86_64`)** built with NDK `30.0.16248370` (aligned with Google Play 64-bit / 16 KB page alignment and F-Droid APK size limits); 32-bit `armeabi-v7a` and `x86` are no longer built.
-7. Strict UnifOMR (the default) does not trial-decrypt own change or a Moonshine `--no-omr` payment. Turn strict mode off, or those notes stay unscanned. A compact-block hole must not mark the missing heights scanned. Rebuilding the money tree from `GetNoteCommitments` is required after a strict pass already appended commitments; a rewind that appends again duplicates leaves.
+7. Experimental strict UnifOMR (opt-in under Advanced settings; trial decryption is the default) does not trial-decrypt own change or a Moonshine `--no-omr` payment. Turn strict mode off, or those notes stay unscanned. A compact-block hole must not mark the missing heights scanned. Rebuilding the money tree from `GetNoteCommitments` is required after a strict pass already appended commitments; a rewind that appends again duplicates leaves.
 8. `git.dark.fi` returns HTTP 504. `kvdb-overlay` is fetched from GitLab (`nighthawk24/kvdb-overlay` `accd2689`), RandomX from Codeberg (`0e31d5a`), and `rust-url` from GitHub (`v258`). The F-Droid RandomX path patch keys the Codeberg URL, which now matches `Cargo.toml`.
 
 ### Install & shortcuts

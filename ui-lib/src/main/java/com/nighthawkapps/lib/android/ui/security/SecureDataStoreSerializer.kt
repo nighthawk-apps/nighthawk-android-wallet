@@ -8,6 +8,7 @@ import com.google.crypto.tink.Aead
 import com.google.crypto.tink.KeyTemplates
 import com.google.crypto.tink.aead.AeadConfig
 import com.google.crypto.tink.integration.android.AndroidKeysetManager
+import com.nighthawkapps.lib.android.spackle.Twig
 import okio.buffer
 import okio.sink
 import okio.source
@@ -27,7 +28,7 @@ internal class SecureDataStoreSerializer(
             val decryptedBytes = aead.decrypt(encryptedBytes, null)
             PreferencesSerializer.readFrom(decryptedBytes.inputStream().source().buffer())
         } catch (e: Exception) {
-            e.printStackTrace()
+            Twig.error(e) { "Failed to decrypt DataStore" }
             defaultValue
         }
     }

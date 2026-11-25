@@ -246,7 +246,8 @@ async fn ensure_default_money_key(
     mnemonic: &[String],
     output: &mut Vec<String>,
 ) -> Result<(), String> {
-    persist_hd_seed(drk, &derivation_seed_from_mnemonic(mnemonic)).await?;
+    let derivation_seed = zeroize::Zeroizing::new(derivation_seed_from_mnemonic(mnemonic));
+    persist_hd_seed(drk, &derivation_seed).await?;
     if drk.default_address().await.is_ok() {
         restore_hd_extra_keys(drk, mnemonic, output).await?;
         return Ok(());
@@ -311,7 +312,9 @@ async fn persist_hd_seed(drk: &Drk, seed: &[u8; 32]) -> Result<(), String> {
     Ok(())
 }
 
-async fn load_hd_seed(drk: &Drk) -> Result<Option<[u8; 32]>, String> {
+async fn load_hd_seed(drk: &Drk) -> Result<Option<zeroize::Zeroizing<[u8; 32]>>, String> {
+    use zeroize::Zeroize;
+
     ensure_hd_meta_table(drk).await?;
     let row = drk
         .wallet
@@ -321,14 +324,16 @@ async fn load_hd_seed(drk: &Drk) -> Result<Option<[u8; 32]>, String> {
     let Some(row) = row else {
         return Ok(None);
     };
-    let Some(drk::walletdb::Value::Blob(bytes)) = row.into_iter().next() else {
+    let Some(drk::walletdb::Value::Blob(mut bytes)) = row.into_iter().next() else {
         return Ok(None);
     };
     if bytes.len() != 32 {
+        bytes.zeroize();
         return Ok(None);
     }
-    let mut seed = [0u8; 32];
+    let mut seed = zeroize::Zeroizing::new([0u8; 32]);
     seed.copy_from_slice(&bytes);
+    bytes.zeroize();
     Ok(Some(seed))
 }
 
@@ -368,7 +373,7 @@ async fn restore_hd_extra_keys(
     mnemonic: &[String],
     output: &mut Vec<String>,
 ) -> Result<(), String> {
-    let seed = derivation_seed_from_mnemonic(mnemonic);
+    let seed = zeroize::Zeroizing::new(derivation_seed_from_mnemonic(mnemonic));
     persist_hd_seed(drk, &seed).await?;
     let next = load_hd_next_index(drk).await.unwrap_or(1);
     if next <= 1 {

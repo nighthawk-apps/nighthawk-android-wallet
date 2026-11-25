@@ -6,7 +6,7 @@ import com.nighthawkapps.lib.android.network.util.Resource
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
-import kotlinx.coroutines.withContext
+import kotlinx.coroutines.flow.flowOn
 
 class CoinMetricsRepositoryImpl(
     private val coinMetricsApiService: CoinMetricsApiService
@@ -15,19 +15,17 @@ class CoinMetricsRepositoryImpl(
         currency: String,
         assetId: String,
     ): Flow<Resource<PriceApiResponse>> =
-        withContext(Dispatchers.IO) {
-            flow {
-                emit(Resource.Loading())
-                try {
-                    val response = coinMetricsApiService.getSimplePrice(assetId, currency)
-                    emit(Resource.Success(response))
-                } catch (e: Exception) {
-                    emit(
-                        Resource.Error(
-                            e.message ?: "Error while getting coin metrics market data"
-                        )
+        flow {
+            emit(Resource.Loading())
+            try {
+                val response = coinMetricsApiService.getSimplePrice(assetId, currency)
+                emit(Resource.Success(response))
+            } catch (e: Exception) {
+                emit(
+                    Resource.Error(
+                        e.message ?: "Error while getting coin metrics market data"
                     )
-                }
+                )
             }
-        }
+        }.flowOn(Dispatchers.IO)
 }

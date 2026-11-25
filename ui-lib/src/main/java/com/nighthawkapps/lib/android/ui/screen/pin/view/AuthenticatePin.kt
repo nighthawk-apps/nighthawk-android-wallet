@@ -31,6 +31,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.nighthawkapps.lib.android.ui.R
+import com.nighthawkapps.lib.android.ui.common.SecureScreen
 import com.nighthawkapps.lib.android.ui.common.WALLET_PASSWORD_LENGTH
 import com.nighthawkapps.lib.android.ui.common.WRONG_VIBRATION_PATTERN
 import com.nighthawkapps.lib.android.ui.design.component.NighthawkTopBar
@@ -67,6 +68,7 @@ fun AuthenticatePin(
     onAuthentication: (Boolean) -> Unit,
     @StringRes pinPromptResId: Int = R.string.enter_six_digit_pin_code,
 ) {
+    SecureScreen()
     Column(
         modifier =
             Modifier

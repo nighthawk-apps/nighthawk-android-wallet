@@ -9,7 +9,7 @@
     <shortcut
         android:shortcutId="show_qr_code_to_receive"
         android:enabled="true"
-        android:icon="@drawable/ic_shortcut_send_money"
+        android:icon="@drawable/ic_shortcut_receive_money"
         android:shortcutShortLabel="@string/ns_receive_money"
         android:shortcutLongLabel="@string/ns_receive_money_securely"
         android:shortcutDisabledMessage="@string/ns_receive_money">
@@ -27,10 +27,10 @@
     <shortcut
         android:shortcutId="scan_qr_to_send"
         android:enabled="true"
-        android:icon="@drawable/ic_shortcut_receive_money"
+        android:icon="@drawable/ic_shortcut_send_money"
         android:shortcutShortLabel="@string/ns_send_money"
         android:shortcutLongLabel="@string/ns_scan_payment_code"
-        android:shortcutDisabledMessage="@string/ns_receive_money">
+        android:shortcutDisabledMessage="@string/ns_send_money">
         <intent
             android:action="android.intent.action.VIEW"
             android:targetPackage="com.nighthawkwallet.android"

@@ -224,7 +224,7 @@ async fn broadcast_wallet_tx(
             &url,
             lightwallet_tls_pin,
         );
-        let secrets = drk.get_money_secrets().await.map_err(|e| e.to_string())?;
+        let secrets = crate::sync::all_money_note_secrets(drk).await?;
         let own_indexes: Vec<u32> = crate::lightwallet_client::visible_money_outputs(tx)
             .await?
             .iter()
@@ -259,7 +259,8 @@ async fn broadcast_wallet_tx(
         }
         let wallet_secret = drk.default_secret().await.map_err(|e| e.to_string())?;
         let wallet_secret = zeroize::Zeroizing::new(wallet_secret.inner().to_repr());
-        let tx_hash_bytes = client
+        let pending = crate::transactions::PendingBroadcast::reserve(drk, tx).await?;
+        let tx_hash_bytes = match client
             .send_transaction_with_output_clues(
                 bytes,
                 &own_indexes,
@@ -268,17 +269,44 @@ async fn broadcast_wallet_tx(
                 network,
             )
             .await
-            .map_err(|e| format!("broadcast via lightwalletd: {e}"))?;
+        {
+            Ok(bytes) => bytes,
+            Err(e) => {
+                if crate::transactions::send_may_have_landed(&e) {
+                    let _ = drk
+                        .put_tx_history_record(tx, "PendingBroadcast", None)
+                        .await;
+                } else {
+                    pending.release(drk).await;
+                }
+                return Err(format!("broadcast via lightwalletd: {e}"));
+            }
+        };
+        let _ = drk
+            .put_tx_history_record(tx, "PendingBroadcast", None)
+            .await;
         client
             .confirm_transaction_in_mempool(&tx_hash_bytes)
             .await
             .map_err(|e| format!("DAO tx not confirmed in lightwalletd mempool: {e}"))?;
     } else {
+        let pending = crate::transactions::PendingBroadcast::reserve(drk, tx).await?;
         let mut output = Vec::new();
-        drk.broadcast_tx(tx, &mut output)
-            .await
-            .map_err(|e| format!("broadcast via darkfid: {e}"))?;
+        if let Err(e) = drk.broadcast_tx(tx, &mut output).await {
+            let err_s = e.to_string();
+            if crate::transactions::send_may_have_landed(&err_s) {
+                let _ = drk
+                    .put_tx_history_record(tx, "PendingBroadcast", None)
+                    .await;
+            } else {
+                pending.release(drk).await;
+            }
+            return Err(format!("broadcast via darkfid: {err_s}"));
+        }
     }
+    drk.put_tx_history_record(tx, "Broadcasted", None)
+        .await
+        .map_err(|e| format!("put_tx_history_record: {e}"))?;
     if let Err(e) = crate::sync::remember_own_outputs_from_tx(drk, tx).await {
         tracing::warn!(target: "wallet-tx", "own fee notes not recorded yet: {e}");
     }
@@ -314,6 +342,7 @@ async fn install_lightwallet_chain_context(
 
 /// Create a DAO transfer proposal, build the on-chain propose transaction,
 /// broadcast it, and return the proposal bulla as b58.
+#[allow(clippy::too_many_arguments)]
 pub async fn propose_transfer(
     drk: &Drk,
     dao_name: &str,
@@ -344,10 +373,10 @@ pub async fn propose_transfer(
         .map_err(|e| format!("recipient address: {e}"))?;
     let recipient = *recipient_addr.public_key();
 
-    // Step 1: Create the proposal record (stored locally)
-    crate::sync::ensure_spendable_money_tree(drk, lightwallet_server_url, lightwallet_tls_pin)
+    // Step 1: Prefetch MONEY + DAO zkas and ensure spendable Money tree.
+    prepare_dao_spend(drk, lightwallet_server_url, lightwallet_tls_pin)
         .await
-        .map_err(|e| format!("merkle rebuild for DAO propose: {e}"))?;
+        .map_err(|e| format!("prepare DAO propose: {e}"))?;
 
     let proposal_record = drk
         .dao_propose_transfer(
@@ -385,9 +414,9 @@ pub async fn vote_on_proposal(
     lightwallet_tls_pin: Option<[u8; 32]>,
 ) -> Result<String, String> {
     install_lightwallet_chain_context(lightwallet_server_url, lightwallet_tls_pin).await;
-    crate::sync::ensure_spendable_money_tree(drk, lightwallet_server_url, lightwallet_tls_pin)
+    prepare_dao_spend(drk, lightwallet_server_url, lightwallet_tls_pin)
         .await
-        .map_err(|e| format!("merkle rebuild for DAO vote: {e}"))?;
+        .map_err(|e| format!("prepare DAO vote: {e}"))?;
 
     let bytes = bs58::decode(proposal_bulla_b58)
         .into_vec()
@@ -639,6 +668,7 @@ fn parse_positive_amount(label: &str, raw: &str) -> Result<u64, String> {
 /// All six role keys are kept: `mint.zk` proves every one of them, and a key
 /// dropped before it is exported is lost. Hand roles to other members with
 /// [`export_role`] after the DAO is minted.
+#[allow(clippy::too_many_arguments)]
 pub async fn create_dao(
     drk: &Drk,
     name: &str,

@@ -29,6 +29,7 @@ pub enum SessionError {
     Replay,
 }
 
+#[derive(Default)]
 pub struct SessionTable {
     map: std::collections::HashMap<[u8; SENDER_LEN], Session>,
     lru: std::collections::VecDeque<[u8; SENDER_LEN]>,
@@ -55,15 +56,6 @@ enum SessState {
         recv_seq: u64,
         ready_since_ms: u64,
     },
-}
-
-impl Default for SessionTable {
-    fn default() -> Self {
-        Self {
-            map: std::collections::HashMap::new(),
-            lru: std::collections::VecDeque::new(),
-        }
-    }
 }
 
 impl SessionTable {
@@ -153,7 +145,7 @@ impl SessionTable {
         queued: Vec<u8>,
     ) -> Result<Vec<u8>, SessionError> {
         self.evict_if_needed();
-        let eph = SecretKey::generate(&mut rand::thread_rng());
+        let eph = SecretKey::generate(&mut rand::rngs::OsRng);
         let mut payload = Vec::with_capacity(33);
         payload.push(HS1);
         payload.extend_from_slice(&eph.public_key().to_bytes());
@@ -304,7 +296,7 @@ impl SessionTable {
         let mut their_eph = [0u8; 32];
         their_eph.copy_from_slice(rest);
         self.evict_if_needed();
-        let our_eph = SecretKey::generate(&mut rand::thread_rng());
+        let our_eph = SecretKey::generate(&mut rand::rngs::OsRng);
         let sealed = box_seal_hs(&their_eph, &our_eph.to_bytes(), &id.static_public())?;
         let mut payload = Vec::with_capacity(1 + 32 + sealed.len());
         payload.push(HS2);
@@ -462,7 +454,7 @@ fn box_seal(
     let pk = PublicKey::from_slice(their_pk).map_err(|_| SessionError::Key)?;
     let b = ChaChaBox::new(&pk, &sk);
     let mut nonce = [0u8; 24];
-    rand::thread_rng().fill_bytes(&mut nonce);
+    rand::rngs::OsRng.fill_bytes(&mut nonce);
     let ct = b
         .encrypt(&nonce.into(), pt)
         .map_err(|_| SessionError::Encrypt)?;
@@ -494,7 +486,7 @@ fn box_seal_hs(their_pk: &[u8; 32], our_sk: &[u8; 32], pt: &[u8]) -> Result<Vec<
     let pk = PublicKey::from_slice(their_pk).map_err(|_| SessionError::Key)?;
     let b = ChaChaBox::new(&pk, &sk);
     let mut nonce = [0u8; 24];
-    rand::thread_rng().fill_bytes(&mut nonce);
+    rand::rngs::OsRng.fill_bytes(&mut nonce);
     let ct = b
         .encrypt(&nonce.into(), pt)
         .map_err(|_| SessionError::Encrypt)?;

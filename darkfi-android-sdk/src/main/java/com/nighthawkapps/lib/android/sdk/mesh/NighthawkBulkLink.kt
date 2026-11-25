@@ -334,6 +334,7 @@ private object BulkStartGate {
     }
 }
 
+@RequiresApi(Build.VERSION_CODES.S)
 private object BulkQuota {
     fun accepting(link: NighthawkBulkLink): Boolean {
         if (!link.running.get()) return false
@@ -360,6 +361,7 @@ private object BulkQuota {
     private fun underCap(total: Long): Boolean = total <= NighthawkBulkPolicy.MAX_BYTES
 }
 
+@RequiresApi(Build.VERSION_CODES.S)
 private object BulkPipe {
     fun transferChunk(
         link: NighthawkBulkLink,

@@ -36,6 +36,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.nighthawkapps.lib.android.sdk.wallet.DarkfiChainBounds
 import com.nighthawkapps.lib.android.ui.R
+import com.nighthawkapps.lib.android.ui.common.SecureScreen
 import com.nighthawkapps.lib.android.ui.design.component.BodyMedium
 import com.nighthawkapps.lib.android.ui.design.component.NighthawkTopBar
 import com.nighthawkapps.lib.android.ui.design.component.NighthawkTopBarLeading
@@ -99,8 +100,9 @@ internal fun Restore(
     onContinue: (seedPhrase: String, birthdayHeight: Long?) -> Unit,
     onBack: () -> Unit,
 ) {
+    SecureScreen()
     val scrollState = rememberScrollState()
-    var seeds by rememberSaveable { mutableStateOf("") }
+    var seeds by remember { mutableStateOf("") }
     var birthday by rememberSaveable { mutableStateOf("") }
     val birthdayDigits = birthday.filter { it.isDigit() }
     val birthdayValue = birthdayDigits.toLongOrNull()

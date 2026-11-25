@@ -68,11 +68,6 @@ impl<V> BoundedCache<V> {
         self.map.insert(key, val);
     }
 
-    fn remove(&mut self, key: &str) -> Option<V> {
-        self.insertion_order.retain(|k| k != key);
-        self.map.remove(key)
-    }
-
     fn clear(&mut self) {
         self.map.clear();
         self.insertion_order.clear();
@@ -84,8 +79,10 @@ impl<V> BoundedCache<V> {
 static SENT_SYNC_SCHEMES: LazyLock<RwLock<BoundedCache<u8>>> =
     LazyLock::new(|| RwLock::new(BoundedCache::new()));
 
+type PaymentMetaEntry = (Option<String>, Option<String>);
+
 /// Per-session payment memo + recipient for txs we broadcast this process.
-static SENT_PAYMENT_META: LazyLock<RwLock<BoundedCache<(Option<String>, Option<String>)>>> =
+static SENT_PAYMENT_META: LazyLock<RwLock<BoundedCache<PaymentMetaEntry>>> =
     LazyLock::new(|| RwLock::new(BoundedCache::new()));
 
 /// Session set of tx hashes confirmed to have landed in lightwalletd mempool.
@@ -181,8 +178,9 @@ pub async fn prefetch_contract_zkas(
 }
 
 /// Conservative TransferV1+FeeV1 schedule used by estimate (no Halo2 / darkfid).
-/// Matches Moonshine's default `--fee` overpay on testnet.
-pub const SCHEDULE_TRANSFER_FEE_ATOMIC: i64 = 5_000_000;
+/// Matches `drk::money::append_fee_call`: `compute_fee(&FEE_CALL_GAS)` (420_000)
+/// + `LIGHTWALLET_FEE_OVERESTIMATE_ATOMIC` (5_000_000) = 5_420_000 atomic (0.0542 DRK).
+pub const SCHEDULE_TRANSFER_FEE_ATOMIC: i64 = 5_420_000;
 
 /// Clear session caches (call on wallet close / re-bootstrap).
 pub fn clear_sent_session_cache() {
@@ -190,6 +188,9 @@ pub fn clear_sent_session_cache() {
         m.clear();
     }
     if let Ok(mut m) = SENT_PAYMENT_META.write() {
+        m.clear();
+    }
+    if let Ok(mut m) = CONFIRMED_BROADCASTS.write() {
         m.clear();
     }
 }
@@ -236,6 +237,7 @@ fn derive_omr_memo_key(secret_bytes: &[u8; 32], recipient_pk: &[u8; 32], nonce: 
     out
 }
 
+#[allow(clippy::too_many_arguments)]
 pub async fn build_transfer(
     drk: &Drk,
     recipient_address: &str,
@@ -303,7 +305,11 @@ pub async fn build_transfer(
     // Per-tx memo key (domain-separated) — never reuse raw spending key bytes.
     let mut nonce = [0u8; 16];
     rand::RngCore::fill_bytes(&mut rand::rngs::OsRng, &mut nonce);
-    let memo_key = derive_omr_memo_key(&secret_bytes, &recipient_pk_bytes, &nonce);
+    let memo_key = zeroize::Zeroizing::new(derive_omr_memo_key(
+        &secret_bytes,
+        &recipient_pk_bytes,
+        &nonce,
+    ));
 
     let omr_memo = crate::memo::build_omr_memo(
         &memo_key,
@@ -439,12 +445,12 @@ async fn payment_output_index(drk: &Drk, tx: &Transaction) -> Result<u32, String
 
 /// Inputs marked spent before `SendTransaction`. Released only when the RPC
 /// fails in a way that means the server never accepted the transaction.
-struct PendingBroadcast {
+pub(crate) struct PendingBroadcast {
     coins: Vec<darkfi_money_contract::model::Coin>,
 }
 
 impl PendingBroadcast {
-    async fn reserve(drk: &Drk, tx: &Transaction) -> Result<Self, String> {
+    pub(crate) async fn reserve(drk: &Drk, tx: &Transaction) -> Result<Self, String> {
         let tx_hash = tx.hash().to_string();
         let mut output = Vec::new();
         drk.mark_tx_spend(tx, &mut output)
@@ -462,7 +468,7 @@ impl PendingBroadcast {
         Ok(Self { coins })
     }
 
-    async fn release(self, drk: &Drk) {
+    pub(crate) async fn release(self, drk: &Drk) {
         for coin in &self.coins {
             if let Err(e) = drk.unspend_coin(coin).await {
                 tracing::warn!(target: "wallet-tx", "PendingBroadcast release failed: {e}");
@@ -472,7 +478,7 @@ impl PendingBroadcast {
 }
 
 /// Timeouts and transport drops can happen after lightwalletd accepted the tx.
-fn send_may_have_landed(err: &str) -> bool {
+pub(crate) fn send_may_have_landed(err: &str) -> bool {
     let e = err.to_ascii_lowercase();
     e.contains("timeout")
         || e.contains("timed out")
@@ -622,7 +628,7 @@ pub async fn broadcast_transfer(
 }
 
 /// Validates transfer inputs and returns the fixed schedule fee constant
-/// (`SCHEDULE_TRANSFER_FEE_ATOMIC`, 5_000_000 atomic = 0.05 DRK).
+/// (`SCHEDULE_TRANSFER_FEE_ATOMIC`, 5_420_000 atomic = 0.0542 DRK).
 ///
 /// Lightwalletd clients do not have a `darkfid` RPC for `tx.calculate_fee`
 /// gas simulation and do not run Halo2 proving during fee preview, so callers
@@ -735,30 +741,53 @@ pub(crate) fn is_outgoing_transaction(
         || (net_atomic == 0 && (status == "Broadcasted" || has_recipient || has_sent_scheme))
 }
 
+/// Decode the actual `u64` little-endian fee embedded in `MoneyFunction::FeeV1`
+/// calls (`&call.data.data[1..9]`) instead of querying darkfid/overestimate.
+pub(crate) fn extract_tx_fee_atomic(tx: &Transaction) -> i64 {
+    let mut total = 0u64;
+    for call in &tx.calls {
+        if call.data.contract_id != *MONEY_CONTRACT_ID || call.data.data.len() < 9 {
+            continue;
+        }
+        if matches!(
+            MoneyFunction::try_from(call.data.data[0]),
+            Ok(MoneyFunction::FeeV1)
+        ) {
+            if let Ok(bytes) = <[u8; 8]>::try_from(&call.data.data[1..9]) {
+                total = total.saturating_add(u64::from_le_bytes(bytes));
+            }
+        }
+    }
+    i64::try_from(total).unwrap_or(i64::MAX)
+}
+
+/// Resolve history `SyncMethod` from recorded outgoing OMR scheme byte.
+/// Defaults to [`SyncMethod::TrialDecrypt`] when no OMR envelope scheme was recorded.
+pub(crate) fn resolve_history_sync_method(sent_scheme: Option<u8>) -> SyncMethod {
+    sent_scheme
+        .map(SyncMethod::from_scheme_byte)
+        .unwrap_or(SyncMethod::TrialDecrypt)
+}
+
 pub async fn list_transaction_history(drk: &Drk) -> Result<Vec<DrkTransactionRecord>, String> {
     let rows = drk.get_txs_history().await.map_err(|e| e.to_string())?;
     let mut records = Vec::with_capacity(rows.len());
 
     for (tx_hash, status, block_height) in rows {
         let recipient_address = outgoing_recipient(drk, &tx_hash);
-        let has_sent_scheme = SENT_SYNC_SCHEMES
+        let sent_scheme = SENT_SYNC_SCHEMES
             .read()
             .ok()
-            .map(|map| map.contains_key(&tx_hash))
-            .unwrap_or(false);
+            .and_then(|map| map.get(&tx_hash).copied());
+        let has_sent_scheme = sent_scheme.is_some();
 
         let mut fee_atomic = 0i64;
         let mut net_atomic = 0i64;
         let mut summary_opt = None;
 
         if let Ok((_, _, _, tx)) = drk.get_tx_history_record(&tx_hash).await {
-            fee_atomic = drk
-                .get_tx_fee(&tx, true)
-                .await
-                .ok()
-                .and_then(|f| i64::try_from(f).ok())
-                .unwrap_or(0);
-            net_atomic = net_value_atomic(drk, &tx).await.unwrap_or(0);
+            fee_atomic = extract_tx_fee_atomic(&tx);
+            net_atomic = net_value_atomic(drk, &tx, &tx_hash).await.unwrap_or(0);
             summary_opt = Some(contract_summary_for_tx(&tx));
         }
 
@@ -777,19 +806,7 @@ pub async fn list_transaction_history(drk: &Drk) -> Result<Vec<DrkTransactionRec
             }
         });
 
-        // Resolve how this tx was discovered/built: sent txs carry the OMR
-        // scheme we embedded (UnifOMR); received txs may have no
-        // persisted discovery metadata yet.
-        let sync_method = SENT_SYNC_SCHEMES
-            .read()
-            .ok()
-            .and_then(|map| map.get(&tx_hash).copied())
-            .map(SyncMethod::from_scheme_byte)
-            .unwrap_or(if is_sent {
-                SyncMethod::UnifOmr
-            } else {
-                SyncMethod::Unknown
-            });
+        let sync_method = resolve_history_sync_method(sent_scheme);
 
         records.push(DrkTransactionRecord {
             tx_hash,
@@ -1122,5 +1139,82 @@ mod tests {
         let sender_found =
             smol::block_on(decrypt_user_memo_from_secrets(&[sender_sk], &tx)).unwrap();
         assert_eq!(sender_found, None);
+    }
+
+    #[test]
+    fn schedule_transfer_fee_matches_append_fee_call() {
+        // drk::money::append_fee_call uses compute_fee(&FEE_CALL_GAS) (420_000)
+        // + LIGHTWALLET_FEE_OVERESTIMATE_ATOMIC (5_000_000) = 5_420_000.
+        assert_eq!(SCHEDULE_TRANSFER_FEE_ATOMIC, 5_420_000);
+    }
+
+    #[test]
+    fn extract_tx_fee_atomic_decodes_fee_v1_le_and_checks_bounds() {
+        use darkfi_sdk::{dark_tree::DarkLeaf, ContractCall};
+
+        let mut fee_data = vec![MoneyFunction::FeeV1 as u8];
+        fee_data.extend_from_slice(&5_420_000u64.to_le_bytes());
+        fee_data.extend_from_slice(&[0xAA, 0xBB]); // trailing params bytes
+
+        let truncated_fee = vec![MoneyFunction::FeeV1 as u8, 1, 2, 3]; // < 9 bytes
+        let non_fee = vec![MoneyFunction::TransferV1 as u8, 1, 2, 3, 4, 5, 6, 7, 8, 9];
+
+        let tx = Transaction {
+            calls: vec![
+                DarkLeaf {
+                    data: ContractCall {
+                        contract_id: *MONEY_CONTRACT_ID,
+                        data: non_fee,
+                    },
+                    parent_index: None,
+                    children_indexes: Vec::new(),
+                },
+                DarkLeaf {
+                    data: ContractCall {
+                        contract_id: *MONEY_CONTRACT_ID,
+                        data: truncated_fee,
+                    },
+                    parent_index: None,
+                    children_indexes: Vec::new(),
+                },
+                DarkLeaf {
+                    data: ContractCall {
+                        contract_id: *MONEY_CONTRACT_ID,
+                        data: fee_data,
+                    },
+                    parent_index: None,
+                    children_indexes: Vec::new(),
+                },
+            ],
+            proofs: Vec::new(),
+            signatures: Vec::new(),
+        };
+        assert_eq!(extract_tx_fee_atomic(&tx), 5_420_000);
+    }
+
+    #[test]
+    fn resolve_history_sync_method_defaults_to_trial_decrypt() {
+        assert_eq!(resolve_history_sync_method(None), SyncMethod::TrialDecrypt);
+        assert_eq!(
+            resolve_history_sync_method(Some(crate::memo::SCHEME_UNIFOMR)),
+            SyncMethod::UnifOmr
+        );
+    }
+
+    #[test]
+    fn clear_sent_session_cache_clears_confirmed_broadcasts() {
+        let txid = "test_confirmed_clear_1";
+        if let Ok(mut map) = CONFIRMED_BROADCASTS.write() {
+            map.insert(txid.to_string(), ());
+        }
+        assert!(CONFIRMED_BROADCASTS
+            .read()
+            .map(|m| m.contains_key(txid))
+            .unwrap_or(false));
+        clear_sent_session_cache();
+        assert!(CONFIRMED_BROADCASTS
+            .read()
+            .map(|m| !m.contains_key(txid))
+            .unwrap_or(false));
     }
 }

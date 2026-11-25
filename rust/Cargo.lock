@@ -2788,7 +2788,7 @@ dependencies = [
 
 [[package]]
 name = "darkfi-mobile-ffi"
-version = "0.2.3"
+version = "0.2.4"
 dependencies = [
  "android_log-sys",
  "android_logger",

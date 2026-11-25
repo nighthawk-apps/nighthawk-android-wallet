@@ -695,7 +695,13 @@ class MainActivity : FragmentActivity() {
                         )
                         if (splash.isNym) {
                             TextButton(
-                                onClick = { AppNymCoordinator.disableFromSplash(bannerContext) },
+                                onClick = {
+                                    AppNymCoordinator.disableFromSplash(bannerContext)
+                                    lifecycleScope.launch {
+                                        AppWalletCoordinator.get(bannerContext).reloadSynchronizer()
+                                    }
+                                    DarkfiChatConnectionBridge.requestReconnect()
+                                },
                             ) {
                                 Text(stringResource(R.string.splash_nym_continue_without))
                             }

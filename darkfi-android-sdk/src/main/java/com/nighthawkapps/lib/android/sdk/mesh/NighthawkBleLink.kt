@@ -39,6 +39,24 @@ import java.util.concurrent.ConcurrentHashMap
 
 private const val UNSIGNED_BYTE_MASK: Int = 0xFF
 
+internal interface MeshRadioHandle {
+    val peerCount: Int
+    var onEngineFlush: (() -> Unit)?
+
+    fun start()
+
+    fun stop()
+
+    fun setPower(
+        foreground: Boolean,
+        charging: Boolean,
+        gatewayArmed: Boolean,
+        alwaysOn: Boolean = true,
+    )
+
+    fun send(frame: ByteArray)
+}
+
 /**
  * Dual-role BLE radio. Packet semantics stay in Rust / [MeshWireCodec].
  * Does not log Bluetooth addresses.
@@ -47,7 +65,7 @@ private const val UNSIGNED_BYTE_MASK: Int = 0xFF
 class NighthawkBleLink(
     internal val context: Context,
     internal val sink: MeshLinkSink,
-) {
+) : MeshRadioHandle {
     internal val peers = MeshPeerTable()
     internal val inboxAssemblers = ConcurrentHashMap<String, AttFrameAssembler>()
     internal val clientGatts = ConcurrentHashMap<String, BluetoothGatt>()
@@ -57,7 +75,7 @@ class NighthawkBleLink(
     internal val attToMesh = ConcurrentHashMap<String, ByteArray>()
     internal val discoveryStarted = ConcurrentHashMap.newKeySet<String>()
 
-    var onEngineFlush: (() -> Unit)? = null
+    override var onEngineFlush: (() -> Unit)? = null
 
     internal var thread: HandlerThread? = null
     internal var radio: Handler? = null
@@ -104,7 +122,7 @@ class NighthawkBleLink(
             }
         }
 
-    fun start() {
+    override fun start() {
         if (!MeshPermissionGate.isMeshSdkSupported() || !MeshPermissionGate.hasBlePermissions(context)) {
             Twig.warn { "mesh: radio start refused (sdk or permission)" }
             return
@@ -131,7 +149,7 @@ class NighthawkBleLink(
         radio?.post { startRadioLocked() }
     }
 
-    fun stop() {
+    override fun stop() {
         started = false
         radio?.post { tearDownRadio() }
         try {
@@ -145,11 +163,11 @@ class NighthawkBleLink(
         }
     }
 
-    fun setPower(
+    override fun setPower(
         foreground: Boolean,
         charging: Boolean,
         gatewayArmed: Boolean,
-        alwaysOn: Boolean = true,
+        alwaysOn: Boolean,
     ) {
         this.foreground = foreground
         this.charging = charging
@@ -158,11 +176,11 @@ class NighthawkBleLink(
         radio?.post { applyDutyLocked() }
     }
 
-    fun send(frame: ByteArray) {
-        radio?.post { sendLocked(frame) }
+    override fun send(frame: ByteArray) {
+        radio?.post { BleChunks.send(this, frame) }
     }
 
-    val peerCount: Int get() = peers.size
+    override val peerCount: Int get() = peers.size
 
     @SuppressLint("MissingPermission")
     internal fun startRadioLocked() {
@@ -203,12 +221,6 @@ class NighthawkBleLink(
         inboxAssemblers.clear()
         scanner = null
         adapter = null
-    }
-
-    @SuppressLint("MissingPermission")
-    internal fun openGattServerLocked(mgr: BluetoothManager) {
-        if (gattServer != null) return
-        gattServer = BleRadioBoot.openServer(this, mgr)
     }
 
     @SuppressLint("MissingPermission")
@@ -580,17 +592,9 @@ class NighthawkBleLink(
                 }
             }
         }
-
-    @SuppressLint("MissingPermission")
-    internal fun sendLocked(frame: ByteArray) {
-        val chunks = AttFrameSplitter.split(frame, MeshAttPolicy.writePayloadCap(mtu))
-        val dest = MeshWireCodec.decode(frame)?.recipient
-        if (dest == null || dest.size != MeshWireCodec.SENDER_LEN) return
-        val att = meshToAtt[meshHex(dest)] ?: return
-        writeChunksToAttLocked(att, chunks)
-    }
 }
 
+@RequiresApi(Build.VERSION_CODES.S)
 @SuppressLint("MissingPermission")
 private fun NighthawkBleLink.restartAdvertisingLocked(ad: BluetoothAdapter) {
     if (advertiseStartPending && advertisedForeground == foreground) return
@@ -603,6 +607,7 @@ private fun NighthawkBleLink.restartAdvertisingLocked(ad: BluetoothAdapter) {
     startAdvertisingLocked(ad)
 }
 
+@RequiresApi(Build.VERSION_CODES.S)
 @SuppressLint("MissingPermission")
 private fun NighthawkBleLink.startScanLocked() {
     val sc = scanner ?: return
@@ -639,6 +644,7 @@ private fun NighthawkBleLink.startScanLocked() {
 }
 
 /** Stop the stack registration even when [scanning] was already cleared. */
+@RequiresApi(Build.VERSION_CODES.S)
 @SuppressLint("MissingPermission")
 private fun NighthawkBleLink.stopScanLocked() {
     try {
@@ -648,6 +654,7 @@ private fun NighthawkBleLink.stopScanLocked() {
     scanning = false
 }
 
+@RequiresApi(Build.VERSION_CODES.S)
 @SuppressLint("MissingPermission")
 private fun NighthawkBleLink.considerConnectLocked(
     device: BluetoothDevice,
@@ -666,6 +673,7 @@ private fun NighthawkBleLink.considerConnectLocked(
     }
 }
 
+@RequiresApi(Build.VERSION_CODES.S)
 @SuppressLint("MissingPermission")
 internal fun NighthawkBleLink.dropPeerLocked(id: String) {
     discoveryStarted.remove(id)
@@ -685,6 +693,7 @@ internal fun NighthawkBleLink.dropPeerLocked(id: String) {
     inboxAssemblers.remove(id)
 }
 
+@RequiresApi(Build.VERSION_CODES.S)
 private fun NighthawkBleLink.ingestAttLocked(
     peerId: String,
     chunk: ByteArray,
@@ -696,6 +705,7 @@ private fun NighthawkBleLink.ingestAttLocked(
     }
 }
 
+@RequiresApi(Build.VERSION_CODES.S)
 internal fun NighthawkBleLink.rememberMeshLocked(
     attKey: String,
     meshId: ByteArray,
@@ -713,6 +723,7 @@ internal fun NighthawkBleLink.rememberMeshLocked(
 }
 
 /** Disconnect a rotated address without treating the neighbor as gone. */
+@RequiresApi(Build.VERSION_CODES.S)
 @SuppressLint("MissingPermission")
 private fun NighthawkBleLink.retireStaleRadioLocked(id: String) {
     attToMesh.remove(id)
@@ -728,18 +739,9 @@ private fun NighthawkBleLink.retireStaleRadioLocked(id: String) {
     inboxAssemblers.remove(id)
 }
 
-private fun NighthawkBleLink.meshHex(id: ByteArray): String = id.joinToString("") { b -> "%02x".format(b.toInt() and UNSIGNED_BYTE_MASK) }
+internal fun meshHex(id: ByteArray): String = id.joinToString("") { "%02x".format(it.toInt() and UNSIGNED_BYTE_MASK) }
 
-@SuppressLint("MissingPermission")
-private fun NighthawkBleLink.writeChunksToAttLocked(
-    att: String,
-    chunks: List<ByteArray>,
-) {
-    val chUuid = MeshGattConstants.CHARACTERISTIC_UUID
-    if (BleChunks.writeClient(this, att, chUuid, chunks)) return
-    BleChunks.writeServer(this, att, chUuid, chunks)
-}
-
+@RequiresApi(Build.VERSION_CODES.S)
 private object BleRadioBoot {
     @SuppressLint("MissingPermission")
     fun start(
@@ -752,7 +754,9 @@ private object BleRadioBoot {
             return
         }
         link.adapter = ad
-        link.openGattServerLocked(mgr)
+        if (link.gattServer == null) {
+            link.gattServer = openServer(link, mgr)
+        }
         link.scanner = ad.bluetoothLeScanner
         link.applyDutyLocked()
     }
@@ -799,6 +803,7 @@ private object BleRadioBoot {
     }
 }
 
+@RequiresApi(Build.VERSION_CODES.S)
 private object BleConnect {
     fun connectableId(
         link: NighthawkBleLink,
@@ -921,7 +926,26 @@ private class ServerCh(
     val ch: BluetoothGattCharacteristic,
 )
 
+@RequiresApi(Build.VERSION_CODES.S)
 private object BleChunks {
+    private const val WRITE_STATUS_OK: Int = 0
+    private const val WRITE_STATUS_FAILED: Int = -1
+
+    @SuppressLint("MissingPermission")
+    fun send(
+        link: NighthawkBleLink,
+        frame: ByteArray,
+    ) {
+        val chunks = AttFrameSplitter.split(frame, MeshAttPolicy.writePayloadCap(link.mtu))
+        val dest = MeshWireCodec.decode(frame)?.recipient
+        if (dest == null || dest.size != MeshWireCodec.SENDER_LEN) return
+        val att = link.meshToAtt[meshHex(dest)] ?: return
+        val chUuid = MeshGattConstants.CHARACTERISTIC_UUID
+        if (!writeClient(link, att, chUuid, chunks)) {
+            writeServer(link, att, chUuid, chunks)
+        }
+    }
+
     @SuppressLint("MissingPermission")
     fun writeClient(
         link: NighthawkBleLink,
@@ -933,7 +957,7 @@ private object BleChunks {
         var failedCode: Int? = null
         for (chunk in chunks) {
             val code = writeChunk(target, chunk)
-            if (code != BluetoothStatusCodes.SUCCESS) {
+            if (code != WRITE_STATUS_OK) {
                 failedCode = code
                 break
             }
@@ -952,18 +976,20 @@ private object BleChunks {
         chunk: ByteArray,
     ): Int {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            return target.gatt.writeCharacteristic(
-                target.ch,
-                chunk,
-                BluetoothGattCharacteristic.WRITE_TYPE_NO_RESPONSE,
-            )
+            val code =
+                target.gatt.writeCharacteristic(
+                    target.ch,
+                    chunk,
+                    BluetoothGattCharacteristic.WRITE_TYPE_NO_RESPONSE,
+                )
+            return if (code == BluetoothStatusCodes.SUCCESS) WRITE_STATUS_OK else code
         }
         target.ch.writeType = BluetoothGattCharacteristic.WRITE_TYPE_NO_RESPONSE
         target.ch.value = chunk
         return if (target.gatt.writeCharacteristic(target.ch)) {
-            BluetoothStatusCodes.SUCCESS
+            WRITE_STATUS_OK
         } else {
-            BluetoothStatusCodes.ERROR_UNKNOWN
+            WRITE_STATUS_FAILED
         }
     }
 
