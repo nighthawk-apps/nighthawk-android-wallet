@@ -1,12 +1,26 @@
-//! Directed sessions: forward-secret Noise-XX-style handshake (X25519 + BLAKE3 +
-//! XChaCha20-Poly1305) with directional transport keys and a 64-packet replay window.
+//! Directed sessions for an opportunistic X25519 handshake without peer
+//! authentication (BLAKE3 transcript, XChaCha20-Poly1305), with directional
+//! transport keys and a 64-packet replay window.
 //!
-//! Static public keys travel only inside handshake ciphertexts authenticated by
-//! the running BLAKE3 transcript hash. Ready sessions derive directional
-//! `send_key` / `recv_key` from `ee || es || se || ss || transcript_hash` and
-//! immediately discard ephemeral secret keys for forward secrecy.
+//! The handshake gives forward secrecy against a passive listener. It does not
+//! bind the peer static to a known contact, so a relay of wallet control frames
+//! has no MITM resistance. Static public keys travel only inside handshake
+//! ciphertexts checked against the running BLAKE3 transcript. That peer static
+//! is mixed into the DH (`es`, `se`, `ss`) before the ephemeral secrets are
+//! dropped. Ready sessions derive directional `send_key` / `recv_key` from
+//! `ee || es || se || ss || transcript_hash`.
 //!
-//! `NoiseEnc` binds protocol version, direction, and outer `seq` as AEAD AAD.
+//! Transport frames bind protocol version, direction, and outer `seq` as AEAD
+//! additional data.
+//!
+//! The initiator marks Ready and returns queued frames in the same outcome as
+//! HS3, before the responder accepts it. HS3 has no reply. Android BLE sends
+//! client writes with `WRITE_TYPE_NO_RESPONSE` and server notifications with
+//! confirmation off, so the link does not ack HS3 either. Holding Ready until
+//! an ack would desynchronize current peers: the responder becomes Ready on
+//! HS3 and sends nothing back. If HS3 is dropped, the initiator can emit
+//! transport frames the responder cannot open until the handshake times out.
+//! That residual drop risk is unchanged.
 
 use chacha20poly1305::aead::{Aead, KeyInit, Payload};
 use chacha20poly1305::{XChaCha20Poly1305, XNonce};
@@ -16,7 +30,7 @@ use zeroize::Zeroizing;
 
 use super::identity::MeshIdentity;
 use super::lwd_ctrl::{pad_frame, unpad_frame};
-use super::types::SENDER_LEN;
+use super::types::{HANDSHAKE_TIMEOUT_MS, SENDER_LEN};
 
 /// Mesh handshake protocol version (bumped from legacy v1 so old peers fail cleanly).
 pub(crate) const HS_VERSION: u8 = 2;
@@ -28,7 +42,11 @@ const HS3: u8 = 0x13;
 const DIR_I2R: u8 = 0x01;
 const DIR_R2I: u8 = 0x02;
 
-const MAX_SESSIONS: usize = 8;
+const MAX_HANDSHAKES: usize = 8;
+const MAX_READY: usize = 8;
+/// HS1 timestamps kept past the session caps so losing a slot does not let
+/// that same id start another handshake immediately.
+const MAX_HS1_TRACKED: usize = 64;
 const REPLAY_WINDOW_SIZE: u64 = 64;
 
 const DH_DOMAIN: &[u8; 32] = b"nighthawk-mesh-x25519-dh-v2\0\0\0\0\0";
@@ -45,7 +63,7 @@ pub enum SessionError {
     UnsupportedVersion,
 }
 
-/// 64-packet sliding replay window (WireGuard / Noise style).
+/// 64-packet sliding replay window.
 ///
 /// Tolerates mild BLE frame reordering within 64 sequence numbers while
 /// strictly rejecting duplicates and packets older than the window.
@@ -95,6 +113,9 @@ impl ReplayWindow {
 pub struct SessionTable {
     map: std::collections::HashMap<[u8; SENDER_LEN], Session>,
     lru: std::collections::VecDeque<[u8; SENDER_LEN]>,
+    /// Last accepted HS1 time per peer id. Survives slot eviction.
+    hs1_recent: std::collections::HashMap<[u8; SENDER_LEN], u64>,
+    hs1_order: std::collections::VecDeque<[u8; SENDER_LEN]>,
 }
 
 struct Session {
@@ -115,6 +136,7 @@ enum SessState {
         started_ms: u64,
     },
     Ready {
+        /// Peer static mixed into `es` / `se` / `ss`. Not a known contact.
         #[allow(dead_code)]
         their_static: [u8; 32],
         send_key: Zeroizing<[u8; 32]>,
@@ -131,6 +153,8 @@ impl SessionTable {
     pub fn wipe(&mut self) {
         self.map.clear();
         self.lru.clear();
+        self.hs1_recent.clear();
+        self.hs1_order.clear();
     }
 
     pub fn drop_peer(&mut self, peer: &[u8; SENDER_LEN]) {
@@ -352,7 +376,7 @@ impl SessionTable {
         if rest.len() != 32 {
             return Err(SessionError::Truncated);
         }
-        // Ready sessions stay bound to their_static. Ignore HS1 resets.
+        // Ready sessions stay bound. HS1 must not reset or evict them.
         if self.is_ready(&from) {
             return Err(SessionError::BadState);
         }
@@ -361,20 +385,22 @@ impl SessionTable {
         if self.is_init_sent(&from) && from > id.peer_id() {
             return Err(SessionError::BadState);
         }
-        if self.is_init_sent(&from) {
-            self.map.remove(&from);
+        let now = super::types::unix_ms();
+        // One accepted HS1 per peer id per handshake timeout. A repeat must
+        // not restart DH or replace WaitHs3.
+        if self.hs1_too_soon(&from, now) || self.is_wait_hs3(&from) {
+            return Err(SessionError::BadState);
         }
         let mut their_eph = [0u8; 32];
         their_eph.copy_from_slice(rest);
 
-        self.evict_if_needed();
         let our_eph = SecretKey::generate(&mut rand::rngs::OsRng);
         let our_eph_pub = our_eph.public_key().to_bytes();
-
         let ee = dh_shared(&our_eph.to_bytes(), &their_eph)?;
         let h_hs2 = transcript_hs2(&from, &id.peer_id(), &their_eph, &our_eph_pub);
         let k_hs2 = derive_hs2_key(&ee, &h_hs2);
-        let sealed = aead_seal_with_aad(&k_hs2, &id.static_public(), &h_hs2)?;
+        let our_static_pub = id.static_public().ok_or(SessionError::Key)?;
+        let sealed = aead_seal_with_aad(&k_hs2, &our_static_pub, &h_hs2)?;
 
         let mut payload = Vec::with_capacity(2 + 32 + sealed.len());
         payload.push(HS_VERSION);
@@ -382,6 +408,11 @@ impl SessionTable {
         payload.extend_from_slice(&our_eph_pub);
         payload.extend_from_slice(&sealed);
 
+        if self.is_init_sent(&from) {
+            self.map.remove(&from);
+        }
+        self.evict_if_needed();
+        self.note_hs1(from, now);
         self.map.insert(
             from,
             Session {
@@ -390,7 +421,7 @@ impl SessionTable {
                     our_eph,
                     ee,
                     h_hs2,
-                    started_ms: super::types::unix_ms(),
+                    started_ms: now,
                 },
             },
         );
@@ -428,8 +459,8 @@ impl SessionTable {
         their_static.copy_from_slice(&their_static_bytes);
 
         let es = dh_shared(&our_eph_bytes, &their_static)?;
-        let our_static_sk = Zeroizing::new(id.secret_bytes());
-        let our_static_pub = id.static_public();
+        let our_static_sk = id.secret_bytes();
+        let our_static_pub = id.static_public().ok_or(SessionError::Key)?;
         let se = dh_shared(&our_static_sk, &their_eph)?;
         let ss = dh_shared(&our_static_sk, &their_static)?;
 
@@ -468,6 +499,7 @@ impl SessionTable {
             },
         );
         self.touch(from);
+        self.evict_ready_if_over_cap();
         Ok(HsOutcome::Established {
             reply: Some(payload),
             flush: queued,
@@ -502,8 +534,8 @@ impl SessionTable {
             _ => return Err(SessionError::BadState),
         };
 
-        let our_static_sk = Zeroizing::new(id.secret_bytes());
-        let our_static_pub = id.static_public();
+        let our_static_sk = id.secret_bytes();
+        let our_static_pub = id.static_public().ok_or(SessionError::Key)?;
         // Responder's DH(s_r, e_i) equals Initiator's es = DH(e_i, s_r).
         let es = dh_shared(&our_static_sk, &their_eph)?;
         let h_hs3 = transcript_hs3(&h_hs2, &our_static_pub);
@@ -540,6 +572,7 @@ impl SessionTable {
             },
         );
         self.touch(from);
+        self.evict_ready_if_over_cap();
         Ok(HsOutcome::Established {
             reply: None,
             flush: Vec::new(),
@@ -558,11 +591,72 @@ impl SessionTable {
         )
     }
 
-    /// Handshake slots are separate from authenticated Ready sessions.
+    fn is_wait_hs3(&self, peer: &[u8; SENDER_LEN]) -> bool {
+        matches!(
+            self.map.get(peer),
+            Some(Session {
+                state: SessState::WaitHs3 { .. }
+            })
+        )
+    }
+
+    fn handshake_count(&self) -> usize {
+        self.map
+            .values()
+            .filter(|s| {
+                matches!(
+                    s.state,
+                    SessState::InitSent { .. } | SessState::WaitHs3 { .. }
+                )
+            })
+            .count()
+    }
+
+    fn ready_count(&self) -> usize {
+        self.map
+            .values()
+            .filter(|s| matches!(s.state, SessState::Ready { .. }))
+            .count()
+    }
+
+    fn hs1_too_soon(&self, peer: &[u8; SENDER_LEN], now: u64) -> bool {
+        match self.hs1_recent.get(peer) {
+            Some(last) => now.saturating_sub(*last) < HANDSHAKE_TIMEOUT_MS,
+            None => false,
+        }
+    }
+
+    fn note_hs1(&mut self, peer: [u8; SENDER_LEN], now: u64) {
+        if self.hs1_recent.insert(peer, now).is_some() {
+            self.hs1_order.retain(|k| *k != peer);
+        }
+        self.hs1_order.push_back(peer);
+        while self.hs1_order.len() > MAX_HS1_TRACKED {
+            let Some(old) = self.hs1_order.pop_front() else {
+                break;
+            };
+            if !self.hs1_order.contains(&old) {
+                self.hs1_recent.remove(&old);
+            }
+        }
+    }
+
+    /// Handshake slots are separate from Ready sessions.
     /// A flood of HS1 frames cannot evict a live session.
     fn evict_if_needed(&mut self) {
-        while self.lru.iter().filter(|k| self.is_handshake(k)).count() >= MAX_SESSIONS {
+        while self.handshake_count() >= MAX_HANDSHAKES {
             let Some(k) = self.lru.iter().copied().find(|k| self.is_handshake(k)) else {
+                break;
+            };
+            self.drop_peer(&k);
+        }
+    }
+
+    /// Drop the oldest Ready session only after the Ready cap is exceeded.
+    /// An in-progress handshake under the handshake cap is left in place.
+    fn evict_ready_if_over_cap(&mut self) {
+        while self.ready_count() > MAX_READY {
+            let Some(k) = self.lru.iter().copied().find(|k| self.is_ready(k)) else {
                 break;
             };
             self.drop_peer(&k);
@@ -937,5 +1031,156 @@ mod tests {
             sa.ingest_hs(&a, b.peer_id(), &hs2_wrong_id),
             Err(SessionError::Decrypt)
         );
+    }
+
+    fn hs1_payload() -> Vec<u8> {
+        let eph = SecretKey::generate(&mut rand::rngs::OsRng);
+        let mut payload = vec![HS_VERSION, HS1];
+        payload.extend_from_slice(&eph.public_key().to_bytes());
+        payload
+    }
+
+    fn establish_ready(table: &mut SessionTable, responder: &MeshIdentity) -> [u8; SENDER_LEN] {
+        let init = MeshIdentity::generate();
+        let mut init_table = SessionTable::default();
+        let peer = init.peer_id();
+        let hs1 = init_table
+            .begin_initiator(responder.peer_id(), Vec::new())
+            .unwrap();
+        let hs2 = match table.ingest_hs(responder, peer, &hs1).unwrap() {
+            HsOutcome::Reply(p) => p,
+            HsOutcome::Established { .. } => panic!("expected HS2"),
+        };
+        let hs3 = match init_table
+            .ingest_hs(&init, responder.peer_id(), &hs2)
+            .unwrap()
+        {
+            HsOutcome::Established { reply, .. } => reply.expect("HS3"),
+            HsOutcome::Reply(_) => panic!("expected established"),
+        };
+        match table.ingest_hs(responder, peer, &hs3).unwrap() {
+            HsOutcome::Established { reply: None, .. } => {}
+            other => panic!("expected responder ready, got {other:?}"),
+        }
+        peer
+    }
+
+    #[test]
+    fn initiator_marks_ready_and_flushes_with_hs3_before_responder_accepts() {
+        let a = MeshIdentity::generate();
+        let b = MeshIdentity::generate();
+        let mut sa = SessionTable::default();
+        let mut sb = SessionTable::default();
+        let queued = b"queued-frame".to_vec();
+        let hs1 = sa.begin_initiator(b.peer_id(), queued.clone()).unwrap();
+        let hs2 = match sb.ingest_hs(&b, a.peer_id(), &hs1).unwrap() {
+            HsOutcome::Reply(p) => p,
+            HsOutcome::Established { .. } => panic!("expected HS2"),
+        };
+        match sa.ingest_hs(&a, b.peer_id(), &hs2).unwrap() {
+            HsOutcome::Established { reply, flush } => {
+                let hs3 = reply.expect("HS3");
+                assert_eq!(hs3[0], HS_VERSION);
+                assert_eq!(hs3[1], HS3);
+                assert_eq!(flush, vec![queued]);
+                assert!(sa.is_ready(&b.peer_id()));
+                assert!(!sb.is_ready(&a.peer_id()));
+                assert!(sb.is_handshake(&a.peer_id()));
+            }
+            HsOutcome::Reply(_) => panic!("expected established"),
+        }
+    }
+
+    #[test]
+    fn one_peer_id_cannot_spin_hs1() {
+        let responder = MeshIdentity::generate();
+        let mut table = SessionTable::default();
+        let live = establish_ready(&mut table, &responder);
+        let spin = [0xABu8; SENDER_LEN];
+        let first = hs1_payload();
+        let second = hs1_payload();
+        assert!(matches!(
+            table.ingest_hs(&responder, spin, &first).unwrap(),
+            HsOutcome::Reply(_)
+        ));
+        let parked = match &table.map[&spin].state {
+            SessState::WaitHs3 { their_eph, .. } => *their_eph,
+            _ => panic!("expected WaitHs3"),
+        };
+        assert_eq!(
+            table.ingest_hs(&responder, spin, &second),
+            Err(SessionError::BadState)
+        );
+        match &table.map[&spin].state {
+            SessState::WaitHs3 { their_eph, .. } => assert_eq!(*their_eph, parked),
+            _ => panic!("repeat HS1 replaced the handshake"),
+        }
+        assert!(table.is_ready(&live));
+
+        let other = [0x5Au8; SENDER_LEN];
+        assert!(matches!(
+            table.ingest_hs(&responder, other, &hs1_payload()).unwrap(),
+            HsOutcome::Reply(_)
+        ));
+        assert!(table.is_handshake(&spin));
+        assert!(table.is_handshake(&other));
+        assert!(table.is_ready(&live));
+    }
+
+    #[test]
+    fn hs1_flood_does_not_evict_ready_session() {
+        let responder = MeshIdentity::generate();
+        let mut table = SessionTable::default();
+        let live = establish_ready(&mut table, &responder);
+        assert_eq!(
+            table.ingest_hs(&responder, live, &hs1_payload()),
+            Err(SessionError::BadState)
+        );
+        assert!(table.is_ready(&live));
+
+        for i in 0..(MAX_HANDSHAKES + 3) {
+            let mut id = [0x44u8; SENDER_LEN];
+            id[7] = i as u8;
+            assert_ne!(id, live);
+            assert!(table.ingest_hs(&responder, id, &hs1_payload()).is_ok());
+        }
+        assert!(table.is_ready(&live));
+        assert_eq!(table.ready_count(), 1);
+        assert_eq!(table.handshake_count(), MAX_HANDSHAKES);
+    }
+
+    #[test]
+    fn ready_cap_evicts_oldest_ready_not_an_under_cap_handshake() {
+        let responder = MeshIdentity::generate();
+        let mut table = SessionTable::default();
+        let parked_id = [0x71u8; SENDER_LEN];
+        assert!(matches!(
+            table
+                .ingest_hs(&responder, parked_id, &hs1_payload())
+                .unwrap(),
+            HsOutcome::Reply(_)
+        ));
+        assert!(table.is_handshake(&parked_id));
+
+        let mut ready_ids = Vec::new();
+        for _ in 0..MAX_READY {
+            let id = establish_ready(&mut table, &responder);
+            assert_ne!(id, parked_id);
+            ready_ids.push(id);
+        }
+        assert_eq!(table.ready_count(), MAX_READY);
+        assert!(table.is_handshake(&parked_id));
+        assert!(table.handshake_count() < MAX_HANDSHAKES);
+
+        let newest = establish_ready(&mut table, &responder);
+        assert_ne!(newest, parked_id);
+        assert_eq!(table.ready_count(), MAX_READY);
+        assert!(!table.is_ready(&ready_ids[0]));
+        assert!(table.is_ready(&newest));
+        assert!(table.is_handshake(&parked_id));
+        for id in &ready_ids[1..] {
+            assert!(table.is_ready(id));
+        }
+        assert_eq!(table.handshake_count(), 1);
     }
 }

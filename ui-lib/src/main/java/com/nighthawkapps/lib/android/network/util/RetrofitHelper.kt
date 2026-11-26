@@ -21,9 +21,10 @@ object RetrofitHelper {
 
     /**
      * SPKI pins for `api.coingecko.com`: current leaf pin plus Google Trust
-     * Services intermediate (`WE1`, valid to 2029-02-20) and root (`GTS Root R4`,
-     * valid to 2028-01-28) backup pins so 90-day leaf rotations do not break fiat
-     * price fetching while still rejecting arbitrary CAs.
+     * Services intermediate (`WE1`, valid to 2029-02-20) and root (`GTS Root R4`)
+     * backup pins so 90-day leaf rotations do not break fiat price fetching
+     * while still rejecting arbitrary CAs. The date 2028-01-28 is the GlobalSign
+     * cross-sign of GTS Root R4, not the self-signed root (valid to 2036).
      *
      * Verify full chain with:
      * `openssl s_client -showcerts -servername api.coingecko.com -connect api.coingecko.com:443`
@@ -34,7 +35,8 @@ object RetrofitHelper {
             "sha256/Sft1rLmODMaEPrqCVSoxXcU6zm6EsQO1COz7Bk7r4r4=",
             // Backup Intermediate: CN=WE1, O=Google Trust Services (valid to 2029-02-20)
             "sha256/kIdp6NNEd8wsugYyyIYFsi1ylMCED3hZbSR8ZFsa/A4=",
-            // Backup Root: CN=GTS Root R4, O=Google Trust Services LLC (valid to 2028-01-28)
+            // Backup Root: CN=GTS Root R4, O=Google Trust Services LLC
+            // (self-signed root valid to 2036; 2028-01-28 is the GlobalSign cross-sign)
             "sha256/mEflZT5enoR1FuXLgYYGqnVEoZvmf9c2bVBpiOjYQ0c=",
         )
 

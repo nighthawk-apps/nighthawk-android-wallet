@@ -19,5 +19,6 @@ Switch path is mutex-serialized: tear down old proxies, rebuild `DarkfiWalletHan
 - `on_network_changed()` — invalidate Nym `LAST_HEALTHY` / Arti circuits
 - Background suspend/resume — pause cover traffic where OS allows
 - Local SOCKS5 auth (RFC 1929) on loopback proxies; method `0x00` still accepted
+- SOCKS username and password are lowercase hex (`0-9a-f`), with no `@`, `:`, `%`, or other URL delimiters, so they are copied into `socks5://user:pass@host` without percent-encoding. They rotate when the route changes (`apply`, `continue_without_nym`). `on_network_changed` does not rotate them: DarkIRC keeps that proxy URL until a transport switch restarts the daemon.
 
 Wallet clients call `WalletTransportReprepare` (iOS) / coordinator reopen (Android) after mode changes.

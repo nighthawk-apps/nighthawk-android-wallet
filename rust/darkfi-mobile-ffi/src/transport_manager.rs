@@ -93,6 +93,7 @@ fn lock() -> std::sync::MutexGuard<'static, State> {
     }
 }
 
+/// Lowercase hex only. The alphabet is `0-9a-f`, which is safe in a URL userinfo.
 fn fresh_socks_auth() -> SocksAuth {
     let mut user = [0u8; 8];
     let mut pass = [0u8; 16];
@@ -133,6 +134,14 @@ pub fn mesh_enabled() -> bool {
 }
 
 /// RFC 1929 credentials for the local SOCKS5 proxies.
+///
+/// Username (16 chars) and password (32 chars) are lowercase hex (`0-9a-f`).
+/// They contain no `@`, `:`, `%`, or other URL delimiters, so callers insert
+/// them into `socks5://user:pass@127.0.0.1` without percent-encoding.
+///
+/// Rotated when the route changes: [`apply`] and [`continue_without_nym`].
+/// Not rotated by [`on_network_changed`]. A running DarkIRC daemon keeps the
+/// proxy URL until one of those route changes restarts it.
 ///
 /// All first-party clients (`LightwalletClient`, `darkirc_daemon` via patched
 /// `third_party/darkfi` `Socks5Client`, Android `RetrofitHelper`, iOS
@@ -468,6 +477,30 @@ mod tests {
         assert_eq!(socks_method(&[0x00]), 0x00);
         assert_eq!(socks_method(&[0x00, 0x02]), 0x02);
         assert_eq!(socks_method(&[0x01]), 0xff);
+    }
+
+    /// Charset lock for SOCKS URL userinfo. Credentials rotate in `apply` and
+    /// `continue_without_nym`, not in `on_network_changed`.
+    #[test]
+    fn socks_auth_is_lowercase_hex_without_url_delimiters() {
+        const FORBIDDEN: &[u8] = b"@:/%?# \n\r[]";
+        for _ in 0..16 {
+            let auth = fresh_socks_auth();
+            assert_eq!(auth.username.len(), 16);
+            assert_eq!(auth.password.len(), 32);
+            for part in [&auth.username, &auth.password] {
+                assert!(part.bytes().all(|b| matches!(b, b'0'..=b'9' | b'a'..=b'f')));
+                assert!(part.bytes().all(|b| !FORBIDDEN.contains(&b)));
+            }
+            let raw = format!(
+                "socks5://{}:{}@127.0.0.1:1080/example.onion:9601",
+                auth.username, auth.password
+            );
+            let parsed = url::Url::parse(&raw).expect("hex credentials are url-safe");
+            assert_eq!(parsed.username(), auth.username);
+            assert_eq!(parsed.password(), Some(auth.password.as_str()));
+        }
+        assert_eq!(hex_encode(&[0x00, 0x0f, 0x10, 0xff]), "000f10ff");
     }
 
     #[test]

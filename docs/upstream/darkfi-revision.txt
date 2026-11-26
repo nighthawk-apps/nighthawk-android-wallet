@@ -1,12 +1,21 @@
 b87318e80968ea071fbd3a56eb1ea17110252753
-# nighthawk24/darkfi local branch nighthawk-testnet-3.01.21 (must be pushed to
-# nighthawk24/darkfi branch nighthawk-testnet before GitHub CI runs).
-# Built on 191941936 + 6 upstream darkfi stability cherry-picks (df946804b,
-# 48e024246, 0d824e9c2, eaa2ff0c7, 1edb9459e, e575350cd) + RFC 1929 SOCKS5 auth
-# in src/net/transport/socks5.rs.
-# git.dark.fi returns HTTP 504 and does not contain this SHA. Do not clone it.
-# Includes iOS rusage skip (proc_pid_rusage unavailable on iOS), set_chain_context_fallback,
-# batched Sapling KA, upstream 0f985c7cf tx-local fees, and upstream net hosts/refinery
-# fixes (225d6857d + 48e024246). Tor stays on Arti 0.48. Cargo deps: kvdb-overlay from
-# gitlab.com/nighthawk24/kvdb-overlay, RandomX from codeberg.org/darkrenaissance/RandomX,
-# rust-url from github.com/darkrenaissance/rust-url.
+# third_party/darkfi HEAD is this SHA, and origin/nighthawk-testnet is the same
+# commit. The checkout is shallow (10 commits, no parent of 9d7ceaf77).
+# Visible history, newest first:
+#   b87318e80 net/socks5: RFC 1929 username/password auth and selected-method check
+#   470d2b6c9 chore: clippy
+#   80fc5d365 event_graph: catch up rotated DAGs and resync after suspend
+#   663a9acb9 net: timeout on the TLS upgrade dialer
+#   368632b8e net: try each resolved SocketAddr, not only the first
+#   63b3f62a7 net: manual escape when the connector is stopped
+#   eba9133cb darkfid/task/sync: checkpoint header is the retrieved tip
+#   191941936 skip wallet coins whose nullifiers are already recorded
+#   6e61deb26 attach payment memos through the official transfer builder
+#   9d7ceaf77 skip Apple rusage peak-RSS on iOS (proc_pid_rusage unavailable)
+# Cherry-picks df946804b, 48e024246, 0d824e9c2, eaa2ff0c7, 1edb9459e, and
+# e575350cd are not in this clone. 0f985c7cf and 225d6857d exist as objects
+# but are not ancestors of this pin.
+# Cargo git deps at this pin: kvdb-overlay from gitlab.com/nighthawk24/kvdb-overlay
+# rev accd2689f42e17d8db05294fbe9c3dac1ef307f4, RandomX from
+# codeberg.org/darkrenaissance/RandomX rev 0e31d5a, rust-url from
+# github.com/darkrenaissance/rust-url branch v258.
