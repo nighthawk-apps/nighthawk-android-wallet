@@ -96,6 +96,39 @@ class DarkfiMobileFfiInstrumentedTest {
         awaitDaemonStopped()
     }
 
+    @Test
+    fun darkirc_restarts_on_the_same_datastore_after_stop() {
+        assumeTrue(DarkfiNativeProbe.run() is DarkfiNativeProbe.Ok)
+        awaitDaemonStopped()
+
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val dbDir = File(context.cacheDir, "test_darkirc_restart_${System.currentTimeMillis()}")
+        dbDir.mkdirs()
+        val callback = object : DarkircEventCallback {
+            override fun onMessage(
+                eventId: String,
+                channel: String,
+                nick: String,
+                message: String,
+                timestamp: ULong,
+                isOutgoing: Boolean,
+            ) {
+            }
+        }
+        val port: UShort = 0u
+        startDarkirc(dbDir.absolutePath, DarkircTransport.DIRECT, port, callback)
+        assertTrue(awaitNotFailed(15_000), "first start failed: ${darkircStatus()} ${darkircConnectionPhase()}")
+        stopDarkirc()
+        awaitDaemonStopped()
+        startDarkirc(dbDir.absolutePath, DarkircTransport.DIRECT, port, callback)
+        assertTrue(
+            awaitNotFailed(20_000),
+            "restart after disconnect failed: ${darkircStatus()} ${darkircConnectionPhase()}",
+        )
+        stopDarkirc()
+        awaitDaemonStopped()
+    }
+
     /**
      * Regression test for the missing-public-channel-messages bug.
      *
@@ -190,6 +223,22 @@ class DarkfiMobileFfiInstrumentedTest {
             Thread.sleep(250)
         }
         return darkircConnectionPhase() == "connected"
+    }
+
+    /** True once the daemon is starting or running, false if it lands on failed. */
+    private fun awaitNotFailed(timeoutMs: Long): Boolean {
+        val deadline = System.currentTimeMillis() + timeoutMs
+        while (System.currentTimeMillis() < deadline) {
+            when (darkircStatus()) {
+                "failed" -> return false
+                "starting", "running" -> {
+                    if (darkircConnectionPhase() == "failed") return false
+                    return true
+                }
+            }
+            Thread.sleep(200)
+        }
+        return darkircStatus() != "failed"
     }
 
     private fun awaitDaemonStopped(timeoutMs: Long = 60_000) {

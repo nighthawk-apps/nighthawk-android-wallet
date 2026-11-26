@@ -46,7 +46,7 @@ class NighthawkWalletApplication : CoroutineApplication() {
         Twig.initialize(applicationContext, loggingEnabled = BuildConfig.LOGCAT_ENABLED)
         Twig.debug { "Starting application…" }
 
-        // Mainnet release sets LOGCAT_ENABLED=false — skip assert because Twig calls are intentionally
+        // Release builds set LOGCAT_ENABLED=false — skip assert because Twig calls are intentionally
         // retained (no-op).
         if (!BuildConfig.DEBUG && BuildConfig.LOGCAT_ENABLED) {
             // In minified release builds with logcat on, Twig noise should be stripped by R8 consumer rules.

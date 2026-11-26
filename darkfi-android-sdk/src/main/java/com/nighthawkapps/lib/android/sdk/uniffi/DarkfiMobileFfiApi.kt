@@ -144,13 +144,13 @@ object DarkfiMobileFfiApi {
                     if (!transient && shouldWipeBeforeRetry(e.message)) {
                         android.util.Log.w(
                             "DarkfiMobileFfiApi",
-                            "native wallet open failed (attempt ${attempt + 1}/3); wiping local DB: ${e.message}",
+                            "native wallet open failed; wiping local DB",
                         )
                         DrkWalletPaths.wipeLocalState(app)
                     } else {
                         android.util.Log.w(
                             "DarkfiMobileFfiApi",
-                            "native wallet open failed (attempt ${attempt + 1}/3); retrying without wipe: ${e.message}",
+                            "native wallet open failed; retrying without wipe",
                         )
                     }
                     // Fjall Drop / exclusive lock can lag behind UniFFI destroy().

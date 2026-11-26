@@ -56,7 +56,7 @@ object EncryptedPreferenceSingleton {
             plain.edit().putBoolean(MIGRATION_FLAG, true).apply()
             return@withContext
         }
-        Log.i(TAG, "Migrating ${entries.size} plaintext preference keys into encrypted store")
+        Log.i(TAG, "Migrating plaintext preferences into the encrypted store")
         var failed = false
         for ((name, value) in entries) {
             if (name == MIGRATION_FLAG) continue
@@ -71,7 +71,7 @@ object EncryptedPreferenceSingleton {
                     }
 
                     else -> {
-                        Log.w(TAG, "Skipping unsupported plaintext preference key=$name (${value?.javaClass?.simpleName})")
+                        Log.w(TAG, "Skipping an unsupported plaintext preference value")
                         continue
                     }
                 }
@@ -79,11 +79,11 @@ object EncryptedPreferenceSingleton {
                 encrypted.putString(PreferenceKey(name), serializedValue)
                 if (encrypted.getString(PreferenceKey(name)) != serializedValue) {
                     failed = true
-                    Log.e(TAG, "Encrypted read-back mismatch for key=$name; keeping plaintext")
+                    Log.e(TAG, "Encrypted read-back mismatch; keeping plaintext")
                 }
-            } catch (t: Throwable) {
+            } catch (_: Throwable) {
                 failed = true
-                Log.w(TAG, "Skip migrate key=$name: ${t.message}")
+                Log.w(TAG, "Skipped migrating one preference")
             }
         }
         if (failed) {

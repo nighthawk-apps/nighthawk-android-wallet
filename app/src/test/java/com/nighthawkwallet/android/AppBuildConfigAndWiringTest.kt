@@ -29,8 +29,8 @@ class AppBuildConfigAndWiringTest {
             Regex("""^\d+\.\d+\.\d+$""").matches(BuildConfig.VERSION_NAME),
         )
         assertTrue("VERSION_CODE must be positive", BuildConfig.VERSION_CODE >= 30100820)
-        // Production mainnet release must disable logcat output.
-        if (!BuildConfig.DEBUG && BuildConfig.FLAVOR == "darkfimainnet") {
+        // Release builds, testnet and mainnet, must not write to logcat.
+        if (!BuildConfig.DEBUG) {
             assertFalse(BuildConfig.LOGCAT_ENABLED)
         }
     }

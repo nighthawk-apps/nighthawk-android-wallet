@@ -760,7 +760,7 @@ pub async fn create_dao(
         // Not on chain: drop the record so the name can be used again.
         let mut output = Vec::new();
         if let Err(remove) = drk.remove_dao(name, &mut output).await {
-            tracing::warn!(target: "wallet-dao", "remove unminted DAO {name}: {remove}");
+            tracing::warn!(target: "wallet-dao", "remove unminted DAO failed");
         }
         return Err(e);
     }

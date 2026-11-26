@@ -135,7 +135,8 @@ android {
             isShrinkResources = project.property("IS_MINIFY_ENABLED").toString().toBoolean()
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
-                "proguard-project.txt"
+                "proguard-project.txt",
+                "proguard-mainnet-strip-log.pro",
             )
 
             val isSignReleaseBuildWithDebugKey = project.property("IS_SIGN_RELEASE_BUILD_WITH_DEBUG_KEY")
@@ -231,8 +232,8 @@ androidComponents {
             "LOGCAT_ENABLED",
             BuildConfigField(
                 type = "boolean",
-                value = (variant.name != "darkfimainnetRelease").toString(), // Default true for testnet
-                comment = "Production mainnet APK must not emit diagnostics to logcat.",
+                value = variant.name.endsWith("Debug").toString(),
+                comment = "Release APKs must not emit diagnostics to logcat.",
             ),
         )
 

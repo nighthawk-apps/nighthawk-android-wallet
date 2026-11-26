@@ -179,11 +179,37 @@ fn signal_stop_channel() {
 }
 
 async fn clear_session_if_owner(generation: u64) {
+    release_shared_session(generation).await;
+}
+
+/// Drop the process-wide EventGraph and P2P handles.
+///
+/// Those handles own the datastore lock. A daemon thread that lost its
+/// generation is not allowed to clear them, so a replacement start used to
+/// leave the previous database open forever. Every later `open` then failed
+/// and chat stayed on the error screen after the first disconnect.
+async fn release_shared_session(generation: u64) {
+    let mut event_graph = EVENT_GRAPH.write().await;
+    let mut p2p = P2P.write().await;
     if !daemon_generation_owns(generation, DAEMON_GENERATION.load(Ordering::SeqCst)) {
         return;
     }
-    *EVENT_GRAPH.write().await = None;
-    *P2P.write().await = None;
+    *event_graph = None;
+    *p2p = None;
+}
+
+async fn install_shared_session(
+    generation: u64,
+    event_graph: darkfi::event_graph::EventGraphPtr,
+    p2p: darkfi::net::P2pPtr,
+) {
+    let mut event_graph_slot = EVENT_GRAPH.write().await;
+    let mut p2p_slot = P2P.write().await;
+    if !daemon_generation_owns(generation, DAEMON_GENERATION.load(Ordering::SeqCst)) {
+        return;
+    }
+    *event_graph_slot = Some(event_graph);
+    *p2p_slot = Some(p2p);
 }
 
 /// Defensive timeout guard around async teardown calls (`p2p.stop`, `prune.stop`,
@@ -718,9 +744,14 @@ impl std::io::Write for LogcatWriter {
 }
 
 /// `log` macros are compiled out of release builds (darkfi's drk enables
-/// `log/release_max_level_off`), so write to liblog directly on Android.
+/// `log/release_max_level_off`). Debug builds write to liblog directly.
+/// Release builds write nothing: logcat is readable by the OS, bugreports,
+/// and `adb`, and upstream P2P lines include peer addresses.
 #[cfg(target_os = "android")]
 fn write_logcat(line: &str) {
+    if !cfg!(debug_assertions) {
+        return;
+    }
     let Ok(text) = std::ffi::CString::new(line.replace('\0', " ")) else {
         return;
     };
@@ -736,14 +767,19 @@ fn write_logcat(line: &str) {
 
 #[cfg(target_os = "ios")]
 fn write_logcat(line: &str) {
-    // `drk` enables `log/release_max_level_off`, which compiles `log::*!` out in
-    // release builds. Write directly to stderr so Xcode / iOS unified logging
-    // receives release diagnostics without `log` macro stripping.
+    // stderr is captured into the iOS unified log and sysdiagnose. Release
+    // builds stay silent so peer and wallet diagnostics are not collected.
+    if !cfg!(debug_assertions) {
+        return;
+    }
     eprintln!("[darkfi-net] {line}");
 }
 
 #[cfg(all(not(target_os = "android"), not(target_os = "ios")))]
 fn write_logcat(line: &str) {
+    if !cfg!(debug_assertions) {
+        return;
+    }
     eprintln!("[darkfi-net] {line}");
 }
 
@@ -759,12 +795,12 @@ static LOGGING_INIT: std::sync::Once = std::sync::Once::new();
 pub(crate) fn init_logging() {
     LOGGING_INIT.call_once(|| {
         // `log` backend (rustls/kvdb use it).
-        // Release: WARN+ only to prevent P2P metadata leaking to logcat.
-        // Debug: INFO for development diagnostics.
+        // Release: off. Debug: INFO for development diagnostics.
+        // Shipping clients must not write peer or wallet lines to the OS log.
         let (max_level, filter_spec) = if cfg!(debug_assertions) {
             (log::LevelFilter::Debug, "info,rustls=off,kvdb=off,kvdb_overlay=off,mio=off,polling=off,async_io=off,want=off")
         } else {
-            (log::LevelFilter::Warn, "warn,rustls=off,kvdb=off,kvdb_overlay=off,mio=off,polling=off,async_io=off,want=off")
+            (log::LevelFilter::Off, "off")
         };
         #[cfg(target_os = "android")]
         {
@@ -783,9 +819,8 @@ pub(crate) fn init_logging() {
         let _ = (max_level, filter_spec);
 
         // `tracing` backend (darkfi net/event_graph).
-        // Release: WARN+ only. Debug: INFO for P2P/DAG diagnostics.
-        // Nym lifecycle lines carry no peer metadata, so keep them in release too.
-        let level = if cfg!(debug_assertions) { "info" } else { "warn,darkfi_mobile_ffi::nym=info" };
+        // Debug: INFO for P2P/DAG diagnostics. Release: off, including Nym.
+        let level = if cfg!(debug_assertions) { "info" } else { "off" };
         let filter = tracing_subscriber::EnvFilter::new(level);
         let _ = tracing_subscriber::fmt()
             .with_env_filter(filter)
@@ -979,6 +1014,7 @@ fn start_darkirc_inner(
                 if outcome.is_err() {
                     tracing::error!("darkirc daemon thread panicked — forcing status to FAILED");
                     publish_daemon_exit(generation, true);
+                    smol::block_on(clear_session_if_owner(generation));
                 }
 
                 if !daemon_generation_owns(generation, DAEMON_GENERATION.load(Ordering::SeqCst)) {
@@ -1011,6 +1047,27 @@ pub fn stop_darkirc() -> Result<(), DarkfiWalletNativeError> {
     loop {
         if current == STATUS_NOT_RUNNING {
             return Ok(());
+        }
+        if current == STATUS_FAILED {
+            // The daemon thread has already exited. `stopping` with no thread
+            // never publishes `not_running`, so the next start waits out the
+            // stuck-stop timeout and then fails to reopen the datastore.
+            match DAEMON_STATUS.compare_exchange_weak(
+                STATUS_FAILED,
+                STATUS_NOT_RUNNING,
+                Ordering::SeqCst,
+                Ordering::SeqCst,
+            ) {
+                Ok(_) => {
+                    set_phase(PHASE_STOPPED);
+                    STOP_REQUESTED_MS.store(0, Ordering::SeqCst);
+                    return Ok(());
+                }
+                Err(observed) => {
+                    current = observed;
+                    continue;
+                }
+            }
         }
         if current == STATUS_STOPPING {
             // Already stopping is not a reason to drop the signal. The thread
@@ -1319,15 +1376,17 @@ async fn run_darkirc_daemon(
     };
     use kvdb_overlay::Database;
 
-    // Create datastore (with retry for rapid restart lock release).
-    // Existing sled directories will not open; testers must wipe DarkIRC cache.
+    // The previous generation's EventGraph keeps the datastore lock. Drop it
+    // before open, and keep retrying while that thread is still tearing down.
     std::fs::create_dir_all(&datastore_path).map_err(|e| format!("create datastore: {e}"))?;
+    release_shared_session(generation).await;
     let mut kvdb_result = Database::open_default(&datastore_path);
     if kvdb_result.is_err() {
-        for _ in 0..15 {
+        for _ in 0..40 {
             if this_daemon_should_exit(generation) {
                 return Ok(());
             }
+            release_shared_session(generation).await;
             sleep_or_stop(&stop_rx, std::time::Duration::from_millis(500)).await;
             if this_daemon_should_exit(generation) {
                 return Ok(());
@@ -1489,10 +1548,7 @@ async fn run_darkirc_daemon(
 
     // Save globals only while this generation still owns the daemon. A start
     // that replaced a hung stop must keep the session it just installed.
-    if daemon_generation_owns(generation, DAEMON_GENERATION.load(Ordering::SeqCst)) {
-        *EVENT_GRAPH.write().await = Some(event_graph.clone());
-        *P2P.write().await = Some(p2p.clone());
-    }
+    install_shared_session(generation, event_graph.clone(), p2p.clone()).await;
 
     let p2p_started = smol::future::race(
         async {
@@ -1840,6 +1896,27 @@ fn needs_dag_refresh(
 mod tests {
     use super::*;
     use darkfi_serial::serialize_async;
+
+    #[test]
+    fn datastore_reopens_after_the_previous_handle_is_dropped() {
+        let dir = std::env::temp_dir().join(format!(
+            "darkirc-reopen-{}-{}",
+            std::process::id(),
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap_or_default()
+                .as_nanos()
+        ));
+        std::fs::create_dir_all(&dir).unwrap();
+        let held = kvdb_overlay::Database::open_default(&dir).expect("first open");
+        assert!(
+            kvdb_overlay::Database::open_default(&dir).is_err(),
+            "a second open must fail while the first handle still holds the lock"
+        );
+        drop(held);
+        kvdb_overlay::Database::open_default(&dir).expect("reopen after drop");
+        let _ = std::fs::remove_dir_all(&dir);
+    }
 
     #[test]
     fn a_fresh_stop_is_kept_and_a_stuck_stop_can_be_replaced() {

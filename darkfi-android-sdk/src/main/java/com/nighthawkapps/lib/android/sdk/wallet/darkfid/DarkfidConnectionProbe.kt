@@ -25,15 +25,12 @@ object DarkfidConnectionProbe {
         withContext(Dispatchers.IO) {
             val host = endpoint.host.trim()
             if (!isLoopbackHost(host)) {
-                android.util.Log.d(
-                    "LwdProbe",
-                    "skip clearnet probe for non-loopback host=$host (privacy)",
-                )
+                android.util.Log.d("LwdProbe", "skip clearnet probe for non-loopback host")
                 return@withContext true
             }
             AppTorCoordinator.ensureSocksReady(context)
             val port = endpoint.port
-            android.util.Log.d("LwdProbe", "probing loopback lightwalletd $host:$port ...")
+            android.util.Log.d("LwdProbe", "probing loopback lightwalletd")
             TorSocksReadiness.awaitTcpReachable(host, port, RPC_PROBE_DEADLINE_MS)
         }
 
