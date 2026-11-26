@@ -1,0 +1,1 @@
+Android 3.01.22 corrects the store listing: sync is trial decryption unless you turn on experimental UnifOMR. Same testnet wallet as 3.01.21 (DarkFi pin b87318e80, Nym on by default, Noise-XX mesh).

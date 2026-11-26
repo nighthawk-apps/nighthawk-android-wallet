@@ -5,11 +5,11 @@ Nighthawk is a self-custodial, privacy-first wallet for the DarkFi network. Your
 Features
 - Opens in DarkIRC encrypted chat with Wallet, DEX, DAO, and Settings tabs
 - Self-custodial 22-word DarkFi recovery phrase with word-check verification and PDF backup
-- Native DarkFi wallet sync (lightwalletd / UniFOMR)
+- Native DarkFi wallet sync through lightwalletd. Experimental UnifOMR stays off unless you turn it on
 - Send and receive testnet DRK; transfers show Broadcasted only after lightwalletd mempool confirmation
 - Embedded Nym mixnet on by default; optional Tor (Arti) or Direct transport in Settings
 - Configurable lightwalletd server (defaults to Mac Studio ngrok TLS with pinned leaf certificate; custom server options available in Settings)
-- Optional trial decryption (disabled or toggled in Advanced settings; strict UniFOMR setting available)
+- Default sync is padded trial decryption. Experimental UnifOMR is optional in Advanced settings
 - DAO governance hub
 
 Optional nearby mesh

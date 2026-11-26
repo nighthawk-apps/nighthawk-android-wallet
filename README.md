@@ -8,7 +8,7 @@
 
 Privacy-preserving wallet (work-in-progress) by [Nighthawk Apps](https://nighthawkapps.com). This tree ships as a **new Android application id** on the DarkFi network (DRK). The app integrates a native DarkFi wallet API via **UniFFI** (`rust/darkfi-mobile-ffi` → generated Kotlin + `DarkfiMobileFfiApi`) for chain sync, broadcast, and chat.
 
-**3.01.21** (`WALLET_VERSION_CODE=30100821`). The F-Droid native build turns off thin LTO so two rebuilds match. It also strips machine paths. Chat is the tab selected when you open the app. Default sync trial-decrypts notes in parallel. DarkFi pin `b87318e80`, Arti 0.48, UniFFI 0.32.2 (`darkfi-mobile-ffi` 0.2.5), nym-smolmix `5f0dba82`. Aligns with iOS 3.01.21, desktop 3.1.21, Moonshine 3.1.21, and lightwalletd 0.3.14 (see [docs/VERSION_LOCKSTEP.md](docs/VERSION_LOCKSTEP.md)).
+**3.01.22** (`WALLET_VERSION_CODE=30100822`). The F-Droid native build turns off thin LTO so two rebuilds match. It also strips machine paths. Chat is the tab selected when you open the app. Default sync trial-decrypts notes in parallel. DarkFi pin `b87318e80`, Arti 0.48, UniFFI 0.32.2 (`darkfi-mobile-ffi` 0.2.5), nym-smolmix `5f0dba82`. Aligns with iOS 3.01.21, desktop 3.1.21, Moonshine 3.1.21, and lightwalletd 0.3.14 (see [docs/VERSION_LOCKSTEP.md](docs/VERSION_LOCKSTEP.md)).
 
 ## Contents
 
@@ -31,7 +31,7 @@ Privacy-preserving wallet (work-in-progress) by [Nighthawk Apps](https://nightha
 
 Store listings are **not finalized** for `com.nighthawkwallet.android`. Placeholder targets until publishing completes:
 
-- **F-Droid:** DarkFi **testnet** package `com.nighthawkwallet.android.testnet` / flavor `darkfitestnet` (see [docs/fdroid.md](docs/fdroid.md); listing pending fdroiddata merge). **3.01.21** (`WALLET_VERSION_CODE=30100821`). Local unsigned APK: `FDROID_BUILD=1 bundle exec fastlane fdroid`.
+- **F-Droid:** DarkFi **testnet** package `com.nighthawkwallet.android.testnet` / flavor `darkfitestnet` (see [docs/fdroid.md](docs/fdroid.md); listing pending fdroiddata merge). **3.01.22** (`WALLET_VERSION_CODE=30100822`). Local unsigned APK: `FDROID_BUILD=1 bundle exec fastlane fdroid`.
 - **Google Play:** `https://PLACEHOLDER_PLAY_STORE_LISTING_URL`
 
 Replace these URLs when production listings exist—do not invent live links prematurely.
