@@ -11,7 +11,7 @@ import com.nighthawkapps.lib.android.ui.screen.restore.model.RestoreStage
 import com.nighthawkapps.lib.android.ui.screen.restore.model.SeedPhraseValidation
 import com.nighthawkapps.lib.android.ui.screen.restore.state.RestoreState
 import com.nighthawkapps.lib.android.ui.screen.restore.state.WordList
-import com.nighthawkapps.lib.uniffi.darkfi_mobile_ffi.validateDarkfiMnemonic
+import com.nighthawkapps.lib.uniffi.blackhawk.validateDarkfiMnemonic
 import kotlinx.collections.immutable.ImmutableSet
 import kotlinx.collections.immutable.toPersistentSet
 import kotlinx.coroutines.Dispatchers
@@ -45,21 +45,7 @@ class RestoreViewModel(
             }
         }
 
-    val userWordList: WordList =
-        run {
-            val initialValue =
-                if (savedStateHandle.contains(KEY_WORD_LIST)) {
-                    savedStateHandle.get<ArrayList<String>>(KEY_WORD_LIST)
-                } else {
-                    null
-                }
-
-            if (null == initialValue) {
-                WordList()
-            } else {
-                WordList(initialValue)
-            }
-        }
+    val userWordList: WordList = WordList()
 
     val userBirthdayHeight: MutableStateFlow<Long?> =
         run {
@@ -103,11 +89,6 @@ class RestoreViewModel(
 
     init {
         viewModelScope.launch {
-            userWordList.current.collect {
-                savedStateHandle[KEY_WORD_LIST] = ArrayList(it)
-            }
-        }
-        viewModelScope.launch {
             userBirthdayHeight.collect {
                 savedStateHandle[KEY_BIRTHDAY_HEIGHT] = it
             }
@@ -116,8 +97,6 @@ class RestoreViewModel(
 
     companion object {
         private const val KEY_STAGE = "stage" // $NON-NLS
-
-        private const val KEY_WORD_LIST = "word_list" // $NON-NLS
 
         private const val KEY_BIRTHDAY_HEIGHT = "birthday_height" // $NON-NLS
     }

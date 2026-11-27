@@ -1,8 +1,13 @@
 package com.nighthawkapps.lib.android.sdk.chat
 
 import android.content.Context
+import android.content.SharedPreferences
 import com.nighthawkapps.lib.android.sdk.chat.darkirc.DarkircRuntimeSettings
 import com.nighthawkapps.lib.android.sdk.net.PrivacyNetwork
+import kotlinx.coroutines.channels.awaitClose
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.flow.distinctUntilChanged
 
 /**
  * Outbound transport: Tor SOCKS for wallet HTTP clients (e.g. price APIs) and for DarkIRC when
@@ -27,7 +32,7 @@ class DarkfiChatPreferences(
             if (value) {
                 privacyNetwork = PrivacyNetwork.Tor
             } else if (privacyNetwork == PrivacyNetwork.Tor) {
-                privacyNetwork = PrivacyNetwork.Direct
+                privacyNetwork = if (disableDirectConnection) PrivacyNetwork.Nym else PrivacyNetwork.Direct
             }
         }
 
@@ -36,10 +41,40 @@ class DarkfiChatPreferences(
      * chat P2P, and embedded darkfid P2P. Nym by default.
      */
     var privacyNetwork: PrivacyNetwork
-        get() = PrivacyNetwork.fromPref(sp.getString(KEY_PRIVACY_NETWORK, null))
-        set(value) {
-            sp.edit().putString(KEY_PRIVACY_NETWORK, value.prefValue).apply()
+        get() {
+            val stored = PrivacyNetwork.fromPref(sp.getString(KEY_PRIVACY_NETWORK, null))
+            return if (disableDirectConnection && stored == PrivacyNetwork.Direct) PrivacyNetwork.Nym else stored
         }
+        set(value) {
+            val target = if (disableDirectConnection && value == PrivacyNetwork.Direct) PrivacyNetwork.Nym else value
+            sp.edit().putString(KEY_PRIVACY_NETWORK, target.prefValue).apply()
+        }
+
+    /**
+     * When true, Direct (clearnet) connections are permanently disallowed across wallet & chat.
+     * Default false.
+     */
+    var disableDirectConnection: Boolean
+        get() = sp.getBoolean(KEY_DISABLE_DIRECT_CONNECTION, false)
+        set(value) {
+            sp.edit().putBoolean(KEY_DISABLE_DIRECT_CONNECTION, value).apply()
+            if (value && PrivacyNetwork.fromPref(sp.getString(KEY_PRIVACY_NETWORK, null)) == PrivacyNetwork.Direct) {
+                sp.edit().putString(KEY_PRIVACY_NETWORK, PrivacyNetwork.Nym.prefValue).apply()
+            }
+        }
+
+    fun observeDisableDirectConnection(): Flow<Boolean> =
+        callbackFlow {
+            trySend(disableDirectConnection)
+            val listener =
+                SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
+                    if (key == null || key == KEY_DISABLE_DIRECT_CONNECTION) {
+                        trySend(disableDirectConnection)
+                    }
+                }
+            sp.registerOnSharedPreferenceChangeListener(listener)
+            awaitClose { sp.unregisterOnSharedPreferenceChangeListener(listener) }
+        }.distinctUntilChanged()
 
     var nymSocksPort: Int
         get() =
@@ -210,6 +245,7 @@ class DarkfiChatPreferences(
         private const val KEY_PRIVACY_NETWORK = "darkfi_wallet_privacy_network"
         private const val KEY_NYM_SOCKS_PORT = "darkfi_nym_socks_port"
         private const val KEY_STRICT_OMR_ONLY = "darkfi_strict_omr_only"
+        private const val KEY_DISABLE_DIRECT_CONNECTION = "darkfi_disable_direct_connection"
         private const val KEY_IRC_HOST = "darkfi_irc_host"
         private const val KEY_IRC_PORT = "darkfi_irc_port"
         private const val KEY_IRC_NICK = "darkfi_irc_nickname"

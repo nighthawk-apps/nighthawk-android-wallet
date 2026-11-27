@@ -15,12 +15,13 @@ data class DarkircChannelCryptoConfig(
     }
 }
 
-/** Upstream `[contact."nick"]` DM encryption (pairwise ChaChaBox keys). */
+/** Upstream `[contact."nick"]` DM encryption (pairwise ChaChaBox keys + optional Double Ratchet). */
 @Serializable
 data class DarkircContactCryptoConfig(
     val nick: String,
     val dmChachaPublicBase58: String,
     val myDmChachaSecretBase58: String,
+    val ratchetCapable: Boolean = false,
 ) {
     init {
         require(nick.isNotBlank()) { "contact nick required" }

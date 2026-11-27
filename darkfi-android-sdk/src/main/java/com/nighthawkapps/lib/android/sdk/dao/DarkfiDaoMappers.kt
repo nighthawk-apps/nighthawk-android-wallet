@@ -1,8 +1,8 @@
 package com.nighthawkapps.lib.android.sdk.dao
 
-import com.nighthawkapps.lib.uniffi.darkfi_mobile_ffi.DrkDaoProposalDetail as FfiProposalDetail
-import com.nighthawkapps.lib.uniffi.darkfi_mobile_ffi.DrkDaoProposalSummary as FfiProposalSummary
-import com.nighthawkapps.lib.uniffi.darkfi_mobile_ffi.DrkDaoSummary as FfiDaoSummary
+import com.nighthawkapps.lib.uniffi.blackhawk.DrkDaoProposalDetail as FfiProposalDetail
+import com.nighthawkapps.lib.uniffi.blackhawk.DrkDaoProposalSummary as FfiProposalSummary
+import com.nighthawkapps.lib.uniffi.blackhawk.DrkDaoSummary as FfiDaoSummary
 
 internal fun FfiDaoSummary.toSdk(): DarkfiDaoSummary =
     DarkfiDaoSummary(

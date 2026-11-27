@@ -5,18 +5,19 @@ import com.nighthawkapps.lib.android.sdk.net.LightwalletTlsPin
 import com.nighthawkapps.lib.android.sdk.net.PrivacyNetwork
 import com.nighthawkapps.lib.android.sdk.net.SessionTransport
 import com.nighthawkapps.lib.android.sdk.net.TorDarkfidEndpoint
+import com.nighthawkapps.lib.android.sdk.net.TransportNative
 import com.nighthawkapps.lib.android.sdk.nym.PlatformTls
 import com.nighthawkapps.lib.android.sdk.wallet.DarkfiNetwork
 import com.nighthawkapps.lib.android.sdk.wallet.DrkWalletPassStore
 import com.nighthawkapps.lib.android.sdk.wallet.DrkWalletPaths
 import com.nighthawkapps.lib.android.sdk.wallet.PersistableDarkfiWallet
-import com.nighthawkapps.lib.uniffi.darkfi_mobile_ffi.DarkfiWalletHandle
-import com.nighthawkapps.lib.uniffi.darkfi_mobile_ffi.DarkfiWalletNativeException
-import com.nighthawkapps.lib.uniffi.darkfi_mobile_ffi.DrkBootstrapConfig
-import com.nighthawkapps.lib.uniffi.darkfi_mobile_ffi.bridgePing as ffiBridgePing
-import com.nighthawkapps.lib.uniffi.darkfi_mobile_ffi.bridgeVersion as ffiBridgeVersion
+import com.nighthawkapps.lib.uniffi.blackhawk.DarkfiWalletHandle
+import com.nighthawkapps.lib.uniffi.blackhawk.DarkfiWalletNativeException
+import com.nighthawkapps.lib.uniffi.blackhawk.DrkBootstrapConfig
+import com.nighthawkapps.lib.uniffi.blackhawk.bridgePing as ffiBridgePing
+import com.nighthawkapps.lib.uniffi.blackhawk.bridgeVersion as ffiBridgeVersion
 
-/** Outcome when probing UniFFI + `libdarkfi_mobile_ffi` at runtime (JNA load). */
+/** Outcome when probing UniFFI + `libblackhawk` at runtime (JNA load). */
 sealed interface DarkfiNativeProbe {
     /** Library loaded and a trivial FFI round-trip succeeded. */
     data object Ok : DarkfiNativeProbe
@@ -44,7 +45,7 @@ sealed interface DarkfiNativeProbe {
 }
 
 /**
- * Kotlin façade over `com.nighthawkapps.lib.uniffi.darkfi_mobile_ffi` (generated UniFFI).
+ * Kotlin façade over `com.nighthawkapps.lib.uniffi.blackhawk` (generated UniFFI).
  * Application code should depend on this object instead of generated types.
  *
  * Bootstrap fields for future **`Drk::new`** wiring are carried in [PersistableDarkfiWallet] until the
@@ -127,6 +128,8 @@ object DarkfiMobileFfiApi {
             var last: DarkfiWalletNativeException.NativeDrkUnavailable? = null
             repeat(3) { attempt ->
                 try {
+                    val prefs = DarkfiChatPreferences(app)
+                    TransportNative.setDirectDisabled(prefs.disableDirectConnection)
                     val config = buildBootstrapConfig(app, wallet)
                     if (config.useNym) {
                         PlatformTls.ensureInitialized(app)

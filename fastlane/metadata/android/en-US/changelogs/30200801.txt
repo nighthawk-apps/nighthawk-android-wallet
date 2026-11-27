@@ -1,0 +1,1 @@
+Moves the shared DarkFi FFI and UnifOMR core into standalone MIT-licensed Blackhawk (0.3.1), adds optional wallet-level Double Ratchet forward secrecy for Nighthawk DarkIRC contacts, adds a persistent Disable Direct Connections toggle under Settings -> Advanced, adds a lightweight sync waveform indicator, and updates build reproducibility.

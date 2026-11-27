@@ -1,6 +1,6 @@
 package com.nighthawkapps.lib.android.sdk.wallet
 
-import com.nighthawkapps.lib.uniffi.darkfi_mobile_ffi.DrkSyncSnapshot
+import com.nighthawkapps.lib.uniffi.blackhawk.DrkSyncSnapshot
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test

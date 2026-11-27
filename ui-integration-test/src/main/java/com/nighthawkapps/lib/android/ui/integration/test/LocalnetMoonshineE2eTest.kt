@@ -266,7 +266,7 @@ class LocalnetMoonshineE2eTest {
         return if (emulator) "10.0.2.2" else "127.0.0.1"
     }
 
-    private fun waitUntilSynced(handle: com.nighthawkapps.lib.uniffi.darkfi_mobile_ffi.DarkfiWalletHandle): Long {
+    private fun waitUntilSynced(handle: com.nighthawkapps.lib.uniffi.blackhawk.DarkfiWalletHandle): Long {
         val deadline = System.currentTimeMillis() + 4 * 60 * 1000
         var last = ""
         while (System.currentTimeMillis() < deadline) {
@@ -285,7 +285,7 @@ class LocalnetMoonshineE2eTest {
     }
 
     private fun waitForBalanceAtLeast(
-        handle: com.nighthawkapps.lib.uniffi.darkfi_mobile_ffi.DarkfiWalletHandle,
+        handle: com.nighthawkapps.lib.uniffi.blackhawk.DarkfiWalletHandle,
         target: Long,
         seconds: Int,
     ): Long {
@@ -302,7 +302,7 @@ class LocalnetMoonshineE2eTest {
     }
 
     private fun waitWhileBalanceBelow(
-        handle: com.nighthawkapps.lib.uniffi.darkfi_mobile_ffi.DarkfiWalletHandle,
+        handle: com.nighthawkapps.lib.uniffi.blackhawk.DarkfiWalletHandle,
         ceiling: Long,
         seconds: Int,
     ): Long {

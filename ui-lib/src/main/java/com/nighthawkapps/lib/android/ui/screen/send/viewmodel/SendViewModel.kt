@@ -318,7 +318,7 @@ class SendViewModel(
         tokenId: String? = null,
         paymentMemo: String? = null,
         tokenBalances: List<DarkfiTokenBalance> = emptyList(),
-        onSuccess: () -> Unit,
+        onSuccess: (String) -> Unit,
     ) {
         if (_isSubmitting.value) return
         _isSubmitting.value = true
@@ -413,7 +413,7 @@ class SendViewModel(
                             if (generation != submitGeneration) return@launch
                             _lastTxId.value = result.value
                             walletCoordinator.rescanBlockchain()
-                            onSuccess()
+                            onSuccess(result.value)
                         }
 
                         is DarkfiTransferResult.Failure -> {

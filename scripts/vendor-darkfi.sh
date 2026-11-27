@@ -29,6 +29,9 @@ if [[ -f "$ROOT/.gitmodules" && "$(gitmodules_path third_party/darkfi)" == "thir
   if [[ "$(gitmodules_path third_party/RandomX)" == "third_party/RandomX" ]]; then
     git -C "$ROOT" submodule update --init -- third_party/RandomX
   fi
+  if [[ "$(gitmodules_path third_party/blackhawk)" == "third_party/blackhawk" ]]; then
+    git -C "$ROOT" submodule update --init --recursive -- third_party/blackhawk
+  fi
 elif [[ -d "${DEST}/bin/drk" && ! -e "${DEST}/.git" ]]; then
   # Bare tree (e.g. an unpacked tarball) — skip clone.
   echo "Using existing DarkFi tree at ${DEST} (no .git — skip clone)."

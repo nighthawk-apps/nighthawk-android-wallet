@@ -75,21 +75,21 @@ val syncEmbeddedDaemonJniLibs =
     }
 
 /**
- * Copies `libdarkfi_mobile_ffi.so` from [artifacts/mobile-ffi] when present
+ * Copies `libblackhawk.so` from [artifacts/mobile-ffi] when present
  * (see [scripts/build-darkfi-mobile-ffi-android.sh]).
  */
 val syncMobileFfiArtifacts =
     tasks.register<Sync>("syncMobileFfiArtifacts") {
         group = "build"
         description =
-            "Bundles libdarkfi_mobile_ffi.so from root artifacts/mobile-ffi into merged jniLibs."
+            "Bundles libblackhawk.so from root artifacts/mobile-ffi into merged jniLibs."
         into(mobileFfiJniLibsDir)
-        from(rootProject.layout.projectDirectory.dir("rust/target/aarch64-linux-android/release")) {
-            include("libdarkfi_mobile_ffi.so")
+        from(rootProject.layout.projectDirectory.dir("artifacts/mobile-ffi/arm64-v8a")) {
+            include("libblackhawk.so")
             into("arm64-v8a")
         }
-        from(rootProject.layout.projectDirectory.dir("rust/target/x86_64-linux-android/release")) {
-            include("libdarkfi_mobile_ffi.so")
+        from(rootProject.layout.projectDirectory.dir("artifacts/mobile-ffi/x86_64")) {
+            include("libblackhawk.so")
             into("x86_64")
         }
     }
@@ -113,7 +113,7 @@ androidComponents {
 
 tasks.configureEach {
     if (name.endsWith("JniLibFolders") && name.startsWith("merge")) {
-        dependsOn(syncEmbeddedDaemonJniLibs)
+        dependsOn(syncMobileFfiArtifacts, syncEmbeddedDaemonJniLibs)
     }
 }
 
@@ -157,7 +157,7 @@ android {
 }
 
 dependencies {
-    // UniFFI-generated Kotlin bindings (0.31+) use JNA to load `libdarkfi_mobile_ffi`.
+    // UniFFI-generated Kotlin bindings (0.31+) use JNA to load `libblackhawk`.
     // `@aar` bundles per-ABI `libjnidispatch.so` (required on Android; plain `jna` jar does not).
     implementation("net.java.dev.jna:jna:${project.property("JNA_VERSION")}@aar")
     implementation(libs.androidx.annotation)

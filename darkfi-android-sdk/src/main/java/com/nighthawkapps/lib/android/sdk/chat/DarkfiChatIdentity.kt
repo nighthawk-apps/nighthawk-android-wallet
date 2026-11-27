@@ -4,8 +4,8 @@ package com.nighthawkapps.lib.android.sdk.chat
 
 import android.content.Context
 import android.content.res.AssetManager
-import com.nighthawkapps.lib.uniffi.darkfi_mobile_ffi.decodeChatEntropy
-import com.nighthawkapps.lib.uniffi.darkfi_mobile_ffi.generateBip39ChatMnemonic
+import com.nighthawkapps.lib.uniffi.blackhawk.decodeChatEntropy
+import com.nighthawkapps.lib.uniffi.blackhawk.generateBip39ChatMnemonic
 
 /**
  * Chat-local cryptographic identity (separate from the wallet seed): a BIP-39–compatible **12-word**

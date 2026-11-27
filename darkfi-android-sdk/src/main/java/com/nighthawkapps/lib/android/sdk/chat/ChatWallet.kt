@@ -221,8 +221,13 @@ object NighthawkContacts {
     ): String {
         val material = dmPublicKey.trim() + "|" + (walletAddress?.trim().orEmpty())
         val digest = MessageDigest.getInstance("SHA-256").digest(material.toByteArray(Charsets.UTF_8))
-        return digest.take(15).joinToString(" ") { byte ->
-            "%05d".format(Locale.US, abs(byte.toInt()) % 100_000)
+        return (0 until 10).joinToString(" ") { idx ->
+            val offset = idx * 3
+            val chunk =
+                ((digest[offset].toInt() and 0xff) shl 16) or
+                    ((digest[offset + 1].toInt() and 0xff) shl 8) or
+                    (digest[offset + 2].toInt() and 0xff)
+            "%05d".format(Locale.US, chunk % 100_000)
         }
     }
 

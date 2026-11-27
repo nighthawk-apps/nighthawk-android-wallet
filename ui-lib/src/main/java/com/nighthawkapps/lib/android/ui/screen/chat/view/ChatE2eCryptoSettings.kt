@@ -162,12 +162,14 @@ internal fun ChatE2eCryptoSettings(
                 scope.launch(Dispatchers.IO) {
                     val saved =
                         runCatching {
+                            val card = com.nighthawkapps.lib.android.sdk.chat.darkirc.DarkircDmPubkeyParser.parseCard(theirPublic)
                             DarkircCryptoManager.saveContact(
                                 appContext,
                                 DarkircContactCryptoConfig(
                                     nick = nick.trim(),
-                                    dmChachaPublicBase58 = theirPublic.trim(),
+                                    dmChachaPublicBase58 = (card?.publicKeyBase58 ?: theirPublic).trim(),
                                     myDmChachaSecretBase58 = mySecret.trim(),
+                                    ratchetCapable = card?.ratchetCapable == true,
                                 ),
                             )
                         }.isSuccess

@@ -15,10 +15,11 @@ import androidx.core.content.ContextCompat
 import com.nighthawkapps.lib.android.sdk.R
 import com.nighthawkapps.lib.android.sdk.chat.DarkfiChatPreferences
 import com.nighthawkapps.lib.android.spackle.Twig
-import com.nighthawkapps.lib.uniffi.darkfi_mobile_ffi.configureDarkirc
+import com.nighthawkapps.lib.uniffi.blackhawk.configureDarkirc
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 
 /**
@@ -85,6 +86,7 @@ class DarkircDaemonService : Service() {
     override fun onDestroy() {
         foregroundPromoted = false
         isActive = false
+        serviceScope.cancel()
         super.onDestroy()
     }
 

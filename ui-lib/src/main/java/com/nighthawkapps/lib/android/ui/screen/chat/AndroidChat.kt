@@ -47,6 +47,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -488,9 +489,18 @@ private fun ChatScreen(
                             onRetry = { controller.connectOrRetry() },
                             onToggleHud = {},
                         )
+                        val chatPrefs =
+                            remember(context) {
+                                DarkfiChatPreferences(context.applicationContext)
+                            }
+                        val directDisabled by
+                            chatPrefs
+                                .observeDisableDirectConnection()
+                                .collectAsState(initial = chatPrefs.disableDirectConnection)
                         ChatNetworkHud(
                             slots = outboundSlots,
                             selectedNetwork = selectedPrivacyNetwork,
+                            directDisabled = directDisabled,
                             onSelectNetwork = { network ->
                                 selectedPrivacyNetwork = network
                                 AppNymCoordinator.applyPrivacyNetworkAsync(
@@ -1008,7 +1018,8 @@ private fun ChatScreen(
     }
 
     messageMenuTarget?.let { target ->
-        val detectedKey = DarkircDmPubkeyParser.extractFromText(target.text)
+        val detectedCard = DarkircDmPubkeyParser.parseCard(target.text)
+        val detectedKey = detectedCard?.publicKeyBase58
         AlertDialog(
             onDismissRequest = { messageMenuTarget = null },
             title = { Text(target.nick) },
@@ -1028,11 +1039,20 @@ private fun ChatScreen(
                     ) {
                         Text(stringResource(R.string.ns_chat_copy_message))
                     }
-                    if (detectedKey != null) {
+                    if (detectedCard != null) {
                         TextButton(
                             onClick = {
                                 messageMenuTarget = null
-                                newDmInitialPubkey = detectedKey
+                                newDmInitialPubkey =
+                                    if (detectedCard.ratchetCapable || !detectedCard.nick.isNullOrBlank()) {
+                                        DarkircDmPubkeyParser.formatContactCard(
+                                            publicKeyBase58 = detectedCard.publicKeyBase58,
+                                            nick = detectedCard.nick,
+                                            ratchetCapable = detectedCard.ratchetCapable,
+                                        )
+                                    } else {
+                                        detectedCard.publicKeyBase58
+                                    }
                                 showNewDm = true
                             },
                         ) {

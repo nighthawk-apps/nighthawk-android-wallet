@@ -1,5 +1,5 @@
 [workspace]
-members = ["darkfi-android-bridge", "darkfi-mobile-ffi"]
+members = ["darkfi-android-bridge"]
 exclude = ["vendor/fjall"]
 resolver = "2"
 

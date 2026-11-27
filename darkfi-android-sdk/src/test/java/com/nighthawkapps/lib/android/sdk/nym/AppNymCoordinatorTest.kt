@@ -70,4 +70,14 @@ class AppNymCoordinatorTest {
         assertEquals(PrivacyNetwork.Direct, SessionTransport.effective(DarkfiChatPreferences(app)))
         assertEquals(TorBootstrapUiState.Disabled, AppNymCoordinator.bootstrapState.value)
     }
+
+    @Test
+    fun disableFromSplash_blockedWhenDirectConnectionDisabled() {
+        val prefs = DarkfiChatPreferences(app)
+        prefs.disableDirectConnection = true
+        prefs.privacyNetwork = PrivacyNetwork.Direct
+        assertEquals(PrivacyNetwork.Nym, prefs.privacyNetwork)
+        AppNymCoordinator.disableFromSplash(app)
+        assertEquals(PrivacyNetwork.Nym, SessionTransport.effective(prefs))
+    }
 }

@@ -3,7 +3,7 @@
 package com.nighthawkapps.lib.android.sdk.wallet
 
 import android.content.Context
-import com.nighthawkapps.lib.uniffi.darkfi_mobile_ffi.generateDarkfiMnemonic
+import com.nighthawkapps.lib.uniffi.blackhawk.generateDarkfiMnemonic
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.json.JSONArray

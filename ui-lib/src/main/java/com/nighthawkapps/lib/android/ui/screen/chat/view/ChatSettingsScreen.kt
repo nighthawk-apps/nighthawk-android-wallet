@@ -455,14 +455,16 @@ internal fun ChatSettingsScreen(
     }
 
     if (showRevealPhrase && revealedPhrase != null) {
+        val displayedPhrase = revealedPhrase!!
         AlertDialog(
             title = stringResource(R.string.ns_chat_secret_phrase_title),
-            desc = revealedPhrase!!,
+            desc = displayedPhrase,
             confirmText = stringResource(R.string.ns_chat_copy_phrase),
             dismissText = stringResource(R.string.ns_cancel),
             onConfirm = {
+                val phrase = revealedPhrase ?: return@AlertDialog
                 scope.launch {
-                    clipboard.setSensitivePlainText(context, revealedPhrase!!)
+                    clipboard.setSensitivePlainText(context, phrase)
                 }
                 Toast.makeText(context, R.string.ns_copied, Toast.LENGTH_SHORT).show()
                 showRevealPhrase = false

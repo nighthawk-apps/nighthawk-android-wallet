@@ -2,7 +2,7 @@
 
 package com.nighthawkapps.lib.android.sdk.wallet
 
-import com.nighthawkapps.lib.uniffi.darkfi_mobile_ffi.DrkSyncSnapshot
+import com.nighthawkapps.lib.uniffi.blackhawk.DrkSyncSnapshot
 
 /** Maps UniFFI scan progress into wallet UI models. */
 internal object DarkfiSyncSnapshotMapping {

@@ -53,9 +53,15 @@ internal fun ChatNewDmSheet(
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val hasBinary = remember { DarkircCryptoManager.hasBundledDarkirc(context.applicationContext) }
 
-    var label by remember { mutableStateOf("") }
+    val initialCard = remember(initialPeerPublicKey) {
+        initialPeerPublicKey?.let { DarkircDmPubkeyParser.parseCard(it) }
+    }
+    var label by remember(initialPeerPublicKey) { mutableStateOf(initialCard?.nick.orEmpty()) }
     var theirPublic by remember(initialPeerPublicKey) {
-        mutableStateOf(initialPeerPublicKey.orEmpty())
+        mutableStateOf(initialCard?.publicKeyBase58 ?: initialPeerPublicKey.orEmpty())
+    }
+    var ratchetCapable by remember(initialPeerPublicKey) {
+        mutableStateOf(initialCard?.ratchetCapable == true)
     }
     var myPublic by remember { mutableStateOf("") }
     var mySecret by remember { mutableStateOf("") }
@@ -73,7 +79,13 @@ internal fun ChatNewDmSheet(
                         showPasteConfirm = false
                         scope.launch {
                             val clip = clipboard.pastePlainText().orEmpty()
-                            DarkircDmPubkeyParser.extractFromText(clip)?.let { theirPublic = it }
+                            DarkircDmPubkeyParser.parseCard(clip)?.let { card ->
+                                theirPublic = card.publicKeyBase58
+                                if (label.isBlank() && !card.nick.isNullOrBlank()) {
+                                    label = card.nick!!
+                                }
+                                ratchetCapable = card.ratchetCapable
+                            }
                         }
                     },
                 ) {
@@ -118,7 +130,10 @@ internal fun ChatNewDmSheet(
             Spacer(modifier = Modifier.height(8.dp))
             OutlinedTextField(
                 value = theirPublic,
-                onValueChange = { theirPublic = it },
+                onValueChange = {
+                    theirPublic = it
+                    ratchetCapable = false
+                },
                 label = { Text(stringResource(R.string.ns_chat_dm_peer_public)) },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = false,
@@ -152,17 +167,22 @@ internal fun ChatNewDmSheet(
             }
             if (myPublic.isNotBlank()) {
                 val myPublicLabel = stringResource(R.string.ns_chat_dm_my_public)
+                val myCard = DarkircDmPubkeyParser.formatContactCard(
+                    publicKeyBase58 = myPublic,
+                    nick = controller.ircNickname,
+                    ratchetCapable = true,
+                )
                 Text(
                     text = myPublicLabel,
                     style = MaterialTheme.typography.labelMedium,
                 )
-                Text(text = myPublic, style = MaterialTheme.typography.bodySmall)
+                Text(text = myCard, style = MaterialTheme.typography.bodySmall)
                 TextButton(
                     onClick = {
                         scope.launch {
                             clipboard.setSensitivePlainText(
                                 context = context,
-                                text = myPublic,
+                                text = myCard,
                                 label = myPublicLabel,
                             )
                         }
@@ -177,12 +197,14 @@ internal fun ChatNewDmSheet(
                 onClick = {
                     busy = true
                     scope.launch {
+                        val parsed = DarkircDmPubkeyParser.parseCard(theirPublic)
                         val result =
                             controller.addDmContact(
                                 contactLabel = label,
-                                theirPublicBase58 = theirPublic,
+                                theirPublicBase58 = parsed?.publicKeyBase58 ?: theirPublic,
                                 generateMySecret = mySecret.isBlank(),
                                 mySecretBase58 = mySecret.ifBlank { null },
+                                ratchetCapable = ratchetCapable || (parsed?.ratchetCapable == true),
                             )
                         busy = false
                         withContext(Dispatchers.Main) {

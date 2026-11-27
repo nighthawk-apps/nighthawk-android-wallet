@@ -6,8 +6,8 @@ import android.content.Context
 import com.nighthawkapps.lib.android.sdk.chat.darkirc.DarkircBs58
 import com.nighthawkapps.lib.android.sdk.chat.darkirc.DarkircCryptoManager
 import com.nighthawkapps.lib.android.spackle.Twig
-import com.nighthawkapps.lib.uniffi.darkfi_mobile_ffi.chachaDecryptDm
-import com.nighthawkapps.lib.uniffi.darkfi_mobile_ffi.chachaEncryptDm
+import com.nighthawkapps.lib.uniffi.blackhawk.chachaDecryptDm
+import com.nighthawkapps.lib.uniffi.blackhawk.chachaEncryptDm
 
 /**
  * End-to-end encryption for DarkFi chat direct messages and channels.

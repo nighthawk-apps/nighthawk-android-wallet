@@ -32,11 +32,9 @@ private fun WrapSettings(
     val synchronizer = walletViewModel.synchronizer.collectAsStateWithLifecycle().value
     val isBackgroundSyncEnabled = settingsViewModel.isBackgroundSync.collectAsStateWithLifecycle().value
     val isKeepScreenOnWhileSyncing = settingsViewModel.isKeepScreenOnWhileSyncing.collectAsStateWithLifecycle().value
-    val isAnalyticsEnabled = settingsViewModel.isAnalyticsEnabled.collectAsStateWithLifecycle().value
 
     @Suppress("ComplexCondition")
     if (null == synchronizer ||
-        null == isAnalyticsEnabled ||
         null == isBackgroundSyncEnabled ||
         null == isKeepScreenOnWhileSyncing
     ) {
@@ -45,7 +43,6 @@ private fun WrapSettings(
         Settings(
             isBackgroundSyncEnabled = isBackgroundSyncEnabled,
             isKeepScreenOnDuringSyncEnabled = isKeepScreenOnWhileSyncing,
-            isAnalyticsEnabled = isAnalyticsEnabled,
             isRescanEnabled = ConfigurationEntries.IS_RESCAN_ENABLED.getValue(RemoteConfig.current),
             onBack = goBack,
             onRescanWallet = {
@@ -57,9 +54,6 @@ private fun WrapSettings(
             onIsKeepScreenOnDuringSyncSettingsChanged = {
                 settingsViewModel.setKeepScreenOnWhileSyncing(it)
             },
-            onAnalyticsSettingsChanged = {
-                settingsViewModel.setAnalyticsEnabled(it)
-            }
         )
     }
 }

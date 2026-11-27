@@ -86,7 +86,7 @@ class StubDarkfiSynchronizer(
 
     private fun <T> nativeTransferUnavailable(): DarkfiTransferResult<T> =
         DarkfiTransferResult.Failure(
-            "Native wallet library is unavailable. Install libdarkfi_mobile_ffi for this ABI.",
+            "Native wallet library is unavailable. Install libblackhawk for this ABI.",
         )
 
     override fun walletAddresses(): DarkfiWalletAddresses = displayAddresses()

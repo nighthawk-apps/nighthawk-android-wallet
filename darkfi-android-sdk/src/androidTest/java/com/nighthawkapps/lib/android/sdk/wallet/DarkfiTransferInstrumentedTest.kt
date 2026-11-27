@@ -4,8 +4,8 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.nighthawkapps.lib.android.sdk.net.LightwalletTlsPin
 import com.nighthawkapps.lib.android.sdk.uniffi.DarkfiNativeProbe
-import com.nighthawkapps.lib.uniffi.darkfi_mobile_ffi.DarkfiWalletHandle
-import com.nighthawkapps.lib.uniffi.darkfi_mobile_ffi.DrkBootstrapConfig
+import com.nighthawkapps.lib.uniffi.blackhawk.DarkfiWalletHandle
+import com.nighthawkapps.lib.uniffi.blackhawk.DrkBootstrapConfig
 import org.junit.Test
 import org.junit.runner.RunWith
 import java.io.File

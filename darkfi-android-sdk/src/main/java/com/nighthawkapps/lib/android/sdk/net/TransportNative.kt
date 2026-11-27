@@ -1,14 +1,16 @@
 package com.nighthawkapps.lib.android.sdk.net
 
 import android.os.SystemClock
-import com.nighthawkapps.lib.uniffi.darkfi_mobile_ffi.transportClearSessionOverride
-import com.nighthawkapps.lib.uniffi.darkfi_mobile_ffi.transportContinueWithoutNym
-import com.nighthawkapps.lib.uniffi.darkfi_mobile_ffi.transportOnBackground
-import com.nighthawkapps.lib.uniffi.darkfi_mobile_ffi.transportOnForeground
-import com.nighthawkapps.lib.uniffi.darkfi_mobile_ffi.transportOnNetworkChanged
-import com.nighthawkapps.lib.uniffi.darkfi_mobile_ffi.transportSetMeshEnabled
-import com.nighthawkapps.lib.uniffi.darkfi_mobile_ffi.transportSnapshotJson
-import com.nighthawkapps.lib.uniffi.darkfi_mobile_ffi.transportSocksAuthJson
+import com.nighthawkapps.lib.uniffi.blackhawk.transportClearSessionOverride
+import com.nighthawkapps.lib.uniffi.blackhawk.transportContinueWithoutNym
+import com.nighthawkapps.lib.uniffi.blackhawk.transportIsDirectDisabled
+import com.nighthawkapps.lib.uniffi.blackhawk.transportOnBackground
+import com.nighthawkapps.lib.uniffi.blackhawk.transportOnForeground
+import com.nighthawkapps.lib.uniffi.blackhawk.transportOnNetworkChanged
+import com.nighthawkapps.lib.uniffi.blackhawk.transportSetDirectDisabled
+import com.nighthawkapps.lib.uniffi.blackhawk.transportSetMeshEnabled
+import com.nighthawkapps.lib.uniffi.blackhawk.transportSnapshotJson
+import com.nighthawkapps.lib.uniffi.blackhawk.transportSocksAuthJson
 import com.sun.jna.Library
 import com.sun.jna.Native
 import org.json.JSONObject
@@ -49,7 +51,7 @@ object TransportNative {
             tried = true
             libHandle =
                 try {
-                    Native.load("darkfi_mobile_ffi", NhTransportLib::class.java)
+                    Native.load("blackhawk", NhTransportLib::class.java)
                 } catch (_: Throwable) {
                     null
                 }
@@ -83,6 +85,13 @@ object TransportNative {
     fun clearSessionOverride() {
         runCatching { transportClearSessionOverride() }
     }
+
+    fun setDirectDisabled(disabled: Boolean) {
+        runCatching { transportSetDirectDisabled(disabled) }
+    }
+
+    fun isDirectDisabled(): Boolean =
+        runCatching { transportIsDirectDisabled() }.getOrDefault(false)
 
     fun snapshotJson(): String? = runCatching { transportSnapshotJson() }.getOrNull()
 

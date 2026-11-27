@@ -39,7 +39,7 @@ class ApkShareTest {
 
     @Test
     fun nativeAbis_listsEveryBundledAbi() {
-        val apk = fakeApk("lib/arm64-v8a/libdarkfi_mobile_ffi.so", "lib/x86_64/libdarkfi_mobile_ffi.so", "classes.dex")
+        val apk = fakeApk("lib/arm64-v8a/libblackhawk.so", "lib/x86_64/libblackhawk.so", "classes.dex")
         assertEquals(setOf("arm64-v8a", "x86_64"), ApkShare.nativeAbis(apk))
     }
 

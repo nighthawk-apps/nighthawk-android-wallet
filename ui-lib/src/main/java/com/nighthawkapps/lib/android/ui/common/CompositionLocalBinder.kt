@@ -4,22 +4,26 @@ import android.view.WindowManager
 import androidx.activity.ComponentActivity
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
-import androidx.lifecycle.lifecycleScope
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
 import com.nighthawkapps.lib.android.spackle.EmulatorWtfUtil
-import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.onEach
 
 @Composable
 fun ComponentActivity.BindCompLocalProvider(content: @Composable () -> Unit) {
-    val screenSecurity = ScreenSecurity()
-    observeScreenSecurityFlag(screenSecurity)
+    val screenSecurity = remember { ScreenSecurity() }
+    val screenBrightness = remember { ScreenBrightness() }
+    val screenTimeout = remember { ScreenTimeout() }
 
-    val screenBrightness = ScreenBrightness()
-    observeScreenBrightnessFlag(screenBrightness)
-
-    val screenTimeout = ScreenTimeout()
-    observeScreenTimeoutFlag(screenTimeout)
+    LaunchedEffect(screenSecurity) {
+        observeScreenSecurityFlag(screenSecurity)
+    }
+    LaunchedEffect(screenBrightness) {
+        observeScreenBrightnessFlag(screenBrightness)
+    }
+    LaunchedEffect(screenTimeout) {
+        observeScreenTimeoutFlag(screenTimeout)
+    }
     CompositionLocalProvider(
         LocalScreenSecurity provides screenSecurity,
         LocalScreenBrightness provides screenBrightness,
@@ -28,10 +32,10 @@ fun ComponentActivity.BindCompLocalProvider(content: @Composable () -> Unit) {
     )
 }
 
-private fun ComponentActivity.observeScreenSecurityFlag(screenSecurity: ScreenSecurity) {
+private suspend fun ComponentActivity.observeScreenSecurityFlag(screenSecurity: ScreenSecurity) {
     screenSecurity.referenceCount
         .map { it > 0 }
-        .onEach { isSecure ->
+        .collect { isSecure ->
             val isTest = EmulatorWtfUtil.isEmulatorWtf(applicationContext)
 
             if (isSecure && !isTest && shouldSecureScreen) {
@@ -42,13 +46,13 @@ private fun ComponentActivity.observeScreenSecurityFlag(screenSecurity: ScreenSe
             } else {
                 window.clearFlags(WindowManager.LayoutParams.FLAG_SECURE)
             }
-        }.launchIn(lifecycleScope)
+        }
 }
 
-private fun ComponentActivity.observeScreenBrightnessFlag(screenBrightness: ScreenBrightness) {
+private suspend fun ComponentActivity.observeScreenBrightnessFlag(screenBrightness: ScreenBrightness) {
     screenBrightness.referenceCount
         .map { it > 0 }
-        .onEach { maxBrightness ->
+        .collect { maxBrightness ->
             if (maxBrightness) {
                 window.attributes =
                     window.attributes.apply {
@@ -60,17 +64,17 @@ private fun ComponentActivity.observeScreenBrightnessFlag(screenBrightness: Scre
                         this.screenBrightness = WindowManager.LayoutParams.BRIGHTNESS_OVERRIDE_NONE
                     }
             }
-        }.launchIn(lifecycleScope)
+        }
 }
 
-private fun ComponentActivity.observeScreenTimeoutFlag(screenTimeout: ScreenTimeout) {
+private suspend fun ComponentActivity.observeScreenTimeoutFlag(screenTimeout: ScreenTimeout) {
     screenTimeout.referenceCount
         .map { it > 0 }
-        .onEach { disableTimeout ->
+        .collect { disableTimeout ->
             if (disableTimeout) {
                 window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
             } else {
                 window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
             }
-        }.launchIn(lifecycleScope)
+        }
 }

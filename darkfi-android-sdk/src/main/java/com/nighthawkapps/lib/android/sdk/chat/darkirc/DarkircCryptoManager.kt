@@ -3,9 +3,9 @@ package com.nighthawkapps.lib.android.sdk.chat.darkirc
 import android.content.Context
 import com.nighthawkapps.lib.android.sdk.chat.DarkfiChatConnectionBridge
 import com.nighthawkapps.lib.android.sdk.chat.DarkfiChatSecureStore
-import com.nighthawkapps.lib.uniffi.darkfi_mobile_ffi.clearDmContacts
-import com.nighthawkapps.lib.uniffi.darkfi_mobile_ffi.registerDmContact
-import com.nighthawkapps.lib.uniffi.darkfi_mobile_ffi.unregisterDmContact
+import com.nighthawkapps.lib.uniffi.blackhawk.clearDmContacts
+import com.nighthawkapps.lib.uniffi.blackhawk.registerDmContactEx
+import com.nighthawkapps.lib.uniffi.blackhawk.unregisterDmContact
 import java.io.File
 
 object DarkircCryptoManager {
@@ -77,10 +77,11 @@ object DarkircCryptoManager {
             return false
         }
         return try {
-            registerDmContact(
+            registerDmContactEx(
                 nick = config.nick,
                 mySecret = mySecret.map { it.toUByte() },
                 theirPublic = theirPublic.map { it.toUByte() },
+                ratchetCapable = config.ratchetCapable,
             )
             true
         } catch (_: Exception) {

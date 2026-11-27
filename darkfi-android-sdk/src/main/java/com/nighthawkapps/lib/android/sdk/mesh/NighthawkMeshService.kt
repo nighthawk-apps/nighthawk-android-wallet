@@ -136,14 +136,18 @@ class NighthawkMeshService : Service() {
                 .isAtLeast(Lifecycle.State.STARTED)
         promoteToForegroundOrStop()
         if (foregroundPromoted) {
-            ensureRadio()
-            MeshServiceNotify.registerPowerListeners(this)
-            dagHandler.post(dagTick)
-            Handler(Looper.getMainLooper()).post {
-                try {
-                    ProcessLifecycleOwner.get().lifecycle.addObserver(lifecycleObserver)
-                } catch (_: Exception) {
-                }
+            onForegroundPromoted()
+        }
+    }
+
+    internal fun onForegroundPromoted() {
+        ensureRadio()
+        MeshServiceNotify.registerPowerListeners(this)
+        dagHandler.post(dagTick)
+        Handler(Looper.getMainLooper()).post {
+            try {
+                ProcessLifecycleOwner.get().lifecycle.addObserver(lifecycleObserver)
+            } catch (_: Exception) {
             }
         }
     }
@@ -285,7 +289,7 @@ class NighthawkMeshService : Service() {
                     Runnable {
                         service.foregroundRetry = null
                         if (!service.foregroundPromoted && service.promoteToForegroundOrStop()) {
-                            service.ensureRadio()
+                            service.onForegroundPromoted()
                             service.applyPower()
                         }
                     }

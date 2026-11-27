@@ -37,6 +37,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -379,12 +380,18 @@ class MainActivity : FragmentActivity() {
         val elapsedSec = NymSplashProgress.elapsedSeconds(nymStartedAt, nowMs)
         val failed = splash.state == TorBootstrapUiState.Failed
         val nymStuck = splash.isNym && !failed && NymSplashProgress.isStuck(elapsedSec * 1_000L)
-        val showDisable =
-            if (splash.isNym) {
-                splash.isPending && NymSplashProgress.showContinueWithout(elapsedSec * 1_000L, failed)
-            } else {
-                splash.isPending
+        val directDisabled =
+            remember {
+                com.nighthawkapps.lib.android.sdk.chat.DarkfiChatPreferences(context.applicationContext)
+                    .disableDirectConnection
             }
+        val showDisable =
+            !directDisabled &&
+                if (splash.isNym) {
+                    splash.isPending && NymSplashProgress.showContinueWithout(elapsedSec * 1_000L, failed)
+                } else {
+                    splash.isPending
+                }
         Box(modifier = Modifier.fillMaxSize()) {
             Column(
                 modifier =
@@ -693,7 +700,17 @@ class MainActivity : FragmentActivity() {
                             color = colorResource(R.color.splash_tagline_text),
                             textAlign = TextAlign.Center,
                         )
-                        if (splash.isNym) {
+                        val bannerPrefs =
+                            remember(bannerContext) {
+                                com.nighthawkapps.lib.android.sdk.chat.DarkfiChatPreferences(
+                                    bannerContext.applicationContext,
+                                )
+                            }
+                        val bannerDirectDisabled by
+                            bannerPrefs
+                                .observeDisableDirectConnection()
+                                .collectAsState(initial = bannerPrefs.disableDirectConnection)
+                        if (splash.isNym && !bannerDirectDisabled) {
                             TextButton(
                                 onClick = {
                                     AppNymCoordinator.disableFromSplash(bannerContext)

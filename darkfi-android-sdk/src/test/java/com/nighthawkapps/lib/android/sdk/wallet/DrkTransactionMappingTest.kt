@@ -1,7 +1,7 @@
 package com.nighthawkapps.lib.android.sdk.wallet
 
-import com.nighthawkapps.lib.uniffi.darkfi_mobile_ffi.DrkTransactionRecord
-import com.nighthawkapps.lib.uniffi.darkfi_mobile_ffi.SyncMethod
+import com.nighthawkapps.lib.uniffi.blackhawk.DrkTransactionRecord
+import com.nighthawkapps.lib.uniffi.blackhawk.SyncMethod
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull

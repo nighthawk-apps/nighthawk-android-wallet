@@ -21,12 +21,17 @@ class NighthawkWalletApplication : CoroutineApplication() {
         configureStrictMode()
 
         TransportLifecycle.install(this)
+        com.nighthawkapps.lib.android.sdk.net.TransportNative.setDirectDisabled(
+            com.nighthawkapps.lib.android.sdk.chat.DarkfiChatPreferences(this).disableDirectConnection,
+        )
         // Register coordinator without booting daemons/FGS during background WorkManager
         // or BroadcastReceiver process wakeups; daemons start on foreground ON_START.
         AppDaemonCoordinator.install(this, autoStart = false)
         ProcessLifecycleOwner.get().lifecycle.addObserver(
             object : DefaultLifecycleObserver {
                 override fun onStart(owner: LifecycleOwner) {
+                    val chatPrefs = com.nighthawkapps.lib.android.sdk.chat.DarkfiChatPreferences(this@NighthawkWalletApplication)
+                    com.nighthawkapps.lib.android.sdk.net.TransportNative.setDirectDisabled(chatPrefs.disableDirectConnection)
                     AppNymCoordinator.warmStartIfEnabled(this@NighthawkWalletApplication)
                     AppTorCoordinator.warmStartIfEnabled(this@NighthawkWalletApplication)
                     DarkfidDaemonBootstrap.maybeStart(this@NighthawkWalletApplication)

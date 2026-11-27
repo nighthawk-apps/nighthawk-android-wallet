@@ -23,6 +23,7 @@ import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -55,6 +56,8 @@ internal fun TorNetworkSettingsScreen(onBack: () -> Unit) {
     val prefs = remember { DarkfiChatPreferences(context) }
     val scope = rememberCoroutineScope()
 
+    val directDisabled by
+        prefs.observeDisableDirectConnection().collectAsState(initial = prefs.disableDirectConnection)
     var privacyNetwork by remember { mutableStateOf(prefs.privacyNetwork) }
     var useEmbeddedTor by remember { mutableStateOf(prefs.useEmbeddedTor) }
     var socksHost by remember { mutableStateOf(prefs.socksHost) }
@@ -84,6 +87,7 @@ internal fun TorNetworkSettingsScreen(onBack: () -> Unit) {
         Spacer(modifier = Modifier.height(8.dp))
         PrivacyNetworkPicker(
             selected = privacyNetwork,
+            showDirect = !directDisabled,
             onSelect = { network ->
                 if (network != privacyNetwork) {
                     privacyNetwork = network
@@ -95,6 +99,13 @@ internal fun TorNetworkSettingsScreen(onBack: () -> Unit) {
                 }
             },
         )
+        if (directDisabled) {
+            Spacer(modifier = Modifier.height(6.dp))
+            BodyMedium(
+                text = stringResource(R.string.disable_direct_connection_active_banner),
+                color = WalletTheme.colors.secondaryTitleText,
+            )
+        }
         if (privacyNetwork == PrivacyNetwork.Tor) {
             TorSectionDivider()
             TorSectionHeading(stringResource(R.string.ns_tor_network_section_builtin))
@@ -210,6 +221,7 @@ private fun TorSectionDivider() {
 private fun PrivacyNetworkPicker(
     selected: PrivacyNetwork,
     onSelect: (PrivacyNetwork) -> Unit,
+    showDirect: Boolean = true,
 ) {
     Column(modifier = Modifier.selectableGroup()) {
         PrivacyNetworkOption(
@@ -224,12 +236,14 @@ private fun PrivacyNetworkPicker(
             selected = selected == PrivacyNetwork.Tor,
             onClick = { onSelect(PrivacyNetwork.Tor) },
         )
-        PrivacyNetworkOption(
-            title = stringResource(R.string.ns_privacy_network_direct),
-            description = stringResource(R.string.ns_privacy_network_direct_desc),
-            selected = selected == PrivacyNetwork.Direct,
-            onClick = { onSelect(PrivacyNetwork.Direct) },
-        )
+        if (showDirect) {
+            PrivacyNetworkOption(
+                title = stringResource(R.string.ns_privacy_network_direct),
+                description = stringResource(R.string.ns_privacy_network_direct_desc),
+                selected = selected == PrivacyNetwork.Direct,
+                onClick = { onSelect(PrivacyNetwork.Direct) },
+            )
+        }
     }
 }
 

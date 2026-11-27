@@ -87,7 +87,9 @@ fun AdvanceSetting(
     onBack: () -> Unit,
     onNukeWallet: () -> Unit,
     onLogoPreferenceChanged: (availableLogo: AvailableLogo) -> Unit,
-    onThemeVariantChanged: (AppThemeVariant) -> Unit
+    onThemeVariantChanged: (AppThemeVariant) -> Unit,
+    isDirectConnectionDisabled: Boolean = false,
+    onDirectConnectionDisabledChanged: (disabled: Boolean) -> Unit = {},
 ) {
     Column(
         modifier =
@@ -98,6 +100,9 @@ fun AdvanceSetting(
                 .padding(vertical = dimensionResource(id = R.dimen.screen_standard_margin))
     ) {
         var showNukeWalletDialog by remember {
+            mutableStateOf(false)
+        }
+        var showDisableDirectDialog by remember {
             mutableStateOf(false)
         }
         NighthawkTopBar(
@@ -154,6 +159,37 @@ fun AdvanceSetting(
             Switch(
                 checked = isStrictOmrOnly,
                 onCheckedChange = { onStrictOmrOnlyChanged(it) },
+            )
+        }
+
+        Spacer(modifier = Modifier.height(24.dp))
+        TitleMedium(
+            text = stringResource(id = R.string.disable_direct_connection_title),
+            color = WalletTheme.colors.secondaryTitleText,
+        )
+        Spacer(modifier = Modifier.height(24.dp))
+        Row(
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = 40.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            BodyMedium(
+                text = stringResource(id = R.string.disable_direct_connection_detail_msg),
+                modifier = Modifier.weight(1f),
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            Switch(
+                checked = isDirectConnectionDisabled,
+                onCheckedChange = { checked ->
+                    if (checked) {
+                        showDisableDirectDialog = true
+                    } else {
+                        onDirectConnectionDisabledChanged(false)
+                    }
+                },
             )
         }
 
@@ -264,6 +300,22 @@ fun AdvanceSetting(
                         minHeight = dimensionResource(id = R.dimen.button_height)
                     ),
         )
+
+        if (showDisableDirectDialog) {
+            AlertDialog(
+                title = stringResource(id = R.string.disable_direct_connection_title),
+                desc = stringResource(id = R.string.disable_direct_connection_confirm_msg),
+                confirmText = stringResource(id = R.string.disable_direct_connection_confirm_btn),
+                dismissText = stringResource(id = R.string.ns_cancel),
+                onConfirm = {
+                    showDisableDirectDialog = false
+                    onDirectConnectionDisabledChanged(true)
+                },
+                onDismiss = {
+                    showDisableDirectDialog = false
+                },
+            )
+        }
 
         if (showNukeWalletDialog) {
             AlertDialog(

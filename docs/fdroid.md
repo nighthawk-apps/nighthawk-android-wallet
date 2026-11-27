@@ -37,7 +37,22 @@ srclib SHA edit.
 
 Tagging alone does **not** run this repo’s GitHub `Deploy` workflow (that is branch/`workflow_dispatch` + Play secrets). F-Droid’s scanner is separate.
 
-## 3.01.23 (this release)
+## 3.2.01 (this release)
+
+| Field | Value |
+|-------|--------|
+| `WALLET_VERSION_NAME` | `3.2.01` |
+| `WALLET_VERSION_CODE` | `30200801` |
+| `Suggested git tag` | `v3.2.01` |
+| Fastlane changelog | `fastlane/metadata/android/en-US/changelogs/30200801.txt` |
+| Blackhawk FFI pin | `0.3.1` (`third_party/blackhawk` @ `cd8971c8` + nested `third_party/darkfi`) |
+| DarkFi pin | `b87318e80968ea071fbd3a56eb1ea17110252753` |
+| nym-smolmix | `5f0dba82` |
+| F-Droid NDK | `30.0.16248370` (`ANDROID_NDK_VERSION`) |
+
+Extracts the DarkFi FFI and UnifOMR core into standalone MIT `blackhawk` (`0.3.1`), adds optional Double Ratchet (`NHDR1:` / `&dr=1`) for Nighthawk DarkIRC contacts, a persistent Disable Direct Connections toggle under Settings -> Advanced, and a lightweight `FlowSyncWave` sync indicator. Lockstep with desktop 3.2.1, Moonshine 3.2.1, and lightwalletd 0.3.15 (iOS 3.01.24 pending 3.2.01).
+
+## 3.01.23
 
 | Field | Value |
 |-------|--------|

@@ -1,6 +1,7 @@
 package com.nighthawkapps.lib.android.preference
 
 import android.content.Context
+import androidx.datastore.core.CorruptionException
 import androidx.datastore.core.Serializer
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.PreferencesSerializer
@@ -27,8 +28,7 @@ class SecurePreferencesSerializer(
             val decryptedBytes = aead.decrypt(encryptedBytes, null)
             PreferencesSerializer.readFrom(decryptedBytes.inputStream().source().buffer())
         } catch (e: Exception) {
-            e.printStackTrace()
-            defaultValue
+            throw CorruptionException("Failed to decrypt preferences", e)
         }
     }
 

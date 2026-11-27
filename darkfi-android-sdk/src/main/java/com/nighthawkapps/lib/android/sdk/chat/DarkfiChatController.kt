@@ -19,15 +19,15 @@ import com.nighthawkapps.lib.android.sdk.net.PrivacyNetwork
 import com.nighthawkapps.lib.android.sdk.net.SessionTransport
 import com.nighthawkapps.lib.android.sdk.nym.AppNymCoordinator
 import com.nighthawkapps.lib.android.spackle.Twig
-import com.nighthawkapps.lib.uniffi.darkfi_mobile_ffi.DarkircEventCallback
-import com.nighthawkapps.lib.uniffi.darkfi_mobile_ffi.DarkircTransport
-import com.nighthawkapps.lib.uniffi.darkfi_mobile_ffi.configureDarkirc
-import com.nighthawkapps.lib.uniffi.darkfi_mobile_ffi.darkircConnectionPhase
-import com.nighthawkapps.lib.uniffi.darkfi_mobile_ffi.darkircOutboundSlots
-import com.nighthawkapps.lib.uniffi.darkfi_mobile_ffi.darkircStatus
-import com.nighthawkapps.lib.uniffi.darkfi_mobile_ffi.sendChatMessage
-import com.nighthawkapps.lib.uniffi.darkfi_mobile_ffi.startDarkirc
-import com.nighthawkapps.lib.uniffi.darkfi_mobile_ffi.stopDarkirc
+import com.nighthawkapps.lib.uniffi.blackhawk.DarkircEventCallback
+import com.nighthawkapps.lib.uniffi.blackhawk.DarkircTransport
+import com.nighthawkapps.lib.uniffi.blackhawk.configureDarkirc
+import com.nighthawkapps.lib.uniffi.blackhawk.darkircConnectionPhase
+import com.nighthawkapps.lib.uniffi.blackhawk.darkircOutboundSlots
+import com.nighthawkapps.lib.uniffi.blackhawk.darkircStatus
+import com.nighthawkapps.lib.uniffi.blackhawk.sendChatMessage
+import com.nighthawkapps.lib.uniffi.blackhawk.startDarkirc
+import com.nighthawkapps.lib.uniffi.blackhawk.stopDarkirc
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -116,6 +116,12 @@ class DarkfiChatController(
     /** Transport the running daemon was started with, so the connected state reports it honestly. */
     @Volatile
     private var activeTransport: DarkircTransport? = null
+
+    @Volatile
+    private var activeConfiguredSocksPort: Int = -1
+
+    @Volatile
+    private var activeUseEmbeddedTor: Boolean = true
 
     val defaultChannels: List<String> get() = DarkfiChatDefaults.DEFAULT_PUBLIC_CHANNELS
 
@@ -257,6 +263,13 @@ class DarkfiChatController(
             // traffic before the daemon starts; otherwise fail loudly rather than silently
             // leaking over clearnet.
             val transport = chatTransportFor(SessionTransport.effective(preferences))
+            val configuredPort =
+                when (transport) {
+                    DarkircTransport.NYM -> preferences.nymSocksPort
+                    DarkircTransport.TOR -> preferences.socksPort
+                    DarkircTransport.DIRECT -> 0
+                }
+            val configuredEmbeddedTor = preferences.useEmbeddedTor
             val socksPort: Int? =
                 when (transport) {
                     DarkircTransport.NYM -> resolveNymSocksPortOrNull()
@@ -314,6 +327,8 @@ class DarkfiChatController(
                 callback = callback,
             )
             activeTransport = transport
+            activeConfiguredSocksPort = configuredPort
+            activeUseEmbeddedTor = configuredEmbeddedTor
             // Raise FGS while chat is active in foreground so Android does not suspend P2P sockets.
             if (preferences.runEmbeddedDarkirc && isAppInForeground()) {
                 DarkircDaemonService.start(app)
@@ -554,8 +569,20 @@ class DarkfiChatController(
     fun restartIfNetworkChanged() {
         _useTorForChat.value = preferences.useTorForChat
         val wanted = chatTransportFor(SessionTransport.effective(preferences))
+        val wantedPort =
+            when (wanted) {
+                DarkircTransport.NYM -> preferences.nymSocksPort
+                DarkircTransport.TOR -> preferences.socksPort
+                DarkircTransport.DIRECT -> 0
+            }
+        val wantedEmbeddedTor = preferences.useEmbeddedTor
         val running = darkircStatus() in setOf("running", "starting")
-        if (!running || activeTransport == null || activeTransport == wanted) {
+        val torSubmodeMatch = wanted != DarkircTransport.TOR || activeUseEmbeddedTor == wantedEmbeddedTor
+        if (
+            !running ||
+            activeTransport == null ||
+            (activeTransport == wanted && activeConfiguredSocksPort == wantedPort && torSubmodeMatch)
+        ) {
             connectOrRetry()
             return
         }
@@ -742,7 +769,6 @@ class DarkfiChatController(
         val status = runCatching { darkircStatus() }.getOrDefault("not_running")
         val phase = runCatching { darkircConnectionPhase() }.getOrDefault("stopped")
         if (pending.isNotEmpty() && isReadyForImmediateSend(status, phase)) {
-            DarkircCryptoManager.syncContactsToNative(app)
             for (rec in pending) {
                 if (!trySendQueuedRecord(rec)) break
             }
@@ -880,7 +906,6 @@ class DarkfiChatController(
                         val localId = recordLocalOutgoing(normalized, actionText)
                         scope.launch(Dispatchers.IO) {
                             try {
-                                DarkircCryptoManager.syncContactsToNative(app)
                                 sendChatMessage(normalized, nick, actionText)
                             } catch (e: Exception) {
                                 retagOutgoing(normalized, localId, "failed")
@@ -908,7 +933,6 @@ class DarkfiChatController(
                                         msgContent,
                                         delegateWireCryptoToDaemon = true,
                                     )
-                                DarkircCryptoManager.syncContactsToNative(app)
                                 sendChatMessage(target, nick, wireBody)
                             } catch (e: Exception) {
                                 Twig.error(e) { "FFI send /msg failed" }
@@ -958,7 +982,6 @@ class DarkfiChatController(
                 // while waiting for EventGraph self-echo / peer relay.
                 val localId = recordLocalOutgoing(normalized, body)
                 try {
-                    DarkircCryptoManager.syncContactsToNative(app)
                     val nick = preferences.ensureIrcNickname()
                     sendChatMessage(normalized, nick, wireBody)
                 } catch (e: Exception) {
@@ -1002,6 +1025,7 @@ class DarkfiChatController(
         generateMySecret: Boolean = true,
         /** When sharing a pubkey first, pass the same secret so the contact matches. */
         mySecretBase58: String? = null,
+        ratchetCapable: Boolean = false,
     ): Result<Unit> =
         withContext(Dispatchers.IO) {
             runCatching {
@@ -1023,6 +1047,7 @@ class DarkfiChatController(
                         nick = label,
                         dmChachaPublicBase58 = theirPublic,
                         myDmChachaSecretBase58 = mySecret,
+                        ratchetCapable = ratchetCapable,
                     )
                 DarkircCryptoManager.saveContact(app, config)
                 NighthawkContactStore.upsert(

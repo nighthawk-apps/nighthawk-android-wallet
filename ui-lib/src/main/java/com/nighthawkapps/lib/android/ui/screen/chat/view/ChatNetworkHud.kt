@@ -49,10 +49,25 @@ internal fun ChatNetworkHud(
     onSelectNetwork: (PrivacyNetwork) -> Unit,
     modifier: Modifier = Modifier,
     transportEnabled: Boolean = true,
+    directDisabled: Boolean = false,
 ) {
     var showPeers by remember { mutableStateOf(false) }
     val connected = slots.any { it.state == OutboundPeerState.CONNECTED }
-    val selectedIndex = HUD_NETWORK_ORDER.indexOf(selectedNetwork).coerceAtLeast(0)
+    val networkOrder =
+        if (directDisabled) {
+            listOf(PrivacyNetwork.Nym, PrivacyNetwork.Tor)
+        } else {
+            HUD_NETWORK_ORDER
+        }
+    val selectedIndex = networkOrder.indexOf(selectedNetwork).coerceAtLeast(0)
+    val options =
+        buildList {
+            add(stringResource(R.string.ns_chat_transport_nym_short))
+            add(stringResource(R.string.ns_chat_transport_tor_short))
+            if (!directDisabled) {
+                add(stringResource(R.string.ns_chat_transport_direct_short))
+            }
+        }
     NighthawkHudPanel(
         modifier = modifier.fillMaxWidth(),
         connectedGlow = connected,
@@ -82,15 +97,10 @@ internal fun ChatNetworkHud(
             )
             Spacer(modifier = Modifier.weight(1f))
             TransportSegment(
-                options =
-                    listOf(
-                        stringResource(R.string.ns_chat_transport_nym_short),
-                        stringResource(R.string.ns_chat_transport_tor_short),
-                        stringResource(R.string.ns_chat_transport_direct_short),
-                    ),
+                options = options,
                 selectedIndex = selectedIndex,
                 onSelectIndex = { idx ->
-                    HUD_NETWORK_ORDER.getOrNull(idx)?.let(onSelectNetwork)
+                    networkOrder.getOrNull(idx)?.let(onSelectNetwork)
                 },
                 enabled = transportEnabled,
                 compact = true,

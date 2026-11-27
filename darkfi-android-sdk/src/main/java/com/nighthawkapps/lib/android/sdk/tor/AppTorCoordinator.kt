@@ -16,10 +16,10 @@ import com.nighthawkapps.lib.android.sdk.wallet.darkfid.DarkfidDaemonBootstrap
 import com.nighthawkapps.lib.android.sdk.wallet.darkfid.DarkfidEmbeddedRunner
 import com.nighthawkapps.lib.android.sdk.wallet.darkfid.DarkfidP2pTransport
 import com.nighthawkapps.lib.android.spackle.Twig
-import com.nighthawkapps.lib.uniffi.darkfi_mobile_ffi.isArtiRunning
-import com.nighthawkapps.lib.uniffi.darkfi_mobile_ffi.setNetworkStorageDir
-import com.nighthawkapps.lib.uniffi.darkfi_mobile_ffi.startArtiProxy
-import com.nighthawkapps.lib.uniffi.darkfi_mobile_ffi.stopArtiProxy
+import com.nighthawkapps.lib.uniffi.blackhawk.isArtiRunning
+import com.nighthawkapps.lib.uniffi.blackhawk.setNetworkStorageDir
+import com.nighthawkapps.lib.uniffi.blackhawk.startArtiProxy
+import com.nighthawkapps.lib.uniffi.blackhawk.stopArtiProxy
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -71,6 +71,9 @@ object AppTorCoordinator {
      * launch still uses Tor. In-flight [ensureSocksReady] observes [SessionTransport] and aborts.
      */
     fun disableTorFromSplash(context: Context) {
+        if (DarkfiChatPreferences(context.applicationContext).disableDirectConnection) {
+            return
+        }
         SessionTransport.continueWithoutNym()
         _bootstrapState.value = TorBootstrapUiState.Disabled
         scope.launch(Dispatchers.IO) {

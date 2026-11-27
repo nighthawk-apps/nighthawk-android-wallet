@@ -58,6 +58,7 @@ import com.nighthawkapps.lib.android.ui.daemon.DarkfiDaemonStatusIndicator
 import com.nighthawkapps.lib.android.ui.design.component.BalanceText
 import com.nighthawkapps.lib.android.ui.design.component.BodyMedium
 import com.nighthawkapps.lib.android.ui.design.component.BodySmall
+import com.nighthawkapps.lib.android.ui.design.component.FlowSyncWave
 import com.nighthawkapps.lib.android.ui.design.component.TitleMedium
 import com.nighthawkapps.lib.android.ui.design.theme.WalletTheme
 import com.nighthawkapps.lib.android.ui.fixture.WalletSnapshotFixture
@@ -334,6 +335,16 @@ fun WalletView(
                             false
                         )
                     Spacer(modifier = Modifier.height(8.dp))
+                    FlowSyncWave(
+                        progress = walletSnapshot.progress.decimal,
+                        isActive =
+                            walletSnapshot.status == DarkfiSyncStatus.CONNECTING ||
+                                walletSnapshot.status == DarkfiSyncStatus.SYNCING ||
+                                walletSnapshot.status == DarkfiSyncStatus.SCANNING ||
+                                walletSnapshot.status == DarkfiSyncStatus.RETRYING,
+                        modifier = Modifier.fillMaxWidth(0.86f),
+                    )
+                    Spacer(modifier = Modifier.height(6.dp))
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(8.dp),

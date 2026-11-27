@@ -12,7 +12,15 @@ object SessionTransport {
 
     fun isSessionDirect(): Boolean = sessionDirect
 
-    fun effective(prefs: DarkfiChatPreferences): PrivacyNetwork = if (sessionDirect) PrivacyNetwork.Direct else prefs.privacyNetwork
+    fun effective(prefs: DarkfiChatPreferences): PrivacyNetwork {
+        if (prefs.disableDirectConnection) {
+            return when (val stored = prefs.privacyNetwork) {
+                PrivacyNetwork.Direct -> PrivacyNetwork.Nym
+                else -> stored
+            }
+        }
+        return if (sessionDirect) PrivacyNetwork.Direct else prefs.privacyNetwork
+    }
 
     fun continueWithoutNym() {
         sessionDirect = true

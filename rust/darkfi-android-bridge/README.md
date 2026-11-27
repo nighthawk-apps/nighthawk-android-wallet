@@ -5,7 +5,7 @@ Rust library historically used as a thin DarkFi façade for Android.
 ## Current state
 
 - Static **`darkfi_bridge_ping()`** only — validates basic `cdylib` builds.
-- **UniFFI** for product code lives in **[`darkfi-mobile-ffi`](../darkfi-mobile-ffi/README.md)** (`libdarkfi_mobile_ffi`, generated Kotlin package `com.nighthawkapps.lib.uniffi.darkfi_mobile_ffi`, façade `DarkfiMobileFfiApi` in `darkfi-android-sdk`). Prefer that crate when extending the native API. Groups, token mint, the stable clue-key version, and the Money-tree scan cursor are all on that crate. This bridge was not part of the 2026-11-03 native rebuild.
+- **UniFFI** for product code lives in **[`blackhawk`](../../third_party/blackhawk/README.md)** (`libblackhawk`, generated Kotlin package `com.nighthawkapps.lib.uniffi.blackhawk`, façade `DarkfiMobileFfiApi` in `darkfi-android-sdk`). Prefer that crate when extending the native API. Groups, token mint, the stable clue-key version, and the Money-tree scan cursor are all on that crate. This bridge was not part of the 2026-11-03 native rebuild.
 
 ## Building for Android ABIs (manual)
 
@@ -14,8 +14,8 @@ rustup target add aarch64-linux-android armv7-linux-androideabi i686-linux-andro
 # Set `$ANDROID_NDK_HOME` and use cargo-ndk or `cargo build --target aarch64-linux-android --release`
 ```
 
-Copy **`target/<triple>/release/libdarkfi_android_bridge.so`** → **`darkfi-android-sdk/src/main/jniLibs/<abi>/`** only if you still ship this artifact; the UniFFI path expects **`libdarkfi_mobile_ffi.so`** instead (see [jniLibs README](../../darkfi-android-sdk/src/main/jniLibs/README.md)).
+Copy **`target/<triple>/release/libdarkfi_android_bridge.so`** → **`darkfi-android-sdk/src/main/jniLibs/<abi>/`** only if you still ship this artifact; the UniFFI path expects **`libblackhawk.so`** instead (see [jniLibs README](../../darkfi-android-sdk/src/main/jniLibs/README.md)).
 
 ## Linking DarkFi
 
-Clone [darkrenaissance/darkfi](https://git.dark.fi/darkrenaissance/darkfi) and add path/workspace dependencies incrementally—ideally behind **`darkfi-mobile-ffi`** so Kotlin bindings stay on one UDL surface.
+Clone [darkrenaissance/darkfi](https://git.dark.fi/darkrenaissance/darkfi) and add path/workspace dependencies incrementally—ideally behind **`blackhawk`** so Kotlin bindings stay on one UDL surface.

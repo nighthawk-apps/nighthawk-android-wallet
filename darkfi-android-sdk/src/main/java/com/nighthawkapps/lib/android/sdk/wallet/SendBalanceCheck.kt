@@ -106,7 +106,8 @@ fun evaluateAssetAndFeeBalance(
     val amountAtomic = DarkfiAmountParser.parseDisplayAmountToAtomic(amountDisplay) ?: return SendBalanceCheck.FeePending
     val fee = feeAtomic ?: return SendBalanceCheck.FeePending
     if (isNativeDrk) {
-        val required = amountAtomic + fee
+        val required =
+            if (amountAtomic > Long.MAX_VALUE - fee) Long.MAX_VALUE else amountAtomic + fee
         return if (hasSufficientBalanceForTransfer(drkAvailableAtomic, amountAtomic, fee)) {
             SendBalanceCheck.Ok
         } else {

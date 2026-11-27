@@ -1,7 +1,7 @@
 package com.nighthawkapps.lib.android.sdk.chat.darkirc
 
 import android.content.Context
-import com.nighthawkapps.lib.uniffi.darkfi_mobile_ffi.generateDmKeypair as ffiGenerateDmKeypair
+import com.nighthawkapps.lib.uniffi.blackhawk.generateDmKeypair as ffiGenerateDmKeypair
 
 object DarkircCliKeygen {
     data class DmKeypair(

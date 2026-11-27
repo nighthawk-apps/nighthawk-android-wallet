@@ -9,9 +9,9 @@ import com.nighthawkapps.lib.android.sdk.tor.AppTorCoordinator
 import com.nighthawkapps.lib.android.sdk.tor.TorBootstrapUiState
 import com.nighthawkapps.lib.android.sdk.wallet.DarkfiWalletCoordinator
 import com.nighthawkapps.lib.android.spackle.Twig
-import com.nighthawkapps.lib.uniffi.darkfi_mobile_ffi.nymStatus
-import com.nighthawkapps.lib.uniffi.darkfi_mobile_ffi.startNymProxy
-import com.nighthawkapps.lib.uniffi.darkfi_mobile_ffi.stopNymProxy
+import com.nighthawkapps.lib.uniffi.blackhawk.nymStatus
+import com.nighthawkapps.lib.uniffi.blackhawk.startNymProxy
+import com.nighthawkapps.lib.uniffi.blackhawk.stopNymProxy
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -40,6 +40,7 @@ object AppNymCoordinator {
     /** Non-blocking: start the Nym proxy when Nym is the wallet network. */
     fun warmStartIfEnabled(context: Context) {
         val prefs = DarkfiChatPreferences(context.applicationContext)
+        TransportNative.setDirectDisabled(prefs.disableDirectConnection)
         if (SessionTransport.effective(prefs) != PrivacyNetwork.Nym) {
             _bootstrapState.value = TorBootstrapUiState.Disabled
             return
@@ -112,6 +113,10 @@ object AppNymCoordinator {
      * launch tries the mixnet again. Does not reopen the wallet by itself.
      */
     fun disableFromSplash(context: Context) {
+        if (DarkfiChatPreferences(context.applicationContext).disableDirectConnection) {
+            Twig.info { "AppNym: ignoring splash disable while Direct connections are permanently disabled" }
+            return
+        }
         SessionTransport.continueWithoutNym()
         _bootstrapState.value = TorBootstrapUiState.Disabled
         scope.launch(Dispatchers.IO) {
@@ -145,22 +150,24 @@ object AppNymCoordinator {
         walletCoordinator: DarkfiWalletCoordinator,
     ) {
         val app = context.applicationContext
+        val prefs = DarkfiChatPreferences(app)
+        val targetNetwork = if (prefs.disableDirectConnection && network == PrivacyNetwork.Direct) PrivacyNetwork.Nym else network
         SessionTransport.clear()
-        DarkfiChatPreferences(app).privacyNetwork = network
-        if (network == PrivacyNetwork.Nym) {
+        prefs.privacyNetwork = targetNetwork
+        TransportNative.setDirectDisabled(prefs.disableDirectConnection)
+        if (targetNetwork == PrivacyNetwork.Nym) {
             ensureReady(app)
         } else {
             runCatching { stopNymProxy() }
             _bootstrapState.value = TorBootstrapUiState.Disabled
         }
-        if (network == PrivacyNetwork.Tor) {
+        if (targetNetwork == PrivacyNetwork.Tor) {
             AppTorCoordinator.ensureSocksReady(app)
         } else {
             AppTorCoordinator.stopEmbeddedTor()
         }
-        val prefs = DarkfiChatPreferences(app)
         val kind =
-            when (network) {
+            when (targetNetwork) {
                 PrivacyNetwork.Tor -> 1
                 PrivacyNetwork.Direct -> 2
                 PrivacyNetwork.Nym -> 0

@@ -5,11 +5,11 @@ import com.nighthawkapps.lib.android.sdk.dao.toSdk
 import com.nighthawkapps.lib.android.sdk.mesh.MeshOfflineRelay
 import com.nighthawkapps.lib.android.sdk.uniffi.DarkfiMobileFfiApi
 import com.nighthawkapps.lib.android.spackle.Twig
-import com.nighthawkapps.lib.uniffi.darkfi_mobile_ffi.DarkfiWalletHandle
-import com.nighthawkapps.lib.uniffi.darkfi_mobile_ffi.DarkfiWalletNativeException
-import com.nighthawkapps.lib.uniffi.darkfi_mobile_ffi.DrkSyncSnapshot
-import com.nighthawkapps.lib.uniffi.darkfi_mobile_ffi.ReorgEvent
-import com.nighthawkapps.lib.uniffi.darkfi_mobile_ffi.ReorgEventCallback
+import com.nighthawkapps.lib.uniffi.blackhawk.DarkfiWalletHandle
+import com.nighthawkapps.lib.uniffi.blackhawk.DarkfiWalletNativeException
+import com.nighthawkapps.lib.uniffi.blackhawk.DrkSyncSnapshot
+import com.nighthawkapps.lib.uniffi.blackhawk.ReorgEvent
+import com.nighthawkapps.lib.uniffi.blackhawk.ReorgEventCallback
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job

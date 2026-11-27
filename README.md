@@ -6,9 +6,18 @@
   <img src="docs/images/android-fold.png" alt="Nighthawk Android — fold (inner display)" height="420">
 </p>
 
-Privacy-preserving wallet (work-in-progress) by [Nighthawk Apps](https://nighthawkapps.com). This tree ships as a **new Android application id** on the DarkFi network (DRK). The app integrates a native DarkFi wallet API via **UniFFI** (`rust/darkfi-mobile-ffi` → generated Kotlin + `DarkfiMobileFfiApi`) for chain sync, broadcast, and chat.
+Privacy-preserving wallet (work-in-progress) by [Nighthawk Apps](https://nighthawkapps.com). This tree ships as a **new Android application id** on the DarkFi network (DRK). The app integrates a native DarkFi wallet API via **UniFFI** (`../blackhawk` → generated Kotlin + `DarkfiMobileFfiApi`) for chain sync, broadcast, and chat.
 
-**3.01.23** (`WALLET_VERSION_CODE=30100823`). Mesh sessions are capped, and the handshake is no longer described as Noise-XX. Default sync trial-decrypts notes in parallel. DarkFi pin `b87318e80`, Arti 0.48, UniFFI 0.32.2 (`darkfi-mobile-ffi` 0.2.5), nym-smolmix `5f0dba82`. Aligns with iOS 3.01.23, desktop 3.1.23, Moonshine 3.1.23, and lightwalletd 0.3.15 (see [docs/VERSION_LOCKSTEP.md](docs/VERSION_LOCKSTEP.md)).
+**3.2.01** (`WALLET_VERSION_CODE=30200801`). Standalone MIT [`blackhawk`](https://github.com/nighthawk-apps/blackhawk) (`0.3.1`) FFI core, wallet-level Double Ratchet DarkIRC DMs (`NHDR1:`), persistent Disable Direct Connection setting, and lightweight `FlowSyncWave` progress. Default sync trial-decrypts notes in parallel. DarkFi pin `b87318e80`, Arti 0.48, UniFFI 0.32.2 (`blackhawk` 0.3.1), nym-smolmix `5f0dba82`. Aligns with desktop 3.2.1, Moonshine 3.2.1, lightwalletd 0.3.15, and iOS 3.01.24 (pending 3.2.01) (see [docs/VERSION_LOCKSTEP.md](docs/VERSION_LOCKSTEP.md)).
+
+## Executive Summary: Why Nighthawk Leads in Privacy
+
+Nighthawk is engineered as a full-stack private money and communications client with zero transparent escape hatches:
+
+- **Shielded-only ZK base layer (DarkFi Halo2):** Every transfer, custom token mint/send, and DAO governance action is shielded inside Halo2 zero-knowledge proofs against the global Merkle tree. Unlike Zcash, there are no transparent `t-addr` pools, no multi-pool value splits, and no TEX-style forced deshielding; unlike Monero (pre-FCMP++), anonymity sets are not limited to finite decoy ring signatures; unlike Namada/Penumbra/Pirate Chain, full-stack privacy extends seamlessly from shielded assets and DAOs into native P2P chat.
+- **Network-layer privacy on by default:** Android and iOS route wallet sync, broadcast, DarkIRC chat, and even SPKI-pinned fiat quotes over the **Nym mixnet** by default, with atomic switching to embedded **Arti (Tor)** (Desktop and Moonshine default to Tor). Direct clearnet fallback is blocked for fiat quotes, telemetry/analytics SDKs are absent, release builds silence OS logcat/unified logs, and **Settings → Advanced** provides a persistent **Disable Direct Connection** lock.
+- **Private light-client sync:** Production sync uses padded trial decryption over Nym/Tor. Opt-in **UnifOMR (Param2, ePrint 2026/910) + batch PIR** uses power-of-2 padded digest windows, decoy clue directories with ≥250 ms timing padding, and fail-closed full-window streaming on PIR errors so light servers never learn which heights matched.
+- **Integrated encrypted P2P chat & BLE mesh:** DarkIRC runs in-process over Nym or `.onion` Tor seeds with upstream-compatible `ChaChaBox` DM envelopes, upgraded automatically for Nighthawk contacts with a **wallet-level Double Ratchet** (`NHDR1:`) for per-message forward secrecy, plus offline BLE EventGraph mesh gossip with optional peer static-key pinning.
 
 ## Contents
 
@@ -31,7 +40,7 @@ Privacy-preserving wallet (work-in-progress) by [Nighthawk Apps](https://nightha
 
 Store listings are **not finalized** for `com.nighthawkwallet.android`. Placeholder targets until publishing completes:
 
-- **F-Droid:** DarkFi **testnet** package `com.nighthawkwallet.android.testnet` / flavor `darkfitestnet` (see [docs/fdroid.md](docs/fdroid.md); listing pending fdroiddata merge). **3.01.23** (`WALLET_VERSION_CODE=30100823`). Local unsigned APK: `FDROID_BUILD=1 bundle exec fastlane fdroid`.
+- **F-Droid:** DarkFi **testnet** package `com.nighthawkwallet.android.testnet` / flavor `darkfitestnet` (see [docs/fdroid.md](docs/fdroid.md); listing pending fdroiddata merge). **3.2.01** (`WALLET_VERSION_CODE=30200801`). Local unsigned APK: `FDROID_BUILD=1 bundle exec fastlane fdroid`.
 - **Google Play:** `https://PLACEHOLDER_PLAY_STORE_LISTING_URL`
 
 Replace these URLs when production listings exist—do not invent live links prematurely.
@@ -80,7 +89,7 @@ export PATH="$PATH:$ANDROID_HOME/platform-tools"
 
 **Chat:** open the **Chat** tab (the app opens on **Chat**) — DarkIRC runs **in-process** via UniFFI (`start_darkirc`), not a desktop IRC server. First launch: splash (**Nym** mixnet default) → Create/Restore → seed backup with 3-word confirmation → educational carousel → Home (Chat). Switch between **Nym**, **Tor** (Arti), and **Direct** in Settings → Network privacy. Watch `adb logcat -s darkfi-mobile-ffi darkfi-net`.
 
-**After editing `darkfi_mobile_ffi.udl`:** re-run `./scripts/build-darkfi-mobile-ffi-android.sh` (do **not** set `SKIP_UNIFFI_BINDGEN`). A UDL mismatch often shows as `Unresolved reference 'SyncMethod'`. After mesh-engine C ABI changes only, use `SKIP_UNIFFI_BINDGEN=1`.
+**After editing `blackhawk.udl`:** re-run `./scripts/build-darkfi-mobile-ffi-android.sh` (do **not** set `SKIP_UNIFFI_BINDGEN`). A UDL mismatch often shows as `Unresolved reference 'SyncMethod'`. After mesh-engine C ABI changes only, use `SKIP_UNIFFI_BINDGEN=1`.
 
 **Disk:** `third_party/darkfi/target/` and `rust/target/` grow large. Delete a finished NDK triple (`rust/target/aarch64-linux-android`) after copying `.so` files. Do not `make clean` / `distclean` the vendored DarkFi proofs tree to “fix” a build.
 
@@ -94,7 +103,7 @@ IDE setup, emulators, signing, and troubleshooting: **[Setup Documentation](docs
 parent/
   darkfi/                    # optional; app vendors into third_party/darkfi
   darkfi-lightwalletd/       # gRPC lightwalletd (local sync target)
-  darkfi-mobile-ffi/         # optional sibling symlink of rust/darkfi-mobile-ffi
+  blackhawk/                 # Nighthawk's standalone FFI + UnifOMR core (MIT)
   nighthawk-android-wallet/  # this repo (GitHub: nighthawk-apps/nighthawk-android-wallet)
   nighthawk-ios-wallet/
   nighthawk-desktop/
@@ -104,8 +113,7 @@ parent/
 Vendored DarkFi and RandomX are **git submodules** (`third_party/darkfi`,
 `third_party/RandomX`). Clone with `--recurse-submodules`, or run
 `./scripts/vendor-darkfi.sh` after clone.
-The shared UniFFI crate lives at `rust/darkfi-mobile-ffi`. Other clients (desktop, etc.) may
-symlink or copy it to a sibling directory named `darkfi-mobile-ffi`.
+The shared UniFFI crate lives in the sibling [`blackhawk`](../blackhawk) repository (`crates/blackhawk`).
 
 ---
 
@@ -236,7 +244,7 @@ Optional nearby BLE hop for **encrypted DarkIRC DAG** frames (Noise per GATT nei
 | Piece | Role |
 |-------|------|
 | **`rust/darkfi-mobile-ffi`** | UniFFI **0.32** `cdylib` (`darkfi_mobile_ffi.udl`) + mesh C ABI — [crate README](rust/darkfi-mobile-ffi/README.md) |
-| **Generated Kotlin** | `com.nighthawkapps.lib.uniffi.darkfi_mobile_ffi` (via build script) |
+| **Generated Kotlin** | `com.nighthawkapps.lib.uniffi.blackhawk` (via build script) |
 | **`DarkfiMobileFfiApi`** | Stable façade so UI avoids importing generated symbols |
 | **`rust/darkfi-android-bridge`** | Legacy minimal bridge — prefer `darkfi-mobile-ffi` |
 | **JNA** | UniFFI **0.32** Kotlin bindings (`net.java.dev.jna:jna` **5.19.1**) |

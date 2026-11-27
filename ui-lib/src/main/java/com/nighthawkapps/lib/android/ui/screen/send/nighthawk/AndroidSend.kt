@@ -286,7 +286,16 @@ private fun NighthawkSendFlow(
                                     tokenId = selectedTokenId,
                                     paymentMemo = memoText.ifBlank { null },
                                     tokenBalances = tokenBalances,
-                                ) {
+                                ) { txId ->
+                                    homeViewModel.pendingChatReceiptId?.takeIf { it.isNotBlank() }?.let { receiptId ->
+                                        ChatReceiptStore.mark(
+                                            activity,
+                                            receiptId,
+                                            ChatReceiptPhase.Broadcasted,
+                                            txId,
+                                        )
+                                        homeViewModel.pendingChatReceiptId = null
+                                    }
                                     sendViewModel.setStage(SendStage.Success)
                                 }
                             }
@@ -309,7 +318,16 @@ private fun NighthawkSendFlow(
                                     tokenId = selectedTokenId,
                                     paymentMemo = memoText.ifBlank { null },
                                     tokenBalances = tokenBalances,
-                                ) {
+                                ) { txId ->
+                                    homeViewModel.pendingChatReceiptId?.takeIf { it.isNotBlank() }?.let { receiptId ->
+                                        ChatReceiptStore.mark(
+                                            activity,
+                                            receiptId,
+                                            ChatReceiptPhase.Broadcasted,
+                                            txId,
+                                        )
+                                        homeViewModel.pendingChatReceiptId = null
+                                    }
                                     sendViewModel.setStage(SendStage.Success)
                                 }
                             }
@@ -382,7 +400,16 @@ private fun NighthawkSendFlow(
                                         tokenId = selectedTokenId,
                                         paymentMemo = memoText.ifBlank { null },
                                         tokenBalances = tokenBalances,
-                                    ) {
+                                    ) { txId ->
+                                        homeViewModel.pendingChatReceiptId?.takeIf { it.isNotBlank() }?.let { receiptId ->
+                                            ChatReceiptStore.mark(
+                                                activity,
+                                                receiptId,
+                                                ChatReceiptPhase.Broadcasted,
+                                                txId,
+                                            )
+                                            homeViewModel.pendingChatReceiptId = null
+                                        }
                                         sendViewModel.setStage(SendStage.Success)
                                     }
                                 }

@@ -39,7 +39,7 @@ import com.nighthawkapps.lib.android.ui.design.component.TitleMedium
 import com.nighthawkapps.lib.android.ui.preference.StandardPreferenceKeys
 import com.nighthawkapps.lib.android.ui.preference.StandardPreferenceSingleton
 import com.nighthawkapps.lib.android.ui.screen.scan.util.SettingsUtil
-import com.nighthawkapps.lib.uniffi.darkfi_mobile_ffi.darkircStatus
+import com.nighthawkapps.lib.uniffi.blackhawk.darkircStatus
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 

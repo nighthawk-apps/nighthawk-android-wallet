@@ -10,9 +10,6 @@ object StandardPreferenceKeys {
      */
     val IS_USER_BACKUP_COMPLETE = BooleanPreferenceDefault(PreferenceKey("is_user_backup_complete"), false)
 
-    // Analytics toggle defaults off until product wiring confirms retention requirements.
-    val IS_ANALYTICS_ENABLED = BooleanPreferenceDefault(PreferenceKey("is_analytics_enabled"), false)
-
     val IS_BACKGROUND_SYNC_ENABLED = BooleanPreferenceDefault(PreferenceKey("is_background_sync_enabled"), true)
 
     val IS_KEEP_SCREEN_ON_DURING_SYNC = BooleanPreferenceDefault(PreferenceKey("is_keep_screen_on_during_sync"), true)
@@ -29,6 +26,9 @@ object StandardPreferenceKeys {
 
     /** Nighthawk Mesh (Beta). Off by default; radios start only when the user enables this. */
     val IS_NIGHTHAWK_MESH_ENABLED = BooleanPreferenceDefault(PreferenceKey("is_nighthawk_mesh_enabled"), false)
+
+    /** Permanently disable Direct (clearnet) connections across wallet & chat. Default off. */
+    val IS_DIRECT_CONNECTION_DISABLED = BooleanPreferenceDefault(PreferenceKey("is_direct_connection_disabled"), false)
 
     /** Local-only per-thread chat labels. Not a global public ID. */
     val CHAT_THREAD_DISPLAY_NAMES = StringPreferenceDefault(PreferenceKey("chat_thread_display_names_json"), "")

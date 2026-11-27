@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
-# Cross-compile darkfi-mobile-ffi (UniFFI cdylib) for Android ABIs.
-# Prerequisite: third_party/darkfi git submodule (./scripts/vendor-darkfi.sh, or
-# `git submodule update --init`). Tip bin/drk = turso + aegis256; no SQLCipher.
+# Cross-compile blackhawk (UniFFI cdylib) for Android ABIs.
+# Prerequisite: ../blackhawk sibling checkout and third_party/darkfi. Tip bin/drk = turso + aegis256; no SQLCipher.
 set -euo pipefail
 
 # The crate lives outside third_party/darkfi, so DarkFi's stable toolchain file
@@ -12,7 +11,13 @@ export RUSTUP_TOOLCHAIN="${RUSTUP_TOOLCHAIN:-stable}"
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 ARTIFACTS="$ROOT/artifacts/mobile-ffi"
 JNILIBS="$ROOT/darkfi-android-sdk/src/main/jniLibs"
-RUST="$ROOT/rust"
+if [[ -z "${BLACKHAWK_ROOT:-}" ]]; then
+  if [[ -d "$ROOT/third_party/blackhawk/crates/blackhawk" ]]; then
+    BLACKHAWK_ROOT="$ROOT/third_party/blackhawk"
+  else
+    BLACKHAWK_ROOT="$ROOT/../blackhawk"
+  fi
+fi
 ANDROID_API="${ANDROID_API:-27}"
 
 pinned_ndk_version() {
@@ -39,11 +44,16 @@ resolve_ndk_home() {
   pinned="$(pinned_ndk_version)"
 
   # Bash 3.2 + `set -u`: empty `"${arr[@]}"` is unbound — probe env vars directly.
-  local c
+  local c found_rev
   for c in ${ANDROID_NDK_HOME:+"$ANDROID_NDK_HOME"} ${ANDROID_NDK_ROOT:+"$ANDROID_NDK_ROOT"}; do
     if [[ -f "$c/source.properties" ]]; then
-      printf '%s' "$c"
-      return
+      found_rev="$(awk -F= '/^Pkg\.Revision/{gsub(/[ \r]/,"",$2); print $2; exit}' "$c/source.properties")"
+      if [[ "$found_rev" == "$pinned" ]]; then
+        printf '%s' "$c"
+        return
+      fi
+      echo "error: NDK at $c is ${found_rev:-unknown}, expected ${pinned} (gradle.properties ANDROID_NDK_VERSION)." >&2
+      exit 1
     fi
     if [[ -f "$c/$pinned/source.properties" ]]; then
       printf '%s' "$c/$pinned"
@@ -125,16 +135,22 @@ configure_ndk_link_for_abi() {
   if [[ "${FDROID_BUILD:-0}" == "1" ]]; then
     # Same placeholders on every machine. Panic locations and crate metadata
     # otherwise embed the build directory, so F-Droid's rebuild would differ.
-    local root_real cargo_home sysroot
+    local root_real blackhawk_real cargo_home sysroot prefix_maps
     root_real="$(cd "$ROOT" && pwd -P)"
-    cargo_home="${CARGO_HOME}"
+    blackhawk_real="$(cd "$BLACKHAWK_ROOT" && pwd -P)"
+    cargo_home="$(cd "$CARGO_HOME" && pwd -P)"
     sysroot="$(rustc --print sysroot)"
     flags+=" -C codegen-units=1"
     flags+=" -C link-arg=-Wl,--build-id=none"
     flags+=" --remap-path-prefix=${cargo_home}=/cargo"
     flags+=" --remap-path-prefix=${sysroot}=/sysroot"
     flags+=" --remap-path-prefix=${root_real}=/buildroot"
+    flags+=" --remap-path-prefix=${blackhawk_real}=/blackhawk"
     flags+=" --remap-path-prefix=${HOME}=/home"
+    prefix_maps="-ffile-prefix-map=${cargo_home}=/cargo -ffile-prefix-map=${sysroot}=/sysroot -ffile-prefix-map=${root_real}=/buildroot -ffile-prefix-map=${blackhawk_real}=/blackhawk -ffile-prefix-map=${HOME}=/home"
+    prefix_maps+=" -fdebug-prefix-map=${cargo_home}=/cargo -fdebug-prefix-map=${sysroot}=/sysroot -fdebug-prefix-map=${root_real}=/buildroot -fdebug-prefix-map=${blackhawk_real}=/blackhawk -fdebug-prefix-map=${HOME}=/home"
+    export "CFLAGS_${target_prefix}=${prefix_maps}"
+    export "CXXFLAGS_${target_prefix}=${prefix_maps}"
   fi
   export "CARGO_TARGET_${target_prefix}_RUSTFLAGS=${flags}"
 }
@@ -143,15 +159,15 @@ if [[ "$(id -u)" -eq 0 ]]; then
   echo "warning: running as root will create root-owned build artifacts; prefer running without sudo." >&2
 fi
 
-if [[ ! -d "$ROOT/third_party/darkfi/bin/drk" ]]; then
-  echo "Expected vendored DarkFi at third_party/darkfi — run ./scripts/vendor-darkfi.sh" >&2
-  echo "or: git submodule update --init -- third_party/darkfi" >&2
+if [[ ! -d "$BLACKHAWK_ROOT/crates/blackhawk" ]]; then
+  echo "Expected blackhawk repository at $BLACKHAWK_ROOT" >&2
   exit 1
 fi
 
-"$ROOT/scripts/compile-darkfi-zkas-proofs.sh"
+DARKFI_SRC="$BLACKHAWK_ROOT/third_party/darkfi" "$ROOT/scripts/compile-darkfi-zkas-proofs.sh"
 
-export ANDROID_NDK_HOME="$(resolve_ndk_home)"
+ANDROID_NDK_HOME="$(resolve_ndk_home)"
+export ANDROID_NDK_HOME
 export ANDROID_NDK_ROOT="$ANDROID_NDK_HOME"
 export NDK="$ANDROID_NDK_HOME"
 export CARGO_HOME="${CARGO_HOME:-$ROOT/.cargo-home}"
@@ -193,7 +209,7 @@ done
 
 mkdir -p "$CARGO_HOME"
 for abi in $abis; do
-  mkdir -p "$ARTIFACTS/$abi" "$JNILIBS/$abi"
+  mkdir -p "$ARTIFACTS/$abi"
 done
 
 ndk_args=()
@@ -202,26 +218,23 @@ for abi in $abis; do
 done
 
 (
-  cd "$RUST"
+  cd "$BLACKHAWK_ROOT"
   # Build library only (skip workspace `uniffi-bindgen` bin).
   # nym-android enables JNI + rustls-platform-verifier (Android-only).
-  cargo ndk "${ndk_args[@]}" build --release -p darkfi-mobile-ffi --lib --features nym-android
+  cargo ndk "${ndk_args[@]}" build --release -p blackhawk --lib --features nym-android
 )
 
-T="$RUST/target"
+T="$BLACKHAWK_ROOT/target"
 copy_one() {
   local triple="$1"
   local abi="$2"
-  local src="$T/$triple/release/libdarkfi_mobile_ffi.so"
+  local src="$T/$triple/release/libblackhawk.so"
   if [[ ! -f "$src" ]]; then
     echo "error: missing $src" >&2
     exit 1
   fi
-  mkdir -p "$ARTIFACTS/$abi" "$JNILIBS/$abi"
-  if ! cp -f "$src" "$ARTIFACTS/$abi/libdarkfi_mobile_ffi.so" 2>/dev/null; then
-    echo "warning: could not write $ARTIFACTS/$abi (fix: sudo chown -R \"\$(whoami)\" $ARTIFACTS)" >&2
-  fi
-  cp -f "$src" "$JNILIBS/$abi/libdarkfi_mobile_ffi.so"
+  mkdir -p "$ARTIFACTS/$abi"
+  cp -f "$src" "$ARTIFACTS/$abi/libblackhawk.so"
   echo "OK $abi"
 }
 
@@ -244,19 +257,20 @@ done
 if [[ "${SKIP_UNIFFI_BINDGEN:-0}" != "1" && "${FDROID_BUILD:-0}" != "1" ]]; then
   echo "Regenerating Kotlin UniFFI bindings..."
   (
-    cd "$RUST"
-    cargo build -p darkfi-mobile-ffi --lib --features nym-android >/dev/null
-    cargo run -p darkfi-mobile-ffi --bin uniffi-bindgen --features nym-android -- generate \
-      darkfi-mobile-ffi/src/darkfi_mobile_ffi.udl \
+    cd "$BLACKHAWK_ROOT"
+    cargo build -p blackhawk --lib --features nym-android >/dev/null
+    cargo run -p blackhawk --bin uniffi-bindgen --features nym-android -- generate \
+      crates/blackhawk/src/blackhawk.udl \
       --language kotlin \
-      --crate darkfi_mobile_ffi \
+      --crate blackhawk \
+      --config crates/blackhawk/uniffi.toml \
       --metadata-no-deps \
       --out-dir "$ROOT/darkfi-android-sdk/src/main/java" \
       --no-format
   )
 
   # UniFFI 0.32 can fuse `}` with the next top-level `fun` (e.g. `} fun bridgePing`).
-  KT_GEN="$ROOT/darkfi-android-sdk/src/main/java/com/nighthawkapps/lib/uniffi/darkfi_mobile_ffi/darkfi_mobile_ffi.kt"
+  KT_GEN="$ROOT/darkfi-android-sdk/src/main/java/com/nighthawkapps/lib/uniffi/blackhawk/blackhawk.kt"
   if [[ -f "$KT_GEN" ]]; then
     perl -i -pe 's/^\} fun `/}\n\nfun `/g' "$KT_GEN"
   fi
@@ -264,4 +278,4 @@ else
   echo "Skipping UniFFI Kotlin bindgen (FDROID_BUILD/SKIP_UNIFFI_BINDGEN set; using committed bindings)."
 fi
 
-echo "UniFFI libs installed under artifacts/mobile-ffi/ and darkfi-android-sdk/src/main/jniLibs/"
+echo "UniFFI libs installed under artifacts/mobile-ffi/"

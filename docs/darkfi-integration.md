@@ -17,10 +17,10 @@ This describes how the Android app connects to DarkFi while keeping UI patterns 
 │  - Chat: UniFFI `start_darkirc` + callback; optional legacy **darkirc_exec**; SOCKS tor-android; wallet HTTP shares prefs │
 │  - Mesh: JNA C ABI (`nh_mesh_*`) — encrypted EventGraph hop only
 └───────────────────────────┬─────────────────────────────┘
-                            │ UniFFI generated Kotlin (+ JNA) when `jniLibs` has `libdarkfi_mobile_ffi.so`
+                            │ UniFFI generated Kotlin (+ JNA) when `jniLibs` has `libblackhawk.so`
 ┌───────────────────────────▼─────────────────────────────┐
-│  `rust/darkfi-mobile-ffi` — `cdylib` per ABI (`cargo-ndk`)   │
-│  UDL-defined API (`darkfi_mobile_ffi.udl`)              │
+│  `third_party/blackhawk` — `cdylib` per ABI (`cargo-ndk`) │
+│  UDL-defined API (`crates/blackhawk/src/blackhawk.udl`)  │
 └─────────────────────────────────────────────────────────┘
                             │ Optional / legacy experiments
 ┌───────────────────────────▼─────────────────────────────┐
@@ -75,7 +75,7 @@ Color semantics (UI suggestion):
 
 ### Current state
 
-- UniFFI **0.32** `cdylib` named **`darkfi_mobile_ffi`** (`uniffi.toml` sets the Kotlin package to `com.nighthawkapps.lib.uniffi.darkfi_mobile_ffi`).
+- UniFFI **0.32** `cdylib` named **`darkfi_mobile_ffi`** (`uniffi.toml` sets the Kotlin package to `com.nighthawkapps.lib.uniffi.blackhawk`).
 - Generated bindings live beside other SDK sources (`darkfi-android-sdk/src/main/java/.../darkfi_mobile_ffi/darkfi_mobile_ffi.kt`); **prefer** calling through **`DarkfiMobileFfiApi`** so the FFI surface stays swappable.
 - Linked against vendored `third_party/darkfi` (`Drk`, in-process darkirc, UnifOMR). Mesh neighbor APIs are **C ABI** (`nh_mesh_*`), not UniFFI — rebuild with `SKIP_UNIFFI_BINDGEN=1` after mesh-only changes.
 

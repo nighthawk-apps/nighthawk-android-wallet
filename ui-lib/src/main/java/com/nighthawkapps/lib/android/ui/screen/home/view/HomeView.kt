@@ -462,6 +462,16 @@ private fun Status(
                     )
                 }
 
+                Spacer(modifier = Modifier.height(6.dp))
+                com.nighthawkapps.lib.android.ui.design.component.FlowSyncWave(
+                    progress = walletDisplayValues.progress.decimal,
+                    isActive = isSyncing(walletSnapshot.status),
+                    modifier =
+                        Modifier
+                            .fillMaxWidth(0.86f)
+                            .height(34.dp),
+                )
+
                 // Block sync progress — uses lightwallet sync status
                 val syncMsg = walletSnapshot.syncStatusMessage
                 if (syncMsg.isNotEmpty()) {

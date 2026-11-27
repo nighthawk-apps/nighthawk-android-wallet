@@ -1,6 +1,6 @@
 package com.nighthawkapps.lib.android.sdk.wallet
 
-import com.nighthawkapps.lib.uniffi.darkfi_mobile_ffi.SyncMethod
+import com.nighthawkapps.lib.uniffi.blackhawk.SyncMethod
 
 /**
  * Canonical retrieval / encryption path used to discover and sync notes.

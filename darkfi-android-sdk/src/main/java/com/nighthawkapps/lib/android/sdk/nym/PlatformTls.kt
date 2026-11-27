@@ -19,7 +19,7 @@ object PlatformTls {
         initialized =
             runCatching {
                 // JNA loads the library for UniFFI calls; JNI exports need System.loadLibrary.
-                System.loadLibrary("darkfi_mobile_ffi")
+                System.loadLibrary("blackhawk")
                 nativeInit(context.applicationContext)
             }.onFailure { Twig.warn { "PlatformTls: native TLS verifier init failed: $it" } }
                 .isSuccess

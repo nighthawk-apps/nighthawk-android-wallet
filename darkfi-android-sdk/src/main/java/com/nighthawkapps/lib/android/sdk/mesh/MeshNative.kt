@@ -7,9 +7,9 @@ import java.util.concurrent.Executors
 
 /**
  * Optional JNA surface for the mesh C ABI. Missing symbols (older
- * `libdarkfi_mobile_ffi.so`) must not crash the radio path.
+ * `libblackhawk.so`) must not crash the radio path.
  */
-// Names match the C ABI of libdarkfi_mobile_ffi.
+// Names match the C ABI of libblackhawk.
 @Suppress("FunctionNaming", "TooManyFunctions")
 internal interface NhMeshLib : Library {
     fun nh_mesh_start(): Int
@@ -89,7 +89,7 @@ internal interface NhMeshLib : Library {
 }
 
 /** New C ABI symbols. Loaded separately so an older `.so` still binds [NhMeshLib]. */
-// Names match the C ABI of libdarkfi_mobile_ffi.
+// Names match the C ABI of libblackhawk.
 @Suppress("FunctionNaming")
 internal interface NhMeshNeighborLib : Library {
     fun nh_mesh_neighbor_up(dest: ByteArray): Int
@@ -100,6 +100,20 @@ internal interface NhMeshNeighborLib : Library {
         ptr: ByteArray,
         cap: Int,
     ): Int
+
+    fun nh_mesh_pin_peer_key(
+        staticPublic: ByteArray,
+        len: Int,
+    ): Int
+
+    fun nh_mesh_unpin_peer_key(
+        staticPublic: ByteArray,
+        len: Int,
+    ): Int
+
+    fun nh_mesh_clear_pinned_peers(): Int
+
+    fun nh_mesh_set_require_pinned_control(required: Int): Int
 }
 
 object MeshNative {
@@ -148,7 +162,7 @@ object MeshNative {
             tried = true
             libHandle =
                 try {
-                    Native.load("darkfi_mobile_ffi", NhMeshLib::class.java)
+                    Native.load("blackhawk", NhMeshLib::class.java)
                 } catch (_: Throwable) {
                     null
                 }
@@ -163,12 +177,30 @@ object MeshNative {
             neighborTried = true
             neighborHandle =
                 try {
-                    Native.load("darkfi_mobile_ffi", NhMeshNeighborLib::class.java)
+                    Native.load("blackhawk", NhMeshNeighborLib::class.java)
                 } catch (_: Throwable) {
                     null
                 }
             return neighborHandle
         }
+    }
+
+    fun pinPeerKey(staticPublicKey: ByteArray): Boolean =
+        staticPublicKey.size == 32 &&
+            runCatching { neighborLib()?.nh_mesh_pin_peer_key(staticPublicKey, 32) == 1 }
+                .getOrDefault(false)
+
+    fun unpinPeerKey(staticPublicKey: ByteArray): Boolean =
+        staticPublicKey.size == 32 &&
+            runCatching { neighborLib()?.nh_mesh_unpin_peer_key(staticPublicKey, 32) == 1 }
+                .getOrDefault(false)
+
+    fun clearPinnedPeers() {
+        runCatching { neighborLib()?.nh_mesh_clear_pinned_peers() }
+    }
+
+    fun setRequirePinnedControl(required: Boolean) {
+        runCatching { neighborLib()?.nh_mesh_set_require_pinned_control(if (required) 1 else 0) }
     }
 
     fun start() {

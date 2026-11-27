@@ -749,4 +749,9 @@
     <string name="ns_chat_diag_tls_pin">LWD TLS pin: %1$s</string>
     <string name="ns_chat_diag_tls_unpinned">LWD TLS pin: Not pinned (loopback only)</string>
     <string name="ns_chat_diag_sync_status">Sync status: %1$s</string>
+    <string name="disable_direct_connection_title">Disable Direct Connections</string>
+    <string name="disable_direct_connection_detail_msg">Permanently block Direct (clearnet) fallback across wallet and chat. All connections will require Nym or Tor.</string>
+    <string name="disable_direct_connection_confirm_msg">When enabled, Direct (clearnet) connections and \"Continue without Nym\" are disabled. Switch back off anytime in Settings → Advanced.</string>
+    <string name="disable_direct_connection_confirm_btn">Disable Direct</string>
+    <string name="disable_direct_connection_active_banner">Direct (clearnet) connections are permanently disabled in Settings → Advanced.</string>
 </resources>

@@ -39,13 +39,11 @@ private fun PreviewSettings() {
             Settings(
                 isBackgroundSyncEnabled = true,
                 isKeepScreenOnDuringSyncEnabled = true,
-                isAnalyticsEnabled = true,
                 isRescanEnabled = true,
                 onBack = {},
                 onRescanWallet = {},
                 onBackgroundSyncSettingsChanged = {},
                 onIsKeepScreenOnDuringSyncSettingsChanged = {},
-                onAnalyticsSettingsChanged = {}
             )
         }
     }
@@ -56,13 +54,11 @@ private fun PreviewSettings() {
 fun Settings(
     isBackgroundSyncEnabled: Boolean,
     isKeepScreenOnDuringSyncEnabled: Boolean,
-    isAnalyticsEnabled: Boolean,
     isRescanEnabled: Boolean,
     onBack: () -> Unit,
     onRescanWallet: () -> Unit,
     onBackgroundSyncSettingsChanged: (Boolean) -> Unit,
     onIsKeepScreenOnDuringSyncSettingsChanged: (Boolean) -> Unit,
-    onAnalyticsSettingsChanged: (Boolean) -> Unit
 ) {
     Scaffold(topBar = {
         SettingsTopAppBar(
@@ -74,10 +70,8 @@ fun Settings(
         SettingsMainContent(
             isBackgroundSyncEnabled = isBackgroundSyncEnabled,
             isKeepScreenOnDuringSyncEnabled = isKeepScreenOnDuringSyncEnabled,
-            isAnalyticsEnabled = isAnalyticsEnabled,
             onBackgroundSyncSettingsChanged = onBackgroundSyncSettingsChanged,
             onIsKeepScreenOnDuringSyncSettingsChanged = onIsKeepScreenOnDuringSyncSettingsChanged,
-            onAnalyticsSettingsChanged = onAnalyticsSettingsChanged,
             modifier =
                 Modifier
                     .verticalScroll(
@@ -150,10 +144,8 @@ private fun TroubleshootingMenu(onRescanWallet: () -> Unit) {
 private fun SettingsMainContent(
     isBackgroundSyncEnabled: Boolean,
     isKeepScreenOnDuringSyncEnabled: Boolean,
-    isAnalyticsEnabled: Boolean,
     onBackgroundSyncSettingsChanged: (Boolean) -> Unit,
     onIsKeepScreenOnDuringSyncSettingsChanged: (Boolean) -> Unit,
-    onAnalyticsSettingsChanged: (Boolean) -> Unit,
     modifier: Modifier = Modifier
 ) {
     Column(modifier = modifier) {
@@ -169,14 +161,6 @@ private fun SettingsMainContent(
             label = stringResource(id = R.string.settings_enable_keep_screen_on),
             state = isKeepScreenOnDuringSyncEnabled,
             onStateChange = { onIsKeepScreenOnDuringSyncSettingsChanged(!isKeepScreenOnDuringSyncEnabled) }
-        )
-
-        Spacer(modifier = Modifier.height(dimens.spacingXlarge))
-
-        SwitchWithLabel(
-            label = stringResource(id = R.string.settings_enable_analytics),
-            state = isAnalyticsEnabled,
-            onStateChange = { onAnalyticsSettingsChanged(!isAnalyticsEnabled) }
         )
     }
 }

@@ -32,6 +32,7 @@ rust/rustc-ice-*.txt
 
 # UniFFI Android libs — build with cargo-ndk locally or in CI; not versioned (see README “Build the project”)
 darkfi-android-sdk/src/main/jniLibs/**/libdarkfi_mobile_ffi.so
+darkfi-android-sdk/src/main/jniLibs/**/libblackhawk.so
 
 # Scratch downloads from scripts/fetch-darkfi-upstream-reference.sh (pinned upstream blobs)
 docs/upstream/_scratch/
@@ -44,6 +45,7 @@ artifacts/darkfid/*/darkfid_exec
 
 # Prebuilt UniFFI wallet FFI (produce via scripts/build-darkfi-mobile-ffi-android.sh)
 artifacts/mobile-ffi/**/libdarkfi_mobile_ffi.so
+artifacts/mobile-ffi/**/libblackhawk.so
 
 
 # Android native (CMake) intermediates

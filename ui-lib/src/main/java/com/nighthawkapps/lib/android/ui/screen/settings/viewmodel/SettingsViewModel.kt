@@ -35,9 +35,6 @@ class SettingsViewModel(
 ) : AndroidViewModel(application) {
     private val mutex = Mutex()
 
-    val isAnalyticsEnabled: StateFlow<Boolean?> =
-        booleanStateFlow(StandardPreferenceKeys.IS_ANALYTICS_ENABLED)
-
     val isBackgroundSync: StateFlow<Boolean?> =
         booleanStateFlow(StandardPreferenceKeys.IS_BACKGROUND_SYNC_ENABLED)
 
@@ -47,6 +44,10 @@ class SettingsViewModel(
     private val _isStrictOmrOnly =
         MutableStateFlow(DarkfiChatPreferences(getApplication()).strictOmrOnly)
     val isStrictOmrOnly: StateFlow<Boolean> = _isStrictOmrOnly.asStateFlow()
+
+    private val _isDirectConnectionDisabled =
+        MutableStateFlow(DarkfiChatPreferences(getApplication()).disableDirectConnection)
+    val isDirectConnectionDisabled: StateFlow<Boolean> = _isDirectConnectionDisabled.asStateFlow()
 
     val isBanditAvailable =
         flow {
@@ -98,10 +99,6 @@ class SettingsViewModel(
             emitAll(default.observe(preferenceProvider))
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(ANDROID_STATE_FLOW_TIMEOUT.inWholeMilliseconds), null)
 
-    fun setAnalyticsEnabled(enabled: Boolean) {
-        setBooleanPreference(StandardPreferenceKeys.IS_ANALYTICS_ENABLED, enabled)
-    }
-
     fun setBackgroundSyncEnabled(enabled: Boolean) {
         setBooleanPreference(StandardPreferenceKeys.IS_BACKGROUND_SYNC_ENABLED, enabled)
     }
@@ -119,6 +116,25 @@ class SettingsViewModel(
                 .get(getApplication())
                 .synchronizer.value
                 ?.setStrictOmrOnly(enabled)
+        }
+    }
+
+    fun setDirectConnectionDisabled(disabled: Boolean) {
+        val app = getApplication<Application>()
+        val chatPrefs = DarkfiChatPreferences(app)
+        val wasDirectOrSession =
+            com.nighthawkapps.lib.android.sdk.net.SessionTransport.effective(chatPrefs) ==
+                com.nighthawkapps.lib.android.sdk.net.PrivacyNetwork.Direct
+        chatPrefs.disableDirectConnection = disabled
+        setBooleanPreference(StandardPreferenceKeys.IS_DIRECT_CONNECTION_DISABLED, disabled)
+        com.nighthawkapps.lib.android.sdk.net.TransportNative.setDirectDisabled(disabled)
+        _isDirectConnectionDisabled.value = disabled
+        if (disabled && wasDirectOrSession) {
+            com.nighthawkapps.lib.android.sdk.nym.AppNymCoordinator.applyPrivacyNetworkAsync(
+                app,
+                com.nighthawkapps.lib.android.sdk.net.PrivacyNetwork.Nym,
+                AppWalletCoordinator.get(app),
+            )
         }
     }
 

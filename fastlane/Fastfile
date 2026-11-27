@@ -23,7 +23,7 @@ platform :android do
   # with the testnet upload key and publish that file; F-Droid does not
   # create its own signing key for this app.
   #
-  # Native libdarkfi_mobile_ffi.so must already be built. Local:
+  # Native libblackhawk.so must already be built. Local:
   #   export FDROID_BUILD=1 ANDROID_NDK_HOME="$ANDROID_SDK_ROOT/ndk/30.0.16248370"
   #   ./scripts/build-darkfi-mobile-ffi-android.sh
 
@@ -45,29 +45,6 @@ platform :android do
   desc "Run unit tests"
   lane :test do
     gradle(task: "testDarkfimainnetReleaseUnitTest")
-  end
-
-  # ── Internal distribution ──────────────────────────────────────────────
-
-  desc "Submit Build to AppCenter"
-  lane :build do |options|
-    gradle(task: "clean assembleDarkfimainnetRelease")
-    upload_to_app_center(
-      api_token: options[:api_token],
-      app_name: options[:app_name],
-      notes: "Author: #{last_git_commit[:author]}, changes: #{last_git_commit[:message]}"
-    )
-  end
-
-  private_lane :upload_to_app_center do |options|
-    appcenter_upload(
-      api_token: options[:api_token],
-      app_name: options[:app_name],
-      owner_name: "Nighthawk-Apps",
-      owner_type: "organization",
-      release_notes: options[:notes],
-      notify_testers: true
-    )
   end
 
 end

@@ -15,7 +15,7 @@ import org.junit.Test
  *   darkfi-mobile-ffi/src/darkfi_mobile_ffi.udl --language kotlin
  *
  * The Kotlin enum should be generated at:
- *   com.nighthawkapps.lib.uniffi.darkfi_mobile_ffi.DarkfiWalletNativeError
+ *   com.nighthawkapps.lib.uniffi.blackhawk.DarkfiWalletNativeError
  */
 class DarkfiFFIErrorTest {
     /**
