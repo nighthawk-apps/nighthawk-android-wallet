@@ -41,7 +41,7 @@ class NativeDarkfiSynchronizer internal constructor(
         DarkfiMobileFfiApi.openWallet(applicationContext.applicationContext, wallet),
     )
 
-    private val _status = MutableStateFlow(DarkfiSyncStatus.SYNCING)
+    private val _status = MutableStateFlow(DarkfiSyncStatus.CONNECTING)
     private val _processor =
         MutableStateFlow(DarkfiProcessorInfo(scannedBlocks = 0L, chainTip = 0L))
     private val _progress = MutableStateFlow(DarkfiPercent(0f))
@@ -81,7 +81,6 @@ class NativeDarkfiSynchronizer internal constructor(
         refreshTransactionsBestEffort()
         applySyncSnapshotBestEffort()
         startSyncProgressPolling()
-        _status.value = DarkfiSyncStatus.DISCONNECTED
     }
 
     private fun reportEndpointNetworkMismatchIfNeeded() {

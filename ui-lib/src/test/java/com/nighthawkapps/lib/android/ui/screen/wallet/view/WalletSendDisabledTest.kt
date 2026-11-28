@@ -17,4 +17,20 @@ class WalletSendDisabledTest {
         assertFalse(isSendDisabled(DarkfiSyncStatus.CONNECTING))
         assertFalse(isSendDisabled(DarkfiSyncStatus.DISCONNECTED))
     }
+
+    @Test
+    fun flowSyncWave_shownOnlyWhileActivelyConnectingOrSyncing() {
+        assertTrue(shouldShowFlowSyncWave(DarkfiSyncStatus.CONNECTING))
+        assertTrue(shouldShowFlowSyncWave(DarkfiSyncStatus.SYNCING))
+        assertTrue(shouldShowFlowSyncWave(DarkfiSyncStatus.SCANNING))
+        assertTrue(shouldShowFlowSyncWave(DarkfiSyncStatus.RETRYING))
+        assertTrue(shouldShowFlowSyncWave(DarkfiSyncStatus.REORG_DETECTED))
+
+        assertFalse(shouldShowFlowSyncWave(DarkfiSyncStatus.DISCONNECTED))
+        assertFalse(shouldShowFlowSyncWave(DarkfiSyncStatus.ERROR))
+        assertFalse(shouldShowFlowSyncWave(DarkfiSyncStatus.STOPPED))
+        assertFalse(shouldShowFlowSyncWave(DarkfiSyncStatus.DEGRADED))
+        assertFalse(shouldShowFlowSyncWave(DarkfiSyncStatus.PROTO_MISMATCH))
+        assertFalse(shouldShowFlowSyncWave(DarkfiSyncStatus.SYNCED))
+    }
 }

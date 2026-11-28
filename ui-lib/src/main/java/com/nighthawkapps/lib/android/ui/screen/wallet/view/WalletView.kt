@@ -334,16 +334,14 @@ fun WalletView(
                             walletSnapshot,
                             false
                         )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    FlowSyncWave(
-                        progress = walletSnapshot.progress.decimal,
-                        isActive =
-                            walletSnapshot.status == DarkfiSyncStatus.CONNECTING ||
-                                walletSnapshot.status == DarkfiSyncStatus.SYNCING ||
-                                walletSnapshot.status == DarkfiSyncStatus.SCANNING ||
-                                walletSnapshot.status == DarkfiSyncStatus.RETRYING,
-                        modifier = Modifier.fillMaxWidth(0.86f),
-                    )
+                    if (shouldShowFlowSyncWave(walletSnapshot.status)) {
+                        Spacer(modifier = Modifier.height(8.dp))
+                        FlowSyncWave(
+                            progress = walletSnapshot.progress.decimal,
+                            isActive = true,
+                            modifier = Modifier.fillMaxWidth(0.86f),
+                        )
+                    }
                     Spacer(modifier = Modifier.height(6.dp))
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
@@ -611,6 +609,13 @@ fun BalanceAmountRow(
 }
 
 fun isSyncing(status: DarkfiSyncStatus): Boolean = status == DarkfiSyncStatus.SYNCING || status == DarkfiSyncStatus.SCANNING
+
+fun shouldShowFlowSyncWave(status: DarkfiSyncStatus): Boolean =
+    status == DarkfiSyncStatus.CONNECTING ||
+        status == DarkfiSyncStatus.SYNCING ||
+        status == DarkfiSyncStatus.SCANNING ||
+        status == DarkfiSyncStatus.RETRYING ||
+        status == DarkfiSyncStatus.REORG_DETECTED
 
 fun isSendDisabled(status: DarkfiSyncStatus): Boolean =
     status == DarkfiSyncStatus.ERROR ||

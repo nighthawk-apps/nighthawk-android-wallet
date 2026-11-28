@@ -4,6 +4,8 @@ import com.nighthawkapps.lib.android.sdk.chat.DarkfiChatConnectionState
 import com.nighthawkapps.lib.android.sdk.wallet.DarkfiSyncStatus
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
+import kotlin.test.assertTrue
 
 class DarkfiDaemonStatusMappingTest {
     @Test
@@ -94,5 +96,22 @@ class DarkfiDaemonStatusMappingTest {
                 bootstrapComplete = true,
             ),
         )
+    }
+
+    @Test
+    fun shouldAutoRetryWalletSync_onlyWhenDisconnectedOrFailed() {
+        assertTrue(DarkfiDaemonStatusMapping.shouldAutoRetryWalletSync(DarkfiSyncStatus.DISCONNECTED))
+        assertTrue(DarkfiDaemonStatusMapping.shouldAutoRetryWalletSync(DarkfiSyncStatus.DEGRADED))
+        assertTrue(DarkfiDaemonStatusMapping.shouldAutoRetryWalletSync(DarkfiSyncStatus.ERROR))
+        assertTrue(DarkfiDaemonStatusMapping.shouldAutoRetryWalletSync(DarkfiSyncStatus.STOPPED))
+        assertTrue(DarkfiDaemonStatusMapping.shouldAutoRetryWalletSync(DarkfiSyncStatus.RETRYING))
+
+        assertFalse(DarkfiDaemonStatusMapping.shouldAutoRetryWalletSync(null))
+        assertFalse(DarkfiDaemonStatusMapping.shouldAutoRetryWalletSync(DarkfiSyncStatus.SYNCED))
+        assertFalse(DarkfiDaemonStatusMapping.shouldAutoRetryWalletSync(DarkfiSyncStatus.CONNECTING))
+        assertFalse(DarkfiDaemonStatusMapping.shouldAutoRetryWalletSync(DarkfiSyncStatus.SYNCING))
+        assertFalse(DarkfiDaemonStatusMapping.shouldAutoRetryWalletSync(DarkfiSyncStatus.SCANNING))
+        assertFalse(DarkfiDaemonStatusMapping.shouldAutoRetryWalletSync(DarkfiSyncStatus.REORG_DETECTED))
+        assertFalse(DarkfiDaemonStatusMapping.shouldAutoRetryWalletSync(DarkfiSyncStatus.PROTO_MISMATCH))
     }
 }

@@ -67,8 +67,13 @@ data class WalletDisplayValues(
                     statusIconDrawable = R.drawable.ic_icon_validating
                 }
 
+                DarkfiSyncStatus.RETRYING -> {
+                    progress = walletSnapshot.progress
+                    statusText = context.getString(R.string.ns_connecting)
+                    statusIconDrawable = R.drawable.ic_icon_reconnecting
+                }
+
                 DarkfiSyncStatus.DISCONNECTED,
-                DarkfiSyncStatus.RETRYING,
                 DarkfiSyncStatus.DEGRADED,
                 DarkfiSyncStatus.ERROR,
                 DarkfiSyncStatus.PROTO_MISMATCH -> {

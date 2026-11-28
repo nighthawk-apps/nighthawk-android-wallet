@@ -7,6 +7,7 @@ import com.nighthawkapps.lib.android.sdk.net.PrivacyNetwork
 import com.nighthawkapps.lib.android.sdk.net.SessionTransport
 import com.nighthawkapps.lib.android.sdk.nym.AppNymCoordinator
 import com.nighthawkapps.lib.android.sdk.tor.AppTorCoordinator
+import com.nighthawkapps.lib.android.sdk.wallet.DarkfiSyncStatus
 import com.nighthawkapps.lib.android.sdk.wallet.DarkfiSynchronizer
 import com.nighthawkapps.lib.android.sdk.wallet.DarkfiWalletCoordinator
 import com.nighthawkapps.lib.android.sdk.wallet.darkfid.DarkfidConnectionProbe
@@ -52,6 +53,13 @@ class DarkfiDaemonLifecycleCoordinator private constructor(
     private var observeJob: Job? = null
     private var bootstrapComplete = false
     private val startedOnce = AtomicBoolean(false)
+    private val autoRetryInFlight = AtomicBoolean(false)
+
+    @Volatile
+    private var lastAutoRetryAtMs: Long = 0L
+
+    @Volatile
+    private var latestWalletStatus: DarkfiSyncStatus? = null
 
     @Volatile
     private var inForeground = false
@@ -144,6 +152,40 @@ class DarkfiDaemonLifecycleCoordinator private constructor(
         }
     }
 
+    /**
+     * Triggers an immediate reconnect + rescan when entering the Wallet screen while disconnected.
+     * Throttled so rapid screen re-entries or ON_RESUME cycles do not thrash sockets or Nym/Tor.
+     */
+    fun retryWalletConnectionIfDisconnected(force: Boolean = false): Boolean {
+        val syncStatusFlow = walletCoordinatorProvider().synchronizer.value?.status
+        val walletStatus = (syncStatusFlow as? StateFlow<DarkfiSyncStatus>)?.value ?: latestWalletStatus
+        if (!force && !DarkfiDaemonStatusMapping.shouldAutoRetryWalletSync(walletStatus)) {
+            return false
+        }
+        val now = System.currentTimeMillis()
+        if (!force && now - lastAutoRetryAtMs < AUTO_RETRY_COOLDOWN_MS) {
+            return false
+        }
+        if (!autoRetryInFlight.compareAndSet(false, true)) {
+            return false
+        }
+        lastAutoRetryAtMs = now
+        _status.value = DarkfiDaemonStatus.Connecting
+        scope.launch {
+            try {
+                Twig.info {
+                    "DarkFi daemon: auto-retry wallet connection on Wallet entry (status=$walletStatus)"
+                }
+                ensureActiveRouteReady()
+                walletCoordinatorProvider().reloadSynchronizer()
+                walletCoordinatorProvider().rescanBlockchain()
+            } finally {
+                autoRetryInFlight.set(false)
+            }
+        }
+        return true
+    }
+
     @OptIn(ExperimentalCoroutinesApi::class)
     private fun observeSubsystems() {
         if (observeJob?.isActive == true) {
@@ -181,6 +223,7 @@ class DarkfiDaemonLifecycleCoordinator private constructor(
             DarkfiChatStatusRegistry.state,
             walletCoordinatorProvider().persistableWallet,
         ) { walletStatus, walletError, chatState, wallet ->
+            latestWalletStatus = walletStatus
             DarkfiDaemonStatusMapping.map(
                 walletPresent = wallet != null,
                 walletStatus = walletStatus,
@@ -240,6 +283,7 @@ class DarkfiDaemonLifecycleCoordinator private constructor(
 
     companion object {
         private const val RECONNECT_INTERVAL_MS = 20_000L
+        private const val AUTO_RETRY_COOLDOWN_MS = 10_000L
 
         @Volatile
         private var instance: DarkfiDaemonLifecycleCoordinator? = null

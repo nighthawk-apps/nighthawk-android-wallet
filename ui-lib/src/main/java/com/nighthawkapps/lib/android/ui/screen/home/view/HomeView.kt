@@ -73,6 +73,7 @@ import com.nighthawkapps.lib.android.ui.screen.home.HomeTag
 import com.nighthawkapps.lib.android.ui.screen.home.model.HomeFiatConversionRateState
 import com.nighthawkapps.lib.android.ui.screen.home.model.WalletDisplayValues
 import com.nighthawkapps.lib.android.ui.screen.home.model.WalletSnapshot
+import com.nighthawkapps.lib.android.ui.screen.wallet.view.shouldShowFlowSyncWave
 import kotlinx.coroutines.CoroutineScope
 
 @Preview("Home")
@@ -462,15 +463,17 @@ private fun Status(
                     )
                 }
 
-                Spacer(modifier = Modifier.height(6.dp))
-                com.nighthawkapps.lib.android.ui.design.component.FlowSyncWave(
-                    progress = walletDisplayValues.progress.decimal,
-                    isActive = isSyncing(walletSnapshot.status),
-                    modifier =
-                        Modifier
-                            .fillMaxWidth(0.86f)
-                            .height(34.dp),
-                )
+                if (shouldShowFlowSyncWave(walletSnapshot.status)) {
+                    Spacer(modifier = Modifier.height(6.dp))
+                    com.nighthawkapps.lib.android.ui.design.component.FlowSyncWave(
+                        progress = walletDisplayValues.progress.decimal,
+                        isActive = true,
+                        modifier =
+                            Modifier
+                                .fillMaxWidth(0.86f)
+                                .height(34.dp),
+                    )
+                }
 
                 // Block sync progress — uses lightwallet sync status
                 val syncMsg = walletSnapshot.syncStatusMessage

@@ -62,4 +62,22 @@ object DarkfiDaemonStatusMapping {
         }
         return DarkfiDaemonStatus.Connected
     }
+
+    /** Whether entering the Wallet screen should immediately trigger a reconnect attempt. */
+    fun shouldAutoRetryWalletSync(status: DarkfiSyncStatus?): Boolean =
+        when (status) {
+            DarkfiSyncStatus.DISCONNECTED,
+            DarkfiSyncStatus.DEGRADED,
+            DarkfiSyncStatus.ERROR,
+            DarkfiSyncStatus.STOPPED,
+            DarkfiSyncStatus.RETRYING -> true
+
+            null,
+            DarkfiSyncStatus.SYNCED,
+            DarkfiSyncStatus.CONNECTING,
+            DarkfiSyncStatus.SYNCING,
+            DarkfiSyncStatus.SCANNING,
+            DarkfiSyncStatus.REORG_DETECTED,
+            DarkfiSyncStatus.PROTO_MISMATCH -> false
+        }
 }
