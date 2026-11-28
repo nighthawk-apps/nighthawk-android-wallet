@@ -31,6 +31,8 @@ fun ReviewSend(
     recipient: String,
     memo: String?,
     feeLabel: String?,
+    syncMethodLabel: String? = null,
+    isUnifOmrActive: Boolean = false,
     isEstimatingFee: Boolean,
     isSendEnabled: Boolean,
     errorMessage: String?,
@@ -66,7 +68,15 @@ fun ReviewSend(
         )
         ReviewRow(
             label = stringResource(R.string.ns_sync_method),
-            value = stringResource(R.string.send_omr_scheme_label),
+            value =
+                syncMethodLabel
+                    ?: stringResource(
+                        if (isUnifOmrActive) {
+                            R.string.send_omr_scheme_label
+                        } else {
+                            R.string.send_trial_scheme_label
+                        },
+                    ),
         )
         memo?.takeIf { it.isNotBlank() }?.let {
             ReviewRow(label = stringResource(R.string.ns_memo), value = it)
@@ -84,7 +94,15 @@ fun ReviewSend(
 
         Spacer(modifier = Modifier.height(WalletTheme.dimens.spacingDefault))
         BodyMedium(
-            text = stringResource(id = R.string.send_omr_default_hint),
+            text =
+                stringResource(
+                    id =
+                        if (isUnifOmrActive) {
+                            R.string.send_omr_default_hint
+                        } else {
+                            R.string.send_trial_default_hint
+                        },
+                ),
             color = WalletTheme.colors.secondaryTitleText,
         )
 

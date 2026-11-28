@@ -37,7 +37,22 @@ srclib SHA edit.
 
 Tagging alone does **not** run this repo’s GitHub `Deploy` workflow (that is branch/`workflow_dispatch` + Play secrets). F-Droid’s scanner is separate.
 
-## 3.2.01 (this release)
+## 3.2.02 (this release)
+
+| Field | Value |
+|-------|--------|
+| `WALLET_VERSION_NAME` | `3.2.02` |
+| `WALLET_VERSION_CODE` | `30200802` |
+| `Suggested git tag` | `v3.2.02` |
+| Fastlane changelog | `fastlane/metadata/android/en-US/changelogs/30200802.txt` |
+| Blackhawk FFI pin | `0.4.0` (`third_party/blackhawk` @ `d69699ef` + nested `third_party/darkfi`) |
+| DarkFi pin | `b87318e80968ea071fbd3a56eb1ea17110252753` |
+| nym-smolmix | `5f0dba82` |
+| F-Droid NDK | `30.0.16248370` (`ANDROID_NDK_VERSION`) |
+
+Upgrades opt-in UnifOMR to `unifomr-v2` (Param2 RLWE + raw-NTT detection key) with 2-RPC streaming Batch PIR while keeping padded compact-block trial decryption (`strict_omr_only = false`) default, optimizes compact-block sync by setting `omit_omr_clues = true` and aligning 1024-block trial windows, blocks `FetchPirBatchStream` over BLE mesh, dynamically displays active sync mode in Review & Send, and tracks `Cargo.lock` in `blackhawk` `0.4.0` for F-Droid. Lockstep with desktop `3.2.2`, Moonshine `3.2.2`, iOS `3.2.02`, and lightwalletd `0.3.16`.
+
+## 3.2.01
 
 | Field | Value |
 |-------|--------|

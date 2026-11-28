@@ -700,8 +700,8 @@
     <string name="dialog_first_use_view_tx_title">Potential Privacy Risk</string>
     <string name="keep_screen_on">Keep Screen on</string>
     <string name="keep_screen_on_detail_msg">If you haven\'t opened your wallet in a while, the sync process can take some time. Setting screen mode to \"Keep on\" will ensure your phone doesn\'t fall asleep while syncing.</string>
-    <string name="strict_omr_only">Experimental UnifOMR</string>
-    <string name="strict_omr_only_detail_msg">Off (default) = padded trial decryption. Payments are found from the note itself, including ones sent by Dark Wallet or another lightwalletd. On = experimental UnifOMR. Both wallets must register on this same lightwalletd server first. An unregistered, offline, or cross-server address can miss funds. Uploads a large detection key over Tor.</string>
+    <string name="strict_omr_only">UnifOMR v2 (opt-in)</string>
+    <string name="strict_omr_only_detail_msg">Off (default) = padded compact-block trial decryption. Payments are found from the note itself, including sends from drk or another lightwalletd. On = UnifOMR v2 + streaming Batch PIR. Both wallets must register on this same fhe-omr lightwalletd first; uploads a ~30 MiB pooled detection key once over Tor/Nym.</string>
     <string name="advanced">Advanced</string>
     <string name="advanced_msg">Less common settings</string>
     <string name="nuke_wallet">Nuke Wallet</string>

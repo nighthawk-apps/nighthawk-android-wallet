@@ -8,7 +8,7 @@
 
 Privacy-preserving wallet (work-in-progress) by [Nighthawk Apps](https://nighthawkapps.com). This tree ships as a **new Android application id** on the DarkFi network (DRK). The app integrates a native DarkFi wallet API via **UniFFI** (`../blackhawk` → generated Kotlin + `DarkfiMobileFfiApi`) for chain sync, broadcast, and chat.
 
-**3.2.01** (`WALLET_VERSION_CODE=30200801`). Standalone MIT [`blackhawk`](https://github.com/nighthawk-apps/blackhawk) (`0.3.1`) FFI core, wallet-level Double Ratchet DarkIRC DMs (`NHDR1:`), persistent Disable Direct Connection setting, and lightweight `FlowSyncWave` progress. Default sync trial-decrypts notes in parallel. DarkFi pin `b87318e80`, Arti 0.48, UniFFI 0.32.2 (`blackhawk` 0.3.1), nym-smolmix `5f0dba82`. Aligns with desktop 3.2.1, Moonshine 3.2.1, lightwalletd 0.3.15, and iOS 3.01.24 (pending 3.2.01) (see [docs/VERSION_LOCKSTEP.md](docs/VERSION_LOCKSTEP.md)).
+**3.2.02** (`WALLET_VERSION_CODE=30200802`). Standalone MIT [`blackhawk`](https://github.com/nighthawk-apps/blackhawk) (`0.4.0`, proto `2.2.0`) FFI core, wallet-level Double Ratchet DarkIRC DMs (`NHDR1:`), persistent Disable Direct Connection setting, and lightweight `FlowSyncWave` progress. Default sync uses compact-block trial decryption (`omit_omr_clues` + `1024`-block aligned buckets); opt-in UnifOMR v2 adds `~30 MiB` seeded raw-NTT keys, `40 KiB` digests, and 2-RPC streaming Batch PIR. DarkFi pin `b87318e80`, Arti 0.48, UniFFI 0.32.2 (`blackhawk` 0.4.0), nym-smolmix `5f0dba82`. Aligns with iOS 3.2.02, Desktop 3.2.2, Moonshine 3.2.2, and lightwalletd 0.3.16 (see [docs/VERSION_LOCKSTEP.md](docs/VERSION_LOCKSTEP.md)).
 
 ## Executive Summary: Why Nighthawk Leads in Privacy
 
@@ -40,7 +40,7 @@ Nighthawk is engineered as a full-stack private money and communications client 
 
 Store listings are **not finalized** for `com.nighthawkwallet.android`. Placeholder targets until publishing completes:
 
-- **F-Droid:** DarkFi **testnet** package `com.nighthawkwallet.android.testnet` / flavor `darkfitestnet` (see [docs/fdroid.md](docs/fdroid.md); listing pending fdroiddata merge). **3.2.01** (`WALLET_VERSION_CODE=30200801`). Local unsigned APK: `FDROID_BUILD=1 bundle exec fastlane fdroid`.
+- **F-Droid:** DarkFi **testnet** package `com.nighthawkwallet.android.testnet` / flavor `darkfitestnet` (see [docs/fdroid.md](docs/fdroid.md); listing pending fdroiddata merge). **3.2.02** (`WALLET_VERSION_CODE=30200802`). Local unsigned APK: `FDROID_BUILD=1 bundle exec fastlane fdroid`.
 - **Google Play:** `https://PLACEHOLDER_PLAY_STORE_LISTING_URL`
 
 Replace these URLs when production listings exist—do not invent live links prematurely.

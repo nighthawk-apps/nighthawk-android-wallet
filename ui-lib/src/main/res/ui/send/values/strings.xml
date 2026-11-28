@@ -23,7 +23,9 @@
     <string name="send_success_title">Broadcasted</string>
     <string name="send_success_message" formatted="true">Confirmed in lightwalletd mempool. Awaiting block confirmation.\nTransaction id:\n%1$s</string>
     <string name="send_success_ok">Done</string>
-    <string name="send_omr_scheme_label">UnifOMR (experimental)</string>
-    <string name="send_omr_default_hint">When Experimental UnifOMR is enabled in Advanced settings, this transfer embeds a UnifOMR detection clue so the recipient can sync via an fhe-omr lightwalletd. Off by default — trial decryption remains the production path.</string>
+    <string name="send_trial_scheme_label">Trial decryption (default)</string>
+    <string name="send_trial_default_hint">Default compact-block trial decryption. Transfers remain fully shielded and discoverable by all DarkFi, Moonshine, and Nighthawk wallets.</string>
+    <string name="send_omr_scheme_label">UnifOMR v2 (opt-in)</string>
+    <string name="send_omr_default_hint">UnifOMR v2 is enabled in Advanced settings, so this transfer embeds a compact RLWE clue for opt-in UnifOMR v2 + streaming Batch PIR sync on a compatible fhe-omr lightwalletd.</string>
     <string name="send_tx_id_format">Transaction id: %1$s</string>
 </resources>

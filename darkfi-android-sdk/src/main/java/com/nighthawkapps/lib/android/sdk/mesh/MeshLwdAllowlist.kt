@@ -20,6 +20,7 @@ object MeshLwdAllowlist {
         setOf(
             "GetUnifOmrDigest",
             "FetchPirBatch",
+            "FetchPirBatchStream",
             "GetBlockRange",
             "GetNoteCommitments",
             "GetNullifiers",

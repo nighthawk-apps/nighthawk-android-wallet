@@ -1,0 +1,4 @@
+- Upgraded UnifOMR v2 (Param2 RLWE + raw-NTT detection key) as opt-in mode with streaming Batch PIR (2 RPCs per matched window)
+- Optimized default compact-block quick scanning by omitting unused OMR clues and aligning 1024-block sync buckets
+- Blocked streaming Batch PIR over BLE mesh allowlist and dynamically display active sync method in Review & Send
+- Proto 2.2.0 lockstep with darkfi-lightwalletd 0.3.16, blackhawk 0.4.0, Moonshine 3.2.2, and Desktop 3.2.2

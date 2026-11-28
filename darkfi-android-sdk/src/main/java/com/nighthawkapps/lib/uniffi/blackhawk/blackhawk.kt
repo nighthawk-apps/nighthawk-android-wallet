@@ -4108,7 +4108,9 @@ public object FfiConverterSequenceTypeDrkTransactionRecord: FfiConverterRustBuff
             FfiConverterTypeDrkTransactionRecord.write(it, buf)
         }
     }
-} fun `bridgePing`(): kotlin.String {
+}
+
+fun `bridgePing`(): kotlin.String {
             return FfiConverterString.lift(
     uniffiRustCall() { _status ->
     UniffiLib.uniffi_blackhawk_fn_func_bridge_ping(

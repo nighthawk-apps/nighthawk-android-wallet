@@ -356,11 +356,24 @@ private fun NighthawkSendFlow(
                             tokenBalances = tokenBalances,
                             selectedTokenId = selectedTokenId,
                         )
+                    val isStrictOmr =
+                        walletSnapshot?.syncMethod ==
+                            com.nighthawkapps.lib.android.sdk.wallet.DarkfiSyncMethod.UNIF_OMR ||
+                            com.nighthawkapps.lib.android.sdk.chat.DarkfiChatPreferences(activity)
+                                .strictOmrOnly
+                    val syncMethodLabel =
+                        if (isStrictOmr) {
+                            stringResource(R.string.send_omr_scheme_label)
+                        } else {
+                            stringResource(R.string.send_trial_scheme_label)
+                        }
                     ReviewSend(
                         amountLabel = "$amountText ${selectedAsset.unit}",
                         recipient = recipient,
                         memo = memoText.ifBlank { null },
                         feeLabel = sendViewModel.formatFeeAtomic(feeAtomic)?.let { "$it DRK" },
+                        syncMethodLabel = syncMethodLabel,
+                        isUnifOmrActive = isStrictOmr,
                         isEstimatingFee = isEstimatingFee,
                         isSendEnabled = canSend,
                         errorMessage =
